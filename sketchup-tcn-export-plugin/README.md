@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export und Frontfarbe)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße und die Rückwandnut im Oberschrank. Schubladen, Türen und Griffe folgen.
+**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße und die Rückwandnut im Oberschrank. Für Schubladen (Blum LEGRABOX) kommen die Schienenbohrungen in die Seiten; Kastenboden, Frontbefestigung, Türen und Griffe folgen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Später schreibt es je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
 
@@ -35,8 +35,9 @@ Was geändert wird:
 *Erweiterungen › Schrank-CNC › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
 * Maße und Lagen sind **Fräsmaß** wie in OpenCutList: an jeder Seite mit Anleimer (Kantenfläche mit OCL-Kante, Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke.
-* Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 12 tief in die Seite), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden 30 … x-30, Raster 150; Strebe 20 … x-20, Raster 60; beide gleichmäßig verteilt (1/1). In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
-* **Lochreihen** Ø5, 12 tief, Raster 32 in den Seiten jedes Fachs mit Einlegeboden: 35 mm von vorn und 35 mm vor der Hinterkante bzw. vor der Rückwandnut; in der Höhe 38 mm über dem festen Boden darunter bis 33 mm unter dem darüber (ergibt 55 … x-50 wie `Seite.tcn`). Unterschrank mit Schubladen: keine.
+* Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden 30 … x-30, Raster 150; Strebe 20 … x-20, Raster 60; beide gleichmäßig verteilt (1/1). In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
+* **Lochreihen** Ø5, 12 tief, Raster 32 in jeder Seite und jedem Fach zwischen zwei festen Böden (Boden, Zwischenboden, Deckel, Strebe): 35 mm von vorn und 35 mm vor der Hinterkante bzw. vor der Rückwandnut; in der Höhe ab 38 mm über dem Boden darunter bis 33 mm unter dem darüber (ergibt 55 … x-50 wie `Seite.tcn`). Hat der Schrank ein Schubladen-Lochraster (`Lochraster_Start`, `Lochraster`), beginnt die Reihe auf dem nächsten Rasterpunkt, damit die Schienen in die Lochreihe geschraubt werden.
+* **Schienen** (Blum LEGRABOX, `Seiten_SK_L/R`): je sichtbarer Schublade Ø5, 14 tief, 37/69/261/293 mm ab Vorderkante der Seite (im Fräsmaß 35/67/259/291), Höhe = Kastenunterkante + `Hoehenoffset_Schiene`. Liegt eine Bohrung schon in der Lochreihe, entfällt sie.
 * **Sockelfüße** (Unter- und Hochschränke): Bohrbild aus `Boden.tcn` in der Unterseite des Bodens, je Fuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64, 20 mm vom Rand in x und 60 mm in y. Der Boden liegt dafür mit der Unterseite nach oben.
 * **Rückwandnut** (steckt eine Rückwand in Seiten und Boden, also im Oberschrank): Bahn mit dem Nutfräser 2200 (Ø 8,03 mm, wie im Treppenbau) als `W#89`/`W#2201`, Tiefe = Nuttiefe (9 mm), Breite = Rückwandstärke (breiter als der Fräser: mehrere Bahnen). Läuft die Nut aus der Platte, fräst sie 5 mm darüber hinaus.
 * **Deckel–Rückwand** (nur Oberschrank): 3 Schrauben 50 mm von den Seiten und in der Mitte, Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Hinterkante des Deckels (Annahme).
@@ -71,6 +72,6 @@ Was geändert wird:
 4. ~~Frontfarbe und Griffe.~~
 5. ~~Erster Export nur Korpus, Vergleich mit den Beispiel-TCN.~~
 6. ~~Lochreihen, Sockelfüße, Rückwandnut.~~
-7. Schubladen.
+7. Schubladen: ~~Schienenbohrungen~~; Kastenboden und Frontbefestigung (LEGRABOX-Maße offen), Generator auf LEGRABOX umstellen.
 8. Türen und Griffbohrungen.
 9. Dialog, Listen.

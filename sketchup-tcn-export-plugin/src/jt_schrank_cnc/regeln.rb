@@ -27,18 +27,23 @@ module JTools
         # Strebe.tcn: 20 … x-20, Raster 60; verteilt, damit es auch bei 98 mm (Anleimer) zwei Dübel bleiben
         'Strebe'        => { rand: 20, raster: 60, verteilt: true, schraube: true }
       }.freeze
-      DUEBEL = { d: 8, tiefe_kante: 22, tiefe_flaeche: 12 }.freeze
+      DUEBEL = { d: 8, tiefe_kante: 22, tiefe_flaeche: 14 }.freeze # Seite 14 tief (Seiten_SK, Jürgen: das tiefere)
       SCHRAUBE = { d: 3, tiefe: 21 }.freeze # Seite.tcn: Ø3, 21 tief in der Mitte der Strebe
       # Deckel–Rückwand (Oberschrank): 3 Schrauben, 50 mm von den Seiten und in der Mitte;
       # Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Deckelkante (Annahme)
       RUECKWAND_SCHRAUBE = { rand: 50, d_rueckwand: 4, d_deckel: 3, tiefe_deckel: 15, durch: 1 }.freeze
       # Seite.tcn: Lochreihe Ø5, 12 tief, Raster 32, 35 mm von vorn und hinten,
-      # 55 … x-50 im Fräsmaß der Seite = 38 über dem Boden und 33 unter dem Deckel
+      # 55 … x-50 im Fräsmaß der Seite = 38 über dem Boden und 33 unter dem Deckel.
+      # Jede Seite bekommt sie in jedem Fach (Seiten sind immer gleich).
       LOCHREIHE = { d: 5, tiefe: 12, raster: 32, rand: 35, ueber: 38, unter: 33 }.freeze
+      # Seiten_SK_L/R: Schiene (Blum LEGRABOX) Ø5, 14 tief, 37/69/261/293 mm ab Vorderkante Seite
+      # (roh, im Fräsmaß 35/67/259/291), Höhe = Kastenunterkante + Höhenoffset Schiene
+      SCHIENE = { d: 5, tiefe: 14, tiefen: [37, 69, 261, 293] }.freeze
+      KASTEN = %w[KastenBoden KastenSeite KastenVorne KastenHinten].freeze
       # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
       SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
-      FESTE_BOEDEN = %w[Boden Deckel Zwischenboden].freeze
+      FESTE_BOEDEN = %w[Boden Deckel Zwischenboden Strebe].freeze
 
       def self.anwenden(werkstuecke)
         werkstuecke.each { |w| w.ops.clear }
@@ -55,7 +60,8 @@ module JTools
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
             teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
           end
-          lochreihen(teile, meldungen)
+          lochreihen(teile)
+          schienen(teile, meldungen)
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
         end
         meldungen
@@ -115,41 +121,92 @@ module JTools
         b.ops << Op.new(:reihe, sb, p0, p1, r[:d_deckel], r[:tiefe_deckel], raster, false, "Schraube #{a.teil.jt('teil')}")
       end
 
-      # Lochreihen in den Seiten je Fach mit Einlegeboden: zwischen den festen Böden
-      # darunter und darüber, vorn 35 mm, hinten 35 mm vor Hinterkante bzw. Rückwandnut
-      def self.lochreihen(teile, meldungen)
-        fertig = {}
-        teile.select { |w| w.rolle == 'Einlegeboden' }.each do |e|
-          teile.select { |w| w.rolle == 'Seite' }.each do |s|
-            k = s.dicke_achse
-            v = e.dicke_achse
-            next if k == v
-            t = ([0, 1, 2] - [k, v]).first
-            if (e.lo[k] - s.hi[k]).abs < 3.0 then seite = :"#{Geometrie::ACHSEN[k]}max"
-            elsif (s.lo[k] - e.hi[k]).abs < 3.0 then seite = :"#{Geometrie::ACHSEN[k]}min"
-            else next
-            end
-            next unless ueberlapp(e, s, v) > 0 && ueberlapp(e, s, t) > 1.0
-            boeden = teile.select do |f|
-              FESTE_BOEDEN.include?(f.rolle) && f.dicke_achse == v &&
-                [(f.lo[k] - s.hi[k]).abs, (s.lo[k] - f.hi[k]).abs].min < TOL
-            end
-            unten = boeden.map { |f| f.hi[v] }.select { |z| z <= e.lo[v] + TOL }.max
-            oben = boeden.map { |f| f.lo[v] }.select { |z| z >= e.hi[v] - TOL }.min
-            l = LOCHREIHE
-            lo = unten ? unten + l[:ueber] : s.lo_f(v) + l[:ueber] + l[:tiefe]
-            hi = oben ? oben - l[:unter] : s.hi_f(v) - l[:unter] - l[:tiefe]
-            next if fertig[[s, seite, lo, hi]]
-            fertig[[s, seite, lo, hi]] = true
-            nuten = s.ops.select { |o| o.art == :nut && Geometrie.achse(o.seite) == k && o.p0[t] > s.lo_f(t) + l[:rand] }
-            hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
-            flaeche = Geometrie.max?(seite) ? s.hi[k] : s.lo[k]
+      def self.flaeche_innen(s, k, nach_max) = nach_max ? [:"#{Geometrie::ACHSEN[k]}max", s.hi[k]] : [:"#{Geometrie::ACHSEN[k]}min", s.lo[k]]
+
+      # feste Böden (und Streben), die an der Seite stoßen, nach Höhe; Seite der Seite, an der sie liegen
+      def self.boeden_an(s, teile)
+        k = s.dicke_achse
+        teile.select do |f|
+          FESTE_BOEDEN.include?(f.rolle) && f.dicke_achse != k &&
+            [(f.lo[k] - s.hi[k]).abs, (s.lo[k] - f.hi[k]).abs].min < TOL
+        end
+      end
+
+      # Lochreihen in jeder Seite je Fach zwischen zwei festen Böden: vorn 35 mm,
+      # hinten 35 mm vor Hinterkante bzw. Rückwandnut
+      def self.lochreihen(teile)
+        teile.select { |w| w.rolle == 'Seite' }.each do |s|
+          k = s.dicke_achse
+          boeden = boeden_an(s, teile)
+          next if boeden.empty?
+          v = boeden.first.dicke_achse
+          t = ([0, 1, 2] - [k, v]).first
+          nach_max = (boeden.first.lo[k] - s.hi[k]).abs < TOL
+          seite, flaeche = flaeche_innen(s, k, nach_max)
+          l = LOCHREIHE
+          nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
+          hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
+          lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
+          raster = lochraster(s)
+          lagen.each_cons(2) do |(_, unten), (oben, _)|
+            lo = unten + l[:ueber]
+            # mit Schubladen-Lochraster (Lochraster_Start + n · Lochraster ab Unterkante Seite):
+            # auf das Raster, damit die Schienen in die Lochreihe geschraubt werden können
+            lo = s.lo[v] + raster[0] + raster[1] * ((lo - s.lo[v] - raster[0]) / raster[1] - 1e-6).ceil if raster
+            hi = oben - l[:unter]
+            next if hi - lo < l[:raster]
             [s.lo_f(t) + l[:rand], hinten - l[:rand]].each do |y|
-              unless y.between?(e.lo[t], e.hi[t])
-                meldungen << "#{s.name}: Lochreihe bei #{(y - s.lo_f(t)).round(1)} mm liegt nicht unter #{e.name}"
-              end
               s.ops << Op.new(:reihe, seite, punkt(k => flaeche, t => y, v => lo), punkt(k => flaeche, t => y, v => hi),
-                              l[:d], l[:tiefe], l[:raster], false, "Lochreihe #{e.teil.jt('teil')}")
+                              l[:d], l[:tiefe], l[:raster], false, 'Lochreihe')
+            end
+          end
+        end
+      end
+
+      # Lochraster des Schranks [Start, Raster] in mm, wenn er Schubladen im Raster hat
+      def self.lochraster(w)
+        d = Schraenke.definition(w.teil.schrank)
+        st, ra = %w[lochraster_start lochraster].map { |k| d.get_attribute(DC_DICT, k) }
+        st && ra.to_f > 0 ? [st.to_f * Geometrie::MM, ra.to_f * Geometrie::MM] : nil
+      end
+
+      # liegt eine Bohrung schon in einer Lochreihe der Seite?
+      def self.in_lochreihe?(s, seite, p)
+        s.ops.any? do |o|
+          next false unless o.art == :reihe && o.titel == 'Lochreihe' && o.seite == seite
+          a = (0..2).find { |i| (o.p1[i] - o.p0[i]).abs > 0.001 }
+          (0..2).all? { |i| i == a || (o.p0[i] - p[i]).abs < 0.1 } &&
+            p[a].between?(o.p0[a] - 0.1, o.p1[a] + 0.1) && (((p[a] - o.p0[a]) / o.raster) % 1 - 0.5).abs > 0.5 - 0.1 / o.raster
+        end
+      end
+
+      # Schienenbohrungen je sichtbarer Schublade in beiden Seiten
+      def self.schienen(teile, meldungen)
+        kaesten = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }
+        kaesten.each_value do |kasten|
+          unten = kasten.map { |w| w.lo[2] }.min
+          schrank = Schraenke.definition(kasten.first.teil.schrank)
+          z = unten + schrank.get_attribute(DC_DICT, 'hoehenoffset_schiene').to_f * Geometrie::MM
+          lo = (0..1).map { |i| kasten.map { |w| w.lo[i] }.min }
+          hi = (0..1).map { |i| kasten.map { |w| w.hi[i] }.max }
+          teile.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }.each do |s|
+            k = s.dicke_achse
+            t = 1 - k
+            next unless z.between?(s.lo[2], s.hi[2]) && [s.hi[t], hi[t]].min - [s.lo[t], lo[t]].max > 1.0
+            nach_max = if (lo[k] - s.hi[k]).between?(-TOL, 60) then true
+                       elsif (s.lo[k] - hi[k]).between?(-TOL, 60) then false
+                       end
+            next if nach_max.nil?
+            seite, flaeche = flaeche_innen(s, k, nach_max)
+            SCHIENE[:tiefen].each do |d|
+              y = s.lo[t] + d
+              if y > s.hi_f(t) - 10
+                meldungen << "#{s.name}: Schienenbohrung #{d} mm liegt hinter der Seite"
+                next
+              end
+              p = punkt(k => flaeche, t => y, 2 => z)
+              next if in_lochreihe?(s, seite, p)
+              s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{kasten.first.teil.jt('bereich')}")
             end
           end
         end

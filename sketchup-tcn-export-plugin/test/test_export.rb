@@ -1,4 +1,4 @@
-# Test ohne SketchUp: TCN-Export des Korpus (Schritte 5 und 6) an echten Schränken aus
+# Test ohne SketchUp: TCN-Export des Korpus (Schritte 5 bis 7) an echten Schränken aus
 # Komponenten/ (mit der Mock-API erzeugt), verglichen mit Jürgens Beispiel-TCN.
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
@@ -69,10 +69,10 @@ z = bearbeitungen(seite.text, 1)
 check(seite.lage.dl == 700 && seite.lage.dh == 558 && seite.lage.ds == 19, "Seite Fräsmaß: #{seite.lage.to_a.drop(1)}")
 check(z.first.include?('squad.tmcr'), 'Seite: squad zuerst')
 boden_reihe = z.find { |x| x.include?('#8518=9.5 ') }
-check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8510=30 #8511=y-30 #8512=150 #8513=-12') &&
-      boden_reihe.include?('#8522=8 '), "Seite: Dübel Boden bei 9.5 (ohne Anleimer unten): #{boden_reihe}")
+check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8510=30 #8511=y-30 #8512=150 #8513=-14') &&
+      boden_reihe.include?('#8522=8 '), "Seite: Dübel Boden bei 9.5 (ohne Anleimer unten), 14 tief (Seiten_SK): #{boden_reihe}")
 vorlage = bearbeitungen(beispiel('Seite.tcn'), 1)
-hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8508=0 #8509=0', '#8508=1 #8509=1') }
+hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8508=0 #8509=0', '#8508=1 #8509=1').sub('#8513=-12', '#8513=-14') }
 hinten = hinten.map { |x| x.sub('#8510=y-20 #8511=y-80', '#8510=y-80 #8511=y-20') }
 check(hinten.size == 2 && (hinten - z).empty?, "Seite: Strebe hinten wie Seite.tcn (x-9.5 statt x-7.5, kein Anleimer oben): #{z}")
 check(z.any? { |x| x.include?('#8510=20 #8511=78 #8512=60') } && z.any? { |x| x.include?('#1=x-9.5 #2=49 #3=-21 #1002=3') },
@@ -93,7 +93,9 @@ end
 check(dateien.none? { |x| x.ws.teil.pfad.any?(&:hidden?) }, 'ausgeblendete Teile fehlen')
 check(S::Schraenke.teile(model).count { |t| t.pfad.first.equal?(uss) && !t.sichtbar? } > 0, 'Testschrank hat ausgeblendete Teile')
 check(meldungen.none? { |m| m.include?('Unterseite') }, "keine Bearbeitung auf der Unterseite: #{meldungen}")
-check(dateien.none? { |x| x.text.include?('#8522=5 ') }, 'Unterschrank mit Schubladen: keine Lochreihe')
+lr = z.select { |x| x.include?('#8522=5 ') }
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=67 #8511=x-52 #8512=32') },
+      "Unterschrank: Lochreihen auf dem Schubladen-Lochraster (35 + n · 32) ab 38 über dem Boden bis unter die Streben: #{lr}")
 check(dateien.none? { |x| x.text.include?('W#89') }, 'Unterschrank: Rückwand ohne Nut')
 
 # --- Oberschrank: Anleimer unten an der Seite -> 7.5 wie Seite.tcn; Kopien werden gezählt ---
@@ -137,7 +139,15 @@ dateien, = S::Export.erzeugen(model)
 z = bearbeitungen(dateien.find { |x| x.name == 'HS1_SeiteL' }.text, 1)
 check(z.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, "Hochschrank Seite: 4 Dübelreihen (Boden, 2 Zwischenböden, Deckel): #{z.size - 1}")
 lr = z.select { |x| x.include?('#8522=5 ') }
-check(lr.size == 2 && lr.all? { |x| x.include?('#8510=x-741 #8511=x-50') }, "Hochschrank: Lochreihen nur im oberen Fach: #{lr}")
+check(lr.size == 6 && lr.map { |x| x[/#8510=(\S+) #8511=(\S+)/, 0] }.uniq.sort == ['#8510=67 #8511=648', '#8510=739 #8511=x-831', '#8510=x-719 #8511=x-50'],
+      "Hochschrank: Lochreihen in allen drei Fächern, im Lochraster: #{lr}")
+# Schienen (LEGRABOX): 37/69/261/293 ab Vorderkante roh = 35/67/259/291 im Fräsmaß, Höhe = Kastenunterkante;
+# liegt die vordere Bohrung in der Lochreihe, entfällt sie
+sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
+check(hoehen == { '35' => 4, '291' => 3, '515' => 3 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
+check(sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[y-259 y-291 y-35 y-67], "Schienenbohrungen in der Tiefe: #{sch}")
+check(z.none? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene vorn in der Lochreihe: keine eigene Bohrung')
 check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
 check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')
@@ -158,10 +168,10 @@ Dir.mktmpdir do |dir|
 end
 
 # --- gleicher Tag: gleiche TCN wird gezählt, andere TCN bekommt _2 ---
-a, b = %w[HS1_SeiteL HS1_SeiteR].map { |n| dateien.find { |x| x.name == n } }
+a, b = %w[HS1_ZwischenbodenUnten HS1_ZwischenbodenOben].map { |n| dateien.find { |x| x.name == n } }
 alt = b.ws.teil.inst.layer
 b.ws.teil.inst.layer = a.ws.teil.inst.layer
-check(S::Export.erzeugen(model)[0].find { |x| x.name == 'HS1_SeiteL' }.anzahl == 2, 'gleicher Tag, gleiche TCN: Anzahl 2')
+check(S::Export.erzeugen(model)[0].find { |x| x.name == 'HS1_ZwischenbodenUnten' }.anzahl == 2, 'gleicher Tag, gleiche TCN: Anzahl 2')
 b.ws.teil.inst.layer = alt
 a, b = %w[HS1_SeiteL HS1_Boden].map { |n| dateien.find { |x| x.name == n } }
 alt = b.ws.teil.inst.layer
