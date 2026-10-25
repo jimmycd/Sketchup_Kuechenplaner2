@@ -9,7 +9,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (Erweiterung `.rbz`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (Skript erzeugt `Hochschrank.skp`) |
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (Skript erzeugt `Oberschrank.skp`) |
-| [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | TCN-Export für TpaCAD, bisher Plan und Beispieldateien |
+| [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`.rbz`): Frontfarbe und Griffe ändern; TCN-Export für TpaCAD folgt |
 
 ## Regeln für alle Komponenten
 * **OpenCutList-fähig:** Jede Platte hat ein Material (Standard „Melamin weiss“). Sichtbare Kanten bekommen Anleimer nur als OCL-Zuweisung (Kantenmaterial auf der Kantenfläche). In SketchUp wird immer das Endmaß gezeichnet; den 2-mm-Abzug für Zuschnitt- und Fräsmaß rechnet nur OCL.
@@ -17,7 +17,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 * **Kurzhilfe in der Komponente:** Summary/Description der Dynamic Component (oben im Fenster *Komponentenoptionen*) mit Link auf die README der Komponente.
 
 ## Tests
-Alle Tests laufen ohne SketchUp (Mock-API und DC-Formel-Auswerter), Ruby ≥ 3.1:
+Alle Tests (Komponenten und Plugin) laufen ohne SketchUp (Mock-API und DC-Formel-Auswerter), Ruby ≥ 3.1:
 
 ```sh
 ./run_tests.sh
