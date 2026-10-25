@@ -25,6 +25,20 @@ module UnterschrankSchubladen
   ANLEIMER = 'Anleimer weiss'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze
 
+  # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
+  # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
+  JT_DICT   = 'JT_Schrank'.freeze
+  TYP       = 'Unterschrank_Schubladen'.freeze
+  KATEGORIE = 'Unterschrank'.freeze # Unterschrank, Oberschrank oder Hochschrank
+  ROLLEN = {
+    'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
+    'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
+    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand'
+  }.freeze
+
   # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
   # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
@@ -54,10 +68,25 @@ module UnterschrankSchubladen
     'StrebeHinten' => [],
     'Rückwand'     => [],
     'Front'        => %i[xmin xmax zmin zmax],   # rundum
-    'KastenSeite'  => %i[zmax],                  # Oberkante
-    'KastenQuer'   => %i[zmax],
+    'KastenRueckwand' => %i[zmax],               # Oberkante
     'KastenBoden'  => []
   }.freeze
+
+  # Unterkante Kasten über Unterkante Front (cm): mindestens Kasten_Abstand_unten und so, dass
+  # die Schienenbohrung (Unterkante Kasten + Höhenoffset) auf dem Lochraster der Seite liegt
+  # (Lochraster_Start + n * Lochraster, gemessen ab Unterkante Seite).
+  def self.kasten_unten(p, z_front)
+    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
+    n = ((z_front + p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    st + ra * n - off - z_front
+  end
+
+  # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
+  def self.f_kasten_unten(z_front)
+    u = NAME
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_front}"
+  end
 
   # Standardwerte in cm (Korpus wie beim Unterschrank mit Tür)
   DEFAULTS = {
@@ -68,11 +97,14 @@ module UnterschrankSchubladen
     'Materialstarke_Rueckwand'    => 0.8,
     'BreiteStreben'               => 10.0,
     'Spaltbreite'                 => 0.2,
-    # Schubkasten
-    'Materialstaerke_Schubkasten' => 1.6,
-    'Materialstaerke_Kastenboden' => 0.8,
-    'Luft_Auszug'                 => 1.3,  # Abstand Innenseite Schrankseite -> Außenseite Kasten (Schienensystem)
-    'Abstand_Tiefe_Kasten'        => 2.0,  # Kasten ist um so viel kürzer als Tiefe
+    # Schubkasten Blum LEGRABOX free (Montageanleitung MD-015/4): Metallzargen, aus Holz nur
+    # Boden (LW-35 x NL-10, 16 mm) und Holzrückwand (LW-38 x 148, auf dem Boden)
+    'Materialstaerke_Kastenboden' => 1.6,
+    'Materialstaerke_Kastenrueckwand' => 1.6,
+    'Hoehe_Kastenrueckwand'       => 14.8,
+    'Hoehenoffset_Schiene'        => 0.0,  # Schienenbohrung über Unterkante Kasten
+    'Lochraster_Start'            => 3.5,  # erste Rasterbohrung über Unterkante Seite
+    'Lochraster'                  => 3.2,
     'Kasten_Abstand_unten'        => 3.0,  # Unterkante Front -> Unterkante Kasten
     'Kasten_Abstand_oben'         => 3.0,  # Oberkante Kasten -> Oberkante Front
     'Auszug_Anteil'               => 0.8   # Animation: Auszugsweg = Kastentiefe * Anteil
@@ -81,14 +113,14 @@ module UnterschrankSchubladen
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_schubladen'.freeze
-  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen (Blum LEGRABOX), OpenCutList-fähig'.freeze
   HILFE = [
     'Breite, Höhe, Tiefe, Anzahl Schubladen und Anteile (Schublade 1 = oben) hier ändern.',
     'Anteile: 1/1/2 = unterste doppelt so hoch; mm-Werte werden auf die Höhe skaliert.',
-    'Abstand Schrankseite–Kasten je Seite passend zum Schienensystem (Standard 13 mm).',
+    'Schubkästen: Blum LEGRABOX free, Schienen-Nennlänge NL aus der Tiefe (NL + 3 mm ≤ Tiefe), Holzteile Boden LW−35 × NL−10 und Rückwand LW−38 × 148.',
     'Mit „Interagieren“ auf eine Schublade klicken: sie fährt heraus.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. USS1_S2_Front.',
+    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. USS1_SeiteL, USS1_S2_Front.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
@@ -209,6 +241,14 @@ module UnterschrankSchubladen
     model.layers[name] || model.layers.add(name)
   end
 
+  # Tag <Kürzel>_<Bereich>_<Teil> (z. B. USS1_SeiteL, USS1_S2_Front) und JT_Schrank am Teil
+  def self.kennzeichnen(model, inst, kz, teil, bereich = nil)
+    inst.layer = tag(model, [kz, bereich, teil].compact.join('_'))
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE, 'bereich' => bereich.to_s,
+      'teil' => teil, 'rolle' => ROLLEN.fetch(teil.sub(/\d+\z/, '')) }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
+    inst
+  end
+
   def self.quader(ents, lx, ly, lz)
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -247,12 +287,14 @@ module UnterschrankSchubladen
   end
 
   # Setzt eine Instanz an pos (cm) mit Positionsformeln.
-  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, layer: nil)
+  # kz: [Modell, Kürzel, Teil, Bereich] -> Tag und JT_Schrank (siehe kennzeichnen)
+  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, layer: nil, kz: nil)
     tr = Geom::Transformation.translation(Geom::Vector3d.new(*pos.map { |v| inch(v) }))
     inst = ents.add_instance(defn, tr)
     inst.name = inst_name
     inst.material = mat if mat
     inst.layer = layer if layer
+    kennzeichnen(kz[0], inst, *kz[1..]) if kz
     inst.set_attribute(DICT, '_has_movetool_behaviors', 1.0)
     inst.set_attribute(DICT, '_hasbehaviors', 1.0)
     inst.set_attribute(DICT, '_iscollapsed', false)
@@ -276,7 +318,7 @@ module UnterschrankSchubladen
     u = NAME
     mat = material(model)
     kz = p['Kuerzel'] || freies_kuerzel(model)
-    t_ = ->(teil) { tag(model, "#{kz}_#{teil}") } # ein Tag je Teil für die CAD/CAM-Zuordnung
+    t_ = ->(teil, bereich = nil) { [model, kz, teil, bereich] } # ein Tag je Teil für die CAD/CAM-Zuordnung
 
     haupt = model.definitions.add('Unterschrank mit Schubladen')
     stempel(haupt)
@@ -295,15 +337,19 @@ module UnterschrankSchubladen
       attribut(haupt, "Anteil_#{i}", p["Anteil_#{i}"].to_f, laenge: false, access: 'TEXTBOX',
                formlabel: "Anteil Schublade #{i}#{lage}")
     end
-    attribut(haupt, 'Luft_Auszug', p['Luft_Auszug'], access: 'TEXTBOX',
-             formlabel: 'Abstand Schrankseite–Kasten je Seite (Schiene)')
+    attribut(haupt, 'Materialstaerke_Kastenboden', p['Materialstaerke_Kastenboden'], access: 'TEXTBOX',
+             formlabel: 'Stärke Kastenboden')
+    attribut(haupt, 'Hoehenoffset_Schiene', p['Hoehenoffset_Schiene'], access: 'TEXTBOX',
+             formlabel: 'Höhenoffset Schiene (Bohrung über Unterkante Kasten)')
 
     # --- Feste Maße (wie beim Unterschrank mit Tür über Attribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite
-       Materialstaerke_Schubkasten Materialstaerke_Kastenboden
-       Abstand_Tiefe_Kasten Kasten_Abstand_unten Kasten_Abstand_oben].each do |n|
+       Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Kasten_Abstand_unten Kasten_Abstand_oben
+       Lochraster_Start Lochraster].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
+    # Nennlänge der LEGRABOX-Schiene: größte NL (35 … 65 cm, 5er-Schritte) mit NL + 3 mm <= Tiefe
+    attribut(haupt, 'NL', nennlaenge(p['Tiefe']), units: 'STRING', formula: f_nennlaenge('Tiefe'))
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
 
     # --- Abgeleitete Werte je Schublade ---
@@ -321,55 +367,68 @@ module UnterschrankSchubladen
     # --- Korpus (identisch zum Unterschrank mit Tür) ---
     seite = platte(model, 'Seite', 'Seite', [mk, t, h],
                    ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Hoehe"])
-    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, layer: t_.('SeiteL'))
+    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, kz: t_.('SeiteL'))
     einsetzen(e, seite, 'SeiteR', [b - mk, mk, 0],
-              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, layer: t_.('SeiteR'))
+              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('SeiteR'))
 
     boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk],
                    ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Materialstaerke_Korpus"])
     einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil],
-              mat: mat, layer: t_.('Boden'))
+              mat: mat, kz: t_.('Boden'))
 
     strebe_formeln = ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus", "#{u}!BreiteStreben",
                       "#{u}!Materialstaerke_Korpus"]
     strebe_v = platte(model, 'StrebeV', 'StrebeVorn', [b - 2 * mk, bs, mk], strebe_formeln)
     einsetzen(e, strebe_v, 'StrebeVorn', [mk, mk, h - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"],
-              mat: mat, layer: t_.('StrebeVorn'))
+              mat: mat, kz: t_.('StrebeVorn'))
     strebe_h = platte(model, 'StrebeH', 'StrebeHinten', [b - 2 * mk, bs, mk], strebe_formeln)
     einsetzen(e, strebe_h, 'StrebeHinten', [mk, t - bs + mk, h - mk],
               ['StrebeVorn!X', "#{u}!Tiefe-#{u}!BreiteStreben+#{u}!Materialstaerke_Korpus", 'StrebeVorn!Z'],
-              mat: mat, layer: t_.('StrebeHinten'))
+              mat: mat, kz: t_.('StrebeHinten'))
 
     rueck = platte(model, 'Rückwand', 'Rückwand', [b, rw, h],
                    ["#{u}!Breite", "#{u}!Materialstarke_Rueckwand", "#{u}!Hoehe"])
     einsetzen(e, rueck, 'Rückwand', [0, t + mk, 0],
-              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, layer: t_.('Rueckwand'))
+              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, kz: t_.('Rueckwand'))
 
     # --- Schubladen ---
     (1..MAX_SCHUBLADEN).each do |i|
-      schublade(model, e, p, r[:fronten][i - 1], i, mat, t_)
+      schublade(model, e, p, r[:fronten][i - 1], i, mat, kz)
     end
 
     haupt.set_attribute(OCL_DICT, 'kuerzel', kz)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| haupt.set_attribute(JT_DICT, k, v) }
     haupt
   end
 
-  def self.schublade(model, ents, p, fr, i, mat, t_)
+  # Nennlänge der LEGRABOX-Schiene (cm) zur lichten Tiefe (cm)
+  def self.nennlaenge(tiefe)
+    [65.0, ((tiefe - 0.3) / 5.0 + 0.000001).floor * 5.0].min
+  end
+
+  def self.f_nennlaenge(tiefe)
+    "MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5)"
+  end
+
+  # Schublade mit Blum LEGRABOX free: Front, Boden (LW-35 x NL-10) und Holzrückwand
+  # (LW-38 x 148, steht hinten auf dem Boden); die Zargen sind aus Metall.
+  def self.schublade(model, ents, p, fr, i, mat, kz)
     u  = NAME
     s  = "Schublade#{i}"
     mk = p['Materialstaerke_Korpus']
     sp = p['Spaltbreite']
     b  = p['Breite']
-    luft = p['Luft_Auszug']
-    mks  = p['Materialstaerke_Schubkasten']
     mb   = p['Materialstaerke_Kastenboden']
-    tk   = p['Tiefe'] - p['Abstand_Tiefe_Kasten']
-    au, ao = p['Kasten_Abstand_unten'], p['Kasten_Abstand_oben']
+    mrw  = p['Materialstaerke_Kastenrueckwand']
+    nl   = nennlaenge(p['Tiefe'])
+    ao   = p['Kasten_Abstand_oben']
     hf   = fr[:h]
-    kb   = b - 2 * mk - 2 * luft        # Außenbreite Kasten
-    kh   = [hf - au - ao, 2.0].max      # Höhe Kasten (Seiten), mind. 2 cm
-    st = ->(teil) { t_.("S#{i}_#{teil}") }
+    lw   = b - 2 * mk                   # lichte Weite
+    ab   = kasten_unten(p, fr[:z])      # Unterkante Kasten im Lochraster
+    kh   = [hf - ab - ao, 2.0].max      # Höhe Kasten gesamt, mind. 2 cm
+    hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb].min
+    st = ->(teil) { [model, kz, teil, "S#{i}"] }
 
     d = model.definitions.add(s)
     stempel(d)
@@ -379,14 +438,13 @@ module UnterschrankSchubladen
     attribut(d, 'Hoehe_Front', hf, units: 'STRING', formula: "#{u}!H_Front_#{i}")
     attribut(d, 'Mk', mk, units: 'STRING', formula: "#{u}!Materialstaerke_Korpus")
     attribut(d, 'Spalt', sp, units: 'STRING', formula: "#{u}!Spaltbreite")
-    attribut(d, 'Luft', luft, units: 'STRING', formula: "#{u}!Luft_Auszug")
-    attribut(d, 'Mks', mks, units: 'STRING', formula: "#{u}!Materialstaerke_Schubkasten")
     attribut(d, 'Mb', mb, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")
-    attribut(d, 'Tiefe_Kasten', tk, units: 'STRING', formula: "#{u}!Tiefe-#{u}!Abstand_Tiefe_Kasten")
-    attribut(d, 'Ab_unten', au, units: 'STRING', formula: "#{u}!Kasten_Abstand_unten")
+    attribut(d, 'Mrw', mrw, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenrueckwand")
+    attribut(d, 'Hrw', p['Hoehe_Kastenrueckwand'], units: 'STRING', formula: "#{u}!Hoehe_Kastenrueckwand")
+    attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
+    attribut(d, 'Ab_unten', ab, units: 'STRING', formula: f_kasten_unten("#{u}!Z_Front_#{i}"))
     attribut(d, 'Ab_oben', ao, units: 'STRING', formula: "#{u}!Kasten_Abstand_oben")
-    attribut(d, 'Auszug', tk * p['Auszug_Anteil'], units: 'STRING',
-             formula: "(#{u}!Tiefe-#{u}!Abstand_Tiefe_Kasten)*#{u}!Auszug_Anteil")
+    attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     # Sichtbarkeit (wie Einlegeböden beim Unterschrank mit Tür)
     d.set_attribute(DICT, 'hidden', i <= p['Anz_Schubladen'].to_i ? 0.0 : 1.0)
     d.set_attribute(DICT, '_hidden_formula', "IF(#{u}!Anz_Schubladen>=#{i},0,1)")
@@ -402,34 +460,24 @@ module UnterschrankSchubladen
     front = platte(model, "Front S#{i}", 'Front', [b - sp, mk, hf],
                    ["#{s}!Breite-#{s}!Spalt", "#{s}!Mk", "#{s}!Hoehe_Front"])
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, 0], ["#{s}!Spalt/2", "-#{s}!Spalt", nil],
-              mat: mat, layer: st.('Front'))
+              mat: mat, kz: st.('Front'))
 
-    # Kasten-Seiten
+    # Boden LW-35 x NL-10, mittig, vorne an der Korpusvorderkante
+    kbod = platte(model, "Kasten Boden S#{i}", 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
+                  ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk, ab],
+              ["#{s}!Mk+1.75", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
+
+    # Holzrückwand LW-38 x 148 (höchstens bis Kasten_Abstand_oben unter die Frontoberkante), hinten auf dem Boden
     roh_kh = "#{s}!Hoehe_Front-#{s}!Ab_unten-#{s}!Ab_oben"
     f_kh   = "IF(#{roh_kh}>2,#{roh_kh},2)"
-    ks = platte(model, "Kasten Seite S#{i}", 'KastenSeite', [mks, tk, kh],
-                ["#{s}!Mks", "#{s}!Tiefe_Kasten", f_kh])
-    einsetzen(de, ks, 'KastenSeiteL', [mk + luft, mk, au],
-              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenSeiteL'))
-    einsetzen(de, ks, 'KastenSeiteR', [b - mk - luft - mks, mk, au],
-              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenSeiteR'))
+    krw = platte(model, "Kasten Rueckwand S#{i}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
+                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{s}!Hrw,#{f_kh}-#{s}!Mb)"])
+    einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
+              ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
+              mat: mat, kz: st.('KastenRueckwand'))
 
-    innen_b = "#{s}!Breite-2*#{s}!Mk-2*#{s}!Luft-2*#{s}!Mks"
-    # Kastenboden zwischen den Seiten, Vorder-/Rückstück stehen darauf
-    kbod = platte(model, "Kasten Boden S#{i}", 'KastenBoden', [kb - 2 * mks, tk, mb],
-                  [innen_b, "#{s}!Tiefe_Kasten", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + luft + mks, mk, au],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenBoden'))
-
-    kvr = platte(model, "Kasten Vorder-Rueckstueck S#{i}", 'KastenQuer', [kb - 2 * mks, mks, kh - mb],
-                 [innen_b, "#{s}!Mks", "#{f_kh}-#{s}!Mb"])
-    einsetzen(de, kvr, 'KastenVorne', [mk + luft + mks, mk, au + mb],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, layer: st.('KastenVorne'))
-    einsetzen(de, kvr, 'KastenHinten', [mk + luft + mks, mk + tk - mks, au + mb],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk+#{s}!Tiefe_Kasten-#{s}!Mks", "#{s}!Ab_unten+#{s}!Mb"],
-              mat: mat, layer: st.('KastenHinten'))
-
-    inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{i}"], layer: st.('Schublade'))
+    inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{i}"], layer: tag(model, "#{kz}_S#{i}_Schublade"))
     inst.hidden = i > p['Anz_Schubladen'].to_i
     inst
   end
@@ -449,10 +497,9 @@ module UnterschrankSchubladen
   def self.dialog
     prompts = ['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Anzahl Schubladen',
                'Aufteilung von oben (Anteile oder mm, z. B. 1;1;2)',
-               'Abstand Schrankseite–Kasten je Seite (mm)',
                'Kürzel für Tags (eindeutig je Schrank)']
-    defaults = ['600', '700', '800', '3', '1;1;1', '13', freies_kuerzel(Sketchup.active_model)]
-    lists = ['', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '', '']
+    defaults = ['600', '700', '800', '3', '1;1;1', freies_kuerzel(Sketchup.active_model)]
+    lists = ['', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '']
     res = UI.inputbox(prompts, defaults, lists, 'Unterschrank mit Schubladen')
     return unless res
 
@@ -462,14 +509,12 @@ module UnterschrankSchubladen
       'Hoehe'  => res[1].tr(',', '.').to_f / 10.0,
       'Tiefe'  => res[2].tr(',', '.').to_f / 10.0,
       'Anz_Schubladen' => anz,
-      'Luft_Auszug' => res[5].tr(',', '.').to_f / 10.0,
-      'Kuerzel' => res[6].strip
+      'Kuerzel' => res[5].strip
     }
     raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
     if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
       raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
     end
-    raise ArgumentError, 'Abstand Schrankseite–Kasten darf nicht negativ sein' if eingabe['Luft_Auszug'] < 0
     parse_aufteilung(res[4], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
     (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
     erstellen(eingabe)

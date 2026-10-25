@@ -51,6 +51,8 @@ class Knoten
   end
 
   def IF(c, a, b) = c ? a : b
+  def INT(x) = x.floor.to_f
+  def MIN(*a) = a.min
 
   def auswerten(f)
     ruby = f.gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -104,20 +106,34 @@ def pruefe(wurzel, anz, h, b, t, label)
     fronten << [z0 + f.wert('z'), z0 + f.wert('z') + f.wert('lenz')]
     check((f.wert('lenx') - (b - sp)).abs < EPS, "#{label}: Frontbreite S#{i}")
     check((f.wert('x') - sp / 2).abs < EPS, "#{label}: Front x S#{i}")
-    # Kasten innerhalb Korpus und innerhalb Fronthöhe
-    kl = s.finde('KastenSeiteL'); kr = s.finde('KastenSeiteR')
-    check(kl.wert('x') >= mk - EPS && kr.wert('x') + kr.wert('lenx') <= b - mk + EPS, "#{label}: Kasten Breite S#{i}")
-    check(((kr.wert('x') + kr.wert('lenx')) - kl.wert('x') - (b - 2 * mk - 2 * wurzel.wert('Luft_Auszug'))).abs < EPS, "#{label}: Kasten Außenbreite S#{i}")
-    check(kl.wert('y') + kl.wert('leny') <= mk + t + EPS, "#{label}: Kasten Tiefe S#{i}")
-    kz0 = z0 + kl.wert('z'); kz1 = kz0 + kl.wert('lenz')
-    check(kl.wert('lenz') > 0, "#{label}: Kastenhöhe > 0 S#{i}")
+    # LEGRABOX free: Boden LW-35 x NL-10 mittig, Holzrückwand LW-38 hinten auf dem Boden
+    nl = [65.0, ((t - 0.3) / 5 + 0.000001).floor * 5.0].min
+    check((s.wert('NL') - nl).abs < EPS, "#{label}: NL #{s.wert('NL')} statt #{nl} S#{i}")
+    check(nl + 0.3 <= t + EPS || nl == 35.0, "#{label}: NL + 3 mm passt in die Tiefe S#{i}")
+    kb = s.finde('KastenBoden'); kr = s.finde('KastenRueckwand')
+    lw = b - 2 * mk
+    mb = wurzel.wert('Materialstaerke_Kastenboden')
+    check((kb.wert('lenx') - (lw - 3.5)).abs < EPS && (kb.wert('x') - (mk + 1.75)).abs < EPS, "#{label}: Boden LW-35 mittig S#{i}")
+    check((kb.wert('leny') - (nl - 1.0)).abs < EPS && (kb.wert('y') - mk).abs < EPS, "#{label}: Boden NL-10 ab Korpusvorderkante S#{i}")
+    check((kb.wert('lenz') - mb).abs < EPS, "#{label}: Stärke Kastenboden S#{i}")
+    check((kr.wert('lenx') - (lw - 3.8)).abs < EPS && (kr.wert('x') - (mk + 1.9)).abs < EPS, "#{label}: Rückwand LW-38 mittig S#{i}")
+    check((kr.wert('y') + kr.wert('leny') - (kb.wert('y') + kb.wert('leny'))).abs < EPS, "#{label}: Rückwand hinten bündig S#{i}")
+    check((kr.wert('z') - (kb.wert('z') + mb)).abs < EPS, "#{label}: Rückwand auf dem Boden S#{i}")
+    kz0 = z0 + kb.wert('z'); kz1 = z0 + kr.wert('z') + kr.wert('lenz')
     check(kz0 >= mk - EPS && kz1 <= h - mk + EPS, "#{label}: Kasten kollidiert mit Boden/Strebe S#{i}")
-    kh = s.finde('KastenHinten'); kb = s.finde('KastenBoden'); kv = s.finde('KastenVorne')
-    check((kh.wert('y') + kh.wert('leny') - (kl.wert('y') + kl.wert('leny'))).abs < EPS, "#{label}: Rückstück bündig S#{i}")
-    check((kb.wert('x') - (kl.wert('x') + kl.wert('lenx'))).abs < EPS, "#{label}: Kastenboden an Seite S#{i}")
-    check((kb.wert('x') + kb.wert('lenx') - kr.wert('x')).abs < EPS, "#{label}: Kastenboden bis Seite R S#{i}")
-    check((kv.wert('z') + kv.wert('lenz') - (kl.wert('z') + kl.wert('lenz'))).abs < EPS, "#{label}: Vorderstück Höhe S#{i}")
-    check((s.wert('Auszug') - (t - 2) * 0.8).abs < EPS, "#{label}: Auszug S#{i}")
+    check(kb.wert('y') + kb.wert('leny') <= mk + t + EPS, "#{label}: Kasten Tiefe S#{i}")
+    soll_h = [wurzel.wert('Hoehe_Kastenrueckwand'), [f.wert('lenz') - kb.wert('z') - wurzel.wert('Kasten_Abstand_oben'), 2.0].max - mb].min
+    check((kr.wert('lenz') - soll_h).abs < EPS && kr.wert('lenz') > 0, "#{label}: Rückwandhöhe #{kr.wert('lenz')} statt #{soll_h} S#{i}")
+    # Lochraster: Schienenbohrung (Unterkante Kasten + Höhenoffset) auf Start + n * Raster, ab Unterkante Seite
+    unten = z0 + kb.wert('z')
+    loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
+    check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster (#{unten.round(3)})")
+    check(kb.wert('z') >= wurzel.wert('Kasten_Abstand_unten') - EPS &&
+          kb.wert('z') < wurzel.wert('Kasten_Abstand_unten') + wurzel.wert('Lochraster') - EPS,
+          "#{label}: Kasten S#{i} höchstens ein Raster über dem Mindestabstand")
+    check(kz1 <= z0 + f.wert('lenz') - wurzel.wert('Kasten_Abstand_oben') + EPS || kr.wert('lenz') <= 2.0 + EPS,
+          "#{label}: Kasten S#{i} Abstand oben")
+    check((s.wert('Auszug') - nl * 0.8).abs < EPS, "#{label}: Auszug S#{i}")
   end
   fronten.sort!
   check((fronten.first[0]).abs < EPS, "#{label}: unterste Front bei 0 (#{fronten.first[0]})")
@@ -154,8 +170,11 @@ end
   [1, [1]],
   [6, [1, 1, 1, 1, 1, 1]],
   [2, [1, 3]],
-  [3, [1, 1, 1], { 'Luft_Auszug' => 0.0 }],
-  [3, [1, 1, 2], { 'Luft_Auszug' => 2.15 }]
+  [3, [1, 1, 1], { 'Tiefe' => 56.0 }],
+  [3, [1, 1, 2], { 'Tiefe' => 55.2 }],
+  [3, [1, 1, 1], { 'Tiefe' => 40.0, 'Materialstaerke_Kastenboden' => 1.9 }],
+  [4, [1, 1, 2, 2], { 'Hoehenoffset_Schiene' => 1.1 }],
+  [2, [1, 1], { 'Lochraster_Start' => 3.7, 'Hoehenoffset_Schiene' => 0.5 }]
 ].each do |anz, ant, extra|
   model = Sketchup.active_model = Sketchup::Model.new
   e = eingabe(anz, ant, extra || {})
@@ -163,7 +182,7 @@ end
   w = Knoten.new(inst, inst.definition, nil)
   w.redraw
   label = "anz=#{anz} #{ant.inspect}"
-  fr = pruefe(w, anz, 70.0, 60.0, 80.0, label)
+  fr = pruefe(w, anz, 70.0, 60.0, e['Tiefe'], label)
   pruefe_geometrie(w, label)
   puts "#{label}: Fronten (cm) " + fr.map { |a, c| "#{a.round(2)}–#{c.round(2)} (h=#{(c - a).round(2)})" }.join(', ')
 
@@ -173,10 +192,10 @@ end
   [1.0, 2.0, 1.0, 3.0].each_with_index { |v, i| d.set_attribute(U::DICT, "anteil_#{i + 1}", v) }
   d.set_attribute(U::DICT, 'hoehe', 80.0 / 2.54)
   d.set_attribute(U::DICT, 'breite', 45.0 / 2.54)
-  d.set_attribute(U::DICT, 'luft_auszug', 1.25 / 2.54)
+  d.set_attribute(U::DICT, 'tiefe', 47.0 / 2.54)
   w2 = Knoten.new(inst, d, nil)
   w2.redraw
-  pruefe(w2, 4, 80.0, 45.0, 80.0, "#{label} -> umkonfiguriert")
+  pruefe(w2, 4, 80.0, 45.0, 47.0, "#{label} -> umkonfiguriert")
 end
 
 # --- OpenCutList: Material, Anleimer, Tags ---------------------------------
@@ -197,13 +216,18 @@ end
 
 [[inst1, 'USS1'], [inst2, 'USS2']].each do |inst, kz|
   t = teile(inst)
-  check(t.size == 6 + 6 * 6, "#{kz}: Anzahl Teile #{t.size}")
+  check(t.size == 6 + 6 * 3, "#{kz}: Anzahl Teile #{t.size}")
   tags = t.map { |c, _| c.layer&.name }
   check(tags.none?(&:nil?), "#{kz}: jedes Teil hat ein Tag")
   check(tags.uniq.size == tags.size, "#{kz}: Tags eindeutig")
   check(tags.all? { |n| n.start_with?("#{kz}_") }, "#{kz}: Tags mit Kürzel #{kz}")
   t.each do |c, _|
     check(c.material == mel, "#{kz}: Material #{c.name}")
+    jt = %w[schrank typ kategorie bereich teil rolle].to_h { |k| [k, c.get_attribute(U::JT_DICT, k)] }
+    check(jt['schrank'] == kz && jt['typ'] == U::TYP && jt['kategorie'] == 'Unterschrank', "#{kz}: JT_Schrank #{c.name} #{jt.inspect}")
+    check(c.layer.name == [kz, (jt['bereich'] unless jt['bereich'].empty?), jt['teil']].compact.join('_'),
+          "#{kz}: Tag #{c.layer.name} passt nicht zu JT_Schrank #{jt.inspect}")
+    check(U::ROLLEN.value?(jt['rolle']), "#{kz}: Rolle #{c.name} #{jt['rolle'].inspect}")
     typ = c.definition.get_attribute(U::DICT, '_name')
     soll = U::KANTEN.fetch(typ).sort
     ist = c.definition.entities.faces.select { |f| f.material == anl }.map { |f| U.seite_von(f) }.sort
@@ -212,7 +236,8 @@ end
     check(rest.all? { |f| f.material.nil? }, "#{kz}: übrige Flächen erben Melamin #{c.name}")
   end
 end
-check(%w[USS1_SeiteL USS1_S3_Front USS2_S1_KastenSeiteR].all? { |n| model.layers[n] }, 'Tag-Namen')
+check(%w[USS1_SeiteL USS1_Rueckwand USS1_S3_Front USS2_S1_KastenRueckwand USS1_S1_Schublade].all? { |n| model.layers[n] }, 'Tag-Namen')
+check(inst1.definition.get_attribute(U::JT_DICT, 'kategorie') == 'Unterschrank', 'JT_Schrank am Schrank')
 
 # Aufteilungs-Parser
 check(U.parse_aufteilung('1;1;2', 3) == [1.0, 1.0, 2.0], 'parse 1;1;2')

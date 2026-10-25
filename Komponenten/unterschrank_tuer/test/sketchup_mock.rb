@@ -105,6 +105,7 @@ module Sketchup
     def [](n) = @h[n]
     def add(n) = @h[n] = Mat.new(n)
     def to_h = @h
+    def to_a = @h.values
   end
 
   class Definitions

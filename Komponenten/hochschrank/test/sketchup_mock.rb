@@ -105,6 +105,7 @@ module Sketchup
     def [](n) = @h[n]
     def add(n) = @h[n] = Mat.new(n)
     def to_h = @h
+    def to_a = @h.values
   end
 
   class Definitions
@@ -116,6 +117,7 @@ module Sketchup
       @h[name] = ComponentDefinition.new(name)
     end
     def size = @h.size
+    def [](n) = @h[n]
   end
 
   class Model
