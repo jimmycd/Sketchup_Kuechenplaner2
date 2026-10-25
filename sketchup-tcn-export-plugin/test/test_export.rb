@@ -93,9 +93,10 @@ end
 check(dateien.none? { |x| x.ws.teil.pfad.any?(&:hidden?) }, 'ausgeblendete Teile fehlen')
 check(S::Schraenke.teile(model).count { |t| t.pfad.first.equal?(uss) && !t.sichtbar? } > 0, 'Testschrank hat ausgeblendete Teile')
 check(meldungen.none? { |m| m.include?('Unterseite') }, "keine Bearbeitung auf der Unterseite: #{meldungen}")
+# (im Mock sind alle Schubladen des Unterschranks ausgeblendet, ihre Lage kommt aus DC-Formeln)
 lr = z.select { |x| x.include?('#8522=5 ') }
-check(lr.size == 2 && lr.all? { |x| x.include?('#8510=67 #8511=x-52 #8512=32') },
-      "Unterschrank: Lochreihen auf dem Schubladen-Lochraster (35 + n · 32) ab 38 über dem Boden bis unter die Streben: #{lr}")
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=57 #8511=x-52 #8512=32') },
+      "Unterschrank ohne sichtbare Schubladen: Lochreihen 38 über dem Boden bis unter die Streben: #{lr}")
 check(dateien.none? { |x| x.text.include?('W#89') }, 'Unterschrank: Rückwand ohne Nut')
 
 # --- Oberschrank: Anleimer unten an der Seite -> 7.5 wie Seite.tcn; Kopien werden gezählt ---
@@ -139,15 +140,14 @@ dateien, = S::Export.erzeugen(model)
 z = bearbeitungen(dateien.find { |x| x.name == 'HS1_SeiteL' }.text, 1)
 check(z.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, "Hochschrank Seite: 4 Dübelreihen (Boden, 2 Zwischenböden, Deckel): #{z.size - 1}")
 lr = z.select { |x| x.include?('#8522=5 ') }
-check(lr.size == 6 && lr.map { |x| x[/#8510=(\S+) #8511=(\S+)/, 0] }.uniq.sort == ['#8510=67 #8511=648', '#8510=739 #8511=x-831', '#8510=x-719 #8511=x-50'],
-      "Hochschrank: Lochreihen in allen drei Fächern, im Lochraster: #{lr}")
-# Schienen (LEGRABOX): 37/69/261/293 ab Vorderkante roh = 35/67/259/291 im Fräsmaß, Höhe = Kastenunterkante;
-# liegt die vordere Bohrung in der Lochreihe, entfällt sie
+check(lr.size == 4 && lr.map { |x| x[/#8510=(\S+) #8511=(\S+)/, 0] }.uniq.sort == ['#8510=738 #8511=x-831', '#8510=x-741 #8511=x-50'],
+      "Hochschrank: Lochreihen nur in den Fächern ohne Schubladen: #{lr}")
+# Schienen (LEGRABOX): 37/69/261/293 ab Vorderkante roh = 35/67/259/291 im Fräsmaß, Höhe = Kastenunterkante
 sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
 hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
-check(hoehen == { '35' => 4, '291' => 3, '515' => 3 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
+check(hoehen == { '35' => 4, '291' => 4, '515' => 4 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
 check(sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[y-259 y-291 y-35 y-67], "Schienenbohrungen in der Tiefe: #{sch}")
-check(z.none? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene vorn in der Lochreihe: keine eigene Bohrung')
+check(z.any? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene: alle vier Bohrungen, keine Lochreihe im Schubladenfach')
 check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
 check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')

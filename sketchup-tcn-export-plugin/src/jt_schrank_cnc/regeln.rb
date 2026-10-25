@@ -34,7 +34,7 @@ module JTools
       RUECKWAND_SCHRAUBE = { rand: 50, d_rueckwand: 4, d_deckel: 3, tiefe_deckel: 15, durch: 1 }.freeze
       # Seite.tcn: Lochreihe Ø5, 12 tief, Raster 32, 35 mm von vorn und hinten,
       # 55 … x-50 im Fräsmaß der Seite = 38 über dem Boden und 33 unter dem Deckel.
-      # Jede Seite bekommt sie in jedem Fach (Seiten sind immer gleich).
+      # Jede Seite bekommt sie in jedem Fach ohne Schubladen (Seiten sind immer gleich).
       LOCHREIHE = { d: 5, tiefe: 12, raster: 32, rand: 35, ueber: 38, unter: 33 }.freeze
       # Seiten_SK_L/R: Schiene (Blum LEGRABOX) Ø5, 14 tief, 37/69/261/293 mm ab Vorderkante Seite
       # (roh, im Fräsmaß 35/67/259/291), Höhe = Kastenunterkante + Höhenoffset Schiene
@@ -132,7 +132,7 @@ module JTools
         end
       end
 
-      # Lochreihen in jeder Seite je Fach zwischen zwei festen Böden: vorn 35 mm,
+      # Lochreihen in jeder Seite je Fach ohne Schubladen zwischen zwei festen Böden: vorn 35 mm,
       # hinten 35 mm vor Hinterkante bzw. Rückwandnut
       def self.lochreihen(teile)
         teile.select { |w| w.rolle == 'Seite' }.each do |s|
@@ -147,12 +147,11 @@ module JTools
           nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
           hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
           lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
-          raster = lochraster(s)
+          schubladen = kaesten(teile).map { |k| k.map { |w| w.lo[v] }.min }
           lagen.each_cons(2) do |(_, unten), (oben, _)|
+            # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
+            next if schubladen.any? { |z| z.between?(unten - TOL, oben) }
             lo = unten + l[:ueber]
-            # mit Schubladen-Lochraster (Lochraster_Start + n · Lochraster ab Unterkante Seite):
-            # auf das Raster, damit die Schienen in die Lochreihe geschraubt werden können
-            lo = s.lo[v] + raster[0] + raster[1] * ((lo - s.lo[v] - raster[0]) / raster[1] - 1e-6).ceil if raster
             hi = oben - l[:unter]
             next if hi - lo < l[:raster]
             [s.lo_f(t) + l[:rand], hinten - l[:rand]].each do |y|
@@ -163,27 +162,12 @@ module JTools
         end
       end
 
-      # Lochraster des Schranks [Start, Raster] in mm, wenn er Schubladen im Raster hat
-      def self.lochraster(w)
-        d = Schraenke.definition(w.teil.schrank)
-        st, ra = %w[lochraster_start lochraster].map { |k| d.get_attribute(DC_DICT, k) }
-        st && ra.to_f > 0 ? [st.to_f * Geometrie::MM, ra.to_f * Geometrie::MM] : nil
-      end
-
-      # liegt eine Bohrung schon in einer Lochreihe der Seite?
-      def self.in_lochreihe?(s, seite, p)
-        s.ops.any? do |o|
-          next false unless o.art == :reihe && o.titel == 'Lochreihe' && o.seite == seite
-          a = (0..2).find { |i| (o.p1[i] - o.p0[i]).abs > 0.001 }
-          (0..2).all? { |i| i == a || (o.p0[i] - p[i]).abs < 0.1 } &&
-            p[a].between?(o.p0[a] - 0.1, o.p1[a] + 0.1) && (((p[a] - o.p0[a]) / o.raster) % 1 - 0.5).abs > 0.5 - 0.1 / o.raster
-        end
-      end
+      # sichtbare Schubladen: Kastenteile je Bereich
+      def self.kaesten(teile) = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }.values
 
       # Schienenbohrungen je sichtbarer Schublade in beiden Seiten
       def self.schienen(teile, meldungen)
-        kaesten = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }
-        kaesten.each_value do |kasten|
+        kaesten(teile).each do |kasten|
           unten = kasten.map { |w| w.lo[2] }.min
           schrank = Schraenke.definition(kasten.first.teil.schrank)
           z = unten + schrank.get_attribute(DC_DICT, 'hoehenoffset_schiene').to_f * Geometrie::MM
@@ -205,7 +189,6 @@ module JTools
                 next
               end
               p = punkt(k => flaeche, t => y, 2 => z)
-              next if in_lochreihe?(s, seite, p)
               s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{kasten.first.teil.jt('bereich')}")
             end
           end
