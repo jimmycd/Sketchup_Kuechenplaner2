@@ -15,8 +15,9 @@ module JTools
     module Regeln
       TOL = 0.1 # mm
 
-      # Bearbeitung auf einer Weltseite: :reihe (p0 -> p1, Raster, verteilt), :bohrung (p0)
-      # oder :nut (Mittellinie p0 -> p1 auf der Oberfläche, d = Nutbreite)
+      # Bearbeitung auf einer Weltseite: :reihe (p0 -> p1, Raster, verteilt), :bohrung (p0),
+      # :nut (Mittellinie p0 -> p1 auf der Oberfläche, d = Nutbreite) oder
+      # :tasche (Rechteck mit den Ecken p0 und p1 auf der Oberfläche)
       Op = Struct.new(:art, :seite, :p0, :p1, :d, :tiefe, :raster, :verteilt, :titel)
 
       # Dübelreihen je Rolle von A (Abstand vom Rand, Raster; verteilt = #8508/#8509 1/1)
@@ -43,7 +44,16 @@ module JTools
       SCHIENE = { d: 5, tiefe: 14, vorn: [37, 69], abstand_nl: 3,
                   hinten: { 350 => [192, 224], 400 => [224, 256], 450 => [224, 256], 500 => [224, 256],
                             550 => [256, 320], 600 => [256, 320], 650 => [320, 416] } }.freeze
-      KASTEN = %w[KastenBoden KastenSeite KastenVorne KastenHinten].freeze
+      KASTEN = %w[KastenBoden KastenRueckwand].freeze
+      # Frontbefestigung LEGRABOX (MD-015/4, S. 4): Löcher 14 mm von der Innenseite der Seite
+      # (= 14 + FA vom Frontrand), 0/32/96/128 mm übereinander, unterstes mind. 51 über Unterkante Front.
+      # Höhe abgeleitet aus SK_Vorderstueck_Frontbef.tcn: unterstes 36 mm über Unterkante Kasten;
+      # obere Löcher nur, solange sie nicht über dem Kasten liegen. Ø3 × 5 wie in der Vorlage.
+      FRONT_BEF = { d: 3, tiefe: 5, innen: 14, ueber_kasten: 36, min_unten: 51, abstaende: [0, 32, 96, 128] }.freeze
+      # Schubkastenboden.tcn: Falz unten an beiden Enden quer zur Breite für die Zargen,
+      # 38 breit über die ganze Tiefe + 20 Überlauf und ein zweites Rechteck 20 breit, beide 8 tief
+      BODEN_FALZ = [{ breite: 38, ueberlauf: 20 }, { breite: 20, ueberlauf: 0 }].freeze
+      BODEN_FALZ_TIEFE = 8
       # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
       SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
@@ -66,6 +76,7 @@ module JTools
           end
           lochreihen(teile)
           schienen(teile, meldungen)
+          kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
         end
         meldungen
@@ -204,6 +215,62 @@ module JTools
               p = punkt(k => flaeche, t => y, 2 => z)
               s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{kasten.first.teil.jt('bereich')}")
             end
+          end
+        end
+      end
+
+      # Breitenrichtung einer Schublade: in der Bodenebene quer zur Rückwand
+      def self.breite_achse(kasten)
+        boden = kasten.find { |w| w.rolle == 'KastenBoden' }
+        rw = kasten.find { |w| w.rolle == 'KastenRueckwand' }
+        return 0 unless boden
+        (boden.flaechen_achsen - [rw ? rw.dicke_achse : 1]).first
+      end
+
+      # Front der Schublade: gleicher Schrank und Bereich wie der Kasten
+      def self.front_zu(kasten, teile)
+        b = kasten.first.teil.jt('bereich')
+        teile.find { |w| w.rolle == 'Front' && w.teil.jt('bereich') == b }
+      end
+
+      def self.frontbefestigung(kasten, teile)
+        f = front_zu(kasten, teile) or return
+        boden = kasten.find { |w| w.rolle == 'KastenBoden' } or return
+        wa = breite_achse(kasten)
+        da = f.dicke_achse
+        return if da == 2 || wa == da
+        # Innenseiten der Korpusseiten neben dem Kasten, sonst aus dem Boden (LW - 35)
+        seiten = teile.select { |w| w.rolle == 'Seite' && w.dicke_achse == wa }
+        links = seiten.map { |s| s.hi[wa] }.select { |v| v <= boden.lo[wa] + TOL }.max || boden.lo[wa] - 17.5
+        rechts = seiten.map { |s| s.lo[wa] }.select { |v| v >= boden.hi[wa] - TOL }.min || boden.hi[wa] + 17.5
+        hinten = (boden.lo[da] + boden.hi[da]) / 2.0 > f.hi[da]
+        seite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        flaeche = hinten ? f.hi[da] : f.lo[da]
+        fb = FRONT_BEF
+        unten = kasten.map { |w| w.lo[2] }.min
+        oben = kasten.map { |w| w.hi[2] }.max
+        z0 = [unten + fb[:ueber_kasten], f.lo[2] + fb[:min_unten]].max
+        fb[:abstaende].map { |a| z0 + a }.select { |z| z <= [oben, f.hi[2]].min + TOL }.each do |z|
+          [links + fb[:innen], rechts - fb[:innen]].each do |x|
+            f.ops << Op.new(:bohrung, seite, punkt(da => flaeche, wa => x, 2 => z), nil, fb[:d], fb[:tiefe], nil, nil,
+                            'Frontbefestigung')
+          end
+        end
+      end
+
+      # Falz in der Unterseite des Kastenbodens an beiden Enden der Breite (Zargen)
+      def self.bodenfalz(kasten)
+        boden = kasten.find { |w| w.rolle == 'KastenBoden' } or return
+        k = boden.dicke_achse
+        wa = breite_achse(kasten)
+        ta = (boden.flaechen_achsen - [wa]).first
+        BODEN_FALZ.each do |r|
+          t0 = boden.lo_f(ta) - r[:ueberlauf] / 2.0
+          t1 = boden.hi_f(ta) + r[:ueberlauf] / 2.0
+          [boden.lo_f(wa) + BODEN_FALZ[0][:breite] / 2.0, boden.hi_f(wa) - BODEN_FALZ[0][:breite] / 2.0].each do |m|
+            p0 = punkt(k => boden.lo[k], wa => m - r[:breite] / 2.0, ta => t0)
+            p1 = punkt(k => boden.lo[k], wa => m + r[:breite] / 2.0, ta => t1)
+            boden.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, BODEN_FALZ_TIEFE, nil, nil, 'Falz Zarge')
           end
         end
       end

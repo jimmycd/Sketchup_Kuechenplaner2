@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export und Frontfarbe)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße und die Rückwandnut im Oberschrank. Für Schubladen (Blum LEGRABOX) kommen die Schienenbohrungen in die Seiten; Kastenboden, Frontbefestigung, Türen und Griffe folgen.
+**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße und die Rückwandnut im Oberschrank. Für Schubladen (Blum LEGRABOX) kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Später schreibt es je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
 
@@ -38,6 +38,8 @@ Was geändert wird:
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden 30 … x-30, Raster 150; Strebe 20 … x-20, Raster 60; beide gleichmäßig verteilt (1/1). In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
 * **Lochreihen** Ø5, 12 tief, Raster 32 in jeder Seite und jedem Fach ohne Schubladen zwischen zwei festen Böden (Boden, Zwischenboden, Deckel, Strebe): 35 mm von vorn und 35 mm vor der Hinterkante bzw. vor der Rückwandnut; in der Höhe ab 38 mm über dem Boden darunter bis 33 mm unter dem darüber (ergibt 55 … x-50 wie `Seite.tcn`). In Fächern mit Schubladen gibt es keine Lochreihe; das Schubladen-Lochraster (`Lochraster_Start`, `Lochraster`) dient dort nur zum Ausrichten der Schienen.
 * **Schienen** (Blum LEGRABOX, Montageanleitung MD-015/4 S. 3, Bohrtiefe aus `Seiten_SK_L/R`): je sichtbarer Schublade Ø5, 14 tief, 37 und 69 mm ab Vorderkante der Seite und hinten je Nennlänge NL: 350 → 37+192/224, 400–500 → 37+224/256, 550–600 → 37+256/320, 650 → 37+320/416. NL ist die größte mit NL + 3 ≤ lichte Tiefe (Vorderkante Seite bis Rückwand). Höhe = Kastenunterkante + `Hoehenoffset_Schiene`.
+* **Frontbefestigung** (LEGRABOX, MD-015/4 S. 4; Bohrbild wie `SK_Vorderstueck_Frontbef.tcn`): Ø3, 5 tief in der Rückseite der Front, 14 mm von der Innenseite der Seite (= 14 + FA vom Frontrand), Löcher 0/32/96/128 mm übereinander. Das unterste sitzt 36 mm über der Kastenunterkante (mind. 51 mm über der Front-Unterkante); obere Löcher entfallen, wenn sie über dem Kasten lägen. Stehende Teile (Fronten, Rückwand) haben y = 0 an der Unterkante.
+* **Kastenboden** (`Schubkastenboden.tcn`): Falz in der Unterseite an beiden Enden der Breite für die Zargen, Rechteck 38 mm breit über die ganze Tiefe + 20 mm und ein zweites 20 mm breit, beide 8 tief (W#1022 `rect.tmcr`). Die Ø3-Löcher aus der Vorlage fehlen, Blum sieht sie nicht vor. Die Kastenrückwand wird nur formatiert.
 * **Sockelfüße** (Unter- und Hochschränke): Bohrbild aus `Boden.tcn` in der Unterseite des Bodens, je Fuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64, 20 mm vom Rand in x und 60 mm in y. Der Boden liegt dafür mit der Unterseite nach oben.
 * **Rückwandnut** (steckt eine Rückwand in Seiten und Boden, also im Oberschrank): Bahn mit dem Nutfräser 2200 (Ø 8,03 mm, wie im Treppenbau) als `W#89`/`W#2201`, Tiefe = Nuttiefe (9 mm), Breite = Rückwandstärke (breiter als der Fräser: mehrere Bahnen). Läuft die Nut aus der Platte, fräst sie 5 mm darüber hinaus.
 * **Deckel–Rückwand** (nur Oberschrank): 3 Schrauben 50 mm von den Seiten und in der Mitte, Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Hinterkante des Deckels (Annahme).
@@ -68,10 +70,10 @@ Was geändert wird:
 ## Schritte
 1. ~~Tags aller Komponenten vereinheitlichen.~~ Erledigt: Hochschrank `HS<n>`, Unterschrank Schubladen `USS<n>`, Unterschrank Tür `UST<n>`, jeweils mit `JT_Schrank`.
 2. ~~Oberschrank-Skript~~ (`Komponenten/oberschrank/`, Kürzel `OS<n>`).
-3. ~~Schubkasten:~~ Boden tragend 16 mm oder zwischen den Seiten, Schiene im 32-mm-Lochraster (Start 35 mm), Höhenoffset Schiene.
+3. ~~Schubkasten:~~ Blum LEGRABOX (Boden und Holzrückwand), Schiene im 32-mm-Lochraster (Start 35 mm), Höhenoffset Schiene.
 4. ~~Frontfarbe und Griffe.~~
 5. ~~Erster Export nur Korpus, Vergleich mit den Beispiel-TCN.~~
 6. ~~Lochreihen, Sockelfüße, Rückwandnut.~~
-7. Schubladen: ~~Schienenbohrungen~~; Kastenboden und Frontbefestigung (LEGRABOX-Maße offen), Generator auf LEGRABOX umstellen.
+7. ~~Schubladen: Schienenbohrungen, Frontbefestigung, Kastenboden, Generatoren auf LEGRABOX.~~
 8. Türen und Griffbohrungen.
 9. Dialog, Listen.

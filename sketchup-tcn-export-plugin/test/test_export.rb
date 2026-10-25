@@ -161,6 +161,24 @@ check(z.any? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene: alle vier Bohrunge
 check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
 check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')
+# Frontbefestigung LEGRABOX: Ø3 × 5 hinten in der Front, 14 mm von der Innenseite der Seite (x = 30 im Fräsmaß),
+# unterstes Loch 36 über Unterkante Kasten = 69 über Unterkante Front wie in SK_Vorderstueck_Frontbef.tcn
+fb = ->(name) { bearbeitungen(dateien.find { |x| x.name == name }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
+u3 = fb.('HS1_U3_Front')
+check(u3.size == 8 && u3.map { |x| x[/#1=(\S+)/, 1] }.tally == { '30' => 4, 'x-30' => 4 } &&
+      u3.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[101 69 y-30.3333 y-62.3333],
+      "Frontbefestigung 0/32/96/128 ab 69 mm: #{u3}")
+u1 = fb.('HS1_U1_Front')
+check(u1.size == 6 && u1.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[82.3333 y-113 y-49],
+      "Frontbefestigung: nur Löcher bis Oberkante Kasten: #{u1}")
+check(fb.('HS1_O_Tuer').empty?, 'Tür ohne Frontbefestigung')
+# Kastenboden: Falz für die Zargen an beiden Enden der Breite, 38 und 20 breit, 8 tief (Schubkastenboden.tcn)
+kb = bearbeitungen(dateien.find { |x| x.name == 'HS1_U1_KastenBoden' }.text, 1).select { |x| x.include?('rect.tmcr') }
+check(kb.size == 4 && kb.all? { |x| x.include?('#8514=-8 ') } &&
+      kb.map { |x| x[/#8021=(\S+)/, 1] }.tally == { '19' => 2, 'y-19' => 2 } &&
+      kb.map { |x| x[/#8509=(\S+) #8510=(\S+)/, 0] }.uniq.sort == ['#8509=l #8510=20', '#8509=l+20 #8510=38'],
+      "Kastenboden: Falz an beiden Zargen: #{kb}")
+check(bearbeitungen(dateien.find { |x| x.name == 'HS1_U1_KastenRueckwand' }.text, 1).size == 1, 'Kastenrückwand ohne Bearbeitung')
 %w[HS1_ZwischenbodenUnten HS1_ZwischenbodenOben HS1_Deckel].each do |n|
   x = dateien.find { |y| y.name == n }
   check(x && bearbeitungen(x.text, 3).size + bearbeitungen(x.text, 4).size + bearbeitungen(x.text, 5).size +
