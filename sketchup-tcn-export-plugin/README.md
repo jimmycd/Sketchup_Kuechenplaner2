@@ -15,7 +15,7 @@ Das Plugin soll im Modell alle Teile der Schränke aus `Komponenten/` finden, je
 4. Eine TCN je Tag schreiben, dann Fräsliste und Teileliste.
 
 ## Geplante Schritte
-1. ~~Tags aller Komponenten vereinheitlichen.~~ Erledigt: Hochschrank `HS<n>`, Unterschrank Schubladen `USS<n>`, Unterschrank Tür `UST<n>`, jeweils mit `JT_Schrank`. Neu dazu der Oberschrank (`Komponenten/oberschrank/`, Kürzel `OS<n>`).
+1. ~~Tags aller Komponenten vereinheitlichen.~~ Erledigt: Hochschrank `HS<n>`, Unterschrank Schubladen `USS<n>`, Unterschrank Tür `UST<n>`, jeweils mit `JT_Schrank`. Neu dazu der Oberschrank (`Komponenten/oberschrank/`, Kürzel `OS<n>`). Schubkasten: Boden tragend 16 mm oder zwischen den Seiten, Schiene im 32-mm-Lochraster (Start 35 mm), Höhenoffset Schiene.
 2. Schubkasten auf Jürgens Standard umbauen (Boden 16 mm tragend), falls gewünscht.
 3. Erster Export nur Korpus, Vergleich mit den Beispiel-TCN.
 4. Lochreihen und Bodenbohrungen.

@@ -71,7 +71,11 @@ module Hochschrank
     # Schubkasten
     'Luft_Auszug'                 => 1.3,  # Abstand Korpus-Innenseite -> Kasten-Außenseite (je Seite)
     'Materialstaerke_Schubkasten' => 1.6,
-    'Materialstaerke_Kastenboden' => 0.8,
+    'Materialstaerke_Kastenboden' => 1.6,
+    'Kastenboden_tragend'         => 1.0,  # 1 = Boden trägt, Seiten stehen darauf; 0 = Boden zwischen den Seiten
+    'Hoehenoffset_Schiene'        => 0.0,  # Schienenbohrung über Unterkante Kasten
+    'Lochraster_Start'            => 3.5,  # erste Rasterbohrung über Unterkante Seite
+    'Lochraster'                  => 3.2,
     'Abstand_Tiefe_Kasten'        => 2.0,
     'Kasten_Abstand_unten'        => 3.0,
     'Kasten_Abstand_oben'         => 3.0,
@@ -130,6 +134,22 @@ module Hochschrank
     n_eb = p['Anz_Einlegeboeden_Oben'].to_i
     erg[:eb] = (1..MAX_EB).map { |k| k <= n_eb ? z_oben + (p['Hoehe'] - mk - z_oben) * k / (n_eb + 1) - mk / 2 : z_oben }
     erg
+  end
+
+  # Unterkante Kasten über Unterkante Front (cm): mindestens Kasten_Abstand_unten und so, dass
+  # die Schienenbohrung (Unterkante Kasten + Höhenoffset) auf dem Lochraster der Seite liegt
+  # (Lochraster_Start + n * Lochraster, gemessen ab Unterkante Seite).
+  def self.kasten_unten(p, z_front)
+    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
+    n = ((z_front + p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    st + ra * n - off - z_front
+  end
+
+  # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
+  def self.f_kasten_unten(z_front)
+    u = NAME
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_front}"
   end
 
   # ---------------------------------------------------------------------------
@@ -341,6 +361,13 @@ module Hochschrank
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front/Rückwand)')
     attribut(haupt, 'Luft_Auszug', p['Luft_Auszug'], access: 'TEXTBOX',
              formlabel: 'Abstand Korpus innen – Schubkasten außen (je Seite, Schienensystem)')
+    attribut(haupt, 'Kastenboden_tragend', p['Kastenboden_tragend'], laenge: false, access: 'LIST',
+             formlabel: 'Kastenboden', units: 'INTEGER',
+             options: '&zwischen%20den%20Seiten=0&tragend%20(Seiten%20stehen%20darauf)=1&')
+    attribut(haupt, 'Materialstaerke_Kastenboden', p['Materialstaerke_Kastenboden'], access: 'TEXTBOX',
+             formlabel: 'Stärke Kastenboden')
+    attribut(haupt, 'Hoehenoffset_Schiene', p['Hoehenoffset_Schiene'], access: 'TEXTBOX',
+             formlabel: 'Höhenoffset Schiene (Bohrung über Unterkante Kasten)')
 
     attribut(haupt, 'H_Unten', p['H_Unten'], access: 'TEXTBOX', formlabel: 'Unten: Höhe Bereich (bis Oberkante Zwischenboden)')
     attribut(haupt, 'Anz_Schubladen_Unten', p['Anz_Schubladen_Unten'], laenge: false, access: 'LIST',
@@ -369,8 +396,8 @@ module Hochschrank
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite Materialstaerke_Schubkasten
-       Materialstaerke_Kastenboden Abstand_Tiefe_Kasten Kasten_Abstand_unten Kasten_Abstand_oben
-       Rueckversatz_Einlegeboden].each do |n|
+       Abstand_Tiefe_Kasten Kasten_Abstand_unten Kasten_Abstand_oben
+       Rueckversatz_Einlegeboden Lochraster_Start Lochraster].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
@@ -472,10 +499,12 @@ module Hochschrank
     mks  = p['Materialstaerke_Schubkasten']
     mb   = p['Materialstaerke_Kastenboden']
     tk   = p['Tiefe'] - p['Abstand_Tiefe_Kasten']
-    au, ao = p['Kasten_Abstand_unten'], p['Kasten_Abstand_oben']
+    ao   = p['Kasten_Abstand_oben']
     hf   = fr[:h]
     kb   = b - 2 * mk - 2 * luft
-    kh   = [hf - au - ao, 2.0].max
+    ab   = kasten_unten(p, fr[:z])      # Unterkante Kasten im Lochraster
+    kh   = [hf - ab - ao, 2.0].max      # Höhe Kasten gesamt, mind. 2 cm
+    tr   = p['Kastenboden_tragend'].to_i == 1 ? 1 : 0
     bt   = ->(teil) { [model, kz, teil, "#{bb}#{i}"] }
 
     d = model.definitions.add(s)
@@ -489,7 +518,8 @@ module Hochschrank
     attribut(d, 'Mks', mks, units: 'STRING', formula: "#{u}!Materialstaerke_Schubkasten")
     attribut(d, 'Mb', mb, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")
     attribut(d, 'Tiefe_Kasten', tk, units: 'STRING', formula: "#{u}!Tiefe-#{u}!Abstand_Tiefe_Kasten")
-    attribut(d, 'Ab_unten', au, units: 'STRING', formula: "#{u}!Kasten_Abstand_unten")
+    attribut(d, 'Ab_unten', ab, units: 'STRING', formula: f_kasten_unten("#{u}!Z_Front_#{bb}#{i}"))
+    attribut(d, 'Tragend', tr, laenge: false, units: 'STRING', formula: "#{u}!Kastenboden_tragend")
     attribut(d, 'Ab_oben', ao, units: 'STRING', formula: "#{u}!Kasten_Abstand_oben")
     attribut(d, 'Auszug', tk * p['Auszug_Anteil'], units: 'STRING',
              formula: "(#{u}!Tiefe-#{u}!Abstand_Tiefe_Kasten)*#{u}!Auszug_Anteil")
@@ -503,26 +533,30 @@ module Hochschrank
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, 0], ["#{s}!Spalt/2", "-#{s}!Spalt", nil],
               mat: mat, kz: bt.('Front'))
 
+    # Kasten-Seiten: stehen beim tragenden Boden darauf
     roh_kh = "#{s}!Hoehe_Front-#{s}!Ab_unten-#{s}!Ab_oben"
     f_kh   = "IF(#{roh_kh}>2,#{roh_kh},2)"
-    ks = platte(model, "Kasten Seite #{bb}#{i}", 'KastenSeite', [mks, tk, kh],
-                ["#{s}!Mks", "#{s}!Tiefe_Kasten", f_kh], kanten: %i[zmax])
-    einsetzen(de, ks, 'KastenSeiteL', [mk + luft, mk, au],
-              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenSeiteL'))
-    einsetzen(de, ks, 'KastenSeiteR', [b - mk - luft - mks, mk, au],
-              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenSeiteR'))
+    ks = platte(model, "Kasten Seite #{bb}#{i}", 'KastenSeite', [mks, tk, kh - tr * mb],
+                ["#{s}!Mks", "#{s}!Tiefe_Kasten", "#{f_kh}-#{s}!Tragend*#{s}!Mb"], kanten: %i[zmax])
+    einsetzen(de, ks, 'KastenSeiteL', [mk + luft, mk, ab + tr * mb],
+              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Tragend*#{s}!Mb"], mat: mat, kz: bt.('KastenSeiteL'))
+    einsetzen(de, ks, 'KastenSeiteR', [b - mk - luft - mks, mk, ab + tr * mb],
+              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Tragend*#{s}!Mb"],
+              mat: mat, kz: bt.('KastenSeiteR'))
 
     innen_b = "#{s}!Breite-2*#{s}!Mk-2*#{s}!Luft-2*#{s}!Mks"
-    kbod = platte(model, "Kasten Boden #{bb}#{i}", 'KastenBoden', [kb - 2 * mks, tk, mb],
-                  [innen_b, "#{s}!Tiefe_Kasten", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + luft + mks, mk, au],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenBoden'))
+    # Kastenboden: tragend über die volle Kastenbreite, sonst zwischen den Seiten;
+    # Vorder-/Rückstück stehen immer darauf
+    kbod = platte(model, "Kasten Boden #{bb}#{i}", 'KastenBoden', [kb - 2 * (1 - tr) * mks, tk, mb],
+                  ["#{s}!Breite-2*#{s}!Mk-2*#{s}!Luft-2*(1-#{s}!Tragend)*#{s}!Mks", "#{s}!Tiefe_Kasten", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + luft + (1 - tr) * mks, mk, ab],
+              ["#{s}!Mk+#{s}!Luft+(1-#{s}!Tragend)*#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenBoden'))
 
     kvr = platte(model, "Kasten Vorder-Rueckstueck #{bb}#{i}", 'KastenQuer', [kb - 2 * mks, mks, kh - mb],
                  [innen_b, "#{s}!Mks", "#{f_kh}-#{s}!Mb"], kanten: %i[zmax])
-    einsetzen(de, kvr, 'KastenVorne', [mk + luft + mks, mk, au + mb],
+    einsetzen(de, kvr, 'KastenVorne', [mk + luft + mks, mk, ab + mb],
               ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, kz: bt.('KastenVorne'))
-    einsetzen(de, kvr, 'KastenHinten', [mk + luft + mks, mk + tk - mks, au + mb],
+    einsetzen(de, kvr, 'KastenHinten', [mk + luft + mks, mk + tk - mks, ab + mb],
               ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk+#{s}!Tiefe_Kasten-#{s}!Mks", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: bt.('KastenHinten'))
 

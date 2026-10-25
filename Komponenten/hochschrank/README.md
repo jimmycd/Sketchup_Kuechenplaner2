@@ -12,7 +12,7 @@ Die `Hochschrank.skp` dann wie jede Komponente verwenden (*Datei → Importieren
 | Bereich | Option |
 |---|---|
 | Gesamt | Breite, Höhe, Tiefe (Standard 600 / 2100 / 800 mm) |
-| Schubladen | Abstand Korpus innen – Schubkasten außen je Seite (Schienensystem, Standard 13 mm) |
+| Schubladen | Abstand Korpus innen – Schubkasten außen je Seite (Schienensystem, Standard 13 mm), Kastenboden tragend / zwischen den Seiten, Stärke Kastenboden (16 mm), Höhenoffset Schiene (0 mm) |
 | Unten | Höhe Bereich (bis Oberkante Zwischenboden, Standard 700 mm), Anzahl Schubladen 1–6, Anteil Schublade 1–6 (1 = oben) |
 | Mitte | Ausführung *Offenes Fach* / *Schubladen*, lichte Höhe (Standard 600 mm, z. B. Backofen), Anzahl Schubladen 1–4, Anteil 1–4 |
 | Oben | Ausführung *Offenes Fach* / *Tür*, Anzahl Einlegeböden 0–3; Höhe ergibt sich aus dem Rest (wird angezeigt) |
@@ -22,7 +22,9 @@ Mit *Interagieren*: Schubladen fahren heraus, die Tür (Anschlag links) öffnet 
 
 ## Aufbau
 * Seiten über die volle Höhe, Boden, Deckel, zwei feste Zwischenböden (unter und über dem Mittelfach), Rückwand 8 mm. Korpus 19 mm, Fugen 2 mm.
-* Schubladen wie beim Unterschrank: Front 19 mm, Kasten 16 mm mit 8-mm-Boden, 30 mm Abstand zu Front-Unter-/Oberkante, 20 mm kürzer als die Korpustiefe.
+* Schubladen wie beim Unterschrank: Front 19 mm, Kasten 16 mm, mindestens 30 mm Abstand zu Front-Unter-/Oberkante, 20 mm kürzer als die Korpustiefe.
+* **Kastenboden** (Option *Kastenboden*): Standard **tragend**, 16 mm, über die volle Kastenbreite; Seiten, Vorder- und Rückstück stehen darauf (Unterflurschiene). Alternativ *zwischen den Seiten* (dann z. B. 8 mm, Option *Stärke Kastenboden*).
+* **Lochraster:** Der Kasten sitzt so, dass die Schienenbohrung (Unterkante Kasten + *Höhenoffset Schiene*, Standard 0) auf dem 32-mm-Raster der Seite liegt: 35 mm über der Unterkante der Seite (auch im Mittelfach), dann alle 32 mm (`Lochraster_Start`, `Lochraster` in den Komponentenattributen). Dafür rückt der Kasten bis zu 32 mm über den Mindestabstand von 30 mm zur Front-Unterkante; oben bleiben 30 mm Abstand, der Kasten wird entsprechend niedriger.
 * Einlegeböden 10 mm von vorne zurückgesetzt, gleichmäßig verteilt.
 * Material: alle Platten „Melamin weiss“, in OpenCutList als *Plattenwerkstoff* (Stärken 8/16/19 mm). Ist das Material im Modell schon in OCL eingerichtet, bleibt es unverändert.
 

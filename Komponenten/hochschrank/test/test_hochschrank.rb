@@ -44,6 +44,7 @@ class Knoten
 
   def IF(c, a, b) = c ? a : b
   def AND(*a) = a.all?
+  def INT(x) = x.floor.to_f
 
   def auswerten(f)
     ruby = f.gsub(/(?<![<>=!])=(?!=)/, '==').gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -140,6 +141,19 @@ def pruefe(w, p, label)
     check(((kr[:q][1] - kl[:q][0]) - (b - 2 * mk - 2 * luft)).abs < EPS, "#{label}: Kastenbreite #{kl[:pfad]}")
     check((kl[:q][0] - mk - luft).abs < EPS, "#{label}: Luft links #{kl[:pfad]}")
   end
+  # Schubkasten: Schienenbohrung (Unterkante Kasten + Höhenoffset) im Lochraster 35 + n * 32 mm ab Unterkante Seite,
+  # tragender Boden über die volle Kastenbreite
+  off = p['Hoehenoffset_Schiene']
+  sichtbar.select { |t2| t2[:name] == 'KastenBoden' }.each do |kb|
+    loch = (kb[:q][4] + off - p['Lochraster_Start']) / p['Lochraster']
+    check((loch - loch.round).abs < 1e-6, "#{label}: #{kb[:pfad]} nicht im Lochraster (#{kb[:q][4].round(3)})")
+    kl = sichtbar.find { |t2| t2[:name] == 'KastenSeiteL' && t2[:pfad].split('/').first == kb[:pfad].split('/').first }
+    if p['Kastenboden_tragend'] == 1
+      check((kb[:q][0] - kl[:q][0]).abs < EPS && (kl[:q][4] - kb[:q][5]).abs < EPS, "#{label}: #{kb[:pfad]} tragend")
+    else
+      check((kb[:q][0] - kl[:q][1]).abs < EPS && (kl[:q][4] - kb[:q][4]).abs < EPS, "#{label}: #{kb[:pfad]} zwischen den Seiten")
+    end
+  end
   eb = sichtbar.count { |t2| t2[:name].start_with?('Einlegeboden') }
   check(eb == p['Anz_Einlegeboeden_Oben'], "#{label}: Einlegeböden #{eb}")
   check((w.wert('H_Oben') - (h - zo)).abs < EPS, "#{label}: H_Oben")
@@ -221,6 +235,8 @@ lauf({ 'Art_Oben' => 0.0, 'Anz_Einlegeboeden_Oben' => 2.0, 'Anz_Schubladen_Unten
      { 'Art_Oben' => 1, 'Anz_Schubladen_Unten' => 2, 'Anteil_U1' => 1, 'Anteil_U2' => 3 })
 lauf({ 'Anz_Schubladen_Unten' => 4.0, 'Anteil_U4' => 2.0, 'Art_Mitte' => 1.0, 'Anz_Schubladen_Mitte' => 4.0,
        'H_Mitte' => 45.0, 'Luft_Auszug' => 0.5 }, '4+4 Schubladen')
+lauf({ 'Art_Mitte' => 1.0, 'Kastenboden_tragend' => 0.0, 'Materialstaerke_Kastenboden' => 0.8, 'Hoehenoffset_Schiene' => 0.7 },
+     'Boden zwischen den Seiten, Offset', { 'Kastenboden_tragend' => 1, 'Anz_Schubladen_Unten' => 5 })
 
 # --- Tag-Schema ---------------------------------------------------------------
 Sketchup.active_model = Sketchup::Model.new

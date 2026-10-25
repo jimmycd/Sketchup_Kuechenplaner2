@@ -51,6 +51,7 @@ class Knoten
   end
 
   def IF(c, a, b) = c ? a : b
+  def INT(x) = x.floor.to_f
 
   def auswerten(f)
     ruby = f.gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -114,9 +115,29 @@ def pruefe(wurzel, anz, h, b, t, label)
     check(kz0 >= mk - EPS && kz1 <= h - mk + EPS, "#{label}: Kasten kollidiert mit Boden/Strebe S#{i}")
     kh = s.finde('KastenHinten'); kb = s.finde('KastenBoden'); kv = s.finde('KastenVorne')
     check((kh.wert('y') + kh.wert('leny') - (kl.wert('y') + kl.wert('leny'))).abs < EPS, "#{label}: Rückstück bündig S#{i}")
-    check((kb.wert('x') - (kl.wert('x') + kl.wert('lenx'))).abs < EPS, "#{label}: Kastenboden an Seite S#{i}")
-    check((kb.wert('x') + kb.wert('lenx') - kr.wert('x')).abs < EPS, "#{label}: Kastenboden bis Seite R S#{i}")
+    mb = wurzel.wert('Materialstaerke_Kastenboden')
+    if wurzel.wert('Kastenboden_tragend') > 0.5
+      # tragender Boden: volle Kastenbreite, Seiten stehen darauf
+      check((kb.wert('x') - kl.wert('x')).abs < EPS && (kb.wert('x') + kb.wert('lenx') - (kr.wert('x') + kr.wert('lenx'))).abs < EPS,
+            "#{label}: tragender Kastenboden volle Breite S#{i}")
+      check((kl.wert('z') - (kb.wert('z') + mb)).abs < EPS && (kr.wert('z') - kl.wert('z')).abs < EPS, "#{label}: Seiten auf dem Boden S#{i}")
+    else
+      check((kb.wert('x') - (kl.wert('x') + kl.wert('lenx'))).abs < EPS, "#{label}: Kastenboden an Seite S#{i}")
+      check((kb.wert('x') + kb.wert('lenx') - kr.wert('x')).abs < EPS, "#{label}: Kastenboden bis Seite R S#{i}")
+      check((kl.wert('z') - kb.wert('z')).abs < EPS, "#{label}: Seiten und Boden unten bündig S#{i}")
+    end
+    check((kb.wert('lenz') - mb).abs < EPS, "#{label}: Stärke Kastenboden S#{i}")
+    check((kv.wert('z') - (kb.wert('z') + mb)).abs < EPS, "#{label}: Vorderstück auf dem Boden S#{i}")
     check((kv.wert('z') + kv.wert('lenz') - (kl.wert('z') + kl.wert('lenz'))).abs < EPS, "#{label}: Vorderstück Höhe S#{i}")
+    # Lochraster: Schienenbohrung (Unterkante Kasten + Höhenoffset) auf Start + n * Raster, ab Unterkante Seite
+    unten = z0 + kb.wert('z')
+    loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
+    check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster (#{unten.round(3)})")
+    check(kb.wert('z') >= wurzel.wert('Kasten_Abstand_unten') - EPS &&
+          kb.wert('z') < wurzel.wert('Kasten_Abstand_unten') + wurzel.wert('Lochraster') - EPS,
+          "#{label}: Kasten S#{i} höchstens ein Raster über dem Mindestabstand")
+    check((kz1 - (z0 + f.wert('lenz') - wurzel.wert('Kasten_Abstand_oben'))).abs < EPS || kl.wert('lenz') <= 2.0 + EPS,
+          "#{label}: Kasten S#{i} Abstand oben")
     check((s.wert('Auszug') - (t - 2) * 0.8).abs < EPS, "#{label}: Auszug S#{i}")
   end
   fronten.sort!
@@ -155,7 +176,10 @@ end
   [6, [1, 1, 1, 1, 1, 1]],
   [2, [1, 3]],
   [3, [1, 1, 1], { 'Luft_Auszug' => 0.0 }],
-  [3, [1, 1, 2], { 'Luft_Auszug' => 2.15 }]
+  [3, [1, 1, 2], { 'Luft_Auszug' => 2.15 }],
+  [3, [1, 1, 1], { 'Kastenboden_tragend' => 0.0, 'Materialstaerke_Kastenboden' => 0.8 }],
+  [4, [1, 1, 2, 2], { 'Hoehenoffset_Schiene' => 1.1 }],
+  [2, [1, 1], { 'Lochraster_Start' => 3.7, 'Hoehenoffset_Schiene' => 0.5 }]
 ].each do |anz, ant, extra|
   model = Sketchup.active_model = Sketchup::Model.new
   e = eingabe(anz, ant, extra || {})
@@ -174,6 +198,7 @@ end
   d.set_attribute(U::DICT, 'hoehe', 80.0 / 2.54)
   d.set_attribute(U::DICT, 'breite', 45.0 / 2.54)
   d.set_attribute(U::DICT, 'luft_auszug', 1.25 / 2.54)
+  d.set_attribute(U::DICT, 'kastenboden_tragend', 1.0 - d.get_attribute(U::DICT, 'kastenboden_tragend'))
   w2 = Knoten.new(inst, d, nil)
   w2.redraw
   pruefe(w2, 4, 80.0, 45.0, 80.0, "#{label} -> umkonfiguriert")

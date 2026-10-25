@@ -20,13 +20,15 @@ Ohne Installation geht es auch über die Ruby-Konsole: `load 'C:/Pfad/zu/src/unt
 Der Schrank wird rechts neben vorhandene Geometrie gesetzt.
 
 ## Danach ändern (Komponentenoptionen)
-Mit dem Werkzeug *Komponentenoptionen* sind Breite, Höhe, Tiefe, **Anzahl Schubladen** und **Anteil Schublade 1–6** (1 = oben) sowie **Abstand Schrankseite–Kasten je Seite** jederzeit änderbar. Anteile nicht vorhandener Schubladen werden ignoriert.
+Mit dem Werkzeug *Komponentenoptionen* sind Breite, Höhe, Tiefe, **Anzahl Schubladen** und **Anteil Schublade 1–6** (1 = oben) sowie **Abstand Schrankseite–Kasten je Seite**, **Kastenboden** (tragend / zwischen den Seiten), **Stärke Kastenboden** und **Höhenoffset Schiene** jederzeit änderbar. Anteile nicht vorhandener Schubladen werden ignoriert.
 Mit *Interagieren* auf eine Schublade klicken → sie fährt heraus.
 
 ## Aufbau
 * Korpus identisch zum Unterschrank mit Tür: SeiteL/R, Boden, StrebeVorn/-Hinten, Rückwand (gleiche Attributnamen und Formeln, 19 mm Korpus, 8 mm Rückwand, 2 mm Fugen).
-* Je Schublade: Front (19 mm, Fuge 2 mm zwischen den Fronten) und Schubkasten aus Seiten, Vorder-/Rückstück (16 mm) und Boden (8 mm).
-* Schubkasten: einstellbarer Abstand zur Schrankseite (Standard 13 mm je Seite), 20 mm kürzer als die Korpustiefe, 30 mm Abstand zur Front-Unter- und Oberkante.
+* Je Schublade: Front (19 mm, Fuge 2 mm zwischen den Fronten) und Schubkasten aus Seiten, Vorder-/Rückstück (16 mm) und Boden.
+* Schubkasten: einstellbarer Abstand zur Schrankseite (Standard 13 mm je Seite), 20 mm kürzer als die Korpustiefe, mindestens 30 mm Abstand zur Front-Unter- und Oberkante.
+* **Kastenboden** (Option *Kastenboden*): Standard **tragend**, 16 mm, über die volle Kastenbreite; Seiten, Vorder- und Rückstück stehen darauf (Unterflurschiene). Alternativ *zwischen den Seiten* (dann z. B. 8 mm, Option *Stärke Kastenboden*).
+* **Lochraster:** Der Kasten sitzt so, dass die Schienenbohrung (Unterkante Kasten + *Höhenoffset Schiene*, Standard 0) auf dem 32-mm-Raster der Seite liegt: 35 mm über der Unterkante der Seite, dann alle 32 mm (`Lochraster_Start`, `Lochraster` in den Komponentenattributen). Dafür rückt der Kasten bis zu 32 mm über den Mindestabstand von 30 mm zur Front-Unterkante; oben bleiben 30 mm Abstand, der Kasten wird entsprechend niedriger.
 
 Diese festen Maße stehen als Attribute am Unterschrank (Fenster *Komponentenattribute*) und können dort angepasst werden, z. B. `Materialstaerke_Schubkasten`, `Kasten_Abstand_unten`.
 
