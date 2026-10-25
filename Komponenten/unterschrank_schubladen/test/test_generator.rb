@@ -204,6 +204,11 @@ end
   check(tags.all? { |n| n.start_with?("#{kz}_") }, "#{kz}: Tags mit Kürzel #{kz}")
   t.each do |c, _|
     check(c.material == mel, "#{kz}: Material #{c.name}")
+    jt = %w[schrank typ kategorie bereich teil rolle].to_h { |k| [k, c.get_attribute(U::JT_DICT, k)] }
+    check(jt['schrank'] == kz && jt['typ'] == U::TYP && jt['kategorie'] == 'Unterschrank', "#{kz}: JT_Schrank #{c.name} #{jt.inspect}")
+    check(c.layer.name == [kz, (jt['bereich'] unless jt['bereich'].empty?), jt['teil']].compact.join('_'),
+          "#{kz}: Tag #{c.layer.name} passt nicht zu JT_Schrank #{jt.inspect}")
+    check(U::ROLLEN.value?(jt['rolle']), "#{kz}: Rolle #{c.name} #{jt['rolle'].inspect}")
     typ = c.definition.get_attribute(U::DICT, '_name')
     soll = U::KANTEN.fetch(typ).sort
     ist = c.definition.entities.faces.select { |f| f.material == anl }.map { |f| U.seite_von(f) }.sort
@@ -212,7 +217,8 @@ end
     check(rest.all? { |f| f.material.nil? }, "#{kz}: übrige Flächen erben Melamin #{c.name}")
   end
 end
-check(%w[USS1_SeiteL USS1_S3_Front USS2_S1_KastenSeiteR].all? { |n| model.layers[n] }, 'Tag-Namen')
+check(%w[USS1_SeiteL USS1_Rueckwand USS1_S3_Front USS2_S1_KastenSeiteR USS1_S1_Schublade].all? { |n| model.layers[n] }, 'Tag-Namen')
+check(inst1.definition.get_attribute(U::JT_DICT, 'kategorie') == 'Unterschrank', 'JT_Schrank am Schrank')
 
 # Aufteilungs-Parser
 check(U.parse_aufteilung('1;1;2', 3) == [1.0, 1.0, 2.0], 'parse 1;1;2')

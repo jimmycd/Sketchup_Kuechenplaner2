@@ -25,6 +25,20 @@ module UnterschrankSchubladen
   ANLEIMER = 'Anleimer weiss'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze
 
+  # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
+  # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
+  JT_DICT   = 'JT_Schrank'.freeze
+  TYP       = 'Unterschrank_Schubladen'.freeze
+  KATEGORIE = 'Unterschrank'.freeze # Unterschrank, Oberschrank oder Hochschrank
+  ROLLEN = {
+    'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
+    'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
+    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Tuer' => 'Tuer', 'Front' => 'Front',
+    'KastenSeiteL' => 'KastenSeite', 'KastenSeiteR' => 'KastenSeite', 'KastenVorne' => 'KastenVorne',
+    'KastenHinten' => 'KastenHinten', 'KastenBoden' => 'KastenBoden'
+  }.freeze
+
   # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
   # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
@@ -88,7 +102,7 @@ module UnterschrankSchubladen
     'Abstand Schrankseite–Kasten je Seite passend zum Schienensystem (Standard 13 mm).',
     'Mit „Interagieren“ auf eine Schublade klicken: sie fährt heraus.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. USS1_S2_Front.',
+    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. USS1_SeiteL, USS1_S2_Front.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
@@ -209,6 +223,14 @@ module UnterschrankSchubladen
     model.layers[name] || model.layers.add(name)
   end
 
+  # Tag <Kürzel>_<Bereich>_<Teil> (z. B. USS1_SeiteL, USS1_S2_Front) und JT_Schrank am Teil
+  def self.kennzeichnen(model, inst, kz, teil, bereich = nil)
+    inst.layer = tag(model, [kz, bereich, teil].compact.join('_'))
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE, 'bereich' => bereich.to_s,
+      'teil' => teil, 'rolle' => ROLLEN.fetch(teil.sub(/\d+\z/, '')) }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
+    inst
+  end
+
   def self.quader(ents, lx, ly, lz)
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -247,12 +269,14 @@ module UnterschrankSchubladen
   end
 
   # Setzt eine Instanz an pos (cm) mit Positionsformeln.
-  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, layer: nil)
+  # kz: [Modell, Kürzel, Teil, Bereich] -> Tag und JT_Schrank (siehe kennzeichnen)
+  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, layer: nil, kz: nil)
     tr = Geom::Transformation.translation(Geom::Vector3d.new(*pos.map { |v| inch(v) }))
     inst = ents.add_instance(defn, tr)
     inst.name = inst_name
     inst.material = mat if mat
     inst.layer = layer if layer
+    kennzeichnen(kz[0], inst, *kz[1..]) if kz
     inst.set_attribute(DICT, '_has_movetool_behaviors', 1.0)
     inst.set_attribute(DICT, '_hasbehaviors', 1.0)
     inst.set_attribute(DICT, '_iscollapsed', false)
@@ -276,7 +300,7 @@ module UnterschrankSchubladen
     u = NAME
     mat = material(model)
     kz = p['Kuerzel'] || freies_kuerzel(model)
-    t_ = ->(teil) { tag(model, "#{kz}_#{teil}") } # ein Tag je Teil für die CAD/CAM-Zuordnung
+    t_ = ->(teil, bereich = nil) { [model, kz, teil, bereich] } # ein Tag je Teil für die CAD/CAM-Zuordnung
 
     haupt = model.definitions.add('Unterschrank mit Schubladen')
     stempel(haupt)
@@ -321,41 +345,42 @@ module UnterschrankSchubladen
     # --- Korpus (identisch zum Unterschrank mit Tür) ---
     seite = platte(model, 'Seite', 'Seite', [mk, t, h],
                    ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Hoehe"])
-    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, layer: t_.('SeiteL'))
+    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, kz: t_.('SeiteL'))
     einsetzen(e, seite, 'SeiteR', [b - mk, mk, 0],
-              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, layer: t_.('SeiteR'))
+              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('SeiteR'))
 
     boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk],
                    ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Materialstaerke_Korpus"])
     einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil],
-              mat: mat, layer: t_.('Boden'))
+              mat: mat, kz: t_.('Boden'))
 
     strebe_formeln = ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus", "#{u}!BreiteStreben",
                       "#{u}!Materialstaerke_Korpus"]
     strebe_v = platte(model, 'StrebeV', 'StrebeVorn', [b - 2 * mk, bs, mk], strebe_formeln)
     einsetzen(e, strebe_v, 'StrebeVorn', [mk, mk, h - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"],
-              mat: mat, layer: t_.('StrebeVorn'))
+              mat: mat, kz: t_.('StrebeVorn'))
     strebe_h = platte(model, 'StrebeH', 'StrebeHinten', [b - 2 * mk, bs, mk], strebe_formeln)
     einsetzen(e, strebe_h, 'StrebeHinten', [mk, t - bs + mk, h - mk],
               ['StrebeVorn!X', "#{u}!Tiefe-#{u}!BreiteStreben+#{u}!Materialstaerke_Korpus", 'StrebeVorn!Z'],
-              mat: mat, layer: t_.('StrebeHinten'))
+              mat: mat, kz: t_.('StrebeHinten'))
 
     rueck = platte(model, 'Rückwand', 'Rückwand', [b, rw, h],
                    ["#{u}!Breite", "#{u}!Materialstarke_Rueckwand", "#{u}!Hoehe"])
     einsetzen(e, rueck, 'Rückwand', [0, t + mk, 0],
-              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, layer: t_.('Rueckwand'))
+              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, kz: t_.('Rueckwand'))
 
     # --- Schubladen ---
     (1..MAX_SCHUBLADEN).each do |i|
-      schublade(model, e, p, r[:fronten][i - 1], i, mat, t_)
+      schublade(model, e, p, r[:fronten][i - 1], i, mat, kz)
     end
 
     haupt.set_attribute(OCL_DICT, 'kuerzel', kz)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| haupt.set_attribute(JT_DICT, k, v) }
     haupt
   end
 
-  def self.schublade(model, ents, p, fr, i, mat, t_)
+  def self.schublade(model, ents, p, fr, i, mat, kz)
     u  = NAME
     s  = "Schublade#{i}"
     mk = p['Materialstaerke_Korpus']
@@ -369,7 +394,7 @@ module UnterschrankSchubladen
     hf   = fr[:h]
     kb   = b - 2 * mk - 2 * luft        # Außenbreite Kasten
     kh   = [hf - au - ao, 2.0].max      # Höhe Kasten (Seiten), mind. 2 cm
-    st = ->(teil) { t_.("S#{i}_#{teil}") }
+    st = ->(teil) { [model, kz, teil, "S#{i}"] }
 
     d = model.definitions.add(s)
     stempel(d)
@@ -402,7 +427,7 @@ module UnterschrankSchubladen
     front = platte(model, "Front S#{i}", 'Front', [b - sp, mk, hf],
                    ["#{s}!Breite-#{s}!Spalt", "#{s}!Mk", "#{s}!Hoehe_Front"])
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, 0], ["#{s}!Spalt/2", "-#{s}!Spalt", nil],
-              mat: mat, layer: st.('Front'))
+              mat: mat, kz: st.('Front'))
 
     # Kasten-Seiten
     roh_kh = "#{s}!Hoehe_Front-#{s}!Ab_unten-#{s}!Ab_oben"
@@ -410,26 +435,26 @@ module UnterschrankSchubladen
     ks = platte(model, "Kasten Seite S#{i}", 'KastenSeite', [mks, tk, kh],
                 ["#{s}!Mks", "#{s}!Tiefe_Kasten", f_kh])
     einsetzen(de, ks, 'KastenSeiteL', [mk + luft, mk, au],
-              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenSeiteL'))
+              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenSeiteL'))
     einsetzen(de, ks, 'KastenSeiteR', [b - mk - luft - mks, mk, au],
-              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenSeiteR'))
+              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenSeiteR'))
 
     innen_b = "#{s}!Breite-2*#{s}!Mk-2*#{s}!Luft-2*#{s}!Mks"
     # Kastenboden zwischen den Seiten, Vorder-/Rückstück stehen darauf
     kbod = platte(model, "Kasten Boden S#{i}", 'KastenBoden', [kb - 2 * mks, tk, mb],
                   [innen_b, "#{s}!Tiefe_Kasten", "#{s}!Mb"])
     einsetzen(de, kbod, 'KastenBoden', [mk + luft + mks, mk, au],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: st.('KastenBoden'))
+              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
 
     kvr = platte(model, "Kasten Vorder-Rueckstueck S#{i}", 'KastenQuer', [kb - 2 * mks, mks, kh - mb],
                  [innen_b, "#{s}!Mks", "#{f_kh}-#{s}!Mb"])
     einsetzen(de, kvr, 'KastenVorne', [mk + luft + mks, mk, au + mb],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, layer: st.('KastenVorne'))
+              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, kz: st.('KastenVorne'))
     einsetzen(de, kvr, 'KastenHinten', [mk + luft + mks, mk + tk - mks, au + mb],
               ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk+#{s}!Tiefe_Kasten-#{s}!Mks", "#{s}!Ab_unten+#{s}!Mb"],
-              mat: mat, layer: st.('KastenHinten'))
+              mat: mat, kz: st.('KastenHinten'))
 
-    inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{i}"], layer: st.('Schublade'))
+    inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{i}"], layer: tag(model, "#{kz}_S#{i}_Schublade"))
     inst.hidden = i > p['Anz_Schubladen'].to_i
     inst
   end

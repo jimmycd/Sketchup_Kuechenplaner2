@@ -41,7 +41,11 @@ Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zug
 Ausgeblendete Schubladen und Einlegeböden erscheinen nicht in der OCL-Liste.
 
 ## Tags
-Jedes Teil hat einen eigenen, eindeutigen Tag für die spätere Zuordnung zu CAD/CAM-Dateien, z. B. `Hochschrank-SeiteL`, `Hochschrank-Deckel`, `Hochschrank-Einlegeboden2`, `Hochschrank-Tuer`, `Hochschrank-U1-Front`, `Hochschrank-M2-KastenSeiteR` (U = unten, M = Mitte, Nummer 1 = oberste Schublade im Bereich).
+Jedes Teil hat einen eigenen, eindeutigen Tag `<Kürzel>_<Bereich>_<Teil>` für die Zuordnung zu CAD/CAM-Dateien, z. B. `HS1_SeiteL`, `HS1_Deckel`, `HS1_O_Einlegeboden2`, `HS1_O_Tuer`, `HS1_U1_Front`, `HS1_M2_KastenSeiteR` (U = unten, M = Mitte, Nummer 1 = oberste Schublade im Bereich, O = oben). Korpusteile haben keinen Bereich.
+
+Das Kürzel ist `HS1`, oder `HS2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `Hochschrank.erstellen({ 'Kuerzel' => 'HS2' }, ziel)` in der Ruby-Konsole.
+
+Zusätzlich steht an jedem Teil das Attribut-Wörterbuch `JT_Schrank` mit `schrank` (Kürzel), `typ`, `kategorie` (Unterschrank, Oberschrank oder Hochschrank), `bereich`, `teil` und `rolle` (z. B. Seite, Boden, Front). Daran erkennt das TCN-Export-Plugin die Teile; die Frontfarbe-Funktion wählt über `kategorie` die Schränke aus.
 
 Weitere feste Maße (Materialstärken, Abstände) stehen als Attribute im Fenster *Komponentenattribute*.
 

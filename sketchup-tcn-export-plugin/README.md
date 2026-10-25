@@ -1,6 +1,6 @@
 # SketchUp TCN-Export-Plugin („Schrank-CNC“)
 
-**Stand: nur Planung, noch kein Code.**
+**Stand: Umsetzung begonnen.** Schritt 1 (einheitliche Tags) ist in den Komponenten erledigt, das Plugin selbst hat noch keinen Code.
 
 Das Plugin soll im Modell alle Teile der Schränke aus `Komponenten/` finden, jedes Teil an seinem Tag erkennen und je Teil eine TCN-Datei für TpaCAD schreiben, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
 
@@ -15,7 +15,7 @@ Das Plugin soll im Modell alle Teile der Schränke aus `Komponenten/` finden, je
 4. Eine TCN je Tag schreiben, dann Fräsliste und Teileliste.
 
 ## Geplante Schritte
-1. Tags aller Komponenten vereinheitlichen.
+1. ~~Tags aller Komponenten vereinheitlichen.~~ Erledigt: Hochschrank `HS<n>`, Unterschrank Schubladen `USS<n>`, Unterschrank Tür `UST<n>`, jeweils mit `JT_Schrank`.
 2. Schubkasten auf Jürgens Standard umbauen (Boden 16 mm tragend), falls gewünscht.
 3. Erster Export nur Korpus, Vergleich mit den Beispiel-TCN.
 4. Lochreihen und Bodenbohrungen.

@@ -43,7 +43,7 @@ Diese festen Maße stehen als Attribute am Unterschrank (Fenster *Komponentenatt
 
 Die Tabelle steht als `KANTEN` am Anfang von `main.rb` und ist leicht anpassbar.
 
-* **Tags:** Jedes Teil hat ein eigenes Tag `<Kürzel>_<Teil>`, z. B. `USS1_SeiteL`, `USS1_Boden`, `USS1_S2_Front`, `USS1_S2_KastenSeiteR`. Die Schubladen-Gruppen selbst haben `USS1_S<n>_Schublade`, damit man eine Schublade komplett ausblenden kann.
+* **Tags:** Jedes Teil hat ein eigenes Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `USS1_SeiteL`, `USS1_Boden`, `USS1_S2_Front`, `USS1_S2_KastenSeiteR` (Bereich `S<n>` = Schublade n, Korpusteile ohne Bereich). Zusätzlich steht an jedem Teil das Attribut-Wörterbuch `JT_Schrank` mit `schrank` (Kürzel), `typ`, `kategorie` (Unterschrank, Oberschrank oder Hochschrank), `bereich`, `teil` und `rolle` (z. B. Seite, Boden, Front). Daran erkennt das TCN-Export-Plugin die Teile; die Frontfarbe-Funktion wählt über `kategorie` die Schränke aus. Die Schubladen-Gruppen selbst haben `USS1_S<n>_Schublade`, damit man eine Schublade komplett ausblenden kann.
 
 ## Hilfe in SketchUp
 Eine Kurzfassung dieser Doku steckt in der Komponente selbst: Sie steht oben im Fenster *Komponentenoptionen* (Summary und Description, nur lesbar) und als Beschreibung in *Entitätsinformationen* bzw. im Komponenten-Browser. Am Ende steht der Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_schubladen/main.rb`.

@@ -12,7 +12,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 
 ## Regeln für alle Komponenten
 * **OpenCutList-fähig:** Jede Platte hat ein Material (Standard „Melamin weiss“). Sichtbare Kanten bekommen Anleimer nur als OCL-Zuweisung (Kantenmaterial auf der Kantenfläche). In SketchUp wird immer das Endmaß gezeichnet; den 2-mm-Abzug für Zuschnitt- und Fräsmaß rechnet nur OCL.
-* **Eindeutiger Tag je Teil**, damit jedes Teil später seiner CAD/CAM-Datei zugeordnet werden kann.
+* **Eindeutiger Tag je Teil** nach dem Schema `<Kürzel>_<Bereich>_<Teil>` (z. B. `HS1_U1_Front`, `USS1_SeiteL`), dazu das Wörterbuch `JT_Schrank` am Teil, damit jedes Teil seiner CAD/CAM-Datei zugeordnet werden kann. Die Tabelle `ROLLEN` ist in allen Komponenten gleich (der Hochschrank-Test prüft das).
 * **Kurzhilfe in der Komponente:** Summary/Description der Dynamic Component (oben im Fenster *Komponentenoptionen*) mit Link auf die README der Komponente.
 
 ## Tests

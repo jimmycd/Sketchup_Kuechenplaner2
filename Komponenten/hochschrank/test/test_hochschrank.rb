@@ -173,8 +173,14 @@ def pruefe_ocl(w, label)
     nm = 'Boden' if nm.start_with?('Einlegeboden')
     soll = b.name.start_with?('Einlegeboden') ? %i[ymin] : KANTEN_SOLL.fetch(nm) { raise "kein Soll für #{b.name}" }
     check(b.inst.material.equal?(platte), "#{label}: #{b.name} ohne Plattenmaterial")
-    check(b.inst.layer && b.inst.layer.name.start_with?('Hochschrank-'), "#{label}: #{b.name} ohne Tag")
+    check(b.inst.layer && b.inst.layer.name.start_with?('HS1_'), "#{label}: #{b.name} ohne Tag")
     tags << b.inst.layer.name
+    jt = %w[schrank typ kategorie bereich teil rolle].to_h { |k| [k, b.inst.get_attribute(H::JT_DICT, k)] }
+    check(jt['schrank'] == 'HS1' && jt['typ'] == 'Hochschrank' && jt['kategorie'] == 'Hochschrank',
+          "#{label}: #{b.name} JT_Schrank #{jt.inspect}")
+    check(b.inst.layer.name == ['HS1', (jt['bereich'] unless jt['bereich'].empty?), jt['teil']].compact.join('_'),
+          "#{label}: Tag #{b.inst.layer.name} passt nicht zu JT_Schrank #{jt.inspect}")
+    check(H::ROLLEN.value?(jt['rolle']), "#{label}: #{b.name} Rolle #{jt['rolle'].inspect}")
     ist = b.defn.entities.faces.select { |f| f.material.equal?(kante) }.map do |f|
       H::SEITEN.find { |_, (ax, vz)| f.normal.to_a[ax] * vz > 0.5 }.first
     end
@@ -215,6 +221,22 @@ lauf({ 'Art_Oben' => 0.0, 'Anz_Einlegeboeden_Oben' => 2.0, 'Anz_Schubladen_Unten
      { 'Art_Oben' => 1, 'Anz_Schubladen_Unten' => 2, 'Anteil_U1' => 1, 'Anteil_U2' => 3 })
 lauf({ 'Anz_Schubladen_Unten' => 4.0, 'Anteil_U4' => 2.0, 'Art_Mitte' => 1.0, 'Anz_Schubladen_Mitte' => 4.0,
        'H_Mitte' => 45.0, 'Luft_Auszug' => 0.5 }, '4+4 Schubladen')
+
+# --- Tag-Schema ---------------------------------------------------------------
+Sketchup.active_model = Sketchup::Model.new
+H.erstellen({})
+H.erstellen({})
+H.erstellen({ 'Kuerzel' => 'HS7' })
+ly = Sketchup.active_model.layers
+check(%w[HS1_SeiteL HS1_Deckel HS1_O_Einlegeboden2 HS1_O_Tuer HS1_U1_Front HS1_M2_KastenSeiteR
+         HS2_SeiteL HS7_Boden].all? { |n| ly[n] }, 'Tag-Namen <Kürzel>_<Bereich>_<Teil>')
+check(ly.to_a.none? { |l| l.name.start_with?('Hochschrank-') }, 'keine alten Tags Hochschrank-…')
+hd = Sketchup.active_model.definitions[H::NAME]
+check(hd.get_attribute(H::JT_DICT, 'kategorie') == 'Hochschrank', 'JT_Schrank am Schrank')
+# Tag-Schema in allen Komponenten gleich
+quellen = Dir[File.expand_path('../../*/{*.rb,src/*/main.rb}', __dir__)].map { |f| File.read(f, encoding: 'UTF-8') }
+rollen = quellen.map { |q| q[/  ROLLEN = \{.*?\}\.freeze/m] }.compact
+check(rollen.size >= 3 && rollen.uniq.size == 1, "ROLLEN-Tabelle in allen Komponenten gleich (#{rollen.size} gefunden)")
 
 # --- Kurzhilfe in der Komponente ------------------------------------------
 Sketchup.active_model = Sketchup::Model.new

@@ -19,7 +19,9 @@
 #
 # OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag.
+# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# <Kürzel>_<Bereich>_<Teil> (z. B. HS1_SeiteL, HS1_U1_Front) und das Wörterbuch
+# "JT_Schrank" für den TCN-Export. Anderes Kürzel: Hochschrank.erstellen({ 'Kuerzel' => 'HS2' }, ziel)
 
 require 'sketchup.rb'
 
@@ -34,6 +36,21 @@ module Hochschrank
   MATERIAL = 'Melamin weiss'.freeze
   KANTE    = 'Anleimer Melamin weiss'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze
+  KUERZEL  = 'HS'.freeze
+
+  # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
+  # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
+  JT_DICT   = 'JT_Schrank'.freeze
+  TYP       = 'Hochschrank'.freeze
+  KATEGORIE = 'Hochschrank'.freeze # Unterschrank, Oberschrank oder Hochschrank
+  ROLLEN = {
+    'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
+    'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
+    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Tuer' => 'Tuer', 'Front' => 'Front',
+    'KastenSeiteL' => 'KastenSeite', 'KastenSeiteR' => 'KastenSeite', 'KastenVorne' => 'KastenVorne',
+    'KastenHinten' => 'KastenHinten', 'KastenBoden' => 'KastenBoden'
+  }.freeze
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -72,7 +89,7 @@ module Hochschrank
     'Anteile: 1/1/2 = unterste doppelt so hoch, Schublade 1 = oben; mm-Werte werden auf die Bereichshöhe skaliert.',
     'Mit „Interagieren“ fahren Schubladen heraus, die Tür öffnet sich.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag, z. B. Hochschrank-SeiteL, Hochschrank-U1-Front.',
+    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HS1_SeiteL, HS1_U1_Front, HS1_O_Tuer.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
@@ -232,10 +249,20 @@ module Hochschrank
                           'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
   end
 
-  # Eindeutiger Tag je Teil, z. B. "Hochschrank-SeiteL", "Hochschrank-U1-Front"
-  def self.tag(model, name)
-    voll = "#{NAME}-#{name}"
-    model.layers[voll] || model.layers.add(voll)
+  # Freies Kürzel für die Tags, z. B. HS1, HS2 …
+  def self.freies_kuerzel(model)
+    n = 1
+    n += 1 while model.layers.to_a.any? { |l| l.name.start_with?("#{KUERZEL}#{n}_") }
+    "#{KUERZEL}#{n}"
+  end
+
+  # Tag <Kürzel>_<Bereich>_<Teil> (z. B. HS1_SeiteL, HS1_U1_Front) und JT_Schrank am Teil
+  def self.kennzeichnen(model, inst, kz, teil, bereich = nil)
+    name = [kz, bereich, teil].compact.join('_')
+    inst.layer = model.layers[name] || model.layers.add(name)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE, 'bereich' => bereich.to_s,
+      'teil' => teil, 'rolle' => ROLLEN.fetch(teil.sub(/\d+\z/, '')) }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
+    inst
   end
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
@@ -268,12 +295,13 @@ module Hochschrank
     d
   end
 
-  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, layer: nil)
+  # kz: [Modell, Kürzel, Teil, Bereich] -> Tag und JT_Schrank (siehe kennzeichnen)
+  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, kz: nil)
     tr = Geom::Transformation.translation(Geom::Vector3d.new(*pos.map { |v| inch(v) }))
     inst = ents.add_instance(defn, tr)
     inst.name = inst_name
     inst.material = mat if mat
-    inst.layer = layer if layer
+    kennzeichnen(kz[0], inst, *kz[1..]) if kz
     inst.set_attribute(DICT, '_has_movetool_behaviors', 1.0)
     inst.set_attribute(DICT, '_hasbehaviors', 1.0)
     inst.set_attribute(DICT, '_iscollapsed', false)
@@ -297,11 +325,14 @@ module Hochschrank
     u = NAME
     mat = material(model)
     kanten_material(model)
+    kz = p['Kuerzel'] || freies_kuerzel(model)
+    t_ = ->(teil, bereich = nil) { [model, kz, teil, bereich] }
 
     haupt = model.definitions.add(NAME)
     stempel(haupt)
     haupt.set_attribute(DICT, '_name', u)
     hilfe(haupt)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| haupt.set_attribute(JT_DICT, k, v) }
 
     # --- Parameter (Komponentenoptionen) ---
     attribut(haupt, 'Breite', p['Breite'], access: 'TEXTBOX', formlabel: 'Breite')
@@ -368,28 +399,28 @@ module Hochschrank
     # --- Korpus ---
     seite = platte(model, 'Seite', 'Seite', [mk, t, h],
                    ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Hoehe"], kanten: %i[ymin zmax])
-    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, layer: tag(model, 'SeiteL'))
+    einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, kz: t_.('SeiteL'))
     einsetzen(e, seite, 'SeiteR', [b - mk, mk, 0],
-              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, layer: tag(model, 'SeiteR'))
+              ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('SeiteR'))
 
     boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk], innen, kanten: %i[ymin])
     einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil],
-              mat: mat, layer: tag(model, 'Boden'))
+              mat: mat, kz: t_.('Boden'))
     einsetzen(e, boden, 'Deckel', [mk, mk, h - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"],
-              mat: mat, layer: tag(model, 'Deckel'))
+              mat: mat, kz: t_.('Deckel'))
     # Zwischenböden: Oberkante bei H_Unten bzw. H_Unten+H_Mitte+Mk
     einsetzen(e, boden, 'ZwischenbodenUnten', [mk, mk, p['H_Unten'] - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!H_Unten-#{u}!Materialstaerke_Korpus"],
-              mat: mat, layer: tag(model, 'ZwischenbodenUnten'))
+              mat: mat, kz: t_.('ZwischenbodenUnten'))
     einsetzen(e, boden, 'ZwischenbodenOben', [mk, mk, r[:z_oben] - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!H_Unten+#{u}!H_Mitte"],
-              mat: mat, layer: tag(model, 'ZwischenbodenOben'))
+              mat: mat, kz: t_.('ZwischenbodenOben'))
 
     rueck = platte(model, 'Rückwand', 'Rückwand', [b, rw, h],
                    ["#{u}!Breite", "#{u}!Materialstarke_Rueckwand", "#{u}!Hoehe"], kanten: %i[xmin xmax zmax])
     einsetzen(e, rueck, 'Rückwand', [0, t + mk, 0],
-              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, layer: tag(model, 'Rueckwand'))
+              [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, kz: t_.('Rueckwand'))
 
     # --- Einlegeböden oben ---
     rv = p['Rueckversatz_Einlegeboden']
@@ -401,7 +432,7 @@ module Hochschrank
       sichtbarkeit(d, k <= p['Anz_Einlegeboeden_Oben'].to_i, "IF(#{u}!Anz_Einlegeboeden_Oben>=#{k},0,1)")
       inst = einsetzen(e, d, "Einlegeboden#{k}", [mk, mk + rv, r[:eb][k - 1]],
                        ["#{u}!Materialstaerke_Korpus", "#{u}!Materialstaerke_Korpus+#{u}!Rueckversatz_Einlegeboden",
-                        "#{u}!Z_Einlegeboden_#{k}"], mat: mat, layer: tag(model, "Einlegeboden#{k}"))
+                        "#{u}!Z_Einlegeboden_#{k}"], mat: mat, kz: t_.("Einlegeboden#{k}", 'O'))
       inst.hidden = k > p['Anz_Einlegeboeden_Oben'].to_i
     end
 
@@ -413,12 +444,12 @@ module Hochschrank
     tuer.set_attribute(DICT, 'onclick', 'ANIMATE("ROTZ",0,-100)')
     tuer.set_attribute(DICT, '_onclick_label', 'onClick')
     t_inst = einsetzen(e, tuer, 'Tür', [sp / 2.0, -sp, r[:z_oben]],
-                       ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Z_Oben"], mat: mat, layer: tag(model, 'Tuer'))
+                       ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Z_Oben"], mat: mat, kz: t_.('Tuer', 'O'))
     t_inst.hidden = p['Art_Oben'].to_i != 1
 
     # --- Schubladen ---
     %w[U M].each do |bb|
-      (1..bereiche[bb][:max]).each { |i| schublade(model, e, p, r[bb][i - 1], bb, i, mat) }
+      (1..bereiche[bb][:max]).each { |i| schublade(model, e, p, r[bb][i - 1], bb, i, mat, kz) }
     end
 
     haupt
@@ -430,7 +461,7 @@ module Hochschrank
     i <= p[cfg[:anz]].to_i
   end
 
-  def self.schublade(model, ents, p, fr, bb, i, mat)
+  def self.schublade(model, ents, p, fr, bb, i, mat, kz)
     u  = NAME
     s  = "Schublade#{bb}#{i}"
     mk = p['Materialstaerke_Korpus']
@@ -444,6 +475,7 @@ module Hochschrank
     hf   = fr[:h]
     kb   = b - 2 * mk - 2 * luft
     kh   = [hf - au - ao, 2.0].max
+    bt   = ->(teil) { [model, kz, teil, "#{bb}#{i}"] }
 
     d = model.definitions.add(s)
     stempel(d)
@@ -468,30 +500,30 @@ module Hochschrank
     front = platte(model, "Front #{bb}#{i}", 'Front', [b - sp, mk, hf],
                    ["#{s}!Breite-#{s}!Spalt", "#{s}!Mk", "#{s}!Hoehe_Front"], kanten: %i[xmin xmax zmin zmax])
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, 0], ["#{s}!Spalt/2", "-#{s}!Spalt", nil],
-              mat: mat, layer: tag(model, "#{bb}#{i}-Front"))
+              mat: mat, kz: bt.('Front'))
 
     roh_kh = "#{s}!Hoehe_Front-#{s}!Ab_unten-#{s}!Ab_oben"
     f_kh   = "IF(#{roh_kh}>2,#{roh_kh},2)"
     ks = platte(model, "Kasten Seite #{bb}#{i}", 'KastenSeite', [mks, tk, kh],
                 ["#{s}!Mks", "#{s}!Tiefe_Kasten", f_kh], kanten: %i[zmax])
     einsetzen(de, ks, 'KastenSeiteL', [mk + luft, mk, au],
-              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: tag(model, "#{bb}#{i}-KastenSeiteL"))
+              ["#{s}!Mk+#{s}!Luft", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenSeiteL'))
     einsetzen(de, ks, 'KastenSeiteR', [b - mk - luft - mks, mk, au],
-              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: tag(model, "#{bb}#{i}-KastenSeiteR"))
+              ["#{s}!Breite-#{s}!Mk-#{s}!Luft-#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenSeiteR'))
 
     innen_b = "#{s}!Breite-2*#{s}!Mk-2*#{s}!Luft-2*#{s}!Mks"
     kbod = platte(model, "Kasten Boden #{bb}#{i}", 'KastenBoden', [kb - 2 * mks, tk, mb],
                   [innen_b, "#{s}!Tiefe_Kasten", "#{s}!Mb"])
     einsetzen(de, kbod, 'KastenBoden', [mk + luft + mks, mk, au],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, layer: tag(model, "#{bb}#{i}-KastenBoden"))
+              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenBoden'))
 
     kvr = platte(model, "Kasten Vorder-Rueckstueck #{bb}#{i}", 'KastenQuer', [kb - 2 * mks, mks, kh - mb],
                  [innen_b, "#{s}!Mks", "#{f_kh}-#{s}!Mb"], kanten: %i[zmax])
     einsetzen(de, kvr, 'KastenVorne', [mk + luft + mks, mk, au + mb],
-              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, layer: tag(model, "#{bb}#{i}-KastenVorne"))
+              ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"], mat: mat, kz: bt.('KastenVorne'))
     einsetzen(de, kvr, 'KastenHinten', [mk + luft + mks, mk + tk - mks, au + mb],
               ["#{s}!Mk+#{s}!Luft+#{s}!Mks", "#{s}!Mk+#{s}!Tiefe_Kasten-#{s}!Mks", "#{s}!Ab_unten+#{s}!Mb"],
-              mat: mat, layer: tag(model, "#{bb}#{i}-KastenHinten"))
+              mat: mat, kz: bt.('KastenHinten'))
 
     inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{bb}#{i}"])
     inst.hidden = !sichtbar?(p, bb, i)
