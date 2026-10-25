@@ -1,4 +1,4 @@
-# Test ohne SketchUp: TCN-Export des Korpus (Schritt 5) an echten Schränken aus
+# Test ohne SketchUp: TCN-Export des Korpus (Schritte 5 und 6) an echten Schränken aus
 # Komponenten/ (mit der Mock-API erzeugt), verglichen mit Jürgens Beispiel-TCN.
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
@@ -43,7 +43,12 @@ check(kopf(boden.text) == kopf(beispiel('Boden.tcn')), "Kopf Boden: #{kopf(boden
 [4, 6].each do |s|
   check(bearbeitungen(boden.text, s) == bearbeitungen(beispiel('Boden.tcn'), s), "Boden SIDE##{s}: #{bearbeitungen(boden.text, s)}")
 end
-check(bearbeitungen(boden.text, 1) == bearbeitungen(beispiel('Boden.tcn'), 1).first(1), 'Boden SIDE#1: nur squad (Lochreihen kommen in Schritt 6)')
+# Sockelfüße wie Boden.tcn; die Vorlage schreibt manche Lagen als Ausdruck und von hinten nach vorn
+fuss = bearbeitungen(beispiel('Boden.tcn'), 1).map do |z|
+  z.sub('(1*(-64))+(y-60)', 'y-124').sub('#8511=20+64', '#8511=84').sub('#8510=x-20 #8511=x-20-64', '#8510=x-84 #8511=x-20')
+end
+check(bearbeitungen(boden.text, 1).sort == fuss.sort, "Boden SIDE#1: squad und Sockelfüße wie Boden.tcn: #{bearbeitungen(boden.text, 1)}")
+check(boden.lage.flaeche1 == :zmin, 'Boden: Fläche 1 ist die Unterseite (Sockelfüße)')
 
 # --- Strebe = Strebe.tcn, aber 1/1 verteilt (bleibt bei 98 mm Fräsmaß zwei Dübel) ---
 s60 = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 56.0 })
@@ -88,6 +93,8 @@ end
 check(dateien.none? { |x| x.ws.teil.pfad.any?(&:hidden?) }, 'ausgeblendete Teile fehlen')
 check(S::Schraenke.teile(model).count { |t| t.pfad.first.equal?(uss) && !t.sichtbar? } > 0, 'Testschrank hat ausgeblendete Teile')
 check(meldungen.none? { |m| m.include?('Unterseite') }, "keine Bearbeitung auf der Unterseite: #{meldungen}")
+check(dateien.none? { |x| x.text.include?('#8522=5 ') }, 'Unterschrank mit Schubladen: keine Lochreihe')
+check(dateien.none? { |x| x.text.include?('W#89') }, 'Unterschrank: Rückwand ohne Nut')
 
 # --- Oberschrank: Anleimer unten an der Seite -> 7.5 wie Seite.tcn; Kopien werden gezählt ---
 model = Sketchup.active_model = Sketchup::Model.new
@@ -102,6 +109,25 @@ z = bearbeitungen(d['OS1_SeiteR'].text, 1)
 check(z.any? { |x| x.include?('#8518=7.5 ') } && z.any? { |x| x.include?('#8518=x-7.5 ') }, "Oberschrank Seite: Boden 7.5, Deckel x-7.5: #{z}")
 check(d['OS1_Deckel'].lage.dh < d['OS1_Boden'].lage.dh, 'Deckel endet vor der Rückwand')
 
+# Schritt 6, Oberschrank: Lochreihen wie Seite.tcn (55 … x-50, vorn 35), hinten 35 vor der Rückwandnut
+lr = z.select { |x| x.include?('#8522=5 ') }
+check(lr.size == 2 && lr.all? { |x| x.include?('fittingx.tmcr #6=1 #8508=0 #8509=0 #8510=55 #8511=x-50 #8512=32 #8513=-12') },
+      "Oberschrank Seite: Lochreihen 55 … x-50, Raster 32: #{lr}")
+check(lr.map { |x| x[/#8518=(\S+)/, 1] }.sort == %w[35 y-68], "Lochreihen 35 vorn, 68 hinten (25 Versatz + 8 Nut + 35): #{lr}")
+nut = d['OS1_SeiteR'].text.split("\r\n").select { |x| x.start_with?('W#89', 'W#2201') }
+check(nut.size == 2 && nut[0].include?('#3=-9 ') && nut[0].include?('#205=2200') && nut[0].include?('#2=369 ') && nut[0].include?('#1=8 '),
+      "Seite: Nut 9 tief, Fräser 2200, 25 + 4 mm vor der Hinterkante, ab Unterkante Rückwand: #{nut}")
+check(nut[1] == 'W#2201{ ::WTl  #8015=1 #1=695 #2=0 }W', "Seite: Nut bis 5 mm über die Oberkante: #{nut[1]}")
+bnut = d['OS1_Boden'].text.split("\r\n").select { |x| x.start_with?('W#89', 'W#2201') }
+check(bnut.size == 2 && bnut[0].include?('#1=-5 ') && bnut[1].include?('#1=572 '), "Boden: Nut durchgehend: #{bnut}")
+check(d['OS1_Boden'].lage.flaeche1 == :zmax && !d['OS1_Boden'].text.include?('#8522=3 '), 'Oberschrank-Boden: Nut oben, keine Sockelfüße')
+sd = bearbeitungen(d['OS1_Deckel'].text, 5) + bearbeitungen(d['OS1_Deckel'].text, 3)
+check(sd == ['W#1001{ ::WT2 WS #8098=..\\custom\\mcr\\fittingx.tmcr #6=1 #8508=0 #8509=0 #8510=50 #8511=x-50 #8512=231 #8513=-15 #8517=0 #8518=9.5 #8520=1 #8521=1 #8522=3 #8525=0 }W'],
+      "Deckel: 3 Schrauben Ø3 × 15 in die Hinterkante (50, Mitte, x-50): #{sd}")
+rs = bearbeitungen(d['OS1_Rueckwand'].text, 1).drop(1)
+check(rs.size == 1 && rs[0].include?('#8510=59 #8511=y-59 #8512=231 #8513=-9 ') && rs[0].include?('#8518=x-9.5 ') && rs[0].include?('#8522=4 '),
+      "Rückwand: 3 Bohrungen Ø4 durch, auf Höhe Deckelmitte: #{rs}")
+
 check(S::Export.dateiname('HS1 U1/Front') == 'HS1_U1_Front', 'Dateiname ohne Sonderzeichen')
 
 # --- Hochschrank: Zwischenböden ---
@@ -110,6 +136,11 @@ Hochschrank.erstellen({})
 dateien, = S::Export.erzeugen(model)
 z = bearbeitungen(dateien.find { |x| x.name == 'HS1_SeiteL' }.text, 1)
 check(z.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, "Hochschrank Seite: 4 Dübelreihen (Boden, 2 Zwischenböden, Deckel): #{z.size - 1}")
+lr = z.select { |x| x.include?('#8522=5 ') }
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=x-741 #8511=x-50') }, "Hochschrank: Lochreihen nur im oberen Fach: #{lr}")
+check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
+      'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
+check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')
 %w[HS1_ZwischenbodenUnten HS1_ZwischenbodenOben HS1_Deckel].each do |n|
   x = dateien.find { |y| y.name == n }
   check(x && bearbeitungen(x.text, 3).size + bearbeitungen(x.text, 4).size + bearbeitungen(x.text, 5).size +

@@ -38,6 +38,25 @@ module JTools
           "#8513=#{n(-op.tiefe)} #8517=0 #8518=#{quer} #8520=1 #8521=1 #8522=#{n(op.d)} #8525=0 }W"
       end
 
+      # Nut: Bahn mit dem Nutfräser (W#89 Start, W#2201 relativ wie im Treppenbau),
+      # breiter als der Fräser in mehreren Bahnen nebeneinander
+      def nut(ws, lage, op)
+        nt = Regeln::NUT
+        x0, y0, x1, y1 = lage.x(op.p0), lage.y(op.p0), lage.x(op.p1), lage.y(op.p1)
+        len = Math.hypot(x1 - x0, y1 - y0)
+        qx, qy = -(y1 - y0) / len, (x1 - x0) / len
+        rest = [op.d - nt[:d_werkzeug], 0.0].max
+        bahnen = rest < 0.05 ? 1 : (rest / nt[:d_werkzeug]).ceil + 1
+        (0...bahnen).flat_map do |i|
+          o = bahnen == 1 ? 0.0 : -rest / 2.0 + rest * i / (bahnen - 1)
+          a, b = (i.odd? ? [[x1, y1], [x0, y0]] : [[x0, y0], [x1, y1]])
+          ["W#89{ ::WTs WS=#{ws}  #8015=0 #1=#{n(a[0] + qx * o)} #2=#{n(a[1] + qy * o)} #3=#{n(-op.tiefe)} " \
+           "#201=1 #203=1 #205=#{nt[:werkzeug]} #1001=100 #8101=0 #8096=0 #40=0 #46=1 " \
+           '#8135=0 #8136=0 #8180=0 #8181=0 #8185=0 #8186=0 #9511=0 #9512=0 #9513=0 }W',
+           "W#2201{ ::WTl  #8015=1 #1=#{n(b[0] - a[0])} #2=#{n(b[1] - a[1])} }W"]
+        end
+      end
+
       def bohrung(ws, x, y, op)
         "W#81{ ::WTp WS=#{ws}  #8015=0 #1=#{x} #2=#{y} #3=#{n(-op.tiefe)} #1002=#{n(op.d)} #201=1 #203=1 #1001=0 }W"
       end
@@ -51,30 +70,41 @@ module JTools
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
             next
           end
+          if op.art == :nut && side != 1
+            meldungen << "#{lage.ws.name}: #{op.titel} liegt nicht auf Fläche 1 und fehlt in der TCN"
+            next
+          end
           s[side] << op
         end
         s
       end
 
-      def zeilen(lage, side, ops, ws)
-        ops.map do |op|
-          ws += 1
-          if side == 1
-            if op.art == :bohrung
-              x, y = lage.x(op.p0), lage.y(op.p0)
-              bohrung(ws, ausdruck(x, lage.dl, 'x'), ausdruck(y, lage.dh, 'y'), op)
-            elsif (lage.y(op.p0) - lage.y(op.p1)).abs < 0.001
-              fitting(ws, 'fittingx', lage.x(op.p0), lage.x(op.p1), ausdruck(lage.y(op.p0), lage.dh, 'y'), op, 'x', lage.dl)
-            else
-              fitting(ws, 'fittingy', lage.y(op.p0), lage.y(op.p1), ausdruck(lage.x(op.p0), lage.dl, 'x'), op, 'y', lage.dh)
-            end
+      # Zeilen einer Bearbeitung, WS als Platzhalter "@" (Nummern vergibt zeilen)
+      def op_zeilen(lage, side, op)
+        return nut('@', lage, op) if op.art == :nut
+        if side == 1
+          if op.art == :bohrung
+            x, y = lage.x(op.p0), lage.y(op.p0)
+            [bohrung('@', ausdruck(x, lage.dl, 'x'), ausdruck(y, lage.dh, 'y'), op)]
+          elsif (lage.y(op.p0) - lage.y(op.p1)).abs < 0.001
+            [fitting('@', 'fittingx', lage.x(op.p0), lage.x(op.p1), ausdruck(lage.y(op.p0), lage.dh, 'y'), op, 'x', lage.dl)]
           else
-            # Stirnseite: im Makro ist x die Länge der Seite, #8518 die Tiefe unter Fläche 1
-            lang = [4, 6].include?(side)
-            u0 = lang ? lage.y(op.p0) : lage.x(op.p0)
-            u1 = lang ? lage.y(op.p1) : lage.x(op.p1)
-            fitting(ws, 'fittingx', u0, u1, n(lage.tiefe(op.p0)), op, 'x', lang ? lage.dh : lage.dl)
+            [fitting('@', 'fittingy', lage.y(op.p0), lage.y(op.p1), ausdruck(lage.x(op.p0), lage.dl, 'x'), op, 'y', lage.dh)]
           end
+        else
+          # Stirnseite: im Makro ist x die Länge der Seite, #8518 die Tiefe unter Fläche 1
+          lang = [4, 6].include?(side)
+          u0 = lang ? lage.y(op.p0) : lage.x(op.p0)
+          u1 = lang ? lage.y(op.p1) : lage.x(op.p1)
+          [fitting('@', 'fittingx', u0, u1, n(lage.tiefe(op.p0)), op, 'x', lang ? lage.dh : lage.dl)]
+        end
+      end
+
+      # Zeilen einer Seite, nach Inhalt sortiert (gespiegelte Teile ergeben dieselbe TCN),
+      # dann fortlaufend nummeriert ab ws + 1
+      def zeilen(lage, side, ops, ws)
+        ops.map { |op| op_zeilen(lage, side, op) }.sort_by { |z| z.join("\n") }.flatten.map do |l|
+          l.include?('WS=@') ? l.sub('WS=@', "WS=#{ws += 1}") : l
         end
       end
 
@@ -102,12 +132,12 @@ module JTools
         ws = 1
         out << 'SIDE#1{' << '$=F #1' << "W#1510{ ::WT2 WS=#{ws}  #{SQUAD} }W"
         z = zeilen(lage, 1, s[1], ws)
-        ws += z.size
+        ws += z.count { |l| l.include?(' WS=') }
         out.concat(z) << '}SIDE'
         [3, 4, 5, 6].each do |side|
           out << "SIDE##{side}{" << "$=F ##{side}"
           z = zeilen(lage, side, s[side], ws)
-          ws += z.size
+          ws += z.count { |l| l.include?(' WS=') }
           out.concat(z) << '}SIDE'
         end
         out

@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export und Frontfarbe)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus (Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben). Lochreihen, Schubladen, Türen und Griffe folgen.
+**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße und die Rückwandnut im Oberschrank. Schubladen, Türen und Griffe folgen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Später schreibt es je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
 
@@ -36,6 +36,11 @@ Was geändert wird:
 
 * Maße und Lagen sind **Fräsmaß** wie in OpenCutList: an jeder Seite mit Anleimer (Kantenfläche mit OCL-Kante, Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke.
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 12 tief in die Seite), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden 30 … x-30, Raster 150; Strebe 20 … x-20, Raster 60; beide gleichmäßig verteilt (1/1). In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
+* **Lochreihen** Ø5, 12 tief, Raster 32 in den Seiten jedes Fachs mit Einlegeboden: 35 mm von vorn und 35 mm vor der Hinterkante bzw. vor der Rückwandnut; in der Höhe 38 mm über dem festen Boden darunter bis 33 mm unter dem darüber (ergibt 55 … x-50 wie `Seite.tcn`). Unterschrank mit Schubladen: keine.
+* **Sockelfüße** (Unter- und Hochschränke): Bohrbild aus `Boden.tcn` in der Unterseite des Bodens, je Fuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64, 20 mm vom Rand in x und 60 mm in y. Der Boden liegt dafür mit der Unterseite nach oben.
+* **Rückwandnut** (steckt eine Rückwand in Seiten und Boden, also im Oberschrank): Bahn mit dem Nutfräser 2200 (Ø 8,03 mm, wie im Treppenbau) als `W#89`/`W#2201`, Tiefe = Nuttiefe (9 mm), Breite = Rückwandstärke (breiter als der Fräser: mehrere Bahnen). Läuft die Nut aus der Platte, fräst sie 5 mm darüber hinaus.
+* **Deckel–Rückwand** (nur Oberschrank): 3 Schrauben 50 mm von den Seiten und in der Mitte, Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Hinterkante des Deckels (Annahme).
+* Die Bearbeitungen einer Seite sind nach Inhalt sortiert, so ergeben gespiegelte Teile mit gleichem Bohrbild dieselbe TCN.
 * Fläche 1 (oben auf der Maschine) ist die große Fläche mit den meisten Bohrungen, bei Seiten also die Innenseite. Die linke Seite ist die gespiegelte rechte.
 * Jede TCN beginnt mit `squad` (Formatieren). Das Feld `s` im Kopf kommt aus den Vorlagen (Boden 13, Deckel 11, Strebe 10, Seite 54, sonst 1).
 * Gleiche Teile (gleicher Tag, gleiche TCN, z. B. zweimal derselbe Schrank) werden einmal geschrieben und gezählt. Weicht ein gleichnamiges Teil ab, heißt die Datei `<Tag>_2.tcn`.
@@ -51,7 +56,7 @@ Was geändert wird:
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
-* `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank und Hochschrank, Vergleich mit `beispiele/`
+* `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank und Hochschrank, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank
 
 ## Grundidee
 1. Teile einsammeln (sichtbare Instanzen mit Tag nach dem Schema `<Kürzel>_<Bereich>_<Teil>`).
@@ -65,7 +70,7 @@ Was geändert wird:
 3. ~~Schubkasten:~~ Boden tragend 16 mm oder zwischen den Seiten, Schiene im 32-mm-Lochraster (Start 35 mm), Höhenoffset Schiene.
 4. ~~Frontfarbe und Griffe.~~
 5. ~~Erster Export nur Korpus, Vergleich mit den Beispiel-TCN.~~
-6. Lochreihen, Sockelfüße, Rückwandnut.
+6. ~~Lochreihen, Sockelfüße, Rückwandnut.~~
 7. Schubladen.
 8. Türen und Griffbohrungen.
 9. Dialog, Listen.
