@@ -43,8 +43,7 @@ module Oberschrank
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
-    'KastenSeiteL' => 'KastenSeite', 'KastenSeiteR' => 'KastenSeite', 'KastenVorne' => 'KastenVorne',
-    'KastenHinten' => 'KastenHinten', 'KastenBoden' => 'KastenBoden'
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand'
   }.freeze
 
   # Standardwerte in cm

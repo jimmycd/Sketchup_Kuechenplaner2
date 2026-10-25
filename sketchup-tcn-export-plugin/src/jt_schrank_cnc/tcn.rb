@@ -57,6 +57,23 @@ module JTools
         end
       end
 
+      # Länge einer Tasche, über das ganze Werkstück als "h+20" wie in Schubkastenboden.tcn
+      def laenge(v, gesamt, var)
+        d = v - gesamt
+        return n(v) if d < -0.00005
+        d.abs < 0.00005 ? var : "#{var}+#{n(d)}"
+      end
+
+      # Rechtecktasche (rect.tmcr) wie in Schubkastenboden.tcn: Mitte, Breite in x, Länge in y
+      def tasche(ws, lage, op)
+        xs = [lage.x(op.p0), lage.x(op.p1)].minmax
+        ys = [lage.y(op.p0), lage.y(op.p1)].minmax
+        "W#1022{ ::WT2 WS=#{ws}  #8098=rect.tmcr #6=1 #8015=0 #8020=#{ausdruck(xs.sum / 2.0, lage.dl, 'x')} " \
+          "#8021=#{ausdruck(ys.sum / 2.0, lage.dh, 'y')} #8101=0 #8103=0 #8104=0 #8100=0 #8505=2 " \
+          "#8509=#{laenge(xs[1] - xs[0], lage.dl, 'l')} #8510=#{laenge(ys[1] - ys[0], lage.dh, 'h')} #8511=0 #8512=0 " \
+          "#8514=#{n(-op.tiefe)} #8515=100 #8516=0 #8520=1 #8521=1 #8522=1000 #8524=0 #8525=0 }W"
+      end
+
       def bohrung(ws, x, y, op)
         "W#81{ ::WTp WS=#{ws}  #8015=0 #1=#{x} #2=#{y} #3=#{n(-op.tiefe)} #1002=#{n(op.d)} #201=1 #203=1 #1001=0 }W"
       end
@@ -70,7 +87,7 @@ module JTools
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
             next
           end
-          if op.art == :nut && side != 1
+          if %i[nut tasche].include?(op.art) && side != 1
             meldungen << "#{lage.ws.name}: #{op.titel} liegt nicht auf Fläche 1 und fehlt in der TCN"
             next
           end
@@ -82,6 +99,7 @@ module JTools
       # Zeilen einer Bearbeitung, WS als Platzhalter "@" (Nummern vergibt zeilen)
       def op_zeilen(lage, side, op)
         return nut('@', lage, op) if op.art == :nut
+        return [tasche('@', lage, op)] if op.art == :tasche
         if side == 1
           if op.art == :bohrung
             x, y = lage.x(op.p0), lage.y(op.p0)
