@@ -7,10 +7,11 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[schraenke frontfarbe].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[schraenke frontfarbe geometrie regeln tcn export].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       menu = UI.menu('Extensions').add_submenu('Schrank-CNC')
+      menu.add_item('TCN exportieren…') { Export.dialog }
       menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
       file_loaded(__FILE__)
     end

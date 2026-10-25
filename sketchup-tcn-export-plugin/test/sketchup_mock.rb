@@ -211,3 +211,17 @@ module Sketchup
     def to_a = super
   end
 end
+
+# --- für den TCN-Export: Matrix und Bounds (die Komponenten nutzen nur Verschiebungen) ---
+module Geom
+  class Transformation
+    def origin = (@origin ||= [0.0, 0.0, 0.0])
+    def to_a = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, *origin, 1].map(&:to_f)
+  end
+end
+
+module Sketchup
+  class ComponentDefinition
+    def bounds = Struct.new(:min, :max).new([0.0, 0.0, 0.0], (box || [0, 0, 0]).map(&:to_f))
+  end
+end
