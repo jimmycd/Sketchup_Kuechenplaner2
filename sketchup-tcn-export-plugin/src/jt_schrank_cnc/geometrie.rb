@@ -102,7 +102,7 @@ module JTools
         end
       end
 
-      # z = Weltseite von Fläche 1; x entlang der längeren Plattenrichtung (positiv)
+      # z = Weltseite von Fläche 1; x entlang der längeren Plattenrichtung
       def self.lage(ws, flaeche1)
         az = achse(flaeche1)
         sz = max?(flaeche1) ? 1 : -1
@@ -112,7 +112,10 @@ module JTools
         ez = [0, 0, 0]; ez[az] = sz
         ex = [0, 0, 0]; ex[ax] = 1
         ey = [ez[1] * ex[2] - ez[2] * ex[1], ez[2] * ex[0] - ez[0] * ex[2], ez[0] * ex[1] - ez[1] * ex[0]]
-        Lage.new(ws, ax, 1, ay, ey[ay], az, sz)
+        # stehende Teile (Fronten, Rückwand): y = 0 an der Unterkante wie in SK_Vorderstueck_Frontbef.tcn,
+        # dafür x von der anderen Seite her (bleibt ein Rechtssystem)
+        sx = ay == 2 && ey[ay] < 0 ? -1 : 1
+        Lage.new(ws, ax, sx, ay, ey[ay] * sx, az, sz)
       end
     end
   end
