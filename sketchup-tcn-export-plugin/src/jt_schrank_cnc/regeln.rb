@@ -36,9 +36,13 @@ module JTools
       # 55 … x-50 im Fräsmaß der Seite = 38 über dem Boden und 33 unter dem Deckel.
       # Jede Seite bekommt sie in jedem Fach ohne Schubladen (Seiten sind immer gleich).
       LOCHREIHE = { d: 5, tiefe: 12, raster: 32, rand: 35, ueber: 38, unter: 33 }.freeze
-      # Seiten_SK_L/R: Schiene (Blum LEGRABOX) Ø5, 14 tief, 37/69/261/293 mm ab Vorderkante Seite
-      # (roh, im Fräsmaß 35/67/259/291), Höhe = Kastenunterkante + Höhenoffset Schiene
-      SCHIENE = { d: 5, tiefe: 14, tiefen: [37, 69, 261, 293] }.freeze
+      # Korpusschiene Blum LEGRABOX (Montageanleitung MD-015/4, S. 3): Ø5, 14 tief (Seiten_SK_L/R),
+      # 37 und 37+32 mm ab Vorderkante Seite, hinten je Nennlänge NL 37 + a/b; NL ist die größte,
+      # für die die lichte Tiefe (Vorderkante Seite bis Rückwand) >= NL + 3 ist.
+      # Höhe = Kastenunterkante + Höhenoffset Schiene
+      SCHIENE = { d: 5, tiefe: 14, vorn: [37, 69], abstand_nl: 3,
+                  hinten: { 350 => [192, 224], 400 => [224, 256], 450 => [224, 256], 500 => [224, 256],
+                            550 => [256, 320], 600 => [256, 320], 650 => [320, 416] } }.freeze
       KASTEN = %w[KastenBoden KastenSeite KastenVorne KastenHinten].freeze
       # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
       SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
@@ -162,6 +166,14 @@ module JTools
         end
       end
 
+      # Nennlänge der Schiene aus der lichten Tiefe der Seite (bis zur Rückwand, sonst bis Hinterkante)
+      def self.nennlaenge(s, teile)
+        t = 1 - s.dicke_achse
+        hinten = teile.select { |w| w.rolle == 'Rueckwand' && w.lo[t] > s.lo[t] }.map { |w| w.lo[t] }.min || s.hi[t]
+        lt = [hinten, s.hi[t]].min - s.lo[t]
+        SCHIENE[:hinten].keys.select { |nl| nl + SCHIENE[:abstand_nl] <= lt + TOL }.max
+      end
+
       # sichtbare Schubladen: Kastenteile je Bereich
       def self.kaesten(teile) = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }.values
 
@@ -182,12 +194,13 @@ module JTools
                        end
             next if nach_max.nil?
             seite, flaeche = flaeche_innen(s, k, nach_max)
-            SCHIENE[:tiefen].each do |d|
+            nl = nennlaenge(s, teile)
+            unless nl
+              meldungen << "#{s.name}: zu wenig Tiefe für eine LEGRABOX-Schiene (NL 350 braucht 353 mm)"
+              next
+            end
+            (SCHIENE[:vorn] + SCHIENE[:hinten][nl].map { |a| SCHIENE[:vorn][0] + a }).each do |d|
               y = s.lo[t] + d
-              if y > s.hi_f(t) - 10
-                meldungen << "#{s.name}: Schienenbohrung #{d} mm liegt hinter der Seite"
-                next
-              end
               p = punkt(k => flaeche, t => y, 2 => z)
               s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{kasten.first.teil.jt('bereich')}")
             end

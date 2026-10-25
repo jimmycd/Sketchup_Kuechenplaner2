@@ -146,7 +146,17 @@ check(lr.size == 4 && lr.map { |x| x[/#8510=(\S+) #8511=(\S+)/, 0] }.uniq.sort =
 sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
 hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
 check(hoehen == { '35' => 4, '291' => 4, '515' => 4 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
-check(sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[y-259 y-291 y-35 y-67], "Schienenbohrungen in der Tiefe: #{sch}")
+# Tiefe 800: NL 650 -> 37, 69, 37+320, 37+416 (roh) = 35, 67, 355, 451 im Fräsmaß (DH 798: 451 = y-347)
+check(sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[347 y-35 y-355 y-67], "Schienenbohrungen in der Tiefe (NL 650): #{sch}")
+nl = lambda do |tiefe|
+  Sketchup.active_model = m = Sketchup::Model.new
+  Hochschrank.erstellen({ 'Tiefe' => tiefe })
+  w = S::Export.werkstuecke(m)
+  S::Regeln.nennlaenge(w.find { |x| x.rolle == 'Seite' }, w)
+end
+check([nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)] == [650, 550, 500, 350, nil],
+      "Nennlänge aus der lichten Tiefe (NL + 3 <= LT): #{[nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)]}")
+Sketchup.active_model = model
 check(z.any? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene: alle vier Bohrungen, keine Lochreihe im Schubladenfach')
 check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
