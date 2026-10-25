@@ -34,7 +34,8 @@ module UnterschrankSchubladen
     'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Tuer' => 'Tuer', 'Front' => 'Front',
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
     'KastenSeiteL' => 'KastenSeite', 'KastenSeiteR' => 'KastenSeite', 'KastenVorne' => 'KastenVorne',
     'KastenHinten' => 'KastenHinten', 'KastenBoden' => 'KastenBoden'
   }.freeze
