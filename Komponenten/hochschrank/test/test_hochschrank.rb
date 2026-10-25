@@ -44,6 +44,8 @@ class Knoten
 
   def IF(c, a, b) = c ? a : b
   def AND(*a) = a.all?
+  def INT(x) = x.floor.to_f
+  def MIN(*a) = a.min
 
   def auswerten(f)
     ruby = f.gsub(/(?<![<>=!])=(?!=)/, '==').gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -104,7 +106,7 @@ def ueberlapp?(a, b) = (0..2).all? { |i| a[2 * i] < b[2 * i + 1] - EPS && b[2 * 
 
 def pruefe(w, p, label)
   b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
-  mk, sp, luft = 1.9, 0.2, p['Luft_Auszug'] || 1.3
+  mk, sp = 1.9, 0.2
   hu, hm = p['H_Unten'], p['H_Mitte']
   zo = hu + hm + mk
   alle = teile(w)
@@ -134,11 +136,26 @@ def pruefe(w, p, label)
   anz_soll = p['Anz_Schubladen_Unten'] + (p['Art_Mitte'] == 1 ? p['Anz_Schubladen_Mitte'] : 0) + p['Art_Oben']
   check(fronten.size == anz_soll, "#{label}: #{fronten.size} Fronten statt #{anz_soll}")
 
-  # Schubkasten-Außenbreite = Innenbreite - 2*Luft
-  sichtbar.select { |t2| t2[:name] == 'KastenSeiteL' }.each do |kl|
-    kr = sichtbar.find { |t2| t2[:name] == 'KastenSeiteR' && t2[:pfad].split('/').first == kl[:pfad].split('/').first }
-    check(((kr[:q][1] - kl[:q][0]) - (b - 2 * mk - 2 * luft)).abs < EPS, "#{label}: Kastenbreite #{kl[:pfad]}")
-    check((kl[:q][0] - mk - luft).abs < EPS, "#{label}: Luft links #{kl[:pfad]}")
+  # Schubkasten LEGRABOX free: Boden LW-35 x NL-10 mittig ab Korpusvorderkante, Holzrückwand LW-38 hinten auf
+  # dem Boden; Schienenbohrung (Unterkante Kasten + Höhenoffset) im Lochraster 35 + n * 32 mm ab Unterkante Seite
+  nl = [65.0, ((t - 0.3) / 5 + 0.000001).floor * 5.0].min
+  check((w.wert('NL') - nl).abs < EPS, "#{label}: NL #{w.wert('NL')} statt #{nl}")
+  off = p['Hoehenoffset_Schiene']
+  mb, mrw = p['Materialstaerke_Kastenboden'], p['Materialstaerke_Kastenrueckwand']
+  boeden = sichtbar.select { |t2| t2[:name] == 'KastenBoden' }
+  check(boeden.size == anz_soll - p['Art_Oben'], "#{label}: #{boeden.size} Kastenböden")
+  boeden.each do |kb|
+    q = kb[:q]
+    loch = (q[4] + off - p['Lochraster_Start']) / p['Lochraster']
+    check((loch - loch.round).abs < 1e-6, "#{label}: #{kb[:pfad]} nicht im Lochraster (#{q[4].round(3)})")
+    check((q[0] - (mk + 1.75)).abs < EPS && (q[1] - (b - mk - 1.75)).abs < EPS, "#{label}: #{kb[:pfad]} Breite LW-35")
+    check((q[2] - mk).abs < EPS && (q[3] - (mk + nl - 1.0)).abs < EPS, "#{label}: #{kb[:pfad]} Länge NL-10")
+    check((q[5] - q[4] - mb).abs < EPS, "#{label}: #{kb[:pfad]} Stärke")
+    kr = sichtbar.find { |t2| t2[:name] == 'KastenRueckwand' && t2[:pfad].split('/').first == kb[:pfad].split('/').first }
+    r = kr[:q]
+    check((r[0] - (mk + 1.9)).abs < EPS && (r[1] - (b - mk - 1.9)).abs < EPS, "#{label}: #{kr[:pfad]} Breite LW-38")
+    check((r[3] - q[3]).abs < EPS && (r[3] - r[2] - mrw).abs < EPS, "#{label}: #{kr[:pfad]} hinten am Boden")
+    check((r[4] - q[5]).abs < EPS && r[5] - r[4] <= p['Hoehe_Kastenrueckwand'] + EPS, "#{label}: #{kr[:pfad]} auf dem Boden")
   end
   eb = sichtbar.count { |t2| t2[:name].start_with?('Einlegeboden') }
   check(eb == p['Anz_Einlegeboeden_Oben'], "#{label}: Einlegeböden #{eb}")
@@ -151,8 +168,7 @@ KANTEN_SOLL = {
   'SeiteL' => %i[ymin zmax], 'SeiteR' => %i[ymin zmax], 'Boden' => %i[ymin], 'Deckel' => %i[ymin],
   'ZwischenbodenUnten' => %i[ymin], 'ZwischenbodenOben' => %i[ymin], 'Rückwand' => %i[xmin xmax zmax],
   'Tür' => %i[xmin xmax zmin zmax], 'Front' => %i[xmin xmax zmin zmax],
-  'KastenSeiteL' => %i[zmax], 'KastenSeiteR' => %i[zmax], 'KastenVorne' => %i[zmax], 'KastenHinten' => %i[zmax],
-  'KastenBoden' => []
+  'KastenRueckwand' => %i[zmax], 'KastenBoden' => []
 }.freeze
 
 def blaetter(k, out = [])
@@ -205,7 +221,7 @@ def lauf(p, label, umkonf = nil)
   puts "#{label}: Fronten " + fr.map { |a, c| "#{a.round(1)}–#{c.round(1)}" }.join(', ')
   return unless umkonf
   d = inst.definition
-  umkonf.each { |k, v| d.set_attribute(H::DICT, k.downcase, %w[Breite Hoehe Tiefe H_Unten H_Mitte Luft_Auszug].include?(k) ? v / 2.54 : v.to_f) }
+  umkonf.each { |k, v| d.set_attribute(H::DICT, k.downcase, %w[Breite Hoehe Tiefe H_Unten H_Mitte].include?(k) ? v / 2.54 : v.to_f) }
   w2 = Knoten.new(inst, d, nil)
   w2.redraw
   q = p.merge(umkonf)
@@ -214,13 +230,15 @@ end
 
 lauf({}, 'Standard (Ofenfach, Tür)',
      { 'Art_Mitte' => 1, 'Anz_Schubladen_Mitte' => 3, 'Art_Oben' => 0, 'Anz_Einlegeboeden_Oben' => 3,
-       'Hoehe' => 220.0, 'H_Unten' => 80.0, 'Breite' => 45.0, 'Luft_Auszug' => 2.1 })
+       'Hoehe' => 220.0, 'H_Unten' => 80.0, 'Breite' => 45.0, 'Tiefe' => 47.0 })
 lauf({ 'Art_Mitte' => 1.0, 'Anz_Schubladen_Mitte' => 2.0, 'Anteil_M1' => 1.0, 'Anteil_M2' => 2.0 }, 'Mitte Schubladen',
      { 'Art_Mitte' => 0, 'Anz_Schubladen_Unten' => 6, 'Anz_Einlegeboeden_Oben' => 0 })
 lauf({ 'Art_Oben' => 0.0, 'Anz_Einlegeboeden_Oben' => 2.0, 'Anz_Schubladen_Unten' => 1.0 }, 'oben offen, 1 Schublade',
      { 'Art_Oben' => 1, 'Anz_Schubladen_Unten' => 2, 'Anteil_U1' => 1, 'Anteil_U2' => 3 })
 lauf({ 'Anz_Schubladen_Unten' => 4.0, 'Anteil_U4' => 2.0, 'Art_Mitte' => 1.0, 'Anz_Schubladen_Mitte' => 4.0,
-       'H_Mitte' => 45.0, 'Luft_Auszug' => 0.5 }, '4+4 Schubladen')
+       'H_Mitte' => 45.0, 'Tiefe' => 56.0 }, '4+4 Schubladen')
+lauf({ 'Art_Mitte' => 1.0, 'Materialstaerke_Kastenboden' => 1.9, 'Hoehenoffset_Schiene' => 0.7, 'Tiefe' => 55.2 },
+     'Boden 19 mm, Offset, NL 500', { 'Tiefe' => 40.0, 'Anz_Schubladen_Unten' => 5 })
 
 # --- Tag-Schema ---------------------------------------------------------------
 Sketchup.active_model = Sketchup::Model.new
@@ -228,7 +246,7 @@ H.erstellen({})
 H.erstellen({})
 H.erstellen({ 'Kuerzel' => 'HS7' })
 ly = Sketchup.active_model.layers
-check(%w[HS1_SeiteL HS1_Deckel HS1_O_Einlegeboden2 HS1_O_Tuer HS1_U1_Front HS1_M2_KastenSeiteR
+check(%w[HS1_SeiteL HS1_Deckel HS1_O_Einlegeboden2 HS1_O_Tuer HS1_U1_Front HS1_M2_KastenRueckwand
          HS2_SeiteL HS7_Boden].all? { |n| ly[n] }, 'Tag-Namen <Kürzel>_<Bereich>_<Teil>')
 check(ly.to_a.none? { |l| l.name.start_with?('Hochschrank-') }, 'keine alten Tags Hochschrank-…')
 hd = Sketchup.active_model.definitions[H::NAME]

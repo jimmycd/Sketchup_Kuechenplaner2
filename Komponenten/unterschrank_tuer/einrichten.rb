@@ -37,9 +37,9 @@ module UnterschrankTuer
     'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Tuer' => 'Tuer', 'Front' => 'Front',
-    'KastenSeiteL' => 'KastenSeite', 'KastenSeiteR' => 'KastenSeite', 'KastenVorne' => 'KastenVorne',
-    'KastenHinten' => 'KastenHinten', 'KastenBoden' => 'KastenBoden'
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand'
   }.freeze
 
   # Namen der Teile in Unterschrank.skp (Instanz- oder Definitionsname) -> Teil
