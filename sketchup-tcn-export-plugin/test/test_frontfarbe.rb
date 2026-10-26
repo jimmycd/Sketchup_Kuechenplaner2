@@ -1,12 +1,10 @@
 # Test ohne SketchUp: Frontfarbe und Griffe an echten Schränken aus Komponenten/
 # (mit der Mock-API erzeugt).
 $LOAD_PATH.unshift(__dir__)
-$HOCHSCHRANK_TEST = true
-$OBERSCHRANK_TEST = true
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-load File.join(komp, 'hochschrank/hochschrank.rb')
-load File.join(komp, 'oberschrank/oberschrank.rb')
+load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
+load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -123,11 +121,11 @@ m2 = Sketchup.active_model = Sketchup::Model.new
 F.dialog(m2)
 check(UI.meldungen.last.include?('kein Frontmaterial'), 'Dialog ohne Frontmaterial')
 
-# .rbz muss zum Quelltext passen (sonst build_rbz.sh ausführen)
+# .rbz muss zum Quelltext passen (sonst ./build_rbz.sh im Hauptordner ausführen)
 rbz = File.expand_path('../schrank_cnc.rbz', __dir__)
 Dir.chdir(File.expand_path('../src', __dir__)) { Dir['jt_schrank_cnc.rb'] + Dir['jt_schrank_cnc/*.rb'] }.each do |f|
   im_rbz = IO.popen(['unzip', '-p', rbz, f], err: File::NULL, &:read)
-  check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (build_rbz.sh ausführen)")
+  check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (./build_rbz.sh im Hauptordner ausführen)")
 end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"

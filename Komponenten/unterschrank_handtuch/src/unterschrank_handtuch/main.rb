@@ -1,12 +1,10 @@
 # encoding: UTF-8
 #
 # Schmaler Unterschrank mit Hochauszug (Handtuchschrank) – erzeugt eine Dynamic
-# Component und speichert sie als .skp
+# Component
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/unterschrank_handtuch.rb'
-# Das Skript baut den Schrank im aktuellen Modell und speichert ihn als
-# "Unterschrank_Handtuch.skp" neben diese Datei.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Unterschrank Handtuchauszug baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Beschlag: Häfele UTENSIO Matrix HU Slim Base (Montageanleitung 4004110659MKT),
 # Modell M150 (Schrank 150 mm, lichte Weite >= 112) oder M200 (200 mm, >= 162).
@@ -365,7 +363,7 @@ module UnterschrankHandtuch
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
@@ -398,7 +396,16 @@ module UnterschrankHandtuch
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($HANDTUCH_TEST)
-  UnterschrankHandtuch.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Unterschrank_Handtuch.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Unterschrank Handtuchauszug…') { UnterschrankHandtuch.erstellen }
+  file_loaded(__FILE__)
 end

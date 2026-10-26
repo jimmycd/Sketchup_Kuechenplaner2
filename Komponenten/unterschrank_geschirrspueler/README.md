@@ -2,13 +2,11 @@
 
 Nische für einen **vollintegrierten Geschirrspüler** (45 oder 60 cm) in der Unterschrankzeile. Der Spüler hat keinen eigenen Korpus: Die Komponente besteht aus der Möbelfront, optionalen Abschlusswangen und einem Platzhalter für das Gerät. Nach außen verhält sie sich wie die anderen Unterschränke (Tags, `JT_Schrank`, OCL, Frontfarbe, TCN-Export).
 
-## Einmalig die .skp erzeugen
-1. `geschirrspueler.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Fenster → Ruby-Konsole*.
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/geschirrspueler.rb'`
-4. Der Schrank erscheint im Modell und wird als **`Unterschrank_Geschirrspueler.skp`** neben das Skript gespeichert. Nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_geschirrspueler.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Unterschrank Geschirrspüler…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
 
-Anderes Kürzel für die Tags: `UnterschrankGeschirrspueler.erstellen({ 'Kuerzel' => 'USG2' }, 'C:/…/Unterschrank_Geschirrspueler.skp')`.
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Option | Standard |

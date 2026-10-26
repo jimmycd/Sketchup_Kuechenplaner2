@@ -1,25 +1,18 @@
 # Test ohne SketchUp: TCN-Export des Korpus (Schritte 5 bis 7) an echten Schränken aus
 # Komponenten/ (mit der Mock-API erzeugt), verglichen mit Jürgens Beispiel-TCN.
 $LOAD_PATH.unshift(__dir__)
-$HOCHSCHRANK_TEST = true
-$OBERSCHRANK_TEST = true
-$APOTHEKERSCHRANK_TEST = true
-$HOCHSCHRANK_GERAETE_TEST = true
-$SPUELENSCHRANK_TEST = true
-$GESCHIRRSPUELER_TEST = true
-$HANDTUCH_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
-load File.join(komp, 'hochschrank/hochschrank.rb')
-load File.join(komp, 'oberschrank/oberschrank.rb')
-load File.join(komp, 'apothekerschrank/apothekerschrank.rb')
-load File.join(komp, 'hochschrank_geraete/hochschrank_geraete.rb')
+load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
+load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
+load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
+load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
-load File.join(komp, 'unterschrank_spuele/spuelenschrank.rb')
+load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
-load File.join(komp, 'unterschrank_geschirrspueler/geschirrspueler.rb')
-load File.join(komp, 'unterschrank_handtuch/unterschrank_handtuch.rb')
+load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
+load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc

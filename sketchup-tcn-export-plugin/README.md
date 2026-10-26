@@ -9,10 +9,12 @@ Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem
 * `beispiele/` – Jürgens 11 Beispiel-TCN-Dateien (Boden, Deckel, Strebe, Seite, Seiten_Duebel, Seiten_SK_L/R, Schubkastenboden, SK_Vorderstueck_Frontbef, T_re_L_Topfband, T_rR). Sie sind parametrisch (`x`, `y`, `s`) und nutzen die Makros `squad`, `fittingx`/`fittingy`, `inge100` und `rect`; sie sind die Vorlage für die Bearbeitungsregeln.
 
 ## Installieren
-`schrank_cnc.rbz` im Erweiterungs-Manager installieren (*Erweiterung installieren*). Das Menü steht unter *Erweiterungen › Schrank-CNC*. Nach Änderungen an `src/` die `.rbz` mit `./build_rbz.sh` neu bauen (der Test prüft das).
+`schrank_cnc.rbz` im Erweiterungs-Manager installieren (*Erweiterung installieren*), oder `Kuechenplaner_alle.rbz` aus dem Hauptordner mit allen Komponenten. Die Einträge stehen unten im gemeinsamen Menü *Erweiterungen › Küchenplaner*, unter den Komponenten. Nach Änderungen an `src/` die `.rbz` im Hauptordner mit `./build_rbz.sh` neu bauen (der Test prüft das).
+
+Wer vorher die Version 0.1 installiert hatte: Das alte Untermenü *Schrank-CNC* verschwindet nach dem Installieren der neuen `.rbz` und einem Neustart von SketchUp.
 
 ## Frontfarbe und Griffe ändern
-*Erweiterungen › Schrank-CNC › Frontfarbe und Griffe ändern…*
+*Erweiterungen › Küchenplaner › Frontfarbe und Griffe ändern…*
 
 | Feld | Bedeutung |
 |---|---|
@@ -32,7 +34,7 @@ Was geändert wird:
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
 
 ## TCN exportieren
-*Erweiterungen › Schrank-CNC › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+*Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
 * Maße und Lagen sind **Fräsmaß** wie in OpenCutList: an jeder Seite mit Anleimer (Kantenfläche mit OCL-Kante, Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke.
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden 30 … x-30, Raster 150; Strebe 20 … x-20, Raster 60; beide gleichmäßig verteilt (1/1). In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.

@@ -2,11 +2,11 @@
 
 Hochschrank mit Vollauszug: Eine hohe Front fährt komplett heraus und nimmt 2–6 Innenkästen mit (Prinzip Blum SPACE TOWER, Kästen Blum LEGRABOX). Wahlweise zwei Fronten, die unten und oben getrennt ausziehen.
 
-## Einmalig die .skp erzeugen
-1. `apothekerschrank.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Erweiterungen → Developer → Ruby-Konsole* (bzw. *Fenster → Ruby-Konsole*).
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/apothekerschrank.rb'`
-4. Der Apothekerschrank erscheint im Modell und wird als **`Apothekerschrank.skp`** neben das Skript gespeichert. Danach wird das Skript nicht mehr gebraucht – nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `apothekerschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Apothekerschrank…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
+
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Option | Werte | Standard |
@@ -49,7 +49,7 @@ Ausgeblendete Kästen, Front B und Mittelboden erscheinen nicht in der OCL-Liste
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `AP1_SeiteL`, `AP1_Mittelboden`, `AP1_A_Front`, `AP1_A3_KastenBoden`, `AP1_B1_KastenRueckwand` (A = untere bzw. einzige Front, B = obere Front, Kasten 1 = oben). Korpusteile haben keinen Bereich.
 
-Das Kürzel ist `AP1`, oder `AP2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `Apothekerschrank.erstellen({ 'Kuerzel' => 'AP2' }, ziel)` in der Ruby-Konsole.
+Das Kürzel ist `AP1`, oder `AP2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `Apothekerschrank.erstellen({ 'Kuerzel' => 'AP2' })` in der Ruby-Konsole.
 
 Am Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Apothekerschrank), `kategorie` (Hochschrank – damit greifen Frontfarbe und Sockelfüße), `bereich`, `teil` und `rolle`. Die Kastenteile haben zusätzlich `front` (A oder B): Daran findet das TCN-Plugin die Front, an der der Kasten befestigt wird, und bohrt die Frontbefestigung für jeden Kasten in die Hochfront.
 

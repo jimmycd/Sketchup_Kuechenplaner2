@@ -290,11 +290,11 @@ check(%w[summary description].all? { |k| hd.get_attribute(U::DICT, "_#{k}_access
 check(U::HILFE.include?(U::DOKU_URL), 'Hilfe: Link zur Doku')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
-# .rbz muss zum Quelltext passen (sonst build_rbz.sh ausführen)
+# .rbz muss zum Quelltext passen (sonst ./build_rbz.sh im Hauptordner ausführen)
 rbz = File.expand_path('../unterschrank_kochfeld.rbz', __dir__)
 %w[unterschrank_kochfeld.rb unterschrank_kochfeld/main.rb].each do |f|
   im_rbz = IO.popen(['unzip', '-p', rbz, f], &:read)
-  check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (build_rbz.sh ausführen)")
+  check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (./build_rbz.sh im Hauptordner ausführen)")
 end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"

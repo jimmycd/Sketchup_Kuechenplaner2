@@ -2,13 +2,11 @@
 
 Schmaler Unterschrank (150 oder 200 mm) für einen Handtuch- bzw. Utensilienauszug mit dem Beschlag **Häfele UTENSIO Matrix HU Slim Base** (Montageanleitung 4004110659MKT). Die Front geht über die volle Höhe und fährt mit dem Gestell heraus.
 
-## Einmalig die .skp erzeugen
-1. `unterschrank_handtuch.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Fenster → Ruby-Konsole*.
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/unterschrank_handtuch.rb'`
-4. Der Schrank erscheint im Modell und wird als **`Unterschrank_Handtuch.skp`** neben das Skript gespeichert. Nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_handtuch.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Unterschrank Handtuchauszug…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
 
-Anderes Kürzel für die Tags: `UnterschrankHandtuch.erstellen({ 'Kuerzel' => 'USH2' }, 'C:/…/Unterschrank_Handtuch.skp')`.
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Option | Standard |

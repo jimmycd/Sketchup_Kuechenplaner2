@@ -1,8 +1,7 @@
 # Test ohne SketchUp: Mock-API + kleiner DC-Formel-Auswerter.
 $LOAD_PATH.unshift(__dir__)
-$HOCHSCHRANK_TEST = true
 require 'sketchup_mock'
-load File.expand_path('../hochschrank.rb', __dir__)
+load File.expand_path('../src/hochschrank/main.rb', __dir__)
 
 H = Hochschrank
 EPS = 1e-6

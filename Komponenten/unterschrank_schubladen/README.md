@@ -3,8 +3,8 @@
 Erweiterung, die analog zum bestehenden „Unterschrank“ (mit Tür) eine **Dynamic Component mit 1–6 Schubladen** erzeugt.
 
 ## Installation
-1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_schubladen.rbz` wählen.
-2. Danach: *Erweiterungen → Unterschrank mit Schubladen…*
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_schubladen.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. Danach: *Erweiterungen → Küchenplaner → Unterschrank mit Schubladen…*
 
 Ohne Installation geht es auch über die Ruby-Konsole: `load 'C:/Pfad/zu/src/unterschrank_schubladen/main.rb'` und dann `UnterschrankSchubladen.dialog`.
 
@@ -49,4 +49,4 @@ Die Tabelle steht als `KANTEN` am Anfang von `main.rb` und ist leicht anpassbar.
 Eine Kurzfassung dieser Doku steckt in der Komponente selbst: Sie steht oben im Fenster *Komponentenoptionen* (Summary und Description, nur lesbar) und als Beschreibung in *Entitätsinformationen* bzw. im Komponenten-Browser. Am Ende steht der Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_schubladen/main.rb`.
 
 ## Tests
-`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, OCL-Material, Anleimer, Tags und die Kurzhilfe. Prüft außerdem, ob die `.rbz` zum Quelltext passt; nach Änderungen an `src/` deshalb `./build_rbz.sh` ausführen.
+`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, OCL-Material, Anleimer, Tags und die Kurzhilfe. Prüft außerdem, ob die `.rbz` zum Quelltext passt; nach Änderungen an `src/` deshalb im Hauptordner `./build_rbz.sh` ausführen.

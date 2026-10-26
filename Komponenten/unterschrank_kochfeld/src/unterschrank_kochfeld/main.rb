@@ -15,6 +15,15 @@
 
 require 'sketchup.rb'
 
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
 module UnterschrankKochfeld
 
   DICT     = 'dynamic_attributes'.freeze
@@ -646,7 +655,7 @@ module UnterschrankKochfeld
   end
 
   unless file_loaded?(__FILE__)
-    UI.menu('Extensions').add_item('Unterschrank Kochfeld mit Abzug…') { dialog }
+    Kuechenplaner.menu.add_item('Unterschrank Kochfeld mit Abzug…') { dialog }
     file_loaded(__FILE__)
   end
 end

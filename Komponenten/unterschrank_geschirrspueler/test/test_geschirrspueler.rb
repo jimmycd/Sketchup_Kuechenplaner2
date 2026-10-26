@@ -1,8 +1,7 @@
 # Test ohne SketchUp: Mock-API + kleiner DC-Formel-Auswerter.
 $LOAD_PATH.unshift(__dir__)
-$GESCHIRRSPUELER_TEST = true
 require 'sketchup_mock'
-load File.expand_path('../geschirrspueler.rb', __dir__)
+load File.expand_path('../src/unterschrank_geschirrspueler/main.rb', __dir__)
 
 H = UnterschrankGeschirrspueler
 EPS = 1e-6

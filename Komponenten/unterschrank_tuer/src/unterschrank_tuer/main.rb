@@ -1,15 +1,11 @@
 # encoding: UTF-8
 #
-# Richtet den bestehenden "Unterschrank" (mit Tür) ein: Kurzhilfe, ein eigener
-# Tag je Teil (<Kürzel>_<Teil>, z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer)
-# und das Wörterbuch "JT_Schrank" für den TCN-Export.
-# Die Unterschrank.skp wurde von Hand gebaut und hat keinen Generator,
-# deshalb einmalig so:
-#   1. Unterschrank.skp in ein Modell einfügen und anklicken (auswählen).
-#   2. Ruby-Konsole: load 'C:/Pfad/zu/einrichten.rb'
-#   3. Rechtsklick auf den Unterschrank → "Speichern unter…" → Unterschrank.skp ersetzen.
-# Danach steht die Hilfe oben im Fenster "Komponentenoptionen". Ein zweiter Lauf
-# behält das Kürzel bei.
+# Unterschrank mit Tür: fügt die von Hand gebaute Unterschrank.skp (liegt in der
+# Erweiterung) über Erweiterungen > Küchenplaner > Unterschrank mit Tür ins Modell
+# ein und richtet sie ein: Kurzhilfe, ein eigener Tag je Teil (<Kürzel>_<Teil>,
+# z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer), das Wörterbuch "JT_Schrank"
+# für den TCN-Export und die Formeln der Einlegeböden. Jeder eingefügte Schrank
+# bekommt ein eigenes Kürzel (UST1, UST2 …).
 
 require 'sketchup.rb'
 
@@ -158,10 +154,47 @@ module UnterschrankTuer
     # Dynamic Components neu berechnen, damit die Einlegeböden sofort richtig stehen
     ziele.each { |i| $dc_observers.get_latest_class.redraw_with_undo(i) } if defined?($dc_observers) && $dc_observers
     hinweis = unbekannt.empty? ? '' : "\nOhne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}"
-    UI.messagebox('Kurzhilfe und Tags gesetzt. Jetzt Rechtsklick → "Speichern unter…" und Unterschrank.skp ersetzen.' +
-                  hinweis)
+    UI.messagebox('Kurzhilfe und Tags gesetzt.' + hinweis)
     ziele
+  end
+
+  SKP = File.join(File.dirname(__FILE__), 'Unterschrank.skp').freeze
+
+  # Unterschrank.skp einfügen und einrichten. Ab dem zweiten Exemplar im Modell
+  # bekommt der Schrank eine eigene Definition, damit seine Teile eigene Tags haben.
+  def self.einfuegen(model = Sketchup.active_model, pfad = SKP)
+    model.start_operation('Unterschrank mit Tür', true)
+    d = model.definitions.load(pfad)
+    x = model.entities.length > 0 ? model.bounds.max.x + 10.cm : 0
+    inst = model.entities.add_instance(d, Geom::Transformation.translation([x, 0, 0]))
+    inst.make_unique if d.instances.length > 1
+    d = inst.definition
+    d.delete_attribute(JT_DICT, 'schrank') # neues Kürzel
+    hilfe(d)
+    unbekannt = tags_setzen(model, d)
+    model.commit_operation
+    $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
+    model.selection.clear
+    model.selection.add(inst)
+    puts "Unterschrank mit Tür: ohne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}" unless unbekannt.empty?
+    inst
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Einfügen: #{e.message}")
+    raise
   end
 end
 
-UnterschrankTuer.einrichten unless defined?($EINRICHTEN_TEST)
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Unterschrank mit Tür…') { UnterschrankTuer.einfuegen }
+  file_loaded(__FILE__)
+end

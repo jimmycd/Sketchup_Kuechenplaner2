@@ -1,12 +1,9 @@
 # encoding: UTF-8
 #
-# Oberschrank – erzeugt eine Dynamic Component und speichert sie als .skp
+# Oberschrank – erzeugt eine Dynamic Component
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/oberschrank.rb'
-# Das Skript baut den Oberschrank im aktuellen Modell und speichert ihn als
-# "Oberschrank.skp" neben diese Datei. Danach wird das Skript nicht mehr
-# gebraucht, die .skp ist eine normale Dynamic Component.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Oberschrank baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau: Seiten über die volle Höhe, Boden und Deckel zwischen den Seiten,
 # 0–3 Einlegeböden, offen oder mit einer oder zwei Türen.
@@ -393,7 +390,7 @@ module Oberschrank
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
@@ -426,7 +423,16 @@ module Oberschrank
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($OBERSCHRANK_TEST)
-  Oberschrank.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Oberschrank.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Oberschrank…') { Oberschrank.erstellen }
+  file_loaded(__FILE__)
 end

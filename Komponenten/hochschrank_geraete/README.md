@@ -2,11 +2,11 @@
 
 Hochschrank für zwei Einbaugeräte übereinander, z. B. Backofen + Mikrowelle oder Backofen + Dampfgarer. Basis ist der [Hochschrank](../hochschrank/).
 
-## Einmalig die .skp erzeugen
-1. `hochschrank_geraete.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Erweiterungen → Developer → Ruby-Konsole* (bzw. *Fenster → Ruby-Konsole*).
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/hochschrank_geraete.rb'`
-4. Der Schrank erscheint im Modell und wird als **`Hochschrank_Geraete.skp`** neben das Skript gespeichert. Danach wird das Skript nicht mehr gebraucht – nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `hochschrank_geraete.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Hochschrank Geräte…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
+
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Bereich | Option |
@@ -56,7 +56,7 @@ Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zug
 | Schubkasten-Boden | keine |
 
 ## Tags
-Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `HG1_SeiteL`, `HG1_ZwischenbodenMitte`, `HG1_O_Tuer`, `HG1_U1_Front`, `HG1_U2_KastenBoden` (U = unten, Nummer 1 = oberste Schublade, O = oben). Das Kürzel ist `HG1`, oder `HG2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `HochschrankGeraete.erstellen({ 'Kuerzel' => 'HG2' }, ziel)`.
+Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `HG1_SeiteL`, `HG1_ZwischenbodenMitte`, `HG1_O_Tuer`, `HG1_U1_Front`, `HG1_U2_KastenBoden` (U = unten, Nummer 1 = oberste Schublade, O = oben). Das Kürzel ist `HG1`, oder `HG2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `HochschrankGeraete.erstellen({ 'Kuerzel' => 'HG2' })`.
 
 An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (`Hochschrank_Geraete`), `kategorie` (`Hochschrank`), `bereich`, `teil` und `rolle`. Die Zwischenböden unter den Geräten tragen zusätzlich `nische` (N1/N2): Das TCN-Plugin bohrt in den Nischen keine Lochreihen. Frontfarbe (Auswahl Hochschränke) und Sockelfüße funktionieren wie beim Hochschrank.
 

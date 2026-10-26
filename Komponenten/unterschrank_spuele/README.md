@@ -2,13 +2,11 @@
 
 Unterschrank für die Spüle: Korpus wie der Unterschrank mit Tür, aber mit Installationsebene und Rückwand-Ausschnitt für die Anschlüsse, ohne Einlegeböden. Fronten wahlweise Türen oder oben eine feste Blende und darunter ein Auszug für den Abfallsammler.
 
-## Einmalig die .skp erzeugen
-1. `spuelenschrank.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Fenster → Ruby-Konsole*.
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/spuelenschrank.rb'`
-4. Der Spülenschrank erscheint im Modell und wird als **`Spuelenschrank.skp`** neben das Skript gespeichert. Nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_spuele.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Spülenschrank…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
 
-Anderes Kürzel für die Tags: `Spuelenschrank.erstellen({ 'Kuerzel' => 'USP2' }, 'C:/…/Spuelenschrank.skp')`.
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Option | Standard |

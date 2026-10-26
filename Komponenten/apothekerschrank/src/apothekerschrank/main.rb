@@ -1,13 +1,9 @@
 # encoding: UTF-8
 #
 # Apothekerschrank – Hochschrank mit Vollauszug, erzeugt eine Dynamic Component
-# und speichert sie als .skp
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/apothekerschrank.rb'
-# Das Skript baut den Apothekerschrank im aktuellen Modell und speichert ihn als
-# "Apothekerschrank.skp" neben diese Datei. Danach wird das Skript nicht mehr
-# gebraucht, die .skp ist eine normale Dynamic Component.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Apothekerschrank baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau: Korpus wie der Hochschrank (19 mm, Rückwand 8 mm, Fugen 2 mm). Eine
 # Hochfront (oder zwei Fronten, unten/oben getrennt) fährt komplett heraus und
@@ -529,7 +525,7 @@ module Apothekerschrank
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
@@ -562,7 +558,16 @@ module Apothekerschrank
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($APOTHEKERSCHRANK_TEST)
-  Apothekerschrank.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Apothekerschrank.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Apothekerschrank…') { Apothekerschrank.erstellen }
+  file_loaded(__FILE__)
 end

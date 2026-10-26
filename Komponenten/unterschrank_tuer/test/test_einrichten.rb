@@ -1,8 +1,7 @@
 # Test ohne SketchUp: Kurzhilfe, Tags und JT_Schrank werden in die ausgewählte Komponente geschrieben.
 $LOAD_PATH.unshift(__dir__)
-$EINRICHTEN_TEST = true
 require 'sketchup_mock'
-load File.expand_path('../einrichten.rb', __dir__)
+load File.expand_path('../src/unterschrank_tuer/main.rb', __dir__)
 
 T = UnterschrankTuer
 $fehler = 0
@@ -105,6 +104,47 @@ model.selection.add(inst2)
 T.einrichten(model)
 tags2 = inst2.definition.entities.instances.map { |i| i.layer&.name }
 check(tags2 == soll.map { |t| "UST2_#{t}" } + [nil], "zweiter Schrank UST2 (Definitionen mit #1): #{tags2.inspect}")
+
+# Menü: Unterschrank.skp einfügen, jedes Exemplar mit eigenem Kürzel und eigener Definition
+class Sketchup::Definitions
+  attr_accessor :geladen
+  def load(pfad) = (@geladen ||= {})[pfad] ||= yield_load(pfad)
+  def yield_load(pfad)
+    raise "falscher Pfad #{pfad}" unless File.exist?(pfad)
+    m = Sketchup.active_model
+    tmp = unterschrank(m) # baut die Definition im Modell, Instanz wieder entfernen
+    m.entities.instances.delete(tmp)
+    tmp.definition
+  end
+end
+class Sketchup::ComponentDefinition
+  def instances = Sketchup.active_model.entities.instances.select { |i| i.definition == self }
+  def delete_attribute(d, k) = dicts[d]&.delete(k)
+end
+class Sketchup::ComponentInstance
+  def make_unique
+    neu = Sketchup.active_model.definitions.add(@definition.name)
+    @definition.dicts.each { |d, h| h.each { |k, v| neu.set_attribute(d, k, v) } }
+    @definition.entities.instances.each do |i|
+      c = neu.entities.add_instance(i.definition, i.transformation)
+      c.name = i.name
+      c.layer = i.layer
+      i.dicts.each { |d, h| h.each { |k, v| c.set_attribute(d, k, v) } }
+    end
+    @definition = neu
+    self
+  end
+end
+check(File.exist?(T::SKP), 'Unterschrank.skp liegt in der Erweiterung')
+model = Sketchup.active_model = Sketchup::Model.new
+e1 = T.einfuegen(model)
+e2 = T.einfuegen(model)
+tags_e = [e1, e2].map { |e| e.definition.entities.instances.map { |i| i.layer&.name }.compact.map { |t| t[/\A[A-Z]+\d+/] }.uniq }
+check(tags_e == [['UST1'], ['UST2']], "eingefügte Schränke UST1/UST2: #{tags_e.inspect}")
+check(e1.definition != e2.definition, 'zweiter Schrank hat eigene Definition')
+check(e2.definition.description == T::HILFE_KURZ, 'Kurzhilfe am eingefügten Schrank')
+check(e2.definition.get_attribute(T::JT_DICT, 'schrank') == 'UST2', 'JT_Schrank am zweiten Schrank')
+check(model.selection.to_a == [e2], 'eingefügter Schrank ist ausgewählt')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

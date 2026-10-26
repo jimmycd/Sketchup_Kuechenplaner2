@@ -1,12 +1,10 @@
 # Hochschrank (Dynamic Component)
 
-## Einmalig die .skp erzeugen
-1. `hochschrank.rb` z. B. nach `C:/Users/<Name>/Downloads/` speichern.
-2. SketchUp öffnen → *Erweiterungen → Developer → Ruby-Konsole* (bzw. *Fenster → Ruby-Konsole*).
-3. Eingeben: `load 'C:/Users/<Name>/Downloads/hochschrank.rb'`
-4. Der Hochschrank erscheint im Modell und wird als **`Hochschrank.skp`** neben das Skript gespeichert. Danach wird das Skript nicht mehr gebraucht – nichts wird installiert.
+## Installieren und benutzen
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `hochschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. *Erweiterungen → Küchenplaner → Hochschrank…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
 
-Die `Hochschrank.skp` dann wie jede Komponente verwenden (*Datei → Importieren* oder in den eigenen Komponenten-Ordner legen).
+Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
 ## Komponentenoptionen
 | Bereich | Option |
@@ -45,7 +43,7 @@ Ausgeblendete Schubladen und Einlegeböden erscheinen nicht in der OCL-Liste.
 ## Tags
 Jedes Teil hat einen eigenen, eindeutigen Tag `<Kürzel>_<Bereich>_<Teil>` für die Zuordnung zu CAD/CAM-Dateien, z. B. `HS1_SeiteL`, `HS1_Deckel`, `HS1_O_Einlegeboden2`, `HS1_O_Tuer`, `HS1_U1_Front`, `HS1_M2_KastenRueckwand` (U = unten, M = Mitte, Nummer 1 = oberste Schublade im Bereich, O = oben). Korpusteile haben keinen Bereich.
 
-Das Kürzel ist `HS1`, oder `HS2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `Hochschrank.erstellen({ 'Kuerzel' => 'HS2' }, ziel)` in der Ruby-Konsole.
+Das Kürzel ist `HS1`, oder `HS2` usw., wenn es im Modell schon vergeben ist. Ein eigenes Kürzel: `Hochschrank.erstellen({ 'Kuerzel' => 'HS2' })` in der Ruby-Konsole.
 
 Zusätzlich steht an jedem Teil das Attribut-Wörterbuch `JT_Schrank` mit `schrank` (Kürzel), `typ`, `kategorie` (Unterschrank, Oberschrank oder Hochschrank), `bereich`, `teil` und `rolle` (z. B. Seite, Boden, Front). Daran erkennt das TCN-Export-Plugin die Teile; die Frontfarbe-Funktion wählt über `kategorie` die Schränke aus.
 

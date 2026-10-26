@@ -3,6 +3,15 @@
 
 require 'sketchup.rb'
 
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
 module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
@@ -10,9 +19,14 @@ module JTools
     %w[schraenke frontfarbe geometrie regeln tcn export].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
-      menu = UI.menu('Extensions').add_submenu('Schrank-CNC')
-      menu.add_item('TCN exportieren…') { Export.dialog }
-      menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
+      # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
+      # wenn SketchUp alle Erweiterungen geladen hat
+      UI.start_timer(0, false) do
+        menu = Kuechenplaner.menu
+        menu.add_separator
+        menu.add_item('TCN exportieren…') { Export.dialog }
+        menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
+      end
       file_loaded(__FILE__)
     end
   end
