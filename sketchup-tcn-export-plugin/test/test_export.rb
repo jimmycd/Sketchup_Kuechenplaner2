@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
 $OBERSCHRANK_TEST = true
+$GESCHIRRSPUELER_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
@@ -10,6 +11,7 @@ load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
+load File.join(komp, 'unterschrank_geschirrspueler/geschirrspueler.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -208,6 +210,21 @@ b.ws.teil.inst.layer = a.ws.teil.inst.layer
 dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
+
+# --- Geschirrspüler: Front und Wangen nur formatieren, Gerät wird nicht exportiert ---
+gm = Sketchup.active_model = Sketchup::Model.new
+usg = UnterschrankGeschirrspueler.erstellen({ 'Art_Wange' => 3.0 })
+dg, = S::Export.erzeugen(gm)
+check(dg.map(&:name).sort == %w[USG1_Front USG1_WangeL USG1_WangeR], "Geschirrspüler: Dateien #{dg.map(&:name)}")
+dg.each do |x|
+  z = bearbeitungen(x.text, 1)
+  check(z.size == 1 && z.first.include?('squad.tmcr'), "Geschirrspüler #{x.name}: nur Formatieren #{z}")
+  check([3, 4, 5, 6].all? { |s| bearbeitungen(x.text, s).empty? }, "Geschirrspüler #{x.name}: keine Stirnbohrungen")
+end
+fr = dg.find { |x| x.name == 'USG1_Front' }
+check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
+check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
+Sketchup.active_model = model
 
 # --- Dialog ---
 module UI
