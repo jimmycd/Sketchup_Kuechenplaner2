@@ -6,7 +6,8 @@
 # bekommt A eine Dübelreihe in die Stirnseite und B die passende Reihe in die
 # Fläche. Dazu (Schritt 6): Nut für eine Rückwand, die in Seiten und Boden
 # steckt (Oberschrank), Schrauben Deckel–Rückwand, Lochreihen für Einlegeböden
-# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks. Die Bearbeitungen entstehen zuerst in
+# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks;
+# Schienen und Front des Hochauszugs Häfele HU Slim Base. Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
 # Werkstückkoordinaten (Fräsmaß) umgerechnet.
 
@@ -76,7 +77,9 @@ module JTools
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
             teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
           end
-          lochreihen(teile)
+          hu = hu_slim_base?(teile)
+          lochreihen(teile) unless hu # Seiten mit Hochauszug: keine Lochreihe (wie bei Schubladen)
+          hu_slim_base(teile, meldungen) if hu
           schienen(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
@@ -311,6 +314,74 @@ module JTools
         end
       end
 
+      # Hochauszug Häfele UTENSIO Matrix HU Slim Base (Montageanleitung 4004110659MKT, "Dimensions
+      # for CNC", S. 4 und 6), Schrank mit JT_Schrank/beschlag = "Haefele HU Slim Base".
+      # Zwei Schienen an einer Seite (DC-Attribut Seite_Beschlag: 0 = links/LH, 1 = rechts/RH):
+      # je 3 Schrauben bei 56, 280 und 330 mm ab Vorderkante Seite, 52 und 52 + 384 = 436 mm über
+      # der Oberkante Boden. Front: 2 Halter mit je 2 Schrauben, X = 84 (M150) / 134 (M200) = lichte
+      # Weite - 28, also 14 mm von der Innenseite der Seiten, 103 und 103 + 384 = 487 mm über der
+      # Oberkante Boden. Mitgeliefert sind Schrauben Ø4 × 16: vorgebohrt Ø3, Schiene 10 tief (Annahme),
+      # Front 5 tief (Jürgen: Frontbohrungen immer 5 tief).
+      HU_SLIM_BASE = {
+        name: 'Haefele HU Slim Base',
+        schiene: { d: 3, tiefe: 10, vorn: [56, 280, 330], hoehen: [52, 436] },
+        front: { d: 3, tiefe: 5, innen: 14, hoehen: [103, 487] },
+        bauraum: { weite: 112, tiefe: 485, hoehe: 565 } # Mindestmaße (S. 2)
+      }.freeze
+
+      def self.hu_slim_base?(teile)
+        Schraenke.definition(teile.first.teil.schrank).get_attribute(JT_DICT, 'beschlag') == HU_SLIM_BASE[:name]
+      end
+
+      def self.hu_slim_base(teile, meldungen)
+        sd = Schraenke.definition(teile.first.teil.schrank)
+        rechts = sd.get_attribute(DC_DICT, 'seite_beschlag').to_f > 0.5
+        s = teile.find { |w| w.teil.jt('teil') == (rechts ? 'SeiteR' : 'SeiteL') } or return
+        andere = teile.find { |w| w.rolle == 'Seite' && !w.equal?(s) } or return
+        boden = teile.find { |w| w.rolle == 'Boden' } or return
+        k = s.dicke_achse
+        t = ([0, 1, 2] - [k, 2]).first
+        mitte = ->(w, i) { (w.lo[i] + w.hi[i]) / 2.0 }
+        nach_max = mitte.(andere, k) > mitte.(s, k)
+        seite, flaeche = flaeche_innen(s, k, nach_max)
+        f = teile.find { |w| w.rolle == 'Front' }
+        # vorne ist, wo die Front liegt (ohne Front: kleinere Koordinate)
+        vorn_max = f && mitte.(f, t) > mitte.(s, t)
+        vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
+        z0 = boden.hi[2]
+        c = HU_SLIM_BASE[:schiene]
+        c[:hoehen].each do |hz|
+          c[:vorn].each do |d|
+            s.ops << Op.new(:bohrung, seite, punkt(k => flaeche, t => vorne + dir * d, 2 => z0 + hz), nil, c[:d], c[:tiefe],
+                            nil, nil, 'Schiene HU Slim Base')
+          end
+        end
+
+        # Einbauraum prüfen: lichte Weite, Höhe bis unter die Streben, Tiefe bis zur Rückwand
+        innen = [[s.hi[k], andere.hi[k]].min, [s.lo[k], andere.lo[k]].max]
+        lw = innen[1] - innen[0]
+        oben = teile.select { |w| w.rolle == 'Strebe' && w.lo[2] > z0 }.map { |w| w.lo[2] }.min || s.hi[2]
+        rw = teile.select { |w| w.rolle == 'Rueckwand' }.map { |w| vorn_max ? vorne - w.hi[t] : w.lo[t] - vorne }.select(&:positive?).min
+        lt = rw || (s.hi[t] - s.lo[t])
+        b = HU_SLIM_BASE[:bauraum]
+        { 'lichte Weite' => [lw, b[:weite]], 'lichte Höhe' => [oben - z0, b[:hoehe]], 'Tiefe' => [lt, b[:tiefe]] }.each do |was, (ist, min)|
+          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, HU Slim Base braucht mindestens #{min} mm" if ist < min - TOL
+        end
+
+        return unless f
+        da = f.dicke_achse
+        hinten = mitte.(boden, da) > mitte.(f, da)
+        fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        fl = hinten ? f.hi[da] : f.lo[da]
+        fc = HU_SLIM_BASE[:front]
+        fc[:hoehen].each do |hz|
+          [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
+            f.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => z0 + hz), nil, fc[:d], fc[:tiefe], nil, nil,
+                            'Front HU Slim Base')
+          end
+        end
+      end
+
       # Kanalausschnitt im Boden (Unterschrank Kochfeld mit Abzug): durchgehende Rechtecktasche von unten.
       # Lage aus den DC-Attributen des Schranks: Ausschnitt_Links ab dem Rand bei SeiteL,
       # Ausschnitt_Hinten ab dem Rand bei der Rückwand, dazu Breite und Tiefe (cm).
@@ -342,6 +413,11 @@ module JTools
               [w.hi_f(ax) - f[:rand_x] - f[:raster], w.hi_f(ax) - f[:rand_x]]]
         ys = [w.lo_f(ay) + f[:rand_y], w.lo_f(ay) + f[:rand_y] + f[:raster],
               w.hi_f(ay) - f[:rand_y], w.hi_f(ay) - f[:rand_y] - f[:raster]]
+        # schmaler Boden (z. B. 112 mm beim Handtuchschrank): nur ein Fuß je Ende, mittig
+        if w.hi_f(ay) - w.lo_f(ay) < 2 * (f[:rand_y] + f[:raster])
+          m = (w.lo_f(ay) + w.hi_f(ay)) / 2.0
+          ys = [m - f[:raster] / 2.0, m + f[:raster] / 2.0]
+        end
         xs.each do |x0, x1|
           ys.each do |y|
             w.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", punkt(k => w.lo[k], ax => x0, ay => y),

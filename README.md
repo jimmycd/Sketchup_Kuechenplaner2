@@ -9,6 +9,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (Erweiterung `.rbz`) |
 | [`Komponenten/unterschrank_spuele/`](Komponenten/unterschrank_spuele/) | Spülenschrank mit Türen oder Blende + Auszug, Installationsebene (Skript erzeugt `Spuelenschrank.skp`) |
 | [`Komponenten/unterschrank_kochfeld/`](Komponenten/unterschrank_kochfeld/) | Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen, Kanal (Erweiterung `.rbz`) |
+| [`Komponenten/unterschrank_handtuch/`](Komponenten/unterschrank_handtuch/) | Schmaler Unterschrank 150/200 mm mit Hochauszug Häfele HU Slim Base (Skript erzeugt `Unterschrank_Handtuch.skp`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (Skript erzeugt `Hochschrank.skp`) |
 | [`Komponenten/hochschrank_geraete/`](Komponenten/hochschrank_geraete/) | Hochschrank für zwei Einbaugeräte, z. B. Backofen + Mikrowelle (Skript erzeugt `Hochschrank_Geraete.skp`) |
 | [`Komponenten/unterschrank_geschirrspueler/`](Komponenten/unterschrank_geschirrspueler/) | Nische für vollintegrierten Geschirrspüler 45/60 mit Front (Skript erzeugt `Unterschrank_Geschirrspueler.skp`) |
