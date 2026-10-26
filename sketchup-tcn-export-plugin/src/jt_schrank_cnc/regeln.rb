@@ -227,9 +227,10 @@ module JTools
         (boden.flaechen_achsen - [rw ? rw.dicke_achse : 1]).first
       end
 
-      # Front der Schublade: gleicher Schrank und Bereich wie der Kasten
+      # Front der Schublade: gleicher Schrank und Bereich wie der Kasten; hängen mehrere Kästen an
+      # einer Front (Apothekerschrank), steht deren Bereich im Attribut front des Kastens
       def self.front_zu(kasten, teile)
-        b = kasten.first.teil.jt('bereich')
+        b = kasten.first.teil.jt('front') || kasten.first.teil.jt('bereich')
         teile.find { |w| w.rolle == 'Front' && w.teil.jt('bereich') == b }
       end
 

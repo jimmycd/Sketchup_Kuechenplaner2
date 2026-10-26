@@ -9,6 +9,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (Erweiterung `.rbz`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (Skript erzeugt `Hochschrank.skp`) |
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (Skript erzeugt `Oberschrank.skp`) |
+| [`Komponenten/apothekerschrank/`](Komponenten/apothekerschrank/) | Apothekerschrank: Hochfront mit Vollauszug und 2–6 LEGRABOX-Kästen (Skript erzeugt `Apothekerschrank.skp`) |
 | [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`.rbz`): Frontfarbe und Griffe ändern; TCN-Export für TpaCAD folgt |
 
 ## Regeln für alle Komponenten

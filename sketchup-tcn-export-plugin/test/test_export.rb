@@ -3,11 +3,13 @@
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
 $OBERSCHRANK_TEST = true
+$APOTHEKERSCHRANK_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
+load File.join(komp, 'apothekerschrank/apothekerschrank.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -184,6 +186,31 @@ check(bearbeitungen(dateien.find { |x| x.name == 'HS1_U1_KastenRueckwand' }.text
   check(x && bearbeitungen(x.text, 3).size + bearbeitungen(x.text, 4).size + bearbeitungen(x.text, 5).size +
         bearbeitungen(x.text, 6).size == 2, "#{n}: zwei Dübelreihen an den Stirnseiten")
 end
+
+# --- Apothekerschrank: mehrere Kästen an einer Hochfront ---
+model_ap = Sketchup.active_model = Sketchup::Model.new
+Apothekerschrank.erstellen({})
+dap, = S::Export.erzeugen(model_ap)
+namen = dap.map(&:name)
+check((1..5).all? { |j| namen.include?("AP1_A#{j}_KastenBoden") } && !namen.include?('AP1_A6_KastenBoden') &&
+      namen.none? { |n| n.start_with?('AP1_B_') || n =~ /AP1_B\d/ }, "Apothekerschrank: 5 Kästen, versteckte Teile nicht exportiert: #{namen}")
+z = bearbeitungen(dap.find { |x| x.name == 'AP1_SeiteL' }.text, 1)
+check(z.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 3, 'Apothekerschrank Seite: Dübel Boden, Mittelboden, Deckel')
+check(z.none? { |x| x.include?('#8522=5 ') }, 'Apothekerschrank: keine Lochreihen (nur Auszüge)')
+sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
+# Kastenunterkanten 99/483/867/1251/1635 mm; die oberen zwei misst die TCN von oben (DL 2098: x-847 = 1251)
+check(hoehen == { '99' => 4, '483' => 4, '867' => 4, 'x-847' => 4, 'x-463' => 4 }, "Apothekerschrank: Schienen je Kasten (#{hoehen})")
+fb = bearbeitungen(dap.find { |x| x.name == 'AP1_A_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
+# die Hochfront liegt mit der Höhe in x: 14 mm von der Seiteninnenseite = 30 im Fräsmaß in y,
+# unterstes Loch je Kasten 36 über Kastenunterkante (99 + 36 - 2 Anleimer = 133)
+check(fb.size == 40 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 20, 'y-30' => 20 } && fb.any? { |x| x.include?('#1=133 ') },
+      "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 × 8): #{fb.size}")
+Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_Kaesten_B' => 3.0 })
+dap, = S::Export.erzeugen(model_ap)
+fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
+check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
+Sketchup.active_model = model
 
 # --- Schreiben: TCN + Teileliste ---
 Dir.mktmpdir do |dir|
