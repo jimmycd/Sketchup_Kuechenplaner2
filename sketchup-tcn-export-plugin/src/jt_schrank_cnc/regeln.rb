@@ -6,7 +6,7 @@
 # bekommt A eine Dübelreihe in die Stirnseite und B die passende Reihe in die
 # Fläche. Dazu (Schritt 6): Nut für eine Rückwand, die in Seiten und Boden
 # steckt (Oberschrank), Schrauben Deckel–Rückwand, Lochreihen für Einlegeböden
-# und Bohrungen für Sockelfüße. Die Bearbeitungen entstehen zuerst in
+# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks. Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
 # Werkstückkoordinaten (Fräsmaß) umgerechnet.
 
@@ -71,6 +71,7 @@ module JTools
             end
           end
           teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
+            ausschnitt(rw)
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
             teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
           end
@@ -112,6 +113,27 @@ module JTools
         b.ops << Op.new(:nut, seite, p0, p1, ueberlapp(a, b, ca), ueberlapp(a, b, k), nil, nil, "Nut #{a.teil.jt('teil')}")
       end
       NUT = { werkzeug: 2200, d_werkzeug: 8.03, ueberlauf: 5 }.freeze # Treppenbau: 2200 = Ø 8,03 mm
+
+      # Rückwand-Ausschnitt (Spülenschrank): Lage in der Rückwand steht als DC-Attribut an ihr
+      # (Ausschnitt_X/_Z ab links unten, Ausschnitt_B/_H, Zoll). Kontur durch die Platte,
+      # Fräser innen an der Kante entlang (Ecken mit Fräserradius).
+      AUSSCHNITT = { durch: 1 }.freeze # 1 mm tiefer als die Stärke, wie Durchgangsbohrungen
+
+      def self.ausschnitt(a)
+        inst = a.teil.inst
+        d = Schraenke.definition(inst)
+        x, z, b, h = %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h].map do |k|
+          (inst.get_attribute(DC_DICT, k) || d.get_attribute(DC_DICT, k)).to_f
+        end
+        return if b <= NUT[:d_werkzeug] || h <= NUT[:d_werkzeug]
+        m = Geometrie.welt(a.teil.pfad)
+        p0 = Geometrie.punkt(m, [x, 0, z]).map { |v| v * Geometrie::MM }
+        p1 = Geometrie.punkt(m, [x + b, 0, z + h]).map { |v| v * Geometrie::MM }
+        seite = Geometrie.seite(Geometrie.richtung(m, [0, -1, 0]))
+        k = a.dicke_achse
+        p0[k] = p1[k] = Geometrie.max?(seite) ? a.hi[k] : a.lo[k]
+        a.ops << Op.new(:ausschnitt, seite, p0, p1, NUT[:d_werkzeug], a.mass(k) + AUSSCHNITT[:durch], nil, nil, 'Ausschnitt')
+      end
 
       # Oberschrank: Deckel B endet vor der Rückwand A und wird durch sie verschraubt
       def self.rueckwand_schrauben(a, b)
