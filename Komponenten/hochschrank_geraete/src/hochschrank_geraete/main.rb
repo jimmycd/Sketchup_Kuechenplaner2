@@ -1,47 +1,52 @@
 # encoding: UTF-8
 #
-# Hochschrank – erzeugt eine Dynamic Component und speichert sie als .skp
+# Hochschrank Geräte – erzeugt eine Dynamic Component
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/hochschrank.rb'
-# Das Skript baut den Hochschrank im aktuellen Modell und speichert ihn als
-# "Hochschrank.skp" neben diese Datei. Danach wird das Skript nicht mehr
-# gebraucht, die .skp ist eine normale Dynamic Component.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Hochschrank Geräte baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau von unten nach oben:
-#   Unten: 1–6 Schubladen, Aufteilung über Anteil_U1..U6 (1 = oben)
-#   Mitte: offenes Fach (z. B. Backofen, lichte Höhe einstellbar) oder 1–4 Schubladen
-#   Oben:  offenes Fach oder mit Tür, 0–3 Einlegeböden
+#   Unten:    1–6 Schubladen, Aufteilung über Anteil_U1..U6 (1 = oben)
+#   Nische 1: Einbaugerät (Backofen 60, Kompaktgerät 45, Mikrowelle 38,
+#             Wärmeschublade 14 oder freie lichte Höhe)
+#   Nische 2: wie Nische 1, zusätzlich "keine"
+#   Oben:     offenes Fach oder mit Tür, 0–3 Einlegeböden
 #
-# Korpus und Schubladen wie beim Unterschrank (19 mm Korpus, 8 mm Rückwand,
-# 2 mm Fugen). Ausgeblendete Teile werden im Korpus geparkt, damit sie den
-# Auswahlrahmen nicht vergrößern.
+# Jedes Gerät steht auf einem festen Zwischenboden (ZwischenbodenUnten unter
+# Nische 1, ZwischenbodenMitte unter Nische 2, ZwischenbodenOben schließt das
+# obere Fach ab). Die Rückwand geht durch. Korpus und Schubladen wie beim
+# Hochschrank (19 mm Korpus, 8 mm Rückwand, 2 mm Fugen, Blum LEGRABOX).
 #
 # OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
 # in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
-# <Kürzel>_<Bereich>_<Teil> (z. B. HS1_SeiteL, HS1_U1_Front) und das Wörterbuch
-# "JT_Schrank" für den TCN-Export. Anderes Kürzel: Hochschrank.erstellen({ 'Kuerzel' => 'HS2' }, ziel)
+# <Kürzel>_<Bereich>_<Teil> (z. B. HG1_SeiteL, HG1_U1_Front) und das Wörterbuch
+# "JT_Schrank" für den TCN-Export. Die Geräte-Platzhalter liegen auf dem Tag
+# "Geraete_Plan", haben kein Plattenmaterial und kein JT_Schrank. Jede Nische
+# steht im Wörterbuch "JT_Nische_N1" bzw. "JT_Nische_N2" am Schrank (für die
+# Geräte-Komponenten). Anderes Kürzel: HochschrankGeraete.erstellen({ 'Kuerzel' => 'HG2' }, ziel)
 
 require 'sketchup.rb'
 
-module Hochschrank
+module HochschrankGeraete
 
   DICT     = 'dynamic_attributes'.freeze
-  NAME     = 'Hochschrank'.freeze
+  NAME     = 'Hochschrank Geraete'.freeze
+  DC_NAME  = 'HochschrankGeraete'.freeze # Name in den DC-Formeln (ohne Leerzeichen)
   MAX_U    = 6
-  MAX_M    = 4
   MAX_EB   = 3
   PARK_HOEHE = 10.0 # cm
   MATERIAL = 'Melamin weiss'.freeze
   KANTE    = 'Anleimer Melamin weiss'.freeze
+  GERAET_MATERIAL = 'Geraet Plan'.freeze
+  GERAET_TAG = 'Geraete_Plan'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze
-  KUERZEL  = 'HS'.freeze
+  KUERZEL  = 'HG'.freeze
 
   # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
   # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
   JT_DICT   = 'JT_Schrank'.freeze
-  TYP       = 'Hochschrank'.freeze
+  TYP       = 'Hochschrank_Geraete'.freeze
   KATEGORIE = 'Hochschrank'.freeze # Unterschrank, Oberschrank oder Hochschrank
   ROLLEN = {
     'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
@@ -55,17 +60,30 @@ module Hochschrank
     'WangeL' => 'Wange', 'WangeR' => 'Wange'
   }.freeze
 
+  # Nischen für die Geräte-Komponenten (Thread "Geräte in Schränken darstellen"):
+  # Wörterbuch JT_Nische_N1 / JT_Nische_N2 am Schrank
+  NISCHE_DICT = 'JT_Nische'.freeze
+
+  # Auswahl Gerät je Nische: Wert => [Kennung, lichte Nischenhöhe cm]. 0 = frei (eigene Höhe),
+  # 5 = keine (nur Nische 2). Übliche Einbaumaße (Bosch/Siemens/Neff/Miele), bei Bedarf "frei".
+  GERAETE = {
+    1 => ['Backofen60', 59.0], 2 => ['Kompakt45', 45.0], 3 => ['Mikrowelle38', 38.0],
+    4 => ['Waermeschublade14', 14.0], 0 => ['frei', nil], 5 => ['keine', 0.0]
+  }.freeze
+  KEINE = 5
+
   # Standardwerte in cm
   DEFAULTS = {
     'Breite'                      => 60.0,
     'Hoehe'                       => 210.0,
     'Tiefe'                       => 80.0,
-    'H_Unten'                     => 70.0,  # Oberkante Zwischenboden unten
-    'H_Mitte'                     => 60.0,  # lichte Höhe Mittelfach
-    'Art_Mitte'                   => 0.0,   # 0 = offenes Fach, 1 = Schubladen
+    'H_Unten'                     => 70.0,  # Oberkante Zwischenboden unter Nische 1
+    'Geraet_N1'                   => 1.0,   # Backofen 60
+    'Geraet_N2'                   => 2.0,   # Kompaktgerät 45
+    'H_N1_frei'                   => 59.0,  # lichte Höhe bei Gerät "frei"
+    'H_N2_frei'                   => 45.0,
     'Art_Oben'                    => 1.0,   # 0 = offenes Fach, 1 = Tür
     'Anz_Schubladen_Unten'        => 3.0,
-    'Anz_Schubladen_Mitte'        => 2.0,
     'Anz_Einlegeboeden_Oben'      => 1.0,
     'Materialstaerke_Korpus'      => 1.9,
     'Materialstarke_Rueckwand'    => 0.8,
@@ -81,55 +99,57 @@ module Hochschrank
     'Kasten_Abstand_unten'        => 3.0,
     'Kasten_Abstand_oben'         => 3.0,
     'Auszug_Anteil'               => 0.8,
-    'Rueckversatz_Einlegeboden'   => 1.0   # Einlegeböden vorne zurückgesetzt
-  }.merge((1..MAX_U).to_h { |i| ["Anteil_U#{i}", 1.0] })
-   .merge((1..MAX_M).to_h { |i| ["Anteil_M#{i}", 1.0] }).freeze
+    'Rueckversatz_Einlegeboden'   => 1.0,  # Einlegeböden vorne zurückgesetzt
+    'Geraet_Tiefe'                => 55.0  # Tiefe des Platzhalters (höchstens Korpustiefe)
+  }.merge((1..MAX_U).to_h { |i| ["Anteil_U#{i}", 1.0] }).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
-  DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/hochschrank'.freeze
-  HILFE_KURZ = 'Hochschrank: unten Schubladen, Mitte offenes Fach oder Schubladen, oben offenes Fach oder Tür'.freeze
+  DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/hochschrank_geraete'.freeze
+  HILFE_KURZ = 'Hochschrank für zwei Einbaugeräte: unten Schubladen, zwei Gerätenischen, oben offenes Fach oder Tür'.freeze
   HILFE = [
-    'Unten: Höhe bis Oberkante Zwischenboden, 1–6 Schubladen. Mitte: offenes Fach (lichte Höhe, z. B. Backofen) oder 1–4 Schubladen.',
+    'Unten: Höhe bis Oberkante Zwischenboden, 1–6 Schubladen (Anteile: 1/1/2 = unterste doppelt so hoch, 1 = oben).',
+    'Nische 1 und 2: Gerät wählen, das setzt die lichte Höhe (Backofen 590, Kompaktgerät 450, Mikrowelle 380,',
+    'Wärmeschublade 140 mm) oder „frei“ mit eigener Höhe; Nische 2 auch „keine“. Lichte Breite mind. 560 mm.',
     'Oben: offenes Fach oder Tür, 0–3 Einlegeböden; die Höhe ergibt sich aus dem Rest.',
-    'Anteile: 1/1/2 = unterste doppelt so hoch, Schublade 1 = oben; mm-Werte werden auf die Bereichshöhe skaliert.',
-    'Mit „Interagieren“ fahren Schubladen heraus, die Tür öffnet sich.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HS1_SeiteL, HS1_U1_Front, HS1_O_Tuer.',
+    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HG1_SeiteL, HG1_U1_Front, HG1_O_Tuer.',
+    'Die Geräte-Platzhalter liegen auf dem Tag „Geraete_Plan“.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
 
-  # Bereiche mit Schubladen: Präfix, Anzahl-Attribut, Max, Unterkante, Oberkante Fronten, Sichtbarkeit
+  # Bereich mit Schubladen: Präfix, Anzahl-Attribut, Max, Unterkante, Oberkante Fronten
   def self.bereiche
-    {
-      'U' => { anz: 'Anz_Schubladen_Unten', max: MAX_U,
-               z0: '0', top: '(H_Unten-Spaltbreite)', bed: nil },
-      'M' => { anz: 'Anz_Schubladen_Mitte', max: MAX_M,
-               z0: 'H_Unten', top: '(H_Unten+H_Mitte+Materialstaerke_Korpus-Spaltbreite)', bed: 'Art_Mitte=1' }
-    }
+    { 'U' => { anz: 'Anz_Schubladen_Unten', max: MAX_U, z0: '0', top: '(H_Unten-Spaltbreite)' } }
   end
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
+  def self.nischenhoehe(p, n)
+    g = p["Geraet_N#{n}"].to_i
+    GERAETE.fetch(g)[1] || p["H_N#{n}_frei"]
+  end
+
+  def self.zwei_nischen?(p) = p['Geraet_N2'].to_i != KEINE
+
   def self.berechne(p)
     mk, sp = p['Materialstaerke_Korpus'], p['Spaltbreite']
-    z_oben = p['H_Unten'] + p['H_Mitte'] + mk
-    erg = { z_oben: z_oben, h_oben: p['Hoehe'] - z_oben }
-    { 'U' => [0.0, p['H_Unten'] - sp], 'M' => [p['H_Unten'], z_oben - sp] }.each do |b, (z0, top)|
-      cfg = bereiche[b]
-      n = p[cfg[:anz]].to_i
-      ant = (1..cfg[:max]).map { |i| p["Anteil_#{b}#{i}"].to_f }
-      summe = ant.first(n).sum
-      netto = top - z0 - (n - 1) * sp
-      erg[b] = (1..cfg[:max]).map do |i|
-        if i <= n
-          { h: netto * ant[i - 1] / summe,
-            z: top - netto * ant.first(i).sum / summe - (i - 1) * sp }
-        else
-          { h: PARK_HOEHE, z: z0 + mk }
-        end
+    h1, h2 = nischenhoehe(p, 1), nischenhoehe(p, 2)
+    z_n2 = p['H_Unten'] + h1 + mk                         # Unterkante Nische 2
+    z_oben = p['H_Unten'] + h1 + mk + (zwei_nischen?(p) ? h2 + mk : 0.0) # Oberkante ZwischenbodenOben
+    erg = { h_n1: h1, h_n2: h2, z_n2: z_n2, z_oben: z_oben, h_oben: p['Hoehe'] - z_oben }
+    z0, top = 0.0, p['H_Unten'] - sp
+    n = p['Anz_Schubladen_Unten'].to_i
+    ant = (1..MAX_U).map { |i| p["Anteil_U#{i}"].to_f }
+    summe = ant.first(n).sum
+    netto = top - z0 - (n - 1) * sp
+    erg['U'] = (1..MAX_U).map do |i|
+      if i <= n
+        { h: netto * ant[i - 1] / summe, z: top - netto * ant.first(i).sum / summe - (i - 1) * sp }
+      else
+        { h: PARK_HOEHE, z: z0 + mk }
       end
     end
     n_eb = p['Anz_Einlegeboeden_Oben'].to_i
@@ -148,14 +168,26 @@ module Hochschrank
 
   # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
   def self.f_kasten_unten(z_front)
-    u = NAME
+    u = DC_NAME
     "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_front}"
   end
 
   # ---------------------------------------------------------------------------
-  # Formeln (am Hochschrank selbst, nur nicht berechnete Attribute verwenden)
+  # Formeln (am Schrank selbst, nur nicht berechnete Attribute verwenden)
   # ---------------------------------------------------------------------------
+  # lichte Höhe Nische n aus der Geräteauswahl
+  def self.f_h_nische(n)
+    g = "Geraet_N#{n}"
+    GERAETE.reject { |_, (_, h)| h.nil? }.reverse_each.inject("H_N#{n}_frei") do |rest, (wert, (_, h))|
+      "IF(#{g}=#{wert},#{h},#{rest})"
+    end
+  end
+
+  def self.f_z_oben
+    "(H_Unten+#{f_h_nische(1)}+Materialstaerke_Korpus+IF(Geraet_N2=#{KEINE},0,#{f_h_nische(2)}+Materialstaerke_Korpus))"
+  end
+
   def self.f_summe(b)
     cfg = bereiche[b]
     terms = ["Anteil_#{b}1"] + (2..cfg[:max]).map { |i| "IF(#{cfg[:anz]}>=#{i},Anteil_#{b}#{i},0)" }
@@ -183,10 +215,7 @@ module Hochschrank
   end
 
   def self.f_hidden(b, i)
-    cfg = bereiche[b]
-    bed = "#{NAME}!#{cfg[:anz]}>=#{i}"
-    bed = "AND(#{NAME}!#{cfg[:bed]},#{bed})" if cfg[:bed]
-    "IF(#{bed},0,1)"
+    "IF(#{DC_NAME}!#{bereiche[b][:anz]}>=#{i},0,1)"
   end
 
   # ---------------------------------------------------------------------------
@@ -235,6 +264,15 @@ module Hochschrank
     '&' + (von..bis).map { |i| "#{i}=#{i}" }.join('&') + '&'
   end
 
+  # Auswahlliste Gerät für Nische n (Nische 2 auch "keine")
+  def self.geraete_liste(n)
+    texte = { 1 => 'Backofen 60 (590 mm)', 2 => 'Kompaktgerät 45 (450 mm)', 3 => 'Mikrowelle 38 (380 mm)',
+              4 => 'Wärmeschublade 14 (140 mm)', 0 => 'frei (eigene Höhe)', 5 => 'keine' }
+    werte = n == 1 ? [1, 2, 3, 4, 0] : [1, 2, 3, 4, 0, 5]
+    kodiert = ->(t) { t.gsub(/[^A-Za-z0-9]/) { |c| c.bytes.map { |x| format('%%%02X', x) }.join } }
+    '&' + werte.map { |w| "#{kodiert.(texte[w])}=#{w}" }.join('&') + '&'
+  end
+
   def self.sichtbarkeit(d, wert, formel)
     d.set_attribute(DICT, 'hidden', wert ? 0.0 : 1.0)
     d.set_attribute(DICT, '_hidden_formula', formel)
@@ -271,14 +309,24 @@ module Hochschrank
                           'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
   end
 
-  # Freies Kürzel für die Tags, z. B. HS1, HS2 …
+  # Halbtransparentes Material für die Geräte-Platzhalter (kein OCL-Typ)
+  def self.geraet_material(model)
+    m = model.materials[GERAET_MATERIAL]
+    return m if m
+    m = model.materials.add(GERAET_MATERIAL)
+    m.color = Sketchup::Color.new(90, 140, 200)
+    m.alpha = 0.4 if m.respond_to?(:alpha=)
+    m
+  end
+
+  # Freies Kürzel für die Tags, z. B. HG1, HG2 …
   def self.freies_kuerzel(model)
     n = 1
     n += 1 while model.layers.to_a.any? { |l| l.name.start_with?("#{KUERZEL}#{n}_") }
     "#{KUERZEL}#{n}"
   end
 
-  # Tag <Kürzel>_<Bereich>_<Teil> (z. B. HS1_SeiteL, HS1_U1_Front) und JT_Schrank am Teil
+  # Tag <Kürzel>_<Bereich>_<Teil> (z. B. HG1_SeiteL, HG1_U1_Front) und JT_Schrank am Teil
   def self.kennzeichnen(model, inst, kz, teil, bereich = nil)
     name = [kz, bereich, teil].compact.join('_')
     inst.layer = model.layers[name] || model.layers.add(name)
@@ -318,12 +366,13 @@ module Hochschrank
   end
 
   # kz: [Modell, Kürzel, Teil, Bereich] -> Tag und JT_Schrank (siehe kennzeichnen)
-  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, kz: nil)
+  def self.einsetzen(ents, defn, inst_name, pos, pos_formeln, mat: nil, kz: nil, layer: nil)
     tr = Geom::Transformation.translation(Geom::Vector3d.new(*pos.map { |v| inch(v) }))
     inst = ents.add_instance(defn, tr)
     inst.name = inst_name
     inst.material = mat if mat
     kennzeichnen(kz[0], inst, *kz[1..]) if kz
+    inst.layer = layer if layer
     inst.set_attribute(DICT, '_has_movetool_behaviors', 1.0)
     inst.set_attribute(DICT, '_hasbehaviors', 1.0)
     inst.set_attribute(DICT, '_iscollapsed', false)
@@ -338,13 +387,27 @@ module Hochschrank
     inst
   end
 
+  # Nischen für die Geräte-Komponenten: lichte Maße und Einfügepunkt (vorne links auf
+  # der Oberkante des Zwischenbodens, an der Korpusvorderkante) in mm, Stand beim Erzeugen
+  def self.nischen(d, p, r)
+    mk = p['Materialstaerke_Korpus']
+    [[1, p['H_Unten'], r[:h_n1]], [2, r[:z_n2], r[:h_n2]]].each do |n, z, h|
+      next if n == 2 && !zwei_nischen?(p)
+      { 'nische' => "N#{n}", 'geraet' => GERAETE.fetch(p["Geraet_N#{n}"].to_i)[0],
+        'breite' => ((p['Breite'] - 2 * mk) * 10).round(1), 'hoehe' => (h * 10).round(1),
+        'tiefe' => (p['Tiefe'] * 10).round(1),
+        'x' => (mk * 10).round(1), 'y' => (mk * 10).round(1), 'z' => (z * 10).round(1) }
+        .each { |k, v| d.set_attribute("#{NISCHE_DICT}_N#{n}", k, v) }
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe = {})
     p = DEFAULTS.merge(eingabe)
     r = berechne(p)
-    u = NAME
+    u = DC_NAME
     mat = material(model)
     kanten_material(model)
     kz = p['Kuerzel'] || freies_kuerzel(model)
@@ -355,11 +418,15 @@ module Hochschrank
     haupt.set_attribute(DICT, '_name', u)
     hilfe(haupt)
     { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| haupt.set_attribute(JT_DICT, k, v) }
+    nischen(haupt, p, r)
 
     # --- Parameter (Komponentenoptionen) ---
     attribut(haupt, 'Breite', p['Breite'], access: 'TEXTBOX', formlabel: 'Breite')
     attribut(haupt, 'Hoehe', p['Hoehe'], access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front/Rückwand)')
+    attribut(haupt, 'Lichte_Breite', p['Breite'] - 2 * p['Materialstaerke_Korpus'], access: 'VIEW',
+             formlabel: 'Lichte Breite Nischen (Geräte brauchen meist mind. 560 mm)',
+             formula: 'Breite-2*Materialstaerke_Korpus')
     attribut(haupt, 'Materialstaerke_Kastenboden', p['Materialstaerke_Kastenboden'], access: 'TEXTBOX',
              formlabel: 'Stärke Kastenboden')
     attribut(haupt, 'Hoehenoffset_Schiene', p['Hoehenoffset_Schiene'], access: 'TEXTBOX',
@@ -373,14 +440,13 @@ module Hochschrank
                formlabel: "Unten: Anteil Schublade #{i}#{i == 1 ? ' (oben)' : ''}")
     end
 
-    attribut(haupt, 'Art_Mitte', p['Art_Mitte'], laenge: false, access: 'LIST', formlabel: 'Mitte: Ausführung',
-             units: 'INTEGER', options: '&Offenes%20Fach=0&Schubladen=1&')
-    attribut(haupt, 'H_Mitte', p['H_Mitte'], access: 'TEXTBOX', formlabel: 'Mitte: lichte Höhe (z. B. Backofen)')
-    attribut(haupt, 'Anz_Schubladen_Mitte', p['Anz_Schubladen_Mitte'], laenge: false, access: 'LIST',
-             formlabel: 'Mitte: Anzahl Schubladen', units: 'INTEGER', options: liste(1, MAX_M))
-    (1..MAX_M).each do |i|
-      attribut(haupt, "Anteil_M#{i}", p["Anteil_M#{i}"], laenge: false, access: 'TEXTBOX',
-               formlabel: "Mitte: Anteil Schublade #{i}#{i == 1 ? ' (oben)' : ''}")
+    [1, 2].each do |n|
+      attribut(haupt, "Geraet_N#{n}", p["Geraet_N#{n}"], laenge: false, access: 'LIST',
+               formlabel: "Nische #{n}: Gerät", units: 'INTEGER', options: geraete_liste(n))
+      attribut(haupt, "H_N#{n}_frei", p["H_N#{n}_frei"], access: 'TEXTBOX',
+               formlabel: "Nische #{n}: lichte Höhe bei „frei“")
+      attribut(haupt, "H_N#{n}", r[:"h_n#{n}"], access: 'VIEW', formlabel: "Nische #{n}: lichte Höhe",
+               formula: f_h_nische(n))
     end
 
     attribut(haupt, 'Art_Oben', p['Art_Oben'], laenge: false, access: 'LIST', formlabel: 'Oben: Ausführung',
@@ -388,12 +454,12 @@ module Hochschrank
     attribut(haupt, 'Anz_Einlegeboeden_Oben', p['Anz_Einlegeboeden_Oben'], laenge: false, access: 'LIST',
              formlabel: 'Oben: Anzahl Einlegeböden', units: 'INTEGER', options: liste(0, MAX_EB))
     attribut(haupt, 'H_Oben', r[:h_oben], access: 'VIEW', formlabel: 'Oben: Höhe Bereich (ergibt sich)',
-             formula: 'Hoehe-H_Unten-H_Mitte-Materialstaerke_Korpus')
+             formula: "Hoehe-#{f_z_oben}")
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite
        Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Kasten_Abstand_unten Kasten_Abstand_oben
-       Rueckversatz_Einlegeboden Lochraster_Start Lochraster].each do |n|
+       Rueckversatz_Einlegeboden Lochraster_Start Lochraster Geraet_Tiefe].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
@@ -401,18 +467,16 @@ module Hochschrank
     attribut(haupt, 'NL', nennlaenge(p['Tiefe']), units: 'STRING', formula: f_nennlaenge('Tiefe'))
 
     # --- Abgeleitete Werte ---
-    attribut(haupt, 'Z_Oben', r[:z_oben], units: 'STRING', formula: 'H_Unten+H_Mitte+Materialstaerke_Korpus')
-    %w[U M].each do |b|
-      r[b].each_with_index do |fr, idx|
-        i = idx + 1
-        attribut(haupt, "H_Front_#{b}#{i}", fr[:h], units: 'STRING', formula: f_h_front(b, i))
-        attribut(haupt, "Z_Front_#{b}#{i}", fr[:z], units: 'STRING', formula: f_z_front(b, i))
-      end
+    attribut(haupt, 'Z_N2', r[:z_n2], units: 'STRING', formula: "H_Unten+#{f_h_nische(1)}+Materialstaerke_Korpus")
+    attribut(haupt, 'Z_Oben', r[:z_oben], units: 'STRING', formula: f_z_oben)
+    r['U'].each_with_index do |fr, idx|
+      i = idx + 1
+      attribut(haupt, "H_Front_U#{i}", fr[:h], units: 'STRING', formula: f_h_front('U', i))
+      attribut(haupt, "Z_Front_U#{i}", fr[:z], units: 'STRING', formula: f_z_front('U', i))
     end
     (1..MAX_EB).each do |k|
-      z_ob = '(H_Unten+H_Mitte+Materialstaerke_Korpus)'
-      f = "IF(Anz_Einlegeboeden_Oben>=#{k},#{z_ob}+(Hoehe-Materialstaerke_Korpus-#{z_ob})*#{k}/" \
-          "(Anz_Einlegeboeden_Oben+1)-Materialstaerke_Korpus/2,#{z_ob})"
+      f = "IF(Anz_Einlegeboeden_Oben>=#{k},#{f_z_oben}+(Hoehe-Materialstaerke_Korpus-#{f_z_oben})*#{k}/" \
+          "(Anz_Einlegeboeden_Oben+1)-Materialstaerke_Korpus/2,#{f_z_oben})"
       attribut(haupt, "Z_Einlegeboden_#{k}", r[:eb][k - 1], units: 'STRING', formula: f)
     end
 
@@ -435,12 +499,22 @@ module Hochschrank
     einsetzen(e, boden, 'Deckel', [mk, mk, h - mk],
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"],
               mat: mat, kz: t_.('Deckel'))
-    # Zwischenböden: Oberkante bei H_Unten bzw. H_Unten+H_Mitte+Mk
-    einsetzen(e, boden, 'ZwischenbodenUnten', [mk, mk, p['H_Unten'] - mk],
-              ["#{u}!Materialstaerke_Korpus", nil, "#{u}!H_Unten-#{u}!Materialstaerke_Korpus"],
-              mat: mat, kz: t_.('ZwischenbodenUnten'))
+    # Zwischenböden: unter Nische 1 (Oberkante H_Unten), unter Nische 2, über der obersten Nische
+    zu = einsetzen(e, boden, 'ZwischenbodenUnten', [mk, mk, p['H_Unten'] - mk],
+                   ["#{u}!Materialstaerke_Korpus", nil, "#{u}!H_Unten-#{u}!Materialstaerke_Korpus"],
+                   mat: mat, kz: t_.('ZwischenbodenUnten'))
+    # Gerät steht auf diesem Boden: Schrank-CNC bohrt im Fach darüber keine Lochreihe
+    zu.set_attribute(JT_DICT, 'nische', 'N1')
+    # eigene Definition, weil er bei Nische 2 = keine ausgeblendet wird
+    mitte = platte(model, 'Zwischenboden Mitte', 'ZwischenbodenMitte', [b - 2 * mk, t, mk], innen, kanten: %i[ymin])
+    sichtbarkeit(mitte, zwei_nischen?(p), "IF(#{u}!Geraet_N2=#{KEINE},1,0)")
+    m_inst = einsetzen(e, mitte, 'ZwischenbodenMitte', [mk, mk, r[:z_n2] - mk],
+                       ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Z_N2-#{u}!Materialstaerke_Korpus"],
+                       mat: mat, kz: t_.('ZwischenbodenMitte'))
+    m_inst.set_attribute(JT_DICT, 'nische', 'N2')
+    m_inst.hidden = !zwei_nischen?(p)
     einsetzen(e, boden, 'ZwischenbodenOben', [mk, mk, r[:z_oben] - mk],
-              ["#{u}!Materialstaerke_Korpus", nil, "#{u}!H_Unten+#{u}!H_Mitte"],
+              ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Z_Oben-#{u}!Materialstaerke_Korpus"],
               mat: mat, kz: t_.('ZwischenbodenOben'))
 
     rueck = platte(model, 'Rückwand', 'Rückwand', [b, rw, h],
@@ -464,7 +538,8 @@ module Hochschrank
 
     # --- Tür oben (Anschlag links, mit "Interagieren" öffnen) ---
     tuer = platte(model, 'Tür', 'Tür', [b - sp, mk, r[:h_oben]],
-                  ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", "#{u}!Hoehe-#{u}!Z_Oben"], kanten: %i[xmin xmax zmin zmax])
+                  ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", "#{u}!Hoehe-#{u}!Z_Oben"],
+                  kanten: %i[xmin xmax zmin zmax])
     sichtbarkeit(tuer, p['Art_Oben'].to_i == 1, "IF(#{u}!Art_Oben=1,0,1)")
     tuer.set_attribute(DICT, 'rotz', 0.0)
     tuer.set_attribute(DICT, 'onclick', 'ANIMATE("ROTZ",0,-100)')
@@ -474,17 +549,23 @@ module Hochschrank
     t_inst.hidden = p['Art_Oben'].to_i != 1
 
     # --- Schubladen ---
-    %w[U M].each do |bb|
-      (1..bereiche[bb][:max]).each { |i| schublade(model, e, p, r[bb][i - 1], bb, i, mat, kz) }
+    (1..MAX_U).each { |i| schublade(model, e, p, r['U'][i - 1], 'U', i, mat, kz) }
+
+    # --- Geräte-Platzhalter (kein Schrankteil: kein Plattenmaterial, kein JT_Schrank) ---
+    tag = model.layers[GERAET_TAG] || model.layers.add(GERAET_TAG)
+    gt = [p['Geraet_Tiefe'], t].min
+    [[1, p['H_Unten'], "#{u}!H_Unten"], [2, r[:z_n2], "#{u}!Z_N2"]].each do |n, z, fz|
+      hn = [r[:"h_n#{n}"], 1.0].max # Nische "keine": ausgeblendet, 1 cm hoch
+      g = platte(model, "Geraet Platzhalter N#{n}", "GeraetN#{n}", [b - 2 * mk, gt, hn],
+                 ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus", "MIN(#{u}!Geraet_Tiefe,#{u}!Tiefe)",
+                  "MAX(#{u}!H_N#{n},1)"])
+      sichtbarkeit(g, n == 1 || zwei_nischen?(p), n == 1 ? '0' : "IF(#{u}!Geraet_N2=#{KEINE},1,0)")
+      gi = einsetzen(e, g, "GeraetN#{n}", [mk, mk, z], ["#{u}!Materialstaerke_Korpus", nil, fz],
+                     mat: geraet_material(model), layer: tag)
+      gi.hidden = n == 2 && !zwei_nischen?(p)
     end
 
     haupt
-  end
-
-  def self.sichtbar?(p, b, i)
-    cfg = bereiche[b]
-    return false if cfg[:bed] && p['Art_Mitte'].to_i != 1
-    i <= p[cfg[:anz]].to_i
   end
 
   # Größte LEGRABOX-Nennlänge (cm, 5er-Schritte, max. 65), für die die Einbautiefe reicht (LT >= NL + 3 mm)
@@ -497,7 +578,7 @@ module Hochschrank
   end
 
   def self.schublade(model, ents, p, fr, bb, i, mat, kz)
-    u  = NAME
+    u  = DC_NAME
     s  = "Schublade#{bb}#{i}"
     mk = p['Materialstaerke_Korpus']
     sp = p['Spaltbreite']
@@ -512,6 +593,7 @@ module Hochschrank
     kh   = [hf - ab - ao, 2.0].max      # Höhe Kasten gesamt, mind. 2 cm
     hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb].min
     bt   = ->(teil) { [model, kz, teil, "#{bb}#{i}"] }
+    sichtbar = i <= p[bereiche[bb][:anz]].to_i
 
     d = model.definitions.add(s)
     stempel(d)
@@ -527,7 +609,7 @@ module Hochschrank
     attribut(d, 'Ab_unten', ab, units: 'STRING', formula: f_kasten_unten("#{u}!Z_Front_#{bb}#{i}"))
     attribut(d, 'Ab_oben', ao, units: 'STRING', formula: "#{u}!Kasten_Abstand_oben")
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
-    sichtbarkeit(d, sichtbar?(p, bb, i), f_hidden(bb, i))
+    sichtbarkeit(d, sichtbar, f_hidden(bb, i))
     d.set_attribute(DICT, 'onclick', 'ANIMATE("Y",0,-Auszug)')
     d.set_attribute(DICT, '_onclick_label', 'onClick')
 
@@ -553,21 +635,21 @@ module Hochschrank
               mat: mat, kz: bt.('KastenRueckwand'))
 
     inst = einsetzen(ents, d, s, [0, 0, fr[:z]], [nil, nil, "#{u}!Z_Front_#{bb}#{i}"])
-    inst.hidden = !sichtbar?(p, bb, i)
+    inst.hidden = !sichtbar
     inst
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
-    model.start_operation('Hochschrank', true)
+    model.start_operation('Hochschrank Geräte', true)
     defn = erzeuge(model, eingabe)
     x = model.entities.length > 0 ? model.bounds.max.x + 10.cm : 0
     inst = model.entities.add_instance(defn, Geom::Transformation.translation([x, 0, 0]))
     inst.name = NAME
-    inst.set_attribute(DICT, '_name', NAME)
+    inst.set_attribute(DICT, '_name', DC_NAME)
     model.commit_operation
 
     if defined?($dc_observers) && $dc_observers
@@ -580,7 +662,7 @@ module Hochschrank
       if defn.respond_to?(:save_as) && defn.save_as(ziel)
         puts "Gespeichert: #{ziel}"
       else
-        UI.messagebox('Automatisches Speichern ging nicht. Rechtsklick auf den Hochschrank → "Speichern unter…"')
+        UI.messagebox('Automatisches Speichern ging nicht. Rechtsklick auf den Schrank → "Speichern unter…"')
       end
     end
     inst
@@ -591,7 +673,16 @@ module Hochschrank
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($HOCHSCHRANK_TEST)
-  Hochschrank.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Hochschrank.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Hochschrank Geräte…') { HochschrankGeraete.erstellen }
+  file_loaded(__FILE__)
 end

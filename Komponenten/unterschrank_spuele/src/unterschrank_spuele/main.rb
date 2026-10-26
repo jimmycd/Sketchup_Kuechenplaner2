@@ -1,12 +1,9 @@
 # encoding: UTF-8
 #
-# Spülenschrank – erzeugt eine Dynamic Component und speichert sie als .skp
+# Spülenschrank – erzeugt eine Dynamic Component
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/spuelenschrank.rb'
-# Das Skript baut den Spülenschrank im aktuellen Modell und speichert ihn als
-# "Spuelenschrank.skp" neben diese Datei. Danach wird das Skript nicht mehr
-# gebraucht, die .skp ist eine normale Dynamic Component.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Spülenschrank baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau: Korpus wie der Unterschrank mit Tür (Seiten, Boden, Streben oben),
 # aber mit Installationsebene: die Rückwand steht 50 mm vor der Hinterkante in
@@ -553,7 +550,7 @@ module Spuelenschrank
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
@@ -586,7 +583,16 @@ module Spuelenschrank
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($SPUELENSCHRANK_TEST)
-  Spuelenschrank.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Spuelenschrank.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Spülenschrank…') { Spuelenschrank.erstellen }
+  file_loaded(__FILE__)
 end

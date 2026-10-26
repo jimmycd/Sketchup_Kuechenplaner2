@@ -10,7 +10,12 @@ end
 
 module UI
   def self.menu(_) = Menu.new
-  class Menu; def add_item(_) = nil; end
+  class Menu
+    def add_item(_) = nil
+    def add_separator = nil
+    def add_submenu(_) = self
+  end
+  def self.start_timer(_s, _r = false) = yield
   def self.messagebox(m) = puts("MSG: #{m}")
 end
 

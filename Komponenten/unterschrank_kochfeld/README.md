@@ -11,8 +11,8 @@ Erweiterung, die einen **Unterschrank für ein Kochfeld mit integriertem Abzug**
 Die Gerätemaße sind **Richtwerte**. Vor dem Bau mit der Einbauanleitung des Geräts prüfen (Einbauhöhe unter der Arbeitsplatte, Kanalmaße, Sockelhöhe, Lüftungsquerschnitt der Sockelblende bei Umluft).
 
 ## Installation
-1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_kochfeld.rbz` wählen.
-2. Danach: *Erweiterungen → Unterschrank Kochfeld mit Abzug…*
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_kochfeld.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
+2. Danach: *Erweiterungen → Küchenplaner → Unterschrank Kochfeld mit Abzug…*
 
 Ohne Installation: Ruby-Konsole `load 'C:/Pfad/zu/src/unterschrank_kochfeld/main.rb'`, dann `UnterschrankKochfeld.dialog`.
 
@@ -59,4 +59,4 @@ Am Schrank steht das Wörterbuch `JT_Nische` (Stand beim Erzeugen, Maße in mm):
 Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary/Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_kochfeld/main.rb`.
 
 ## Tests
-`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Blende, Fronten, Installationsraum, Einbauraum, Strebe hochkant/flach, Kanalausschnitt, NL), OCL-Material, Anleimer, Tags, `JT_Nische` und die Kurzhilfe, auch nach Umkonfiguration. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.
+`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Blende, Fronten, Installationsraum, Einbauraum, Strebe hochkant/flach, Kanalausschnitt, NL), OCL-Material, Anleimer, Tags, `JT_Nische` und die Kurzhilfe, auch nach Umkonfiguration. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` im Hauptordner `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.

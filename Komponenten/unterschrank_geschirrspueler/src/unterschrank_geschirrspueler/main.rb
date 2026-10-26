@@ -1,11 +1,9 @@
 # encoding: UTF-8
 #
-# Unterschrank Geschirrspüler – erzeugt eine Dynamic Component und speichert sie als .skp
+# Unterschrank Geschirrspüler – erzeugt eine Dynamic Component
 #
-# Kein Plugin: einmal in der Ruby-Konsole laden, z. B.
-#   load 'C:/Users/<Name>/Downloads/geschirrspueler.rb'
-# Das Skript baut den Schrank im aktuellen Modell und speichert ihn als
-# "Unterschrank_Geschirrspueler.skp" neben diese Datei.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Unterschrank Geschirrspüler baut den Schrank im
+# aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Ein vollintegrierter Geschirrspüler hat keinen Korpus: Die Komponente ist eine
 # Nische (450 oder 600 mm) mit Möbelfront, die auf die Gerätetür geschraubt wird,
@@ -354,7 +352,7 @@ module UnterschrankGeschirrspueler
   end
 
   # ---------------------------------------------------------------------------
-  # Erzeugen + als .skp speichern
+  # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
@@ -387,7 +385,16 @@ module UnterschrankGeschirrspueler
   end
 end
 
-# Beim Laden in der Ruby-Konsole direkt erzeugen und speichern
-unless defined?($GESCHIRRSPUELER_TEST)
-  UnterschrankGeschirrspueler.erstellen({}, File.join(File.dirname(File.expand_path(__FILE__)), 'Unterschrank_Geschirrspueler.skp'))
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+module Kuechenplaner
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+end unless defined?(Kuechenplaner.menu)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.menu.add_item('Unterschrank Geschirrspüler…') { UnterschrankGeschirrspueler.erstellen }
+  file_loaded(__FILE__)
 end
