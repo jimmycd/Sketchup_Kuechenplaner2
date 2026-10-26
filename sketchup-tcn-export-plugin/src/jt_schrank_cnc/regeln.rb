@@ -57,6 +57,7 @@ module JTools
       # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
       SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
+      DURCH = 1 # mm: Durchbruch = Stärke + 1 mm (wie Durchgangsbohrung Rückwand, von Jürgen bestätigt)
       FESTE_BOEDEN = %w[Boden Deckel Zwischenboden Strebe].freeze
 
       def self.anwenden(werkstuecke)
@@ -78,6 +79,7 @@ module JTools
           schienen(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
+          teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
         end
         meldungen
       end
@@ -185,6 +187,14 @@ module JTools
         SCHIENE[:hinten].keys.select { |nl| nl + SCHIENE[:abstand_nl] <= lt + TOL }.max
       end
 
+      # Nennlänge aus dem Attribut NL am Schrank (cm), wenn es eine LEGRABOX-Nennlänge ist;
+      # nötig, wenn hinter den Kästen Platz frei bleibt (Unterschrank Kochfeld: Installationsraum)
+      def self.nennlaenge_schrank(schrank)
+        v = schrank.get_attribute(DC_DICT, 'nl') or return
+        nl = (v.to_f * Geometrie::MM).round
+        SCHIENE[:hinten].key?(nl) ? nl : nil
+      end
+
       # sichtbare Schubladen: Kastenteile je Bereich
       def self.kaesten(teile) = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }.values
 
@@ -205,7 +215,7 @@ module JTools
                        end
             next if nach_max.nil?
             seite, flaeche = flaeche_innen(s, k, nach_max)
-            nl = nennlaenge(s, teile)
+            nl = nennlaenge_schrank(schrank) || nennlaenge(s, teile)
             unless nl
               meldungen << "#{s.name}: zu wenig Tiefe für eine LEGRABOX-Schiene (NL 350 braucht 353 mm)"
               next
@@ -273,6 +283,26 @@ module JTools
             boden.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, BODEN_FALZ_TIEFE, nil, nil, 'Falz Zarge')
           end
         end
+      end
+
+      # Kanalausschnitt im Boden (Unterschrank Kochfeld mit Abzug): durchgehende Rechtecktasche von unten.
+      # Lage aus den DC-Attributen des Schranks: Ausschnitt_Links ab dem Rand bei SeiteL,
+      # Ausschnitt_Hinten ab dem Rand bei der Rückwand, dazu Breite und Tiefe (cm).
+      def self.kanalausschnitt(w, teile)
+        sd = Schraenke.definition(w.teil.schrank)
+        wert = ->(k) { sd.get_attribute(DC_DICT, k)&.to_f&.*(Geometrie::MM) }
+        links, breite, hinten, tiefe = %w[ausschnitt_links ausschnitt_breite ausschnitt_hinten ausschnitt_tiefe].map(&wert)
+        return unless links && breite && hinten && tiefe && breite > 0 && tiefe > 0
+        k = w.dicke_achse
+        rw = teile.find { |t| t.rolle == 'Rueckwand' } or return
+        ta = rw.dicke_achse
+        wa = (w.flaechen_achsen - [ta]).first or return
+        sl = teile.find { |t| t.teil.jt('teil') == 'SeiteL' }
+        w0 = sl && sl.lo[wa] > w.lo[wa] ? w.hi[wa] - links - breite : w.lo[wa] + links
+        t0 = rw.lo[ta] >= w.hi[ta] - TOL ? w.hi[ta] - hinten - tiefe : w.lo[ta] + hinten
+        p0 = punkt(k => w.lo[k], wa => w0, ta => t0)
+        p1 = punkt(k => w.lo[k], wa => w0 + breite, ta => t0 + tiefe)
+        w.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, w.mass(k) + DURCH, nil, nil, 'Kanalausschnitt')
       end
 
       # Sockelfüße: Bohrbild aus Boden.tcn in der Unterseite des Bodens,

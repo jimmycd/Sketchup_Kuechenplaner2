@@ -37,6 +37,7 @@ module UnterschrankSchubladen
     'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
+    'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange'
   }.freeze
 
