@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
 $OBERSCHRANK_TEST = true
+$HOCHSCHRANK_GERAETE_TEST = true
 $SPUELENSCHRANK_TEST = true
 $GESCHIRRSPUELER_TEST = true
 require 'sketchup_mock'
@@ -10,6 +11,7 @@ require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
+load File.join(komp, 'hochschrank_geraete/hochschrank_geraete.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.join(komp, 'unterschrank_spuele/spuelenschrank.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
@@ -213,6 +215,29 @@ dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
 
+# --- Hochschrank Geräte: drei Zwischenböden, keine Lochreihen in den Nischen, Platzhalter nicht exportiert ---
+hm = Sketchup.active_model = Sketchup::Model.new
+HochschrankGeraete.erstellen({})
+dh, = S::Export.erzeugen(hm)
+check(dh.all? { |x| x.name.start_with?('HG1_') }, "Hochschrank Geräte: nur Schrankteile, kein Platzhalter: #{dh.map(&:name)}")
+zh = bearbeitungen(dh.find { |x| x.name == 'HG1_SeiteL' }.text, 1)
+check(zh.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 5,
+      'Hochschrank Geräte Seite: 5 Dübelreihen (Boden, 3 Zwischenböden, Deckel)')
+lrh = zh.select { |x| x.include?('#8522=5 ') }
+check(lrh.size == 2 && lrh.all? { |x| x.include?('#8510=x-282 #8511=x-50') }, "Hochschrank Geräte: Lochreihen nur im oberen Fach: #{lrh}")
+%w[HG1_ZwischenbodenUnten HG1_ZwischenbodenMitte HG1_ZwischenbodenOben].each do |n|
+  x = dh.find { |y| y.name == n }
+  check(x && (3..6).sum { |s| bearbeitungen(x.text, s).size } == 2, "#{n}: zwei Dübelreihen an den Stirnseiten")
+end
+check(bearbeitungen(dh.find { |x| x.name == 'HG1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8,
+      'Hochschrank Geräte: Sockelfüße')
+check(S::Frontfarbe.fronten(hm, kategorie: 'Hochschrank').count(&:sichtbar?) == 4, 'Hochschrank Geräte: Frontfarbe findet 3 Schubladen + Tür')
+hm = Sketchup.active_model = Sketchup::Model.new
+HochschrankGeraete.erstellen({ 'Geraet_N2' => 5.0 })
+dh, = S::Export.erzeugen(hm)
+check(dh.none? { |x| x.name == 'HG1_ZwischenbodenMitte' }, 'nur ein Gerät: kein Zwischenboden Mitte')
+zh = bearbeitungen(dh.find { |x| x.name == 'HG1_SeiteL' }.text, 1)
+check(zh.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, 'nur ein Gerät: 4 Dübelreihen')
 # --- Spülenschrank: Rückwand-Ausschnitt, Installationsebene (Rückwand in der Seitennut, auf dem Boden) ---
 sm = Sketchup.active_model = Sketchup::Model.new
 Spuelenschrank.erstellen({})
