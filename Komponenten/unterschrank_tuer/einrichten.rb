@@ -92,9 +92,42 @@ module UnterschrankTuer
     d = inst.definition
     [inst.get_attribute(DICT, '_name'), inst.name].each { |n| return TEILE[n] if TEILE[n] }
     f = d.get_attribute(DICT, '_hidden_formula') || inst.get_attribute(DICT, '_hidden_formula')
-    return "Einlegeboden#{$1.to_i + 1}" if f.to_s =~ /Anz_Einlegeboeden\s*>\s*(\d)/
+    # alte Form "Anz_Einlegeboeden>0" = Boden 1, neue Form "Anz_Einlegeboeden>=1" = Boden 1
+    return "Einlegeboden#{$2.to_i + ($1 == '>=' ? 0 : 1)}" if f.to_s =~ /Anz_Einlegeboeden\s*(>=?)\s*(\d)/
     [d.get_attribute(DICT, '_name'), d.name, d.name.sub(/#\d+\z/, '')].each { |n| return TEILE[n] if TEILE[n] }
     nil
+  end
+
+  # Einlegeböden: Formeln für Sichtbarkeit und Höhe. In der von Hand gebauten
+  # Unterschrank.skp hatten die Böden nur eine Sichtbarkeitsformel in der Form
+  # " IF (…)" (mit Leerzeichen, wird nicht zuverlässig ausgewertet) und gar keine
+  # Formel für die Höhe – sie standen fest bei 14/26/40,5 cm. Jetzt teilen die
+  # sichtbaren Böden den Innenraum zwischen Boden und Streben in gleich hohe Fächer;
+  # ausgeblendete Böden liegen auf dem Boden.
+  def self.einlegeboden_formeln(u, k)
+    n = "#{u}!Anz_Einlegeboeden"
+    mk = "#{u}!Materialstaerke_Korpus"
+    {
+      hidden: "IF(#{n}>=#{k},0,1)",
+      z: "IF(#{n}>=#{k},#{mk}+#{k}*(#{u}!Hoehe-(#{n}+2)*#{mk})/(#{n}+1)+#{k - 1}*#{mk},#{mk})"
+    }
+  end
+
+  def self.einlegeboden_reparieren(d, inst, k)
+    u = d.get_attribute(DICT, '_name') || 'Unterschrank'
+    f = einlegeboden_formeln(u, k)
+    # Sichtbarkeit an der Definition (dort stand die alte Formel) und an der Instanz
+    [inst.definition, inst].each do |e|
+      e.set_attribute(DICT, '_hidden_formula', f[:hidden])
+      e.set_attribute(DICT, '_hidden_label', 'Hidden')
+      e.set_attribute(DICT, '_hidden_formlabel', 'Hidden')
+      e.set_attribute(DICT, '_hidden_units', 'BOOLEAN')
+      e.set_attribute(DICT, '_hidden_error', '')
+    end
+    inst.set_attribute(DICT, '_name', "Einlegeboden#{k}")
+    inst.set_attribute(DICT, '_z_formula', f[:z])
+    inst.set_attribute(DICT, '_z_label', 'Z')
+    inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
   end
 
   # Tags und JT_Schrank an allen Teilen; gibt die nicht erkannten Teilnamen zurück
@@ -104,6 +137,7 @@ module UnterschrankTuer
     unbekannt = []
     d.entities.grep(Sketchup::ComponentInstance).each do |inst|
       teil = teil_von(inst)
+      einlegeboden_reparieren(d, inst, $1.to_i) if teil.to_s =~ /\AEinlegeboden(\d)\z/
       teil ? kennzeichnen(model, inst, kz, teil) : unbekannt << (inst.name.to_s.empty? ? inst.definition.name : inst.name)
     end
     unbekannt
@@ -121,6 +155,8 @@ module UnterschrankTuer
       tags_setzen(model, d)
     end
     model.commit_operation
+    # Dynamic Components neu berechnen, damit die Einlegeböden sofort richtig stehen
+    ziele.each { |i| $dc_observers.get_latest_class.redraw_with_undo(i) } if defined?($dc_observers) && $dc_observers
     hinweis = unbekannt.empty? ? '' : "\nOhne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}"
     UI.messagebox('Kurzhilfe und Tags gesetzt. Jetzt Rechtsklick → "Speichern unter…" und Unterschrank.skp ersetzen.' +
                   hinweis)
