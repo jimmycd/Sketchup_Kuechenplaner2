@@ -16,6 +16,7 @@ end
 def unterschrank(model)
   d = model.definitions.add('Unterschrank')
   d.set_attribute(T::DICT, '_name', 'Unterschrank')
+  d.set_attribute(T::DICT, 'anz_einlegeboeden', '1') # wie in der .skp als Text gespeichert
   seite = model.definitions.add('Seite')
   { 'SeiteL' => seite, 'SeiteR' => seite, 'Boden' => model.definitions.add('Boden'),
     'StrebeVorn' => model.definitions.add('StrebeV'), 'StrebeHinten' => model.definitions.add('StrebeH'),
@@ -61,6 +62,39 @@ end
 griff = d.entities.instances.find { |i| i.definition.name == 'Griff' }
 check(griff.layer.nil? && griff.get_attribute(T::JT_DICT, 'teil').nil?, 'unbekanntes Teil bleibt ohne Tag')
 check(d.get_attribute(T::JT_DICT, 'kategorie') == 'Unterschrank', 'JT_Schrank am Schrank')
+
+# Einlegeböden: Formeln für Sichtbarkeit und Höhe (Fehler: Anzahl Einlegeböden wirkte nicht)
+# Kleiner Formel-Auswerter für die DC-Formeln: Unterschrank!X, IF(), + - * / >=
+def dc_wert(formel, attr)
+  ruby = formel.gsub(/Unterschrank!(\w+)/) { attr.fetch($1).to_s }.gsub('IF(', 'wenn(')
+  Object.new.tap { |o| o.define_singleton_method(:wenn) { |b, a, c| b ? a : c } }.instance_eval(ruby).to_f
+end
+
+boeden = (1..3).map { |k| teile.find { |i| i.layer.name == "UST1_Einlegeboden#{k}" } }
+boeden.each_with_index do |b, idx|
+  k = idx + 1
+  check(b.get_attribute(T::DICT, '_name') == "Einlegeboden#{k}", "Name Einlegeboden#{k}")
+  [b, b.definition].each do |e|
+    f = e.get_attribute(T::DICT, '_hidden_formula')
+    check(f == "IF(Unterschrank!Anz_Einlegeboeden>=#{k},0,1)", "Sichtbarkeitsformel #{k}: #{f.inspect}")
+  end
+  check(b.get_attribute(T::DICT, '_z_formula').to_s.include?('Anz_Einlegeboeden'), "Höhenformel #{k}")
+  check(b.hidden == (k > 1), "Einlegeboden#{k} sofort richtig sichtbar bei Anzahl 1")
+end
+h, mk = 70.0, 1.9
+(0..3).each do |n|
+  attr = { 'Hoehe' => h, 'Materialstaerke_Korpus' => mk, 'Anz_Einlegeboeden' => n }
+  sichtbar = boeden.select { |b| dc_wert(b.get_attribute(T::DICT, '_hidden_formula'), attr).zero? }
+  check(sichtbar == boeden.first(n), "Anzahl #{n}: #{sichtbar.size} Böden sichtbar")
+  zs = sichtbar.map { |b| dc_wert(b.get_attribute(T::DICT, '_z_formula'), attr) }
+  # lichte Fächer zwischen Boden (Oberkante mk), den Einlegeböden und den Streben (Unterkante h-mk)
+  kanten = [mk] + zs.flat_map { |z| [z, z + mk] } + [h - mk]
+  faecher = kanten.each_slice(2).map { |a, b| (b - a).round(6) }
+  check(faecher.uniq.size == 1 && faecher.first > 0, "Anzahl #{n}: gleich hohe Fächer #{faecher.inspect}")
+  (boeden - sichtbar).each do |b|
+    check(dc_wert(b.get_attribute(T::DICT, '_z_formula'), attr) == mk, "Anzahl #{n}: ausgeblendeter Boden liegt unten")
+  end
+end
 
 # Zweiter Lauf behält das Kürzel, ein zweiter Schrank bekommt UST2
 T.einrichten(model)
