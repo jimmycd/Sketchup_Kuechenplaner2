@@ -8,7 +8,9 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 | [`Komponenten/unterschrank_tuer/`](Komponenten/unterschrank_tuer/) | Unterschrank mit Tür (`Unterschrank.skp`, Ausgangskomponente) |
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (Erweiterung `.rbz`) |
 | [`Komponenten/unterschrank_spuele/`](Komponenten/unterschrank_spuele/) | Spülenschrank mit Türen oder Blende + Auszug, Installationsebene (Skript erzeugt `Spuelenschrank.skp`) |
+| [`Komponenten/unterschrank_kochfeld/`](Komponenten/unterschrank_kochfeld/) | Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen, Kanal (Erweiterung `.rbz`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (Skript erzeugt `Hochschrank.skp`) |
+| [`Komponenten/unterschrank_geschirrspueler/`](Komponenten/unterschrank_geschirrspueler/) | Nische für vollintegrierten Geschirrspüler 45/60 mit Front (Skript erzeugt `Unterschrank_Geschirrspueler.skp`) |
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (Skript erzeugt `Oberschrank.skp`) |
 | [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`.rbz`): Frontfarbe und Griffe ändern; TCN-Export für TpaCAD folgt |
 
