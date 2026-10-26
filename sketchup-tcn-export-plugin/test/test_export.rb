@@ -7,6 +7,7 @@ $APOTHEKERSCHRANK_TEST = true
 $HOCHSCHRANK_GERAETE_TEST = true
 $SPUELENSCHRANK_TEST = true
 $GESCHIRRSPUELER_TEST = true
+$HANDTUCH_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
@@ -18,6 +19,7 @@ load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.r
 load File.join(komp, 'unterschrank_spuele/spuelenschrank.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/geschirrspueler.rb')
+load File.join(komp, 'unterschrank_handtuch/unterschrank_handtuch.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -381,6 +383,43 @@ S::Frontfarbe.anwenden(km, fr, nil, griff: { lochmass: 160, lage: 'Mitte', hoehe
 bl = S::Schraenke.teile(km).select(&:front?)
 check(bl.find { |t| t.jt('teil') == 'Blende' }.jt('griff_lochmass').nil? &&
       bl.select { |t| t.jt('teil') == 'Front' }.all? { |t| t.jt('griff_lochmass') == 160.0 }, 'Frontfarbe: Griff an den Schubladen, nicht an der Blende')
+
+# --- Schmaler Unterschrank mit Häfele HU Slim Base: Schienen an einer Seite, Front, keine Lochreihen ---
+# Wert einer Lage im Fräsmaß ab der Nullkante: "x-45" -> max - 45
+def lage_mm(v, max) = v.start_with?('x-', 'y-') ? max - v[2..].to_f : v.to_f
+hm = Sketchup.active_model = Sketchup::Model.new
+UnterschrankHandtuch.erstellen({})
+dh, mh = S::Export.erzeugen(hm)
+h = dh.to_h { |x| [x.name, x] }
+check(mh.empty?, "Handtuch: keine Meldungen bei Standardmaßen: #{mh}")
+check(h.keys.sort == %w[USH1_Boden USH1_Front USH1_Rueckwand USH1_SeiteL USH1_SeiteR USH1_StrebeHinten USH1_StrebeVorn],
+      "Handtuch: Dateien ohne Beschlag-Platzhalter: #{h.keys}")
+schiene = ->(t) { bearbeitungen(t, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-10 ') } }
+sl = h['USH1_SeiteL']
+pos = schiene.(sl.text).map { |x| [lage_mm(x[/#1=(\S+)/, 1], sl.lage.dl), lage_mm(x[/#2=(\S+)/, 1], sl.lage.dh)] }.sort
+# Seite 700 hoch, 800 tief (Fräsmaß DL 798 ab Vorderkante, Anleimer vorn 2 mm): 56/280/330 roh, 19 + 52 / 19 + 436 hoch
+check(pos == [54, 278, 328].product([71.0, 455.0]).sort, "Handtuch: Schienenbohrungen links (LH): #{pos}")
+check(schiene.(h['USH1_SeiteR'].text).empty?, 'Handtuch: rechte Seite ohne Schiene')
+check(dh.none? { |x| x.text.include?('#8522=5 ') }, 'Handtuch: keine Lochreihen')
+fr = h['USH1_Front']
+fpos = bearbeitungen(fr.text, 1).select { |x| x.include?('#3=-5 ') }.map do |x|
+  [lage_mm(x[/#1=(\S+)/, 1], fr.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fr.lage.dh)]
+end.sort
+# Front 148 × 700, rundum Anleimer (Fräsmaß 144 × 696): X = 84 (M150) mittig, 103 / 487 über Oberkante Boden
+check(fr.lage.dh == 144 && fpos == [120.0, 504.0].product([30.0, 114.0]).sort, "Handtuch: Frontbohrungen M150: #{fpos}")
+fu = bearbeitungen(h['USH1_Boden'].text, 1).select { |x| x.include?('#8522=3 ') }
+check(fu.size == 4 && fu.map { |x| x[/#8518=(\S+)/, 1] }.uniq.sort == %w[24 y-24], "Handtuch: schmaler Boden, ein Sockelfuß je Ende mittig: #{fu}")
+check(S::Frontfarbe.fronten(hm).map { |t| t.jt('teil') } == ['Front'], 'Handtuch: Frontfarbe findet die Front')
+
+hm2 = Sketchup.active_model = Sketchup::Model.new
+UnterschrankHandtuch.erstellen({ 'Modell' => 200.0, 'Seite_Beschlag' => 1.0, 'Hoehe' => 55.0, 'Tiefe' => 45.0 })
+dh2, mh2 = S::Export.erzeugen(hm2)
+h2 = dh2.to_h { |x| [x.name, x] }
+check(schiene.(h2['USH1_SeiteL'].text).empty? && schiene.(h2['USH1_SeiteR'].text).size == 6, 'Handtuch: Schienen rechts (RH)')
+fr2 = h2['USH1_Front']
+w2 = bearbeitungen(fr2.text, 1).select { |x| x.include?('#3=-5 ') }.map { |x| lage_mm(x[/#2=(\S+)/, 1], fr2.lage.dh) }.uniq.sort
+check(w2 == [30.0, 164.0], "Handtuch: Frontbohrungen M200 X = 134: #{w2}")
+check(mh2.any? { |m| m.include?('lichte Höhe 512') } && mh2.any? { |m| m.include?('Tiefe 450') }, "Handtuch: zu kleiner Einbauraum gemeldet: #{mh2}")
 
 if $fehler.zero?
   puts 'test_export: alles OK'
