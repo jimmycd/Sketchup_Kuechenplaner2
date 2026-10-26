@@ -225,3 +225,16 @@ module Sketchup
     def bounds = Struct.new(:min, :max).new([0.0, 0.0, 0.0], (box || [0, 0, 0]).map(&:to_f))
   end
 end
+
+# --- Kanten ohne Fläche (Umriss Rückwand-Ausschnitt im Spülenschrank) ---
+module Sketchup
+  class Entities
+    def edges = (@edges ||= [])
+    def add_line(a, b)
+      edges << [a, b]
+      bx = definition.box || [0, 0, 0]
+      definition.box = (0..2).map { |i| [bx[i], a[i], b[i]].max }
+      [a, b]
+    end
+  end
+end

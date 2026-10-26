@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
 $OBERSCHRANK_TEST = true
+$SPUELENSCHRANK_TEST = true
 $GESCHIRRSPUELER_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
@@ -10,6 +11,7 @@ komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
+load File.join(komp, 'unterschrank_spuele/spuelenschrank.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/geschirrspueler.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
@@ -211,6 +213,43 @@ dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
 
+# --- Spülenschrank: Rückwand-Ausschnitt, Installationsebene (Rückwand in der Seitennut, auf dem Boden) ---
+sm = Sketchup.active_model = Sketchup::Model.new
+Spuelenschrank.erstellen({})
+ds, ms = S::Export.erzeugen(sm)
+check(ms.empty?, "Spülenschrank: keine Meldungen #{ms}")
+dsp = ds.to_h { |x| [x.name, x] }
+check(dsp.keys.sort == %w[USP1_A_Front USP1_A_KastenBoden USP1_A_KastenRueckwand USP1_B_Front USP1_Boden USP1_Rueckwand
+                          USP1_SeiteL USP1_SeiteR USP1_StrebeHinten USP1_StrebeVorn], "Spülenschrank: Dateien #{dsp.keys}")
+rw = dsp['USP1_Rueckwand']
+check([rw.lage.dl, rw.lage.dh].zip([780, 681]).all? { |a, b| (a - b).abs < 1e-6 }, "Rückwand Spüle: 780 x 681 (#{rw.lage.dl} x #{rw.lage.dh})")
+kontur = bearbeitungen(rw.text, 1).drop(1)
+# Ausschnitt 662 x 400 ab 250 über Korpus-Unterkante = 231 über Unterkante Rückwand, 59 vom Rand; Fräser Ø8,03 innen
+check(kontur.size == 5 && kontur[0].include?('#1=63.015 #2=235.015 #3=-9 ') && kontur[0].include?('#205=2200') &&
+      kontur.drop(1) == ['W#2201{ ::WTl  #8015=1 #1=653.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=391.97 }W',
+                         'W#2201{ ::WTl  #8015=1 #1=-653.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=-391.97 }W'],
+      "Rückwand Spüle: Ausschnitt als geschlossene Kontur, 9 tief: #{kontur}")
+z = bearbeitungen(dsp['USP1_SeiteR'].text, 1)
+nut = z.select { |x| x.start_with?('W#89', 'W#2201') }
+check(nut.size == 2 && nut[0].include?('#1=54 #2=19 #3=-9 ') && nut[1].include?('#1=0 #2=686 '),
+      "Seite Spüle: Nut 50 + 4 mm vor der Hinterkante, ab Oberkante Boden bis über die Oberkante: #{nut}")
+check(z.none? { |x| x.include?('#8522=5 ') && x.include?('fittingy') }, 'Seite Spüle mit Auszug: keine Lochreihe')
+check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 4, 'Seite Spüle: Schienenbohrungen für den Auszug')
+bd = dsp['USP1_Boden'].text
+check(!bd.include?('W#89') && bd.include?('#8522=3 '), 'Boden Spüle: keine Nut, Sockelfüße')
+check(bearbeitungen(dsp['USP1_B_Front'].text, 1).size == 1, 'Blende: nur Formatieren, keine Frontbefestigung')
+check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 8, 'Auszugfront: Frontbefestigung')
+ff = S::Frontfarbe.fronten(sm, kategorie: 'Unterschrank')
+check(ff.size == 5 && ff.count(&:sichtbar?) == 2, 'Spüle: Frontfarbe findet alle Fronten, sichtbar Blende und Auszugfront')
+# Türen: Lochreihen im Fach, hinten 35 vor der Nut; ohne Ausschnitt keine Kontur
+sm = Sketchup.active_model = Sketchup::Model.new
+Spuelenschrank.erstellen({ 'Frontvariante' => 0.0, 'Ausschnitt_Hoehe' => 0.0 })
+ds, = S::Export.erzeugen(sm)
+dsp = ds.to_h { |x| [x.name, x] }
+check(dsp.key?('USP1_TuerL') && dsp.key?('USP1_TuerR') && !dsp.key?('USP1_A_Front'), "Spüle mit Türen: #{dsp.keys}")
+check(bearbeitungen(dsp['USP1_Rueckwand'].text, 1).size == 1, 'Rückwand ohne Ausschnitt: nur Formatieren')
+lr = bearbeitungen(dsp['USP1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
+check(lr.size == 2 && lr.map { |x| x[/#8518=(\S+)/, 1] }.sort == %w[93 x-35], "Spüle mit Türen: Lochreihen 35 vorn, 93 hinten (50 + 8 Nut + 35): #{lr}")
 # --- Geschirrspüler: Front und Wangen nur formatieren, Gerät wird nicht exportiert ---
 gm = Sketchup.active_model = Sketchup::Model.new
 usg = UnterschrankGeschirrspueler.erstellen({ 'Art_Wange' => 3.0 })
