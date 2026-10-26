@@ -9,6 +9,7 @@ komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
+load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -228,6 +229,50 @@ S::Export.dialog(model)
 check(UI.meldung.nil?, 'Abbrechen bei der Ordnerwahl schreibt nichts')
 S::Export.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
+
+# --- Unterschrank Kochfeld mit Abzug: Kanalausschnitt, Schienen-NL aus dem Attribut, Strebe hochkant, Blende ---
+km = Sketchup.active_model = Sketchup::Model.new
+UnterschrankKochfeld.erstellen({})
+dk, mk_ = S::Export.erzeugen(km)
+k = dk.to_h { |x| [x.name, x] }
+check(k.keys.none? { |n| n.include?('StrebeHinten') } && k['USK1_Blende'] && k['USK1_StrebeVorn'], "Kochfeld: Dateien #{k.keys}")
+check(mk_.none? { |m| m.include?('Unterseite') || m.include?('Fläche 1') }, "Kochfeld: Meldungen #{mk_}")
+kb = k['USK1_Boden']
+ta = bearbeitungen(kb.text, 1).select { |x| x.include?('rect.tmcr') }
+check(kb.lage.flaeche1 == :zmin && ta.size == 1 && ta[0].include?('#8514=-20 ') &&
+      [ta[0][/#8509=(\S+)/, 1], ta[0][/#8510=(\S+)/, 1]].sort == %w[110 300],
+      "Kochfeld-Boden: Kanalausschnitt 300 × 110 durch (19 + 1 mm) von unten: #{ta}")
+check(ta[0].include?('#8021=381 ') || ta[0].include?('#8020=381 '), "Kochfeld-Boden: Ausschnitt mittig (381 von 762): #{ta}")
+mitte_t = ta[0][/#8020=(\S+)/, 1]
+check(kb.lage.dl == 798 && mitte_t == 'x-75', "Kochfeld-Boden: Ausschnitt 20 mm vor der Hinterkante (Mitte 75 roh): #{ta}")
+check(bearbeitungen(kb.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Kochfeld-Boden: Sockelfüße bleiben')
+# Schienen: NL 600 aus dem Attribut (Tiefe 800 − Installationstiefe 150), nicht 650 aus dem Abstand zur Rückwand;
+# DL der Seite = Tiefe 798, also #1 = Lage in der Tiefe, #2 = Höhe
+sr = bearbeitungen(k['USK1_SeiteR'].text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+xs = sr.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 - v.to_f }.uniq.sort
+check(k['USK1_SeiteR'].lage.dl == 798 && xs == [35.0, 67.0, 291.0, 355.0], "Kochfeld: Schienen NL 600 (37/69/293/357 roh): #{xs}")
+check(sr.map { |x| x[/#2=(\S+)/, 1] }.uniq.size == 2, "Kochfeld: Schienen für 2 Schubladen: #{sr}")
+check(S::Regeln.nennlaenge_schrank(km.definitions['Unterschrank Kochfeld mit Abzug']) == 600, 'NL-Attribut 60 cm = 600')
+# Strebe vorn hochkant: Dübel in die Stirnseiten, Schraube in die Seite
+sv = k['USK1_StrebeVorn']
+check(sv.lage.dh == 100 && [4, 6].all? { |s2| bearbeitungen(sv.text, s2).size == 1 }, "Strebe vorn hochkant: Dübel beidseitig (#{sv.lage.to_a.drop(1)})")
+check(bearbeitungen(k['USK1_SeiteR'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-21 ') } == 1, 'Seite: Schraube in die hochkante Strebe')
+# Blende: nur formatieren; Fronten der Schubladen mit LEGRABOX-Frontbefestigung
+check(bearbeitungen(k['USK1_Blende'].text, 1).size == 1, "Blende ohne Bearbeitung: #{bearbeitungen(k['USK1_Blende'].text, 1)}")
+check(bearbeitungen(k['USK1_S1_Front'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } >= 4, 'Schubladenfront: Frontbefestigung')
+# Kanal links: Ausschnitt 100 mm von der linken Seite (Mitte 250)
+Sketchup.active_model = km2 = Sketchup::Model.new
+UnterschrankKochfeld.erstellen({ 'Kanal_Lage' => 0.0 })
+tl = bearbeitungen(S::Export.erzeugen(km2)[0].find { |x| x.name == 'USK1_Boden' }.text, 1).find { |x| x.include?('rect.tmcr') }
+check(tl && (tl.include?('=250 ') || tl.include?('=512 ') || tl.include?('-250 ')), "Kochfeld-Boden: Ausschnitt links (Mitte 250 von links): #{tl}")
+# Frontfarbe mit Griff: Blende bekommt Material, aber keinen Griff
+Sketchup.active_model = km
+fr = S::Frontfarbe.fronten(km)
+check(fr.any? { |t| t.jt('teil') == 'Blende' }, 'Frontfarbe: Blende zählt als Front')
+S::Frontfarbe.anwenden(km, fr, nil, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+bl = S::Schraenke.teile(km).select(&:front?)
+check(bl.find { |t| t.jt('teil') == 'Blende' }.jt('griff_lochmass').nil? &&
+      bl.select { |t| t.jt('teil') == 'Front' }.all? { |t| t.jt('griff_lochmass') == 160.0 }, 'Frontfarbe: Griff an den Schubladen, nicht an der Blende')
 
 if $fehler.zero?
   puts 'test_export: alles OK'
