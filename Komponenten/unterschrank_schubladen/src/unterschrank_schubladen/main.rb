@@ -36,7 +36,9 @@ module UnterschrankSchubladen
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
-    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand'
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
+    'Blende' => 'Front',
+    'WangeL' => 'Wange', 'WangeR' => 'Wange'
   }.freeze
 
   # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen

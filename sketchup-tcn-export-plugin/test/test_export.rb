@@ -4,6 +4,8 @@ $LOAD_PATH.unshift(__dir__)
 $HOCHSCHRANK_TEST = true
 $OBERSCHRANK_TEST = true
 $HOCHSCHRANK_GERAETE_TEST = true
+$SPUELENSCHRANK_TEST = true
+$GESCHIRRSPUELER_TEST = true
 require 'sketchup_mock'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
@@ -11,6 +13,9 @@ load File.join(komp, 'hochschrank/hochschrank.rb')
 load File.join(komp, 'oberschrank/oberschrank.rb')
 load File.join(komp, 'hochschrank_geraete/hochschrank_geraete.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
+load File.join(komp, 'unterschrank_spuele/spuelenschrank.rb')
+load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
+load File.join(komp, 'unterschrank_geschirrspueler/geschirrspueler.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -233,6 +238,56 @@ dh, = S::Export.erzeugen(hm)
 check(dh.none? { |x| x.name == 'HG1_ZwischenbodenMitte' }, 'nur ein Gerät: kein Zwischenboden Mitte')
 zh = bearbeitungen(dh.find { |x| x.name == 'HG1_SeiteL' }.text, 1)
 check(zh.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, 'nur ein Gerät: 4 Dübelreihen')
+# --- Spülenschrank: Rückwand-Ausschnitt, Installationsebene (Rückwand in der Seitennut, auf dem Boden) ---
+sm = Sketchup.active_model = Sketchup::Model.new
+Spuelenschrank.erstellen({})
+ds, ms = S::Export.erzeugen(sm)
+check(ms.empty?, "Spülenschrank: keine Meldungen #{ms}")
+dsp = ds.to_h { |x| [x.name, x] }
+check(dsp.keys.sort == %w[USP1_A_Front USP1_A_KastenBoden USP1_A_KastenRueckwand USP1_B_Front USP1_Boden USP1_Rueckwand
+                          USP1_SeiteL USP1_SeiteR USP1_StrebeHinten USP1_StrebeVorn], "Spülenschrank: Dateien #{dsp.keys}")
+rw = dsp['USP1_Rueckwand']
+check([rw.lage.dl, rw.lage.dh].zip([780, 681]).all? { |a, b| (a - b).abs < 1e-6 }, "Rückwand Spüle: 780 x 681 (#{rw.lage.dl} x #{rw.lage.dh})")
+kontur = bearbeitungen(rw.text, 1).drop(1)
+# Ausschnitt 662 x 400 ab 250 über Korpus-Unterkante = 231 über Unterkante Rückwand, 59 vom Rand; Fräser Ø8,03 innen
+check(kontur.size == 5 && kontur[0].include?('#1=63.015 #2=235.015 #3=-9 ') && kontur[0].include?('#205=2200') &&
+      kontur.drop(1) == ['W#2201{ ::WTl  #8015=1 #1=653.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=391.97 }W',
+                         'W#2201{ ::WTl  #8015=1 #1=-653.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=-391.97 }W'],
+      "Rückwand Spüle: Ausschnitt als geschlossene Kontur, 9 tief: #{kontur}")
+z = bearbeitungen(dsp['USP1_SeiteR'].text, 1)
+nut = z.select { |x| x.start_with?('W#89', 'W#2201') }
+check(nut.size == 2 && nut[0].include?('#1=54 #2=19 #3=-9 ') && nut[1].include?('#1=0 #2=686 '),
+      "Seite Spüle: Nut 50 + 4 mm vor der Hinterkante, ab Oberkante Boden bis über die Oberkante: #{nut}")
+check(z.none? { |x| x.include?('#8522=5 ') && x.include?('fittingy') }, 'Seite Spüle mit Auszug: keine Lochreihe')
+check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 4, 'Seite Spüle: Schienenbohrungen für den Auszug')
+bd = dsp['USP1_Boden'].text
+check(!bd.include?('W#89') && bd.include?('#8522=3 '), 'Boden Spüle: keine Nut, Sockelfüße')
+check(bearbeitungen(dsp['USP1_B_Front'].text, 1).size == 1, 'Blende: nur Formatieren, keine Frontbefestigung')
+check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 8, 'Auszugfront: Frontbefestigung')
+ff = S::Frontfarbe.fronten(sm, kategorie: 'Unterschrank')
+check(ff.size == 5 && ff.count(&:sichtbar?) == 2, 'Spüle: Frontfarbe findet alle Fronten, sichtbar Blende und Auszugfront')
+# Türen: Lochreihen im Fach, hinten 35 vor der Nut; ohne Ausschnitt keine Kontur
+sm = Sketchup.active_model = Sketchup::Model.new
+Spuelenschrank.erstellen({ 'Frontvariante' => 0.0, 'Ausschnitt_Hoehe' => 0.0 })
+ds, = S::Export.erzeugen(sm)
+dsp = ds.to_h { |x| [x.name, x] }
+check(dsp.key?('USP1_TuerL') && dsp.key?('USP1_TuerR') && !dsp.key?('USP1_A_Front'), "Spüle mit Türen: #{dsp.keys}")
+check(bearbeitungen(dsp['USP1_Rueckwand'].text, 1).size == 1, 'Rückwand ohne Ausschnitt: nur Formatieren')
+lr = bearbeitungen(dsp['USP1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
+check(lr.size == 2 && lr.map { |x| x[/#8518=(\S+)/, 1] }.sort == %w[93 x-35], "Spüle mit Türen: Lochreihen 35 vorn, 93 hinten (50 + 8 Nut + 35): #{lr}")
+# --- Geschirrspüler: Front und Wangen nur formatieren, Gerät wird nicht exportiert ---
+gm = Sketchup.active_model = Sketchup::Model.new
+usg = UnterschrankGeschirrspueler.erstellen({ 'Art_Wange' => 3.0 })
+dg, = S::Export.erzeugen(gm)
+check(dg.map(&:name).sort == %w[USG1_Front USG1_WangeL USG1_WangeR], "Geschirrspüler: Dateien #{dg.map(&:name)}")
+dg.each do |x|
+  z = bearbeitungen(x.text, 1)
+  check(z.size == 1 && z.first.include?('squad.tmcr'), "Geschirrspüler #{x.name}: nur Formatieren #{z}")
+  check([3, 4, 5, 6].all? { |s| bearbeitungen(x.text, s).empty? }, "Geschirrspüler #{x.name}: keine Stirnbohrungen")
+end
+fr = dg.find { |x| x.name == 'USG1_Front' }
+check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
+check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
 Sketchup.active_model = model
 
 # --- Dialog ---
@@ -255,6 +310,50 @@ S::Export.dialog(model)
 check(UI.meldung.nil?, 'Abbrechen bei der Ordnerwahl schreibt nichts')
 S::Export.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
+
+# --- Unterschrank Kochfeld mit Abzug: Kanalausschnitt, Schienen-NL aus dem Attribut, Strebe hochkant, Blende ---
+km = Sketchup.active_model = Sketchup::Model.new
+UnterschrankKochfeld.erstellen({})
+dk, mk_ = S::Export.erzeugen(km)
+k = dk.to_h { |x| [x.name, x] }
+check(k.keys.none? { |n| n.include?('StrebeHinten') } && k['USK1_Blende'] && k['USK1_StrebeVorn'], "Kochfeld: Dateien #{k.keys}")
+check(mk_.none? { |m| m.include?('Unterseite') || m.include?('Fläche 1') }, "Kochfeld: Meldungen #{mk_}")
+kb = k['USK1_Boden']
+ta = bearbeitungen(kb.text, 1).select { |x| x.include?('rect.tmcr') }
+check(kb.lage.flaeche1 == :zmin && ta.size == 1 && ta[0].include?('#8514=-20 ') &&
+      [ta[0][/#8509=(\S+)/, 1], ta[0][/#8510=(\S+)/, 1]].sort == %w[110 300],
+      "Kochfeld-Boden: Kanalausschnitt 300 × 110 durch (19 + 1 mm) von unten: #{ta}")
+check(ta[0].include?('#8021=381 ') || ta[0].include?('#8020=381 '), "Kochfeld-Boden: Ausschnitt mittig (381 von 762): #{ta}")
+mitte_t = ta[0][/#8020=(\S+)/, 1]
+check(kb.lage.dl == 798 && mitte_t == 'x-75', "Kochfeld-Boden: Ausschnitt 20 mm vor der Hinterkante (Mitte 75 roh): #{ta}")
+check(bearbeitungen(kb.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Kochfeld-Boden: Sockelfüße bleiben')
+# Schienen: NL 600 aus dem Attribut (Tiefe 800 − Installationstiefe 150), nicht 650 aus dem Abstand zur Rückwand;
+# DL der Seite = Tiefe 798, also #1 = Lage in der Tiefe, #2 = Höhe
+sr = bearbeitungen(k['USK1_SeiteR'].text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+xs = sr.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 - v.to_f }.uniq.sort
+check(k['USK1_SeiteR'].lage.dl == 798 && xs == [35.0, 67.0, 291.0, 355.0], "Kochfeld: Schienen NL 600 (37/69/293/357 roh): #{xs}")
+check(sr.map { |x| x[/#2=(\S+)/, 1] }.uniq.size == 2, "Kochfeld: Schienen für 2 Schubladen: #{sr}")
+check(S::Regeln.nennlaenge_schrank(km.definitions['Unterschrank Kochfeld mit Abzug']) == 600, 'NL-Attribut 60 cm = 600')
+# Strebe vorn hochkant: Dübel in die Stirnseiten, Schraube in die Seite
+sv = k['USK1_StrebeVorn']
+check(sv.lage.dh == 100 && [4, 6].all? { |s2| bearbeitungen(sv.text, s2).size == 1 }, "Strebe vorn hochkant: Dübel beidseitig (#{sv.lage.to_a.drop(1)})")
+check(bearbeitungen(k['USK1_SeiteR'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-21 ') } == 1, 'Seite: Schraube in die hochkante Strebe')
+# Blende: nur formatieren; Fronten der Schubladen mit LEGRABOX-Frontbefestigung
+check(bearbeitungen(k['USK1_Blende'].text, 1).size == 1, "Blende ohne Bearbeitung: #{bearbeitungen(k['USK1_Blende'].text, 1)}")
+check(bearbeitungen(k['USK1_S1_Front'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } >= 4, 'Schubladenfront: Frontbefestigung')
+# Kanal links: Ausschnitt 100 mm von der linken Seite (Mitte 250)
+Sketchup.active_model = km2 = Sketchup::Model.new
+UnterschrankKochfeld.erstellen({ 'Kanal_Lage' => 0.0 })
+tl = bearbeitungen(S::Export.erzeugen(km2)[0].find { |x| x.name == 'USK1_Boden' }.text, 1).find { |x| x.include?('rect.tmcr') }
+check(tl && (tl.include?('=250 ') || tl.include?('=512 ') || tl.include?('-250 ')), "Kochfeld-Boden: Ausschnitt links (Mitte 250 von links): #{tl}")
+# Frontfarbe mit Griff: Blende bekommt Material, aber keinen Griff
+Sketchup.active_model = km
+fr = S::Frontfarbe.fronten(km)
+check(fr.any? { |t| t.jt('teil') == 'Blende' }, 'Frontfarbe: Blende zählt als Front')
+S::Frontfarbe.anwenden(km, fr, nil, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+bl = S::Schraenke.teile(km).select(&:front?)
+check(bl.find { |t| t.jt('teil') == 'Blende' }.jt('griff_lochmass').nil? &&
+      bl.select { |t| t.jt('teil') == 'Front' }.all? { |t| t.jt('griff_lochmass') == 160.0 }, 'Frontfarbe: Griff an den Schubladen, nicht an der Blende')
 
 if $fehler.zero?
   puts 'test_export: alles OK'

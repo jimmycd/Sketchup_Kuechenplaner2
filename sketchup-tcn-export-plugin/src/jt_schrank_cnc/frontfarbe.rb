@@ -113,7 +113,9 @@ module JTools
               fl.material = kante if fl.material && fl.material.get_attribute(OCL_DICT, 'type').to_i == 4
             end
           end
-          if griff
+          if griff && f.jt('teil') == 'Blende'
+            next # feste Blende (Unterschrank Kochfeld) bekommt keinen Griff
+          elsif griff
             f.inst.set_attribute(JT_DICT, 'griff_lochmass', griff[:lochmass].to_f)
             f.inst.set_attribute(JT_DICT, 'griff_lage', griff[:lage])
             f.inst.set_attribute(JT_DICT, 'griff_hoehe', griff[:hoehe].to_f)
