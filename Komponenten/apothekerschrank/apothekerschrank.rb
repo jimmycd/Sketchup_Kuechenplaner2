@@ -45,11 +45,13 @@ module Apothekerschrank
   ROLLEN = {
     'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
-    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
+    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
     'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
-    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand'
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
+    'Blende' => 'Front',
+    'WangeL' => 'Wange', 'WangeR' => 'Wange'
   }.freeze
 
   # Standardwerte in cm

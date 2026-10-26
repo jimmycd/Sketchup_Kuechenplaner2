@@ -2,7 +2,7 @@
 # Schrank-CNC – TCN-Ausgabe für TpaCAD (TPA\ALBATROS\EDICAD 02.00).
 # Kopf wie im Treppenbau (tcn.rb build_prog) und in Jürgens Beispielen,
 # Bearbeitungen mit seinen Makros: squad (Formatieren), fittingx/fittingy
-# (Bohrreihen), W#81 (Einzelbohrung). Lagen und DL/DH im Fräsmaß.
+# (Bohrreihen), W#81 (Einzelbohrung), W#89/W#2201 (Nut, Ausschnitt). Lagen und DL/DH im Fräsmaß.
 
 module JTools
   module SchrankCnc
@@ -57,6 +57,20 @@ module JTools
         end
       end
 
+      # Ausschnitt: geschlossene Kontur mit dem Nutfräser, um den Fräserradius nach innen versetzt
+      def ausschnitt(ws, lage, op)
+        nt = Regeln::NUT
+        r = nt[:d_werkzeug] / 2.0
+        xs = [lage.x(op.p0), lage.x(op.p1)].minmax
+        ys = [lage.y(op.p0), lage.y(op.p1)].minmax
+        bx = xs[1] - xs[0] - 2 * r
+        by = ys[1] - ys[0] - 2 * r
+        ["W#89{ ::WTs WS=#{ws}  #8015=0 #1=#{n(xs[0] + r)} #2=#{n(ys[0] + r)} #3=#{n(-op.tiefe)} " \
+         "#201=1 #203=1 #205=#{nt[:werkzeug]} #1001=100 #8101=0 #8096=0 #40=0 #46=1 " \
+         '#8135=0 #8136=0 #8180=0 #8181=0 #8185=0 #8186=0 #9511=0 #9512=0 #9513=0 }W'] +
+          [[bx, 0], [0, by], [-bx, 0], [0, -by]].map { |dx, dy| "W#2201{ ::WTl  #8015=1 #1=#{n(dx)} #2=#{n(dy)} }W" }
+      end
+
       # Länge einer Tasche, über das ganze Werkstück als "h+20" wie in Schubkastenboden.tcn
       def laenge(v, gesamt, var)
         d = v - gesamt
@@ -87,7 +101,7 @@ module JTools
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
             next
           end
-          if %i[nut tasche].include?(op.art) && side != 1
+          if %i[nut tasche ausschnitt].include?(op.art) && side != 1
             meldungen << "#{lage.ws.name}: #{op.titel} liegt nicht auf Fläche 1 und fehlt in der TCN"
             next
           end
@@ -99,6 +113,7 @@ module JTools
       # Zeilen einer Bearbeitung, WS als Platzhalter "@" (Nummern vergibt zeilen)
       def op_zeilen(lage, side, op)
         return nut('@', lage, op) if op.art == :nut
+        return ausschnitt('@', lage, op) if op.art == :ausschnitt
         return [tasche('@', lage, op)] if op.art == :tasche
         if side == 1
           if op.art == :bohrung
