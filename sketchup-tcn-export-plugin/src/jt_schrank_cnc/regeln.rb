@@ -148,7 +148,8 @@ module JTools
       end
 
       # Lochreihen in jeder Seite je Fach ohne Schubladen zwischen zwei festen Böden: vorn 35 mm,
-      # hinten 35 mm vor Hinterkante bzw. Rückwandnut
+      # hinten 35 mm vor Hinterkante bzw. Rückwandnut. Keine Lochreihe in Gerätenischen (Fach über
+      # einem Boden mit JT_Schrank/nische, z. B. Hochschrank Geräte).
       def self.lochreihen(teile)
         teile.select { |w| w.rolle == 'Seite' }.each do |s|
           k = s.dicke_achse
@@ -163,9 +164,11 @@ module JTools
           hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
           lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
           schubladen = kaesten(teile).map { |k| k.map { |w| w.lo[v] }.min }
+          nischen = boeden.select { |f| f.teil.jt('nische') }.map { |f| f.hi[v] }
           lagen.each_cons(2) do |(_, unten), (oben, _)|
             # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
             next if schubladen.any? { |z| z.between?(unten - TOL, oben) }
+            next if nischen.any? { |z| (z - unten).abs < TOL }
             lo = unten + l[:ueber]
             hi = oben - l[:unter]
             next if hi - lo < l[:raster]

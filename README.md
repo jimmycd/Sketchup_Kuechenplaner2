@@ -8,6 +8,7 @@ SketchUp-Komponenten für den Küchenbau und das geplante TCN-Export-Plugin.
 | [`Komponenten/unterschrank_tuer/`](Komponenten/unterschrank_tuer/) | Unterschrank mit Tür (`Unterschrank.skp`, Ausgangskomponente) |
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (Erweiterung `.rbz`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (Skript erzeugt `Hochschrank.skp`) |
+| [`Komponenten/hochschrank_geraete/`](Komponenten/hochschrank_geraete/) | Hochschrank für zwei Einbaugeräte, z. B. Backofen + Mikrowelle (Skript erzeugt `Hochschrank_Geraete.skp`) |
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (Skript erzeugt `Oberschrank.skp`) |
 | [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`.rbz`): Frontfarbe und Griffe ändern; TCN-Export für TpaCAD folgt |
 
