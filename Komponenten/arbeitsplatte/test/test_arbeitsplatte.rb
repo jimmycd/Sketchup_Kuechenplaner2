@@ -166,8 +166,8 @@ check(M.instanzen(model) == [i1], 'mit Auswahl nur die ausgewählten')
 model.selection.clear
 
 # Gesamtlauf aus dem Menü
-erg = Arbeitsplatte.erzeugen(model)
-check(erg[:zeilen].size >= 2 && erg[:ecken].size == 1, "erzeugen: #{erg[:zeilen].size} Zeilen, #{erg[:ecken].size} Ecken")
+inst = Arbeitsplatte.erzeugen(model, optionen: {})
+check(inst && inst.name == 'APL1' && inst.definition.entities.instances.size >= 3, "erzeugen: #{inst && inst.definition.entities.instances.size} Platten")
 
 # Schnittstelle zu den echten Generatoren: Kategorie und Typ an der Definition,
 # L-Form mit l_gebaut

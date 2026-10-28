@@ -243,3 +243,25 @@ module Sketchup
     end
   end
 end
+
+# --- für die Arbeitsplatte: Flächen beliebiger Form merken, Instanzen löschen ---
+module Sketchup
+  class Face
+    attr_reader :pts
+  end
+
+  class Entities
+    def add_face(*pts)
+      f = Face.new(self, pts)
+      @faces << f
+      f
+    end
+
+    def erase_entities(*l)
+      l.flatten.each do |e|
+        @list.delete(e)
+        e.definition.instances.delete(e) if e.respond_to?(:definition)
+      end
+    end
+  end
+end

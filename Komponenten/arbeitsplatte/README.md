@@ -4,18 +4,37 @@ Werkzeug, das nach dem Stellen der Unterschränke die Arbeitsplatte darüber leg
 auch für L- und U-Küchen mit Eckverbindung und Verbindungsfräsung.
 Plan: [docs/plaene/arbeitsplatte.md](../../docs/plaene/arbeitsplatte.md).
 
-**Stand: Schritt 2 von 5.** Erkannt werden Schrankzeilen, Ecken und Begrenzungen,
-und die Platten werden berechnet (Umriss, Stöße, Format). Gezeichnet werden sie ab Schritt 3.
+**Stand: Schritt 3 von 5.** Die Platten werden mit Eckverbindung gezeichnet,
+OpenCutList-fähig (Material, Anleimer, Tags). Noch offen: Ausschnitte für Spüle und
+Kochfeld (Schritt 4), Verbindungsfräsung und TCN-Export (Schritt 5); bis dahin übergeht
+der TCN-Export die Arbeitsplatten.
 
 ## Benutzung
 
 1. `arbeitsplatte.rbz` installieren (oder `Kuechenplaner_alle.rbz`).
 2. Unterschränke markieren, oder nichts markieren: dann gelten alle Schränke im Modell
    (oberste Ebene, nicht in Gruppen).
-3. **Erweiterungen › Küchenplaner › Arbeitsplatte erzeugen…** zeigt, was erkannt wurde:
-   Zeilen mit Länge und Tiefe, die Enden (frei, Hochschrank, Ecke), Lücken, Ecken mit
-   Eckschrank und Passleiste, die Küchenform (gerade, L, U), die Platten mit Maß und
-   Format, die Stöße und Warnungen.
+3. **Erweiterungen › Küchenplaner › Arbeitsplatte erzeugen…**: im Dialog Plattenart,
+   Stärke, Überstände, Wandabstand, Fuge zum Hochschrank, Format, Gehrungstiefe und Radius
+   einstellen, je Ecke Stoßart und durchlaufende Platte. Danach liegt die Komponente
+   `APL1` (bzw. `APL2` …) über den Schränken, und eine Meldung zeigt Zeilen, Ecken,
+   Platten, Stöße und Warnungen.
+4. Schränke verschoben? **Arbeitsplatte neu berechnen** baut `APL1` (markiert, sonst alle
+   Arbeitsplatten) mit denselben Einstellungen über denselben Schränken neu auf.
+   Handänderungen an den Platten gehen dabei verloren.
+
+## Was gezeichnet wird
+
+- Komponente `Arbeitsplatte APL1` mit `JT_Schrank` (schrank APL1, typ und kategorie
+  Arbeitsplatte), darin je Platte eine Komponente mit Tag `APL1_Platte1`, `APL1_Platte2` …
+  und `JT_Schrank` (teil Platte1 …, rolle Arbeitsplatte). Gezeichnet im Endmaß.
+- Material: Schichtstoff „Arbeitsplatte Schichtstoff“ (OCL Plattenwerkstoff, 38 mm) oder
+  „Arbeitsplatte Massivholz“ (OCL Massivholz, 40 mm).
+- Anleimer (nur bei Schichtstoff): Vorderkante „Anleimer Arbeitsplatte ab Werk“ (wird in
+  OCL nicht abgezogen, die Platte kommt bekantet), freie Enden „Anleimer Arbeitsplatte“
+  (2 mm, wird in OCL abgezogen). Wand-, Stoß- und Hochschrankkanten ohne.
+- Im Wörterbuch `JT_Arbeitsplatte`: an der Definition Einstellungen, Schränke und Stöße
+  (mit Pfad, für den späteren TCN-Export), an jeder Platte Umriss, Kantenarten und Format.
 
 ## Wie erkannt wird
 
@@ -53,8 +72,11 @@ und die Platten werden berechnet (Umriss, Stöße, Format). Gezeichnet werden si
 - `src/arbeitsplatte/erkennung.rb`: Zeilen und Ecken aus Grundriss-Rechtecken, ohne SketchUp
 - `src/arbeitsplatte/layout.rb`: Platten, Stöße und Formate aus den Zeilen, ohne SketchUp
 - `src/arbeitsplatte/modell.rb`: Schränke aus dem Modell lesen
-- `src/arbeitsplatte/main.rb`: Menü und Meldung
+- `src/arbeitsplatte/dialog.rb`: Einstellungen abfragen
+- `src/arbeitsplatte/ausgabe.rb`: Platten zeichnen
+- `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
+- `test/test_ausgabe.rb`: Zeichnen, OCL, Tags, Anleimer, Dialog, Neuberechnen, TCN-Export übergeht die Platten
 - `test/test_layout.rb`: Layout: Überstände, Formate, Teilung, Stoßarten, Bogen, Flächen passen lückenlos
 
 Nach Änderungen in `src/`: `./build_rbz.sh` im Hauptordner, dann `./run_tests.sh`.

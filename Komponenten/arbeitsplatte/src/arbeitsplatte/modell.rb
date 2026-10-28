@@ -54,8 +54,9 @@ module Arbeitsplatte
       %w[Unterschrank Hochschrank].include?(d.get_attribute(JT_DICT, 'kategorie'))
     end
 
-    def self.instanzen(model)
-      quelle = model.selection.to_a.empty? ? model.entities.to_a : model.selection.to_a
+    # alle: true übergeht die Auswahl (Neuberechnen einer markierten Arbeitsplatte)
+    def self.instanzen(model, alle: false)
+      quelle = alle || model.selection.to_a.empty? ? model.entities.to_a : model.selection.to_a
       quelle.grep(Sketchup::ComponentInstance).select { |i| schrank?(i) }
     end
 
