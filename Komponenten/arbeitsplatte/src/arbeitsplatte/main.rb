@@ -3,10 +3,12 @@
 # Arbeitsplatte – Erweiterung (.rbz): Erweiterungen > Küchenplaner > Arbeitsplatte erzeugen
 #
 # Legt nach dem Stellen der Unterschränke die Arbeitsplatte darüber (Plan:
-# docs/plaene/arbeitsplatte.md). Stand Schritt 1: Zeilen, Ecken (L/U) und
-# Begrenzungen werden erkannt und angezeigt; die Platten folgen in Schritt 2 und 3.
+# docs/plaene/arbeitsplatte.md). Stand Schritt 2: Zeilen, Ecken (L/U) und
+# Begrenzungen werden erkannt und die Platten berechnet und angezeigt; gezeichnet
+# werden sie ab Schritt 3.
 #
 #   erkennung.rb  Zeilen und Ecken aus Grundriss-Rechtecken (ohne SketchUp, getestet)
+#   layout.rb     Platten zuschneiden: Überstände, Ecken, Stoßarten, Teilung, Format
 #   modell.rb     Schränke aus dem Modell lesen (JT_Schrank)
 
 require 'sketchup.rb'
@@ -28,13 +30,15 @@ module Arbeitsplatte
     'WangeL' => 'Wange', 'WangeR' => 'Wange'
   }.freeze
 
-  %w[erkennung modell].each { |f| load File.join(PATH, "#{f}.rb") }
+  %w[erkennung layout modell].each { |f| load File.join(PATH, "#{f}.rb") }
 
   def self.erzeugen(model = Sketchup.active_model)
     erg = Modell.erkenne(model)
+    lay = Layout.berechne(erg)
     UI.messagebox("Arbeitsplatte – erkannte Schrankzeilen\n\n#{Erkennung.zusammenfassung(erg)}\n\n" \
-                  'Die Platten selbst erzeugt der nächste Ausbauschritt.')
-    erg
+                  "Platten\n\n#{Layout.zusammenfassung(lay)}\n\n" \
+                  'Gezeichnet werden die Platten ab dem nächsten Ausbauschritt.')
+    erg.merge(layout: lay)
   rescue StandardError => e
     UI.messagebox("Fehler beim Erkennen der Schrankzeilen: #{e.message}")
     raise
