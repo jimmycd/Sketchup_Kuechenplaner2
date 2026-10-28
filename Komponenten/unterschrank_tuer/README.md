@@ -4,7 +4,7 @@
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_tuer.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. *Erweiterungen → Küchenplaner → Unterschrank mit Tür…* fügt die `Unterschrank.skp` ins Modell ein und richtet sie gleich ein (Kurzhilfe, Tags, Einlegeboden-Formeln, siehe unten). Jeder weitere Unterschrank bekommt eine eigene Definition und ein eigenes Kürzel.
+2. *Erweiterungen → Küchenplaner → Unterschränke → Unterschrank mit Tür…* fügt die `Unterschrank.skp` ins Modell ein und richtet sie gleich ein (Kurzhilfe, Tags, Einlegeboden-Formeln, siehe unten). Jeder weitere Unterschrank bekommt eine eigene Definition und ein eigenes Kürzel.
 
 ## Komponentenoptionen
 | Option | Standard |
