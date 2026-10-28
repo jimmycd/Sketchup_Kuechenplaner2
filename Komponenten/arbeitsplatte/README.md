@@ -4,10 +4,10 @@ Werkzeug, das nach dem Stellen der Unterschränke die Arbeitsplatte darüber leg
 auch für L- und U-Küchen mit Eckverbindung und Verbindungsfräsung.
 Plan: [docs/plaene/arbeitsplatte.md](../../docs/plaene/arbeitsplatte.md).
 
-**Stand: Schritt 3 von 5.** Die Platten werden mit Eckverbindung gezeichnet,
-OpenCutList-fähig (Material, Anleimer, Tags). Noch offen: Ausschnitte für Spüle und
-Kochfeld (Schritt 4), Verbindungsfräsung und TCN-Export (Schritt 5); bis dahin übergeht
-der TCN-Export die Arbeitsplatten.
+**Stand: Schritt 4 von 5.** Die Platten werden mit Eckverbindung und Ausschnitten
+für Spüle und Kochfeld gezeichnet, OpenCutList-fähig (Material, Anleimer, Tags). Noch
+offen: Verbindungsfräsung und TCN-Export (Schritt 5); bis dahin übergeht der TCN-Export
+die Arbeitsplatten.
 
 ## Benutzung
 
@@ -67,9 +67,24 @@ der TCN-Export die Arbeitsplatten.
   inneren Eckpunkt der Vorderkanten 45° nach innen und im Bogen R in die Gerade zur Wand.
 - Jede Plattenkante hat eine Art: vorne, Wand, frei, Hochschrank, Stoß (für Anleimer und CNC).
 
+## Ausschnitte
+
+Mittig über dem Schrank, der sie vorgibt, als Loch in der Platte (Richtwerte, im Dialog
+je Schrank änderbar oder abschaltbar; ein Kochfeld lässt sich über jedem Schrank ergänzen):
+
+| Schrank | Ausschnitt | von der Vorderkante | Radius |
+|---|---|---|---|
+| Spülenschrank (USP) | Schrankbreite − 100 (höchstens 860) × 490 | 60 mm | 10 mm |
+| Herdschrank (USK) 600 / 800 / 900 | 560 / 750 / 880 × 490, sonst Breite − 50 | 50 mm | 0 |
+
+Warnungen: Ausschnitt näher als 150 mm an einem Stoß, näher als 50 mm an der Vorderkante,
+breiter als der Schrank, ragt aus der Platte; Kochfeld näher als 300 mm am Hochschrank.
+Längsstöße halten 150 mm Abstand zu Ausschnitten.
+
 ## Dateien
 
 - `src/arbeitsplatte/erkennung.rb`: Zeilen und Ecken aus Grundriss-Rechtecken, ohne SketchUp
+- `src/arbeitsplatte/ausschnitte.rb`: Spüle und Kochfeld, Prüfungen, ohne SketchUp
 - `src/arbeitsplatte/layout.rb`: Platten, Stöße und Formate aus den Zeilen, ohne SketchUp
 - `src/arbeitsplatte/modell.rb`: Schränke aus dem Modell lesen
 - `src/arbeitsplatte/dialog.rb`: Einstellungen abfragen
@@ -77,6 +92,7 @@ der TCN-Export die Arbeitsplatten.
 - `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
 - `test/test_ausgabe.rb`: Zeichnen, OCL, Tags, Anleimer, Dialog, Neuberechnen, TCN-Export übergeht die Platten
+- `test/test_ausschnitte.rb`: Ausschnitte, Prüfungen, Längsstoß weicht aus, Dialog, Löcher
 - `test/test_layout.rb`: Layout: Überstände, Formate, Teilung, Stoßarten, Bogen, Flächen passen lückenlos
 
 Nach Änderungen in `src/`: `./build_rbz.sh` im Hauptordner, dann `./run_tests.sh`.

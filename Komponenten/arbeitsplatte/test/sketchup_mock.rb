@@ -265,3 +265,9 @@ module Sketchup
     end
   end
 end
+
+module Sketchup
+  class Face
+    def erase! = @ents.faces.delete(self)
+  end
+end

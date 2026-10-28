@@ -88,6 +88,12 @@ module Arbeitsplatte
         e[:stoss] = e[:stoss].to_sym if e[:stoss]
         [k.to_i, e]
       end.to_h
+      o[:ausschnitte] = (o[:ausschnitte] || {}).map do |kz, v|
+        next [kz, false] unless v
+        e = v.map { |kk, vv| [kk.to_sym, vv] }.to_h
+        e[:art] = e[:art].to_sym if e[:art]
+        [kz, e]
+      end.to_h
       o
     end
 
@@ -98,7 +104,8 @@ module Arbeitsplatte
       name = "#{kz}_#{teil}"
       x0 = p[:punkte].map(&:first).min
       y0 = p[:punkte].map(&:last).min
-      lokal = p[:punkte].map { |x, y| [inch(x - x0), inch(y - y0)] }
+      lok = ->(pts) { pts.map { |x, y| [inch(x - x0), inch(y - y0)] } }
+      lokal = lok.(p[:punkte])
       h = inch(p[:staerke])
       d = model.definitions.add(name)
       e = d.entities
@@ -106,11 +113,16 @@ module Arbeitsplatte
       unten.reverse! if unten.normal.z > 0
       oben = e.add_face(*lokal.map { |x, y| [x, y, h] })
       oben.reverse! if oben.normal.z < 0
-      lokal.each_with_index do |(xa, ya), i|
-        xb, yb = lokal[(i + 1) % lokal.size]
-        f = e.add_face([xa, ya, 0.0], [xb, yb, 0.0], [xb, yb, h], [xa, ya, h])
+      seiten(e, lokal, h) do |f, i|
         km = kanten_mat[p[:kanten][i]]
         f.material = km if km
+      end
+      # Ausschnitte: Fläche in Ober- und Unterseite einzeichnen und löschen = Loch,
+      # dazu die Schnittkanten (ohne Anleimer)
+      (p[:ausschnitte] || []).each do |a|
+        loch = lok.(a[:punkte])
+        [0.0, h].each { |zh| e.add_face(*loch.map { |x, y| [x, y, zh] }).erase! }
+        seiten(e, loch, h)
       end
       inst = ents.add_instance(d, Geom::Transformation.translation(Geom::Vector3d.new(inch(x0), inch(y0), inch(p[:z]))))
       inst.name = name
@@ -119,9 +131,19 @@ module Arbeitsplatte
       { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE, 'bereich' => '',
         'teil' => teil, 'rolle' => ROLLEN.fetch('Platte') }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
       { 'nr' => p[:nr], 'zeile' => p[:zeile], 'punkte' => json(p[:punkte]), 'kanten' => json(p[:kanten]),
-        'format' => json(p[:format]), 'laenge' => p[:laenge], 'breite' => p[:breite] }
+        'format' => json(p[:format]), 'laenge' => p[:laenge], 'breite' => p[:breite],
+        'ausschnitte' => json(p[:ausschnitte] || []) }
         .each { |k, v| inst.set_attribute(AP_DICT, k, v) }
       inst
+    end
+
+    # je Umrisskante eine senkrechte Fläche
+    def self.seiten(e, pts, h)
+      pts.each_with_index do |(xa, ya), i|
+        xb, yb = pts[(i + 1) % pts.size]
+        f = e.add_face([xa, ya, 0.0], [xb, yb, 0.0], [xb, yb, h], [xa, ya, h])
+        yield f, i if block_given?
+      end
     end
 
     # Ganze Arbeitsplatte bauen; liefert die Instanz "APL<n>"

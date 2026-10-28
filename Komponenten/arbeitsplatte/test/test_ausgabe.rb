@@ -49,7 +49,7 @@ schrank(model, 'UST1', 600, gedreht90(800, -1250))
 # --- Dialog: Vorgaben ergeben die Standardoptionen ---
 erg = A::Modell.erkenne(model)
 beschr, vorgabe, listen = A::Dialog.felder(erg)
-check(beschr.size == 12 && beschr[10] == 'Ecke 1: Stoß' && beschr[11] == 'Ecke 1: durchlaufende Platte', "Felder: #{beschr}")
+check(beschr.size == 13 && beschr[10] == 'Ecke 1: Stoß' && beschr[11] == 'Ecke 1: durchlaufende Platte', "Felder: #{beschr}")
 check(vorgabe[0] == 'Schichtstoff (Anleimer ab Werk)' && vorgabe[6] == A::Dialog::AUTO && vorgabe[10] == 'Gehrungsansatz', "Vorgaben: #{vorgabe}")
 check(vorgabe[11].start_with?('Zeile 1 ') && listen[11].split('|').size == 2, "durchlaufend: #{vorgabe[11]} / #{listen[11]}")
 o = A::Dialog.optionen(erg, vorgabe)
