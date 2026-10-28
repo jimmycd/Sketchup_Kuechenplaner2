@@ -19,13 +19,13 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Apothekerschrank | [`Komponenten/apothekerschrank/`](../Komponenten/apothekerschrank/) | AP | [Plan](plaene/apothekerschrank.md) |
 | Eck-Unterschrank (Blindeck mit 1 oder 2 Türen oder LeMans II, L-Eck mit Falttür) | [`Komponenten/eckschrank/`](../Komponenten/eckschrank/) | UES | [Plan](plaene/eckschrank.md) |
 | Oberschrank (1 oder 2 Türen) | [`Komponenten/oberschrank/`](../Komponenten/oberschrank/) | OS | im [TCN-Plan](plaene/tcn-export.md#oberschränke-aus-deinen-zwei-komponenten) |
+| Geräte (Spüler, Kochfeld, Spüle, Backofen …) für Planung und Rendering | [`Komponenten/geraete/`](../Komponenten/geraete/) | – | [Plan](plaene/geraete-generator.md) |
 | TCN-Export, Frontfarbe und Griffe | [`sketchup-tcn-export-plugin/`](../sketchup-tcn-export-plugin/) | – | [Plan](plaene/tcn-export.md) |
 
 ## Noch nicht gebaut
 
 | Thema | Stand | Plan |
 |---|---|---|
-| Geräte-Generator für Kundenrenderings | wartet auf Antworten | [Plan](plaene/geraete-generator.md) |
 | Arbeitsplatte über Unterschränken (L/U-Ecken, Verbindungsfräsung) | wartet auf Antworten | [Plan](plaene/arbeitsplatte.md) |
 | Weitere Spezialschränke | Vorschlagsliste, noch nichts ausgewählt | [Vorschläge](vorschlaege-weitere-spezialschraenke.md) |
 

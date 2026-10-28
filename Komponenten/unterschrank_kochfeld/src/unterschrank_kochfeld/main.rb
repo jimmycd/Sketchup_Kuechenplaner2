@@ -19,9 +19,9 @@ require 'sketchup.rb'
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
 # Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
-# 'Hochschränke'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# 'Hochschränke'), Geräte in 'Geräte', Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
