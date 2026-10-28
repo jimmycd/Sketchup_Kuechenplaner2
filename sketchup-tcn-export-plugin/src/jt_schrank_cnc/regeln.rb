@@ -32,8 +32,9 @@ module JTools
         'Boden'         => { rand: 30, max_abstand: 160, fertig: true },
         'Deckel'        => { rand: 30, max_abstand: 160, fertig: true },
         'Zwischenboden' => { rand: 30, max_abstand: 160, fertig: true },
-        # Strebe.tcn: 20 … x-20, Raster 60; verteilt, damit es auch bei 98 mm (Anleimer) zwei Dübel bleiben
-        'Strebe'        => { rand: 20, raster: 60, verteilt: true, schraube: true }
+        # Strebe (Jürgen 2026-10-28): genau 2 Dübel, 20 mm von der fertigen Kante (Strebe.tcn: 20 … x-20),
+        # ST = Abstand der beiden, 0/0
+        'Strebe'        => { rand: 20, anzahl: 2, fertig: true, schraube: true }
       }.freeze
       DUEBEL = { d: 8, tiefe_kante: 22, tiefe_flaeche: 14 }.freeze # Seite 14 tief (Seiten_SK, Jürgen: das tiefere)
       SCHRAUBE = { d: 3, tiefe: 21 }.freeze # Seite.tcn: Ø3, 21 tief in der Mitte der Strebe
@@ -640,7 +641,11 @@ module JTools
         end
         p0 = pt.(lo + regel[:rand])
         p1 = pt.(hi - regel[:rand])
-        raster, verteilt = regel[:max_abstand] ? [schritt(hi - lo - 2 * regel[:rand], regel[:max_abstand]), false] : regel.values_at(:raster, :verteilt)
+        l = hi - lo - 2 * regel[:rand]
+        raster, verteilt = if regel[:anzahl] == 2 then [schritt(l, l), false]
+                           elsif regel[:max_abstand] then [schritt(l, regel[:max_abstand]), false]
+                           else regel.values_at(:raster, :verteilt)
+                           end
         titel = "Duebel #{b.teil.jt('teil')}"
         a.ops << Op.new(:reihe, sa, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_kante], raster, verteilt, titel)
         b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], tiefe_b, raster, verteilt,

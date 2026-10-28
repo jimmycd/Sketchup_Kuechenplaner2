@@ -80,17 +80,18 @@ end
 check(bearbeitungen(boden.text, 1).sort == fuss.sort, "Boden SIDE#1: squad und Sockelfüße wie Boden.tcn: #{bearbeitungen(boden.text, 1)}")
 check(boden.lage.flaeche1 == :zmin, 'Boden: Fläche 1 ist die Unterseite (Sockelfüße)')
 
-# --- Strebe = Strebe.tcn, aber 1/1 verteilt (bleibt bei 98 mm Fräsmaß zwei Dübel) ---
+# --- Strebe = Strebe.tcn: genau 2 Dübel 20 … x-20, ST 60, 0/0 (Jürgen 2026-10-28) ---
 s60 = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 56.0 })
 dateien2, = S::Export.erzeugen(model, auswahl: [s60])
 strebe = dateien2.find { |x| x.name == 'USS2_StrebeHinten' }
 check(strebe && kopf(strebe.text) == kopf(beispiel('Strebe.tcn')), "Kopf Strebe: #{strebe && kopf(strebe.text)}")
 [4, 6].each do |s|
-  soll = bearbeitungen(beispiel('Strebe.tcn'), s).map { |z| z.sub('#8508=0 #8509=0', '#8508=1 #8509=1') }
+  soll = bearbeitungen(beispiel('Strebe.tcn'), s)
   check(bearbeitungen(strebe.text, s) == soll, "Strebe SIDE##{s}: #{bearbeitungen(strebe.text, s)}")
 end
 vorn = dateien2.find { |x| x.name == 'USS2_StrebeVorn' }
-check((vorn.lage.dh - 98).abs < 1e-6 && bearbeitungen(vorn.text, 4).first.include?('#8510=20 #8511=x-20'), 'Strebe vorn: Fräsmaß 98, 20 … x-20')
+check((vorn.lage.dh - 98).abs < 1e-6 && bearbeitungen(vorn.text, 4).first.include?('#8508=0 #8509=0 #8510=18 #8511=x-20 #8512=60 '),
+      "Strebe vorn: Fräsmaß 98, 2 Dübel 20 ab fertiger Kante (18 … x-20, ST 60): #{bearbeitungen(vorn.text, 4)}")
 check(dateien2.all? { |x| x.ws.teil.schrank.equal?(s60) }, 'Auswahl: nur Teile des gewählten Schranks')
 
 # --- Seite = Seite.tcn (Dübel zu Boden und Streben, Schrauben in die Streben) ---
@@ -102,11 +103,11 @@ boden_reihe = z.find { |x| x.include?('#8518=9.5 ') }
 check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8508=0 #8509=0 #8510=28 #8511=y-30 #8512=125 #8513=-14') &&
       boden_reihe.include?('#8522=8 '), "Seite: Dübel Boden bei 9.5 (ohne Anleimer unten), 14 tief (Seiten_SK): #{boden_reihe}")
 vorlage = bearbeitungen(beispiel('Seite.tcn'), 1)
-hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8508=0 #8509=0', '#8508=1 #8509=1').sub('#8513=-12', '#8513=-14') }
+hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8513=-12', '#8513=-14') }
 hinten = hinten.map { |x| x.sub('#8510=y-20 #8511=y-80', '#8510=y-80 #8511=y-20') }
 check(hinten.size == 2 && (hinten - z).empty?, "Seite: Strebe hinten wie Seite.tcn (x-9.5 statt x-7.5, kein Anleimer oben): #{z}")
-check(z.any? { |x| x.include?('#8510=20 #8511=78 #8512=60') } && z.any? { |x| x.include?('#1=x-9.5 #2=49 #3=-21 #1002=3') },
-      'Seite: Strebe vorn 20 … 78 (Strebe mit Anleimer), Schraube in der Mitte')
+check(z.any? { |x| x.include?('#8508=0 #8509=0 #8510=18 #8511=78 #8512=60') } && z.any? { |x| x.include?('#1=x-9.5 #2=48 #3=-21 #1002=3') },
+      'Seite: Strebe vorn 2 Dübel 18 … 78 (20 ab fertiger Kante), Schraube in der Mitte der fertigen Strebe')
 check(d['USS1_SeiteL'].text != seite.text && bearbeitungen(d['USS1_SeiteL'].text, 1).size == z.size, 'Seite links gespiegelt')
 check(kopf(seite.text)[0].end_with?('s54') && kopf(boden.text)[0].end_with?('s13'), 'Feld s je Rolle wie in den Vorlagen')
 
