@@ -54,6 +54,7 @@ Was geändert wird:
 * Fläche 1 (oben auf der Maschine) ist die große Fläche mit den meisten Bohrungen, bei Seiten also die Innenseite. Die linke Seite ist die gespiegelte rechte.
 * Jede TCN beginnt mit `squad` (Formatieren). Das Feld `s` im Kopf kommt aus den Vorlagen (Boden 13, Deckel 11, Strebe 10, Seite 54, sonst 1).
 * Gleiche Teile (gleicher Tag, gleiche TCN, z. B. zweimal derselbe Schrank) werden einmal geschrieben und gezählt. Weicht ein gleichnamiges Teil ab, heißt die Datei `<Tag>_2.tcn`.
+* **Arbeitsplatten** (`Komponenten/arbeitsplatte`): je Stoßende eine TCN mit Stoßkontur, Hundeknochen (Ø 35 + Steg, 20 tief) und Ausschnitten, Dekor unten, Stoß am Anschlag links; Einzelheiten in `Komponenten/arbeitsplatte/README.md`. Kein `squad`, abgelängt wird bauseits.
 * Der Test vergleicht Boden und Strebe zeilengleich mit `beispiele/Boden.tcn` und `Strebe.tcn` und die Seite mit `Seite.tcn`. Abweichungen gewollt: Boden-Dübel 0/0 mit errechnetem ST statt Raster 150 (1/1) und vorn x-28 (30 ab fertiger Kante), Strebe vorn 18 … x-20 (20 ab fertiger Kante), Seite ohne Anleimer oben/unten hat die Reihen bei 9.5 statt 7.5, und die Ø3-Reihe Raster 130 aus `Seite.tcn` fehlt noch.
 
 ## Aufbau
@@ -64,6 +65,7 @@ Was geändert wird:
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
+* `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form)

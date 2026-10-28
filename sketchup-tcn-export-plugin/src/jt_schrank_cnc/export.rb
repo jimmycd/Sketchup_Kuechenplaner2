@@ -2,6 +2,7 @@
 # Schrank-CNC – TCN-Export: je sichtbarem Teil eine TCN-Datei (Dateiname = Tag),
 # dazu Teileliste.csv. Gleiche Teile (gleicher Tag, gleiche TCN) werden einmal
 # geschrieben und gezählt; weicht ein gleichnamiges Teil ab, bekommt es _2, _3 …
+# Arbeitsplatten: je Stoßende eine TCN mit der Verbindungsfräsung (arbeitsplatte.rb).
 
 module JTools
   module SchrankCnc
@@ -9,8 +10,8 @@ module JTools
       Datei = Struct.new(:name, :text, :anzahl, :ws, :lage)
 
       def self.werkstuecke(model, auswahl: nil)
-        # Arbeitsplatten (Komponenten/arbeitsplatte) bekommen einen eigenen Export
-        # mit Verbindungsfräsung, siehe docs/plaene/arbeitsplatte.md; bis dahin übergangen
+        # Arbeitsplatten (Komponenten/arbeitsplatte) haben einen eigenen Export
+        # mit Verbindungsfräsung, siehe arbeitsplatte.rb
         Schraenke.teile(model).select do |t|
           t.sichtbar? && t.rolle != 'Arbeitsplatte' && (auswahl.nil? || t.pfad.any? { |i| auswahl.include?(i) })
         end.map { |t| Geometrie.werkstueck(t) }
@@ -40,7 +41,9 @@ module JTools
             dateien << Datei.new(name, text, 1, w, lage)
           end
         end
-        [dateien, meldungen.uniq]
+        ap, ap_meldungen = Arbeitsplatten.dateien(model, auswahl: auswahl)
+        ap.each { |name, text, teil, lage| dateien << Datei.new(name, text, 1, Arbeitsplatten::Ws.new(teil), lage) }
+        [dateien, (meldungen + ap_meldungen).uniq]
       end
 
       def self.teileliste(dateien)

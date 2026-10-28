@@ -141,14 +141,12 @@ module JTools
         end
       end
 
-      def build(lage, meldungen = [])
-        w = lage.ws
-        s = seiten(lage, meldungen)
-        aktiv = ([1] + s.keys).uniq.sort
+      # Kopf bis einschließlich SIDE#0, gleich für alle Teile
+      def kopf(dl, dh, ds, feld, aktiv)
         out = []
-        out << "TPA\\ALBATROS\\EDICAD\\02.00:1224:r0w0h0s#{FELD.fetch(w.rolle, 1)}"
+        out << "TPA\\ALBATROS\\EDICAD\\02.00:1224:r0w0h0s#{feld}"
         out << "::SIDE=#{aktiv.map { |x| "#{x};" }.join}"
-        out << "::UNm DL=#{n(lage.dl)} DH=#{n(lage.dh)} DS=#{n(lage.ds)}"
+        out << "::UNm DL=#{n(dl)} DH=#{n(dh)} DS=#{n(ds)}"
         out << "'tcn version=2.6.14"
         out << "'code=ansi"
         out << 'EXE{' << '#0=0' << '#1=0' << '#2=0' << '#3=0' << '#4=0' << '}EXE'
@@ -162,6 +160,13 @@ module JTools
                'OPT4=0 OPT6=0 OPT7=0 LSTCOD=0%1%2%3 LTOOLFR=0 LTOOLPN=0 OPTF1=0 OOO=0.5'
         out << '}OPTI' << 'LINK{' << '}LINK'
         out << 'SIDE#0{' << '$=F #0' << '}SIDE'
+      end
+
+      def build(lage, meldungen = [])
+        w = lage.ws
+        s = seiten(lage, meldungen)
+        aktiv = ([1] + s.keys).uniq.sort
+        out = kopf(lage.dl, lage.dh, lage.ds, FELD.fetch(w.rolle, 1), aktiv)
         ws = 1
         out << 'SIDE#1{' << '$=F #1' << "W#1510{ ::WT2 WS=#{ws}  #{SQUAD} }W"
         z = zeilen(lage, 1, s[1], ws)
