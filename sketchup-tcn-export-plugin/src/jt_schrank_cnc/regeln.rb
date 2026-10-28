@@ -24,13 +24,14 @@ module JTools
       Op = Struct.new(:art, :seite, :p0, :p1, :d, :tiefe, :raster, :verteilt, :titel)
 
       # Dübelreihen je Rolle von A (Abstand vom Rand, Raster; verteilt = #8508/#8509 1/1).
-      # Böden und Deckel (Jürgen 2026-10-28): erster und letzter Dübel 30 mm vom Rand (Fräsmaß wie
-      # in den Vorlagen), Abstand höchstens 160 mm; der Schritt ST (#8512) wird errechnet,
-      # "gerade Anzahl" aus (#8508/#8509 0/0)
+      # Böden und Deckel (Jürgen 2026-10-28): erster und letzter Dübel 30 mm von der fertigen Kante
+      # (mit Anleimer; im Fräsmaß der TCN also 28 an einer Kante mit 2-mm-Anleimer), Abstand höchstens
+      # 160 mm; der Schritt ST (#8512) wird errechnet, "gerade Anzahl" aus (#8508/#8509 0/0).
+      # Lagen kommen aus Weltkoordinaten, Boden und Seite passen daher nach dem Anleimen zusammen.
       VERBINDUNGEN = {
-        'Boden'         => { rand: 30, max_abstand: 160 },
-        'Deckel'        => { rand: 30, max_abstand: 160 },
-        'Zwischenboden' => { rand: 30, max_abstand: 160 },
+        'Boden'         => { rand: 30, max_abstand: 160, fertig: true },
+        'Deckel'        => { rand: 30, max_abstand: 160, fertig: true },
+        'Zwischenboden' => { rand: 30, max_abstand: 160, fertig: true },
         # Strebe.tcn: 20 … x-20, Raster 60; verteilt, damit es auch bei 98 mm (Anleimer) zwei Dübel bleiben
         'Strebe'        => { rand: 20, raster: 60, verteilt: true, schraube: true }
       }.freeze
@@ -623,8 +624,9 @@ module JTools
 
         ca = a.dicke_achse
         la = (andere - [ca]).first
-        lo = [a.lo_f(la), b.lo_f(la)].max
-        hi = [a.hi_f(la), b.hi_f(la)].min
+        # Böden/Deckel: Rand ab der fertigen Kante (mit Anleimer), sonst ab dem Fräsmaß wie in den Vorlagen
+        lo = regel[:fertig] ? [a.lo[la], b.lo[la]].max : [a.lo_f(la), b.lo_f(la)].max
+        hi = regel[:fertig] ? [a.hi[la], b.hi[la]].min : [a.hi_f(la), b.hi_f(la)].min
         if hi - lo < 2 * regel[:rand]
           meldungen << "#{a.name} an #{b.name}: Stoß nur #{(hi - lo).round(1)} mm lang, keine Dübel"
           return

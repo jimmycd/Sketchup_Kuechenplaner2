@@ -45,10 +45,12 @@ d = dateien.to_h { |x| [x.name, x] }
 boden = d['USS1_Boden']
 check(boden, 'Boden exportiert')
 check(kopf(boden.text) == kopf(beispiel('Boden.tcn')), "Kopf Boden: #{kopf(boden.text)}")
-# Dübel wie Boden.tcn, aber "gerade Anzahl" aus und Schritt errechnet (Jürgen 2026-10-28):
-# 30 … y-30 bei 558 mm: n = ceil(498 / 160) + 1 = 5, ST = 498 / 4 = 124.5
+# Dübel wie Boden.tcn, aber "gerade Anzahl" aus, Schritt errechnet und 30 mm ab der fertigen Kante
+# (Jürgen 2026-10-28): Tiefe 560, vorn 2 mm Anleimer -> im Fräsmaß 30 … x-28, L = 500, n = 5, ST = 125
 [4, 6].each do |s|
-  soll = bearbeitungen(beispiel('Boden.tcn'), s).map { |z| z.sub('#8508=1 #8509=1', '#8508=0 #8509=0').sub('#8512=150', '#8512=124.5') }
+  soll = bearbeitungen(beispiel('Boden.tcn'), s).map do |z|
+    z.sub('#8508=1 #8509=1', '#8508=0 #8509=0').sub('#8511=x-30', '#8511=x-28').sub('#8512=150', '#8512=125')
+  end
   check(bearbeitungen(boden.text, s) == soll, "Boden SIDE##{s}: #{bearbeitungen(boden.text, s)}")
 end
 # Schritt: höchstens 160, erster und letzter Dübel genau am Rand (abgerundet auf 4 Stellen)
@@ -59,13 +61,16 @@ end
 end
 
 # Dübelreihe Ø8 an der Stirnseite: 30 … x-30, gerade Anzahl aus, Schritt <= 160 und passend zur Länge
+# (Fräsmaß: 30 an Kanten ohne, 28 an Kanten mit 2-mm-Anleimer)
 def duebel_stirn_ok?(x)
   z = [3, 4, 5, 6].flat_map { |s| bearbeitungen(x.text, s) }.select { |r| r.include?('#8522=8 ') }
   !z.empty? && z.all? do |r|
-    l = (r[/#8510=30 #8511=([xy])-30 /, 1] == 'x' ? x.lage.dl : x.lage.dh) - 60
+    a, var, b = r.match(/#8510=(\d+(?:\.\d+)?) #8511=([xy])-(\d+(?:\.\d+)?) /)&.captures
+    next false unless a
+    l = (var == 'x' ? x.lage.dl : x.lage.dh) - a.to_f - b.to_f
     st = r[/#8512=(\S+)/, 1].to_f
-    r.include?('#8508=0 #8509=0 #8510=30 ') && st <= 160 && st > 0 && ((l / st) - (l / st).round).abs < 1e-4 &&
-      (l / st).round == (l / 160.0 - 1e-9).ceil
+    r.include?('#8508=0 #8509=0 ') && [a, b].all? { |v| %w[28 30].include?(v) } && st <= 160 && st > 0 &&
+      ((l / st) - (l / st).round).abs < 1e-4 && (l / st).round == (l / 160.0 - 1e-9).ceil
   end
 end
 # Sockelfüße wie Boden.tcn; die Vorlage schreibt manche Lagen als Ausdruck und von hinten nach vorn
@@ -94,7 +99,7 @@ z = bearbeitungen(seite.text, 1)
 check(seite.lage.dl == 700 && seite.lage.dh == 558 && seite.lage.ds == 19, "Seite Fräsmaß: #{seite.lage.to_a.drop(1)}")
 check(z.first.include?('squad.tmcr'), 'Seite: squad zuerst')
 boden_reihe = z.find { |x| x.include?('#8518=9.5 ') }
-check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8508=0 #8509=0 #8510=30 #8511=y-30 #8512=124.5 #8513=-14') &&
+check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8508=0 #8509=0 #8510=28 #8511=y-30 #8512=125 #8513=-14') &&
       boden_reihe.include?('#8522=8 '), "Seite: Dübel Boden bei 9.5 (ohne Anleimer unten), 14 tief (Seiten_SK): #{boden_reihe}")
 vorlage = bearbeitungen(beispiel('Seite.tcn'), 1)
 hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8508=0 #8509=0', '#8508=1 #8509=1').sub('#8513=-12', '#8513=-14') }
@@ -215,7 +220,7 @@ z = bearbeitungen(dateien.find { |x| x.name == 'HS1_SeiteL' }.text, 1).select { 
 st = %w[HS1_Boden HS1_ZwischenbodenUnten HS1_ZwischenbodenOben HS1_Deckel].map do |n|
   [3, 4, 5, 6].flat_map { |s| bearbeitungen(dateien.find { |y| y.name == n }.text, s) }.first[/#8512=(\S+)/, 1]
 end
-check(z.size == 4 && z.all? { |r| r.include?('#8508=0 #8509=0 #8510=30 #8511=y-30 ') } &&
+check(z.size == 4 && z.all? { |r| r.include?('#8508=0 #8509=0 #8510=30 #8511=y-28 ') } &&
       z.map { |r| r[/#8512=(\S+)/, 1] }.sort == st.sort, "Hochschrank Seite: Dübel wie Boden/Deckel (#{st}): #{z}")
 
 # --- Apothekerschrank: mehrere Kästen an einer Hochfront ---
