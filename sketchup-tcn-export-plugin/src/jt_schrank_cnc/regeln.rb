@@ -23,11 +23,14 @@ module JTools
       # :tasche (Rechteck mit den Ecken p0 und p1 auf der Oberfläche)
       Op = Struct.new(:art, :seite, :p0, :p1, :d, :tiefe, :raster, :verteilt, :titel)
 
-      # Dübelreihen je Rolle von A (Abstand vom Rand, Raster; verteilt = #8508/#8509 1/1)
+      # Dübelreihen je Rolle von A (Abstand vom Rand, Raster; verteilt = #8508/#8509 1/1).
+      # Böden und Deckel (Jürgen 2026-10-28): erster und letzter Dübel 30 mm vom Rand (Fräsmaß wie
+      # in den Vorlagen), Abstand höchstens 160 mm; der Schritt ST (#8512) wird errechnet,
+      # "gerade Anzahl" aus (#8508/#8509 0/0)
       VERBINDUNGEN = {
-        'Boden'         => { rand: 30, raster: 150, verteilt: true },  # Boden.tcn, Seite.tcn
-        'Deckel'        => { rand: 30, raster: 150, verteilt: true },  # Deckel.tcn
-        'Zwischenboden' => { rand: 30, raster: 150, verteilt: true },
+        'Boden'         => { rand: 30, max_abstand: 160 },
+        'Deckel'        => { rand: 30, max_abstand: 160 },
+        'Zwischenboden' => { rand: 30, max_abstand: 160 },
         # Strebe.tcn: 20 … x-20, Raster 60; verteilt, damit es auch bei 98 mm (Anleimer) zwei Dübel bleiben
         'Strebe'        => { rand: 20, raster: 60, verteilt: true, schraube: true }
       }.freeze
@@ -595,6 +598,15 @@ module JTools
         end
       end
 
+      # Schritt für eine Reihe über die Länge l mit höchstens max Abstand: n = ceil(l / max) + 1 Dübel,
+      # ST = l / (n - 1), auf 4 Stellen abgerundet, damit der letzte Dübel nicht hinter das Ende rutscht
+      def self.schritt(l, max)
+        return l if l < TOL
+        l = l.to_f
+        st = l / ((l / max - 1e-9).ceil)
+        (st * 10_000 + 1e-6).floor / 10_000.0
+      end
+
       # k: Achse, entlang der A an B stößt (Standard: auf die Fläche von B; beim Eckschrank auch
       # an eine Kante von B), tiefe_b: Dübeltiefe in B
       def self.stoss(a, b, regel, meldungen, k = b.dicke_achse, tiefe_b = DUEBEL[:tiefe_flaeche])
@@ -626,9 +638,10 @@ module JTools
         end
         p0 = pt.(lo + regel[:rand])
         p1 = pt.(hi - regel[:rand])
+        raster, verteilt = regel[:max_abstand] ? [schritt(hi - lo - 2 * regel[:rand], regel[:max_abstand]), false] : regel.values_at(:raster, :verteilt)
         titel = "Duebel #{b.teil.jt('teil')}"
-        a.ops << Op.new(:reihe, sa, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_kante], regel[:raster], regel[:verteilt], titel)
-        b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], tiefe_b, regel[:raster], regel[:verteilt],
+        a.ops << Op.new(:reihe, sa, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_kante], raster, verteilt, titel)
+        b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], tiefe_b, raster, verteilt,
                         "Duebel #{a.teil.jt('teil')}")
         return unless regel[:schraube]
         b.ops << Op.new(:bohrung, sb, pt.((lo + hi) / 2.0), nil, SCHRAUBE[:d], SCHRAUBE[:tiefe], nil, nil,

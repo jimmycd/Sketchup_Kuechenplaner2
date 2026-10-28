@@ -45,8 +45,28 @@ d = dateien.to_h { |x| [x.name, x] }
 boden = d['USS1_Boden']
 check(boden, 'Boden exportiert')
 check(kopf(boden.text) == kopf(beispiel('Boden.tcn')), "Kopf Boden: #{kopf(boden.text)}")
+# Dübel wie Boden.tcn, aber "gerade Anzahl" aus und Schritt errechnet (Jürgen 2026-10-28):
+# 30 … y-30 bei 558 mm: n = ceil(498 / 160) + 1 = 5, ST = 498 / 4 = 124.5
 [4, 6].each do |s|
-  check(bearbeitungen(boden.text, s) == bearbeitungen(beispiel('Boden.tcn'), s), "Boden SIDE##{s}: #{bearbeitungen(boden.text, s)}")
+  soll = bearbeitungen(beispiel('Boden.tcn'), s).map { |z| z.sub('#8508=1 #8509=1', '#8508=0 #8509=0').sub('#8512=150', '#8512=124.5') }
+  check(bearbeitungen(boden.text, s) == soll, "Boden SIDE##{s}: #{bearbeitungen(boden.text, s)}")
+end
+# Schritt: höchstens 160, erster und letzter Dübel genau am Rand (abgerundet auf 4 Stellen)
+{ 498 => 124.5, 480 => 160.0, 481 => 120.25, 100 => 100.0, 440 => 146.6666, 160 => 160.0 }.each do |l, st|
+  check(S::Regeln.schritt(l, 160) == st, "Schritt #{l}: #{S::Regeln.schritt(l, 160)} statt #{st}")
+  n = (l / st + 1e-6).floor
+  check(st <= 160 && (l - n * st).between?(0, 0.001), "Schritt #{l}: letzter Dübel am Ende")
+end
+
+# Dübelreihe Ø8 an der Stirnseite: 30 … x-30, gerade Anzahl aus, Schritt <= 160 und passend zur Länge
+def duebel_stirn_ok?(x)
+  z = [3, 4, 5, 6].flat_map { |s| bearbeitungen(x.text, s) }.select { |r| r.include?('#8522=8 ') }
+  !z.empty? && z.all? do |r|
+    l = (r[/#8510=30 #8511=([xy])-30 /, 1] == 'x' ? x.lage.dl : x.lage.dh) - 60
+    st = r[/#8512=(\S+)/, 1].to_f
+    r.include?('#8508=0 #8509=0 #8510=30 ') && st <= 160 && st > 0 && ((l / st) - (l / st).round).abs < 1e-4 &&
+      (l / st).round == (l / 160.0 - 1e-9).ceil
+  end
 end
 # Sockelfüße wie Boden.tcn; die Vorlage schreibt manche Lagen als Ausdruck und von hinten nach vorn
 fuss = bearbeitungen(beispiel('Boden.tcn'), 1).map do |z|
@@ -74,7 +94,7 @@ z = bearbeitungen(seite.text, 1)
 check(seite.lage.dl == 700 && seite.lage.dh == 558 && seite.lage.ds == 19, "Seite Fräsmaß: #{seite.lage.to_a.drop(1)}")
 check(z.first.include?('squad.tmcr'), 'Seite: squad zuerst')
 boden_reihe = z.find { |x| x.include?('#8518=9.5 ') }
-check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8510=30 #8511=y-30 #8512=150 #8513=-14') &&
+check(boden_reihe&.include?('fittingy.tmcr') && boden_reihe.include?('#8508=0 #8509=0 #8510=30 #8511=y-30 #8512=124.5 #8513=-14') &&
       boden_reihe.include?('#8522=8 '), "Seite: Dübel Boden bei 9.5 (ohne Anleimer unten), 14 tief (Seiten_SK): #{boden_reihe}")
 vorlage = bearbeitungen(beispiel('Seite.tcn'), 1)
 hinten = vorlage.select { |x| x.include?('y-80') || x.include?('#2=y-50') }.map { |x| x.gsub('x-7.5', 'x-9.5').sub('#8508=0 #8509=0', '#8508=1 #8509=1').sub('#8513=-12', '#8513=-14') }
@@ -188,7 +208,15 @@ check(bearbeitungen(dateien.find { |x| x.name == 'HS1_U1_KastenRueckwand' }.text
   x = dateien.find { |y| y.name == n }
   check(x && bearbeitungen(x.text, 3).size + bearbeitungen(x.text, 4).size + bearbeitungen(x.text, 5).size +
         bearbeitungen(x.text, 6).size == 2, "#{n}: zwei Dübelreihen an den Stirnseiten")
+  check(duebel_stirn_ok?(x), "#{n}: Dübel 30 mm vom Rand, max. 160 mm Abstand: #{[4, 6].map { |s| bearbeitungen(x.text, s) }}")
 end
+# Seite: dieselben Reihen gegenüber Boden, Zwischenböden und Deckel
+z = bearbeitungen(dateien.find { |x| x.name == 'HS1_SeiteL' }.text, 1).select { |r| r.include?('fittingy.tmcr') && r.include?('#8522=8 ') }
+st = %w[HS1_Boden HS1_ZwischenbodenUnten HS1_ZwischenbodenOben HS1_Deckel].map do |n|
+  [3, 4, 5, 6].flat_map { |s| bearbeitungen(dateien.find { |y| y.name == n }.text, s) }.first[/#8512=(\S+)/, 1]
+end
+check(z.size == 4 && z.all? { |r| r.include?('#8508=0 #8509=0 #8510=30 #8511=y-30 ') } &&
+      z.map { |r| r[/#8512=(\S+)/, 1] }.sort == st.sort, "Hochschrank Seite: Dübel wie Boden/Deckel (#{st}): #{z}")
 
 # --- Apothekerschrank: mehrere Kästen an einer Hochfront ---
 model_ap = Sketchup.active_model = Sketchup::Model.new
