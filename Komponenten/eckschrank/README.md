@@ -54,7 +54,7 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 * Draufsicht: Schenkel A an der hinteren Wand, Schenkel B an der linken Wand, nach vorne herausragend. Die Innenecke liegt an der Korpusvorderkante beider Schenkel.
 * **Seiten** an den Enden der Schenkel (`SeiteR` am Ende von A, `SeiteL` am Ende von B).
 * **Boden** und **Einlegeböden** sind je **eine L-Platte** (in SketchUp als L gezeichnet, Endmaß). Die Einlegeböden sind an beiden Vorderkanten 10 mm zurückgesetzt und liegen auf Bodenträgern in den Lochreihen der Seiten; hinten in der Ecke bei Bedarf eine Auflageleiste.
-* **Streben** oben vorn und hinten je Schenkel (`StrebeVorn1/2`, `StrebeHinten1/2`); in der Ecke stößt die Strebe von B mit dem Ende an die Strebe von A.
+* **Streben** oben, liegend (nach Jürgens Skizze): die vordere Strebe von A (`StrebeVorn1`) läuft durch die Ecke bis an die Rückwand von B; die vordere Strebe von B (`StrebeVorn2`) stößt mit dem Ende an sie. Hinten liegt eine Strebe über die ganze Länge von A an der Wand (`StrebeHinten`); Schenkel B hat hinten keine Strebe.
 * **Rückwände:** `Rueckwand1` hinter A geht durch die Ecke, `Rueckwand2` hinter B stößt daran.
 * **Falttür:** `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide sind mit einem Blum-Standardscharnier verbunden; die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export). Keine Animation.
 
@@ -73,14 +73,14 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: K
 ## Tags
 Jedes Teil hat den Tag `<Kürzel>_<Teil>`:
 * Blindeck: `UES1_SeiteL`, `UES1_SeiteR`, `UES1_Boden`, `UES1_StrebeVorn`, `UES1_StrebeHinten`, `UES1_Rueckwand`, `UES1_Einlegeboden1`/`2`, `UES1_Blende`, `UES1_Tuer` (eine Tür, auch Le Mans), `UES1_TuerL`/`UES1_TuerR` (zwei Türen), `UES1_LeMans` (Platzhalter Beschlag).
-* L-Form: `UES1_SeiteL`, `UES1_SeiteR`, `UES1_Boden`, `UES1_StrebeVorn1`/`2`, `UES1_StrebeHinten1`/`2`, `UES1_Rueckwand1`/`2`, `UES1_Einlegeboden1`/`2`, `UES1_TuerL`, `UES1_TuerR`.
+* L-Form: `UES1_SeiteL`, `UES1_SeiteR`, `UES1_Boden`, `UES1_StrebeVorn1`/`2`, `UES1_StrebeHinten`, `UES1_Rueckwand1`/`2`, `UES1_Einlegeboden1`/`2`, `UES1_TuerL`, `UES1_TuerR`.
 
 Das Kürzel ist `UES1`, oder `UES2` usw., wenn es im Modell schon vergeben ist. An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Eckschrank), `kategorie` (Unterschrank), `bereich`, `teil` und `rolle`. Die Blende hat die Rolle `Front`.
 
 ## TCN-Export (Plugin Schrank-CNC)
 * Korpus wie beim Unterschrank: Dübel Boden und Streben an die Seiten, Schrauben in die Streben, Sockelfüße, Lochreihen für Einlegeböden. Blende nur formatieren.
 * **Le Mans** (nach der Kesseböhmer-Montageanleitung, S. 3 und 11): Säulenlager in Boden und Strebe vorn bei X ab der Innenseite der Seite an der Tür, Ø5 für die Systemschraube Ø6,3 69 mm ab Vorderkante und 2 × Ø3 für Holzschrauben Ø4,5 (Annahme: vorgebohrt) 16 mm daneben auf 37 mm. Im Boden von unten durchgebohrt (oben wäre Fläche 2), in der Strebe von unten. Seitenprofil 500: 8 × Ø5, 13 tief, 52 mm ab Vorderkante, unterstes 28 mm über dem Boden, Raster 64. Keine Lochreihen. Hinweis, wenn der Korpus für die gewählte LeMans-Größe zu schmal oder zu flach ist. **Die Maße einmal mit der mitgelieferten Bohrschablone an einem Probeteil prüfen.**
-* **L-Form:** Innenecke von Boden und Einlegeböden als Kontur mit dem Nutfräser durch die Platte; Sockelfüße je Schenkel (auch an der Innenecke); Dübel an den Strebenstößen in der Ecke.
+* **L-Form:** Innenecke von Boden und Einlegeböden als Kontur mit dem Nutfräser durch die Platte; Sockelfüße je Schenkel (auch an der Innenecke); Dübel am Stoß der vorderen Streben in der Ecke.
 * Topfbänder (auch das Scharnier der Falttür) kommen mit den Türen im TCN-Export.
 
 ## Hilfe in SketchUp

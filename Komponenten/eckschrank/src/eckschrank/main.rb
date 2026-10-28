@@ -604,12 +604,13 @@ module Eckschrank
     boden = l_platte(model, 'Boden L', 'Boden', *m[:boden], mk, *m[:ecke])
     einsetzen(e, boden, 'Boden', [rw, ye, 0], [nil, nil, nil], mat: mat, kz: t_.('Boden'))
 
-    # Streben vorn und hinten je Schenkel; in der Ecke stößt die Strebe von B an die von A
+    # Streben oben (Jürgen 2026-10-28): die vordere Strebe von A läuft durch die Ecke bis an
+    # die Rückwand von B, die vordere Strebe von B stößt mit dem Ende an sie. Hinten liegt
+    # eine Strebe über die ganze Länge von A an der Wand; Schenkel B hat hinten keine.
     {
-      'StrebeVorn1' => ['Strebe vorn A', [xk - bs, mk], [a - mk - xk + bs, bs], 'StrebeVorn'],
+      'StrebeVorn1' => ['Strebe vorn A', [rw, mk], [a - mk - rw, bs], 'StrebeVorn'],
       'StrebeVorn2' => ['Strebe vorn B', [xk - bs, ye], [bs, mk - ye], 'StrebeVornB'],
-      'StrebeHinten1' => ['Strebe hinten A', [rw, mk + t - bs], [a - mk - rw, bs], 'StrebeHinten'],
-      'StrebeHinten2' => ['Strebe hinten B', [rw, ye], [bs, mk + t - bs - ye], 'StrebeHinten']
+      'StrebeHinten' => ['Strebe hinten A', [rw, mk + t - bs], [a - mk - rw, bs], 'StrebeHinten']
     }.each do |name, (defname, (x, y), (lx, ly), art)|
       d = platte(model, defname, name.sub(/\d\z/, ''), [lx, ly, mk], [nil, nil, nil], art: art)
       einsetzen(e, d, name, [x, y, h - mk], oben_f, mat: mat, kz: t_.(name))
