@@ -86,7 +86,7 @@ check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenp
       "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
 kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
-soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', :trenner, 'Arbeitsplatte erzeugen…', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
+soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', :trenner, 'Arbeitsplatte erzeugen…', 'Arbeitsplatte neu berechnen', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {

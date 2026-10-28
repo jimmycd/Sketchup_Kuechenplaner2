@@ -9,8 +9,10 @@ module JTools
       Datei = Struct.new(:name, :text, :anzahl, :ws, :lage)
 
       def self.werkstuecke(model, auswahl: nil)
+        # Arbeitsplatten (Komponenten/arbeitsplatte) bekommen einen eigenen Export
+        # mit Verbindungsfräsung, siehe docs/plaene/arbeitsplatte.md; bis dahin übergangen
         Schraenke.teile(model).select do |t|
-          t.sichtbar? && (auswahl.nil? || t.pfad.any? { |i| auswahl.include?(i) })
+          t.sichtbar? && t.rolle != 'Arbeitsplatte' && (auswahl.nil? || t.pfad.any? { |i| auswahl.include?(i) })
         end.map { |t| Geometrie.werkstueck(t) }
       end
 

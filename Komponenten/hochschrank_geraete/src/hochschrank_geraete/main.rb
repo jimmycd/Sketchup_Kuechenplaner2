@@ -57,7 +57,8 @@ module HochschrankGeraete
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Blende' => 'Front',
-    'WangeL' => 'Wange', 'WangeR' => 'Wange'
+    'WangeL' => 'Wange', 'WangeR' => 'Wange',
+    'Platte' => 'Arbeitsplatte'
   }.freeze
 
   # Nischen für die Geräte-Komponenten (Thread "Geräte in Schränken darstellen"):

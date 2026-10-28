@@ -102,6 +102,11 @@ module Arbeitsplatte
       z[:s1] - z[:s0]
     end
 
+    # Standard: die längere Zeile läuft durch (Zeilennummer)
+    def self.standard_durchlaufend(a, b)
+      roh_laenge(a) >= roh_laenge(b) ? a[:nr] : b[:nr]
+    end
+
     def self.ecken_planen(erg, o, warnungen)
       zeilen = erg[:zeilen]
       erg[:ecken].map do |e|
@@ -109,7 +114,7 @@ module Arbeitsplatte
         eo = o[:ecken][e[:nr]] || {}
         art = (eo[:stoss] || o[:stoss]).to_sym
         raise ArgumentError, "Stoßart #{art} unbekannt (#{STOSSARTEN.join(', ')})" unless STOSSARTEN.include?(art)
-        durch_nr = eo[:durchlaufend] || (roh_laenge(a) >= roh_laenge(b) ? a[:nr] : b[:nr])
+        durch_nr = eo[:durchlaufend] || standard_durchlaufend(a, b)
         durch, anst = durch_nr == a[:nr] ? [a, b] : [b, a]
         { nr: e[:nr], art: art, durch: durch, anst: anst,
           ende_durch: e[:enden][durch[:nr]], ende_anst: e[:enden][anst[:nr]] }.tap do |k|
