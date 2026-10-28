@@ -77,6 +77,7 @@ module Sketchup
     def add_instance(d, tr)
       i = ComponentInstance.new(d, tr)
       @list << i
+      d.instances << i
       i
     end
     def instances = @list
@@ -89,6 +90,7 @@ module Sketchup
     attr_accessor :name, :description, :box
     attr_reader :entities
     def initialize(n) = (@name, @entities = n, Entities.new(self))
+    def instances = (@instances ||= [])
   end
 
   class ComponentInstance
@@ -96,6 +98,11 @@ module Sketchup
     attr_accessor :name, :material, :layer, :hidden
     attr_reader :definition, :transformation
     def initialize(d, tr) = (@definition, @transformation = d, tr)
+    def definition=(d)
+      @definition.instances.delete(self)
+      d.instances << self
+      @definition = d
+    end
   end
 
   class Mat
@@ -123,6 +130,8 @@ module Sketchup
     end
     def size = @h.size
     def [](n) = @h[n]
+    def to_a = @h.values
+    def remove(d) = @h.delete(@h.key(d))
   end
 
   class Model

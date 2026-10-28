@@ -8,7 +8,7 @@ Zwei Bauformen für die Ecke einer Küchenzeile:
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `eckschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
 2. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank Blindeck…* baut den Blindeck-Schrank im aktuellen Modell; Maße und Optionen danach in den *Komponentenoptionen* einstellen.
-3. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank L-Form…* fragt Schenkel A, Schenkel B und Tiefe ab und baut dann den Schrank. Diese drei Maße sind danach fest (siehe unten); Höhe und Einlegeböden bleiben Komponentenoptionen.
+3. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank L-Form…* fragt Schenkel A, Schenkel B und Tiefe ab und baut dann den Schrank. Alle Maße lassen sich danach im Fenster *Komponentenoptionen* ändern (siehe unten).
 
 Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 
@@ -42,13 +42,13 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 ## L-Form
 | Option | Standard |
 |---|---|
-| Schenkel A (entlang der hinteren Wand, außen) | 900 mm, beim Erzeugen fest |
-| Schenkel B (entlang der linken Wand, außen) | 900 mm, beim Erzeugen fest |
-| Tiefe (Korpus ohne Front/Rückwand) | 560 mm, beim Erzeugen fest |
+| Schenkel A (entlang der hinteren Wand, außen) | 900 mm |
+| Schenkel B (entlang der linken Wand, außen) | 900 mm |
+| Tiefe (Korpus ohne Front/Rückwand) | 560 mm |
 | Höhe | 700 mm |
 | Anzahl Einlegeböden | 0–2; Standard 1 |
 
-**Warum fest?** Eine Dynamic Component ändert Maße, indem sie Teile skaliert. Eine L-Platte würde dabei verzerrt (die Innenecke wanderte mit). Deshalb fragt der Menüeintrag Schenkel und Tiefe vorher ab; zum Ändern den Schrank neu erzeugen. Schenkel A und B sind innen vor der Ecke mindestens 150 mm lang.
+**Schenkel und Tiefe ändern:** Eine Dynamic Component ändert Maße, indem sie Teile skaliert; eine L-Platte würde dabei verzerrt (die Innenecke wanderte mit). Deshalb baut die Erweiterung den Schrank neu auf, sobald sich Schenkel A, Schenkel B oder Tiefe in den Komponentenoptionen ändern (ein Beobachter prüft nach jedem Vorgang, `Eckschrank.l_pruefen`). Kürzel, Lage, Höhe, Einlegeböden, Frontmaterial und Griffe bleiben; ein Rückgängig nimmt Änderung und Neuaufbau zusammen zurück. Ungültige Maße (Schenkel A und B innen vor der Ecke unter 150 mm) werden mit einer Meldung abgelehnt, die alten Maße bleiben. Das klappt nur, wenn die Erweiterung geladen ist; ohne sie bleibt der Schrank beim Ändern dieser drei Werte unverändert.
 
 ### Aufbau L-Form
 * Draufsicht: Schenkel A an der hinteren Wand, Schenkel B an der linken Wand, nach vorne herausragend. Die Innenecke liegt an der Korpusvorderkante beider Schenkel.

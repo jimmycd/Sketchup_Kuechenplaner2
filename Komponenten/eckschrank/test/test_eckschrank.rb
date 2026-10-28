@@ -340,7 +340,7 @@ def lauf_l(p, label, umkonf = nil)
   pruefe_geometrie(w, label)
   pruefe_ocl(w, label, 'UES1', KANTEN_SOLL_L, TAGS_L)
   d = inst.definition
-  check(%w[schenkel_a schenkel_b tiefe].all? { |k| d.get_attribute(E::DICT, "_#{k}_access") == 'VIEW' }, "#{label}: Schenkel und Tiefe fest")
+  check(%w[schenkel_a schenkel_b tiefe].all? { |k| d.get_attribute(E::DICT, "_#{k}_access") == 'TEXTBOX' }, "#{label}: Schenkel und Tiefe änderbar")
   return unless umkonf
   umkonf.each { |k, v| d.set_attribute(E::DICT, k.downcase, k == 'Hoehe' ? v / 2.54 : v.to_f) }
   w2 = Knoten.new(inst, d, nil)
@@ -352,6 +352,41 @@ lauf_l({}, 'L-Form 900 x 900', { 'Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2 })
 lauf_l({ 'Schenkel_A' => 75.6, 'Schenkel_B' => 75.6, 'Tiefe' => 46.0 }, 'L-Form 756 x 756, Tiefe 460 (Jürgens Skizze)')
 lauf_l({ 'Schenkel_A' => 120.0, 'Schenkel_B' => 100.0, 'Tiefe' => 60.0, 'Anz_Einlegeboeden' => 0.0 }, 'L-Form 1200 x 1000',
        { 'Anz_Einlegeboeden' => 1 })
+# Schenkel und Tiefe im Fenster Komponentenoptionen ändern (die DC schreibt an die Instanz):
+# l_pruefen baut den Schrank mit den neuen Maßen neu auf, Kürzel, Höhe, Einlegeböden,
+# Frontmaterial und Griffe bleiben
+m = Sketchup.active_model = Sketchup::Model.new
+inst = E.erstellen({ 'Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2.0 }, l_form: true)
+alt = inst.definition
+front = m.materials.add('Front Eiche 19mm')
+front.set_attribute(E::OCL_DICT, 'type', 2)
+tuer = alt.entities.instances.find { |c| c.name == 'TürR' }
+tuer.material = front
+tuer.set_attribute(E::JT_DICT, 'griff_lochmass', 160.0)
+E.l_pruefen(m)
+check(inst.definition.equal?(alt), 'L ändern: ohne Änderung kein Neuaufbau')
+neu_p = { 'Schenkel_A' => 120.0, 'Schenkel_B' => 80.0, 'Tiefe' => 60.0 }
+neu_p.each { |k, v| inst.set_attribute(E::DICT, k.downcase, v / 2.54) }
+E.l_pruefen(m)
+check(!inst.definition.equal?(alt) && m.definitions.to_a.none? { |d| d.equal?(alt) }, 'L ändern: neu aufgebaut, alte Definition entfernt')
+check(inst.definition.get_attribute(E::L_DICT, E::L_GEBAUT) == [120.0, 80.0, 60.0], 'L ändern: neue Maße gemerkt')
+w = Knoten.new(inst, inst.definition, nil)
+w.redraw
+pl = E::DEFAULTS_L.merge(neu_p).merge('Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2)
+pruefe_l(w, pl, 'L geändert 1200 x 800, Tiefe 600')
+pruefe_geometrie(w, 'L geändert')
+tags = inst.definition.entities.instances.map { |c| c.layer.name }.sort
+check(tags == TAGS_L.map { |t| "UES1_#{t}" }.sort, "L ändern: gleiches Kürzel, alle Tags: #{tags}")
+tuer = inst.definition.entities.instances.find { |c| c.name == 'TürR' }
+check(tuer.material.equal?(front) && tuer.get_attribute(E::JT_DICT, 'griff_lochmass') == 160.0, 'L ändern: Frontmaterial und Griff bleiben')
+E.l_pruefen(m)
+check(inst.definition.get_attribute(E::L_DICT, E::L_GEBAUT) == [120.0, 80.0, 60.0], 'L ändern: zweites Prüfen ändert nichts')
+# ungültig: Schenkel B zu kurz -> Meldung, alte Maße zurück
+vorher = inst.definition
+inst.set_attribute(E::DICT, 'schenkel_b', 65.0 / 2.54)
+E.l_pruefen(m)
+check(inst.definition.equal?(vorher) && nahe(inst.get_attribute(E::DICT, 'schenkel_b') * 2.54, 80.0), 'L ändern: ungültiger Schenkel abgelehnt, alter Wert zurück')
+
 begin
   Sketchup.active_model = Sketchup::Model.new
   E.erstellen({ 'Schenkel_B' => 65.0 }, l_form: true)
