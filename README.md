@@ -27,6 +27,7 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 | [`Komponenten/unterschrank_geschirrspueler/`](Komponenten/unterschrank_geschirrspueler/) | Nische für vollintegrierten Geschirrspüler 45/60 mit Front (`.rbz`) |
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (`.rbz`) |
 | [`Komponenten/apothekerschrank/`](Komponenten/apothekerschrank/) | Apothekerschrank: Hochfront mit Vollauszug und 2–6 LEGRABOX-Kästen (`.rbz`) |
+| [`docs/`](docs/) | Pläne und Vorschläge aus den Projekt-Threads, Übersicht welcher Schrank in welchem Ordner liegt, Beschlag-Unterlagen |
 | [`kuechenplaner-update/`](kuechenplaner-update/) | Erweiterung „Plugins aktualisieren“ (`kuechenplaner_update.rbz`): neue Versionen von GitHub oder aus einem Ordner laden, ohne Extension Manager |
 | [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`schrank_cnc.rbz`): TCN-Export für TpaCAD, Frontfarbe und Griffe ändern |
 

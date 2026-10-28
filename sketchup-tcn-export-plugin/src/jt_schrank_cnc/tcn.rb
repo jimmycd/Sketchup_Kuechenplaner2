@@ -176,7 +176,9 @@ module JTools
         out
       end
 
-      def text(lage, meldungen = []) = build(lage, meldungen).join("\r\n") + "\r\n"
+      def text(lage, meldungen = [])
+        build(lage, meldungen).join("\r\n") + "\r\n"
+      end
 
       def write(path, text)
         File.open(path, 'wb') do |io|

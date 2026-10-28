@@ -15,13 +15,25 @@ module JTools
     # Ein Teil mit dem Pfad der Instanzen von der obersten Ebene bis zu ihm.
     # schrank ist die äußerste Instanz, deren Definition JT_Schrank/schrank trägt.
     Teil = Struct.new(:inst, :pfad, :schrank) do
-      def jt(k) = inst.get_attribute(JT_DICT, k)
-      def rolle = jt('rolle')
-      def kategorie = jt('kategorie')
-      def name = inst.layer ? inst.layer.name : jt('teil')
-      def front? = %w[Front Tuer].include?(rolle)
+      def jt(k)
+        inst.get_attribute(JT_DICT, k)
+      end
+      def rolle
+        jt('rolle')
+      end
+      def kategorie
+        jt('kategorie')
+      end
+      def name
+        inst.layer ? inst.layer.name : jt('teil')
+      end
+      def front?
+        %w[Front Tuer].include?(rolle)
+      end
       # sichtbar nur, wenn weder das Teil noch eine Ebene darüber ausgeblendet ist
-      def sichtbar? = pfad.none? { |i| i.hidden? }
+      def sichtbar?
+        pfad.none? { |i| i.hidden? }
+      end
     end
 
     module Schraenke
