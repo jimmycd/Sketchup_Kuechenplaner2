@@ -4,7 +4,8 @@
 # Erweiterung) über Erweiterungen > Küchenplaner > Unterschrank mit Tür ins Modell
 # ein und richtet sie ein: Kurzhilfe, ein eigener Tag je Teil (<Kürzel>_<Teil>,
 # z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer), das Wörterbuch "JT_Schrank"
-# für den TCN-Export und die Formeln der Einlegeböden. Jeder eingefügte Schrank
+# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (OpenCutList)
+# an Boden, Einlegeböden und Streben. Jeder eingefügte Schrank
 # bekommt ein eigenes Kürzel (UST1, UST2 …).
 
 require 'sketchup.rb'
@@ -19,6 +20,7 @@ module UnterschrankTuer
     'Breite, Höhe, Tiefe (Korpus ohne Front/Rückwand), Tür ja/nein und Anzahl Einlegeböden (0–3) hier ändern.',
     'Korpus 19 mm, Rückwand 8 mm, Streben 100 mm, Fugen 2 mm.',
     'Material „Melamin weiss“; OpenCutList erstellt daraus die Zuschnittliste.',
+    'Anleimer vorne an Boden, Einlegeböden und vorderer Strebe, hintere Strebe ohne; gezeichnet ist das Endmaß, den Anleimer (2 mm) zieht nur OpenCutList ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UST1_SeiteL, UST1_Tuer.',
     'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -126,6 +128,61 @@ module UnterschrankTuer
     inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
   end
 
+  # Anleimer (Kanten für OpenCutList), wie bei den anderen Unterschränken: nur die
+  # Vorderkante. In der von Hand gebauten Unterschrank.skp fehlte sie am Boden, die
+  # vordere Strebe hatte auch hinten eine Kante und die hintere Strebe Kanten.
+  # Seiten, Tür und Rückwand sind dort richtig und werden nicht angefasst.
+  ANLEIMER = 'Anleimer weiss'.freeze
+  OCL_DICT = 'ladb_opencutlist'.freeze
+  OCL_ANLEIMER = {
+    'type' => 4, # Kante
+    'thickness' => '2 mm', 'length_increase' => '0', 'width_increase' => '0',
+    'thickness_increase' => '0', 'grained' => false, 'edge_decremented' => true,
+    'std_widths' => '19 mm;23 mm;28 mm;33 mm;35 mm;43 mm', 'std_lengths' => '75 m'
+  }.freeze
+  KANTEN = {
+    'Boden'        => %i[vorn],
+    'Einlegeboden' => %i[vorn],
+    'StrebeVorn'   => %i[vorn],
+    'StrebeHinten' => []
+  }.freeze
+
+  def self.anleimer_material(model)
+    m = model.materials[ANLEIMER] || model.materials.add(ANLEIMER).tap { |n| n.color = Sketchup::Color.new(245, 245, 240) }
+    OCL_ANLEIMER.each { |k, v| m.set_attribute(OCL_DICT, k, v) } if m.get_attribute(OCL_DICT, 'type').nil?
+    m
+  end
+
+  def self.anleimer?(mat)
+    mat && (mat.get_attribute(OCL_DICT, 'type').to_i == 4 || mat.name.to_s =~ /anleimer/i)
+  end
+
+  # Flächen der Teildefinition, die im Schrank nach vorne zeigen (Front liegt bei -y)
+  def self.vorderflaechen(inst)
+    inst.definition.entities.grep(Sketchup::Face).select { |f| f.normal.transform(inst.transformation).y < -0.5 }
+  end
+
+  def self.kanten_setzen(model, d)
+    anleimer = anleimer_material(model)
+    soll = {}
+    d.entities.grep(Sketchup::ComponentInstance).each do |inst|
+      kanten = KANTEN[teil_von(inst).to_s.sub(/\d+\z/, '')]
+      next unless kanten
+      flaechen = kanten.include?(:vorn) ? vorderflaechen(inst) : []
+      # Definition mit einem anderen Teil geteilt (z. B. beide Streben): eigene Definition
+      if soll.key?(inst.definition) && soll[inst.definition] != flaechen
+        inst.make_unique
+        flaechen = kanten.include?(:vorn) ? vorderflaechen(inst) : []
+      end
+      soll[inst.definition] = flaechen
+      inst.definition.entities.grep(Sketchup::Face).each do |f|
+        if flaechen.include?(f) then f.material = anleimer
+        elsif anleimer?(f.material) then f.material = nil
+        end
+      end
+    end
+  end
+
   # Tags und JT_Schrank an allen Teilen; gibt die nicht erkannten Teilnamen zurück
   def self.tags_setzen(model, d)
     kz = d.get_attribute(JT_DICT, 'schrank') || freies_kuerzel(model)
@@ -148,13 +205,14 @@ module UnterschrankTuer
     model.start_operation('Unterschrank einrichten', true)
     unbekannt = ziele.map(&:definition).uniq.flat_map do |d|
       hilfe(d)
+      kanten_setzen(model, d)
       tags_setzen(model, d)
     end
     model.commit_operation
     # Dynamic Components neu berechnen, damit die Einlegeböden sofort richtig stehen
     ziele.each { |i| $dc_observers.get_latest_class.redraw_with_undo(i) } if defined?($dc_observers) && $dc_observers
     hinweis = unbekannt.empty? ? '' : "\nOhne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}"
-    UI.messagebox('Kurzhilfe und Tags gesetzt.' + hinweis)
+    UI.messagebox('Kurzhilfe, Tags und Anleimer gesetzt.' + hinweis)
     ziele
   end
 
@@ -171,6 +229,7 @@ module UnterschrankTuer
     d = inst.definition
     d.delete_attribute(JT_DICT, 'schrank') # neues Kürzel
     hilfe(d)
+    kanten_setzen(model, d)
     unbekannt = tags_setzen(model, d)
     model.commit_operation
     $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
