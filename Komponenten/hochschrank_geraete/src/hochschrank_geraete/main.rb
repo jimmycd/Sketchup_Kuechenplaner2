@@ -132,7 +132,9 @@ module HochschrankGeraete
     GERAETE.fetch(g)[1] || p["H_N#{n}_frei"]
   end
 
-  def self.zwei_nischen?(p) = p['Geraet_N2'].to_i != KEINE
+  def self.zwei_nischen?(p)
+    p['Geraet_N2'].to_i != KEINE
+  end
 
   def self.berechne(p)
     mk, sp = p['Materialstaerke_Korpus'], p['Spaltbreite']

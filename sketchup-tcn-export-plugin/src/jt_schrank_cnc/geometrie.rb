@@ -16,7 +16,9 @@ module JTools
       OCL_DICT = 'ladb_opencutlist'.freeze
 
       # 4x4-Matrix (Spaltenform wie Geom::Transformation#to_a)
-      def self.matrix(tr) = tr.to_a.map(&:to_f)
+      def self.matrix(tr)
+        tr.to_a.map(&:to_f)
+      end
 
       def self.mal(a, b)
         (0..3).flat_map do |c|
@@ -24,9 +26,13 @@ module JTools
         end
       end
 
-      def self.punkt(m, p) = (0..2).map { |r| (0..2).sum { |k| m[k * 4 + r] * p[k] } + m[12 + r] }
+      def self.punkt(m, p)
+        (0..2).map { |r| (0..2).sum { |k| m[k * 4 + r] * p[k] } + m[12 + r] }
+      end
 
-      def self.richtung(m, v) = (0..2).map { |r| (0..2).sum { |k| m[k * 4 + r] * v[k] } }
+      def self.richtung(m, v)
+        (0..2).map { |r| (0..2).sum { |k| m[k * 4 + r] * v[k] } }
+      end
 
       # Welt-Matrix eines Teils aus seinem Pfad (äußerste Instanz zuerst)
       def self.welt(pfad)
@@ -39,8 +45,12 @@ module JTools
         :"#{ACHSEN[a]}#{v[a] > 0 ? 'max' : 'min'}"
       end
 
-      def self.achse(seite) = ACHSEN.index(seite.to_s[0])
-      def self.max?(seite) = seite.to_s.end_with?('max')
+      def self.achse(seite)
+        ACHSEN.index(seite.to_s[0])
+      end
+      def self.max?(seite)
+        seite.to_s.end_with?('max')
+      end
 
       # Anleimerstärke einer OCL-Kante in mm ("2mm", "2 mm", "0.08in" wird nicht gelesen -> 2)
       def self.kantenstaerke(mat)
@@ -50,15 +60,31 @@ module JTools
 
       # Werkstück: Teil, Quader lo/hi (mm, Welt), Anleimer je Weltseite (mm)
       Werkstueck = Struct.new(:teil, :lo, :hi, :kanten, :ops) do
-        def name = teil.name
-        def rolle = teil.rolle
-        def mass(a) = hi[a] - lo[a]
-        def dicke_achse = (0..2).min_by { |a| mass(a) }
-        def flaechen_achsen = (0..2).reject { |a| a == dicke_achse }
-        def kante(seite) = kanten[seite] || 0.0
+        def name
+          teil.name
+        end
+        def rolle
+          teil.rolle
+        end
+        def mass(a)
+          hi[a] - lo[a]
+        end
+        def dicke_achse
+          (0..2).min_by { |a| mass(a) }
+        end
+        def flaechen_achsen
+          (0..2).reject { |a| a == dicke_achse }
+        end
+        def kante(seite)
+          kanten[seite] || 0.0
+        end
         # Fräsmaß-Grenzen je Achse (ohne Anleimer)
-        def lo_f(a) = lo[a] + kante(:"#{ACHSEN[a]}min")
-        def hi_f(a) = hi[a] - kante(:"#{ACHSEN[a]}max")
+        def lo_f(a)
+          lo[a] + kante(:"#{ACHSEN[a]}min")
+        end
+        def hi_f(a)
+          hi[a] - kante(:"#{ACHSEN[a]}max")
+        end
       end
 
       def self.werkstueck(teil)
@@ -81,15 +107,31 @@ module JTools
       # Lage auf der Maschine: Achse und Richtung (+1/-1) je Werkstückachse x, y, z.
       # z zeigt aus Fläche 1 heraus (oben auf der Maschine), x entlang DL, y = z × x.
       Lage = Struct.new(:ws, :ax, :sx, :ay, :sy, :az, :sz) do
-        def dl = ws.hi_f(ax) - ws.lo_f(ax)
-        def dh = ws.hi_f(ay) - ws.lo_f(ay)
-        def ds = ws.mass(az)
-        def u(p, a, s) = s > 0 ? p[a] - ws.lo_f(a) : ws.hi_f(a) - p[a]
-        def x(p) = u(p, ax, sx)
-        def y(p) = u(p, ay, sy)
+        def dl
+          ws.hi_f(ax) - ws.lo_f(ax)
+        end
+        def dh
+          ws.hi_f(ay) - ws.lo_f(ay)
+        end
+        def ds
+          ws.mass(az)
+        end
+        def u(p, a, s)
+          s > 0 ? p[a] - ws.lo_f(a) : ws.hi_f(a) - p[a]
+        end
+        def x(p)
+          u(p, ax, sx)
+        end
+        def y(p)
+          u(p, ay, sy)
+        end
         # Tiefe unter Fläche 1
-        def tiefe(p) = sz > 0 ? ws.hi[az] - p[az] : p[az] - ws.lo[az]
-        def flaeche1 = :"#{ACHSEN[az]}#{sz > 0 ? 'max' : 'min'}"
+        def tiefe(p)
+          sz > 0 ? ws.hi[az] - p[az] : p[az] - ws.lo[az]
+        end
+        def flaeche1
+          :"#{ACHSEN[az]}#{sz > 0 ? 'max' : 'min'}"
+        end
 
         # TCN-Seite einer Weltseite: 1 oben, 3 vorne (y = 0), 4 rechts (x = DL), 5 hinten, 6 links (x = 0)
         def side(seite)

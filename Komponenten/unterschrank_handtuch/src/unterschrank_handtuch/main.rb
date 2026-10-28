@@ -94,7 +94,9 @@ module UnterschrankHandtuch
     { b: b, lw: b - 2 * p['Materialstaerke_Korpus'] }
   end
 
-  def self.breite(modell) = MODELLE.fetch(modell.to_i) { raise ArgumentError, "Modell M#{modell.to_i} gibt es nicht (M150, M200)" }
+  def self.breite(modell)
+    MODELLE.fetch(modell.to_i) { raise ArgumentError, "Modell M#{modell.to_i} gibt es nicht (M150, M200)" }
+  end
 
   # ---------------------------------------------------------------------------
   # Hilfen für Dynamic-Component-Attribute

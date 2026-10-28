@@ -11,20 +11,45 @@ def check(bed, msg)
   puts "FEHLER: #{msg}"
 end
 
-# Nachbau der Teile aus Unterschrank.skp: Instanzname bzw. nur Definitionsname
-def unterschrank(model)
+# Quader-Flächen einer Teildefinition; "anleimer" = Seiten mit Anleimer wie in der .skp
+SEITEN = { xmin: [-1, 0, 0], xmax: [1, 0, 0], ymin: [0, -1, 0], ymax: [0, 1, 0], zmin: [0, 0, -1], zmax: [0, 0, 1] }.freeze
+def platte(model, name, anleimer = [])
+  d = model.definitions.add(name)
+  SEITEN.each do |s, n|
+    f = Sketchup::Face.new(d.entities, [], n)
+    f.material = model.materials[T::ANLEIMER] || model.materials.add(T::ANLEIMER) if anleimer.include?(s)
+    d.entities.faces << f
+  end
+  d
+end
+
+def anleimer_seiten(inst)
+  inst.definition.entities.faces.select { |f| f.material&.name == T::ANLEIMER }.map do |f|
+    n = f.normal.transform(inst.transformation)
+    SEITEN.key(SEITEN.values.min_by { |v| v.zip([n.x, n.y, n.z]).sum { |a, b| (a - b)**2 } })
+  end.sort
+end
+
+# Nachbau der Teile aus Unterschrank.skp: Instanzname bzw. nur Definitionsname.
+# Anleimer wie in der von Hand gebauten .skp (falsch): Boden ohne, vordere Strebe
+# vorne und hinten, hintere Strebe vorne. Mit strebe_geteilt nutzen beide Streben
+# dieselbe Definition, die hintere um 180° gedreht.
+def unterschrank(model, strebe_geteilt: false)
   d = model.definitions.add('Unterschrank')
   d.set_attribute(T::DICT, '_name', 'Unterschrank')
   d.set_attribute(T::DICT, 'anz_einlegeboeden', '1') # wie in der .skp als Text gespeichert
-  seite = model.definitions.add('Seite')
-  { 'SeiteL' => seite, 'SeiteR' => seite, 'Boden' => model.definitions.add('Boden'),
-    'StrebeVorn' => model.definitions.add('StrebeV'), 'StrebeHinten' => model.definitions.add('StrebeH'),
-    'Rückwand' => model.definitions.add('Rückwand'), 'Front' => model.definitions.add('Front') }.each do |n, defn|
-    i = d.entities.add_instance(defn, Geom::Transformation.translation([0, 0, 0]))
+  seite = platte(model, 'Seite', %i[ymin])
+  strebe_v = platte(model, 'StrebeV', %i[ymin ymax])
+  strebe_h = strebe_geteilt ? strebe_v : platte(model, 'StrebeH', %i[ymin])
+  { 'SeiteL' => seite, 'SeiteR' => seite, 'Boden' => platte(model, 'Boden'),
+    'StrebeVorn' => strebe_v, 'StrebeHinten' => strebe_h,
+    'Rückwand' => platte(model, 'Rückwand'), 'Front' => platte(model, 'Front', %i[xmin xmax zmin zmax]) }.each do |n, defn|
+    tr = n == 'StrebeHinten' && strebe_geteilt ? Geom::Transformation.rotation([0, 0, 0], [0, 0, 1], Math::PI) : Geom::Transformation.translation([0, 0, 0])
+    i = d.entities.add_instance(defn, tr)
     i.name = n
   end
   (1..3).each do |k|
-    eb = model.definitions.add("Boden##{k}")
+    eb = platte(model, "Boden##{k}")
     eb.set_attribute(T::DICT, '_hidden_formula', " IF (Unterschrank!Anz_Einlegeboeden>#{k - 1},0,1)")
     d.entities.add_instance(eb, Geom::Transformation.translation([0, 0, 0]))
   end
@@ -61,6 +86,34 @@ end
 griff = d.entities.instances.find { |i| i.definition.name == 'Griff' }
 check(griff.layer.nil? && griff.get_attribute(T::JT_DICT, 'teil').nil?, 'unbekanntes Teil bleibt ohne Tag')
 check(d.get_attribute(T::JT_DICT, 'kategorie') == 'Unterschrank', 'JT_Schrank am Schrank')
+
+# Anleimer (OpenCutList): Boden, Einlegeböden und vordere Strebe nur vorne, hintere Strebe keine,
+# Seiten und Tür bleiben wie in der .skp
+KANTEN_SOLL = {
+  'SeiteL' => %i[ymin], 'SeiteR' => %i[ymin], 'Boden' => %i[ymin], 'StrebeVorn' => %i[ymin], 'StrebeHinten' => [],
+  'Rueckwand' => [], 'Tuer' => %i[xmax xmin zmax zmin],
+  'Einlegeboden1' => %i[ymin], 'Einlegeboden2' => %i[ymin], 'Einlegeboden3' => %i[ymin]
+}.freeze
+pruefe_kanten = lambda do |schrank, was|
+  schrank.definition.entities.instances.reject { |i| i.definition.name.start_with?('Griff') }.each do |i|
+    teil = i.get_attribute(T::JT_DICT, 'teil')
+    check(anleimer_seiten(i) == KANTEN_SOLL.fetch(teil), "#{was}: Anleimer #{teil} #{anleimer_seiten(i).inspect}")
+  end
+end
+pruefe_kanten.(inst, 'Schrank')
+anl = model.materials[T::ANLEIMER]
+check(anl.get_attribute(T::OCL_DICT, 'type') == 4 && anl.get_attribute(T::OCL_DICT, 'edge_decremented') == true,
+      'Anleimer ist in OCL eine Kante, 2 mm werden nur dort abgezogen')
+
+# beide Streben mit derselben Definition, hintere gedreht: hintere bekommt eine eigene Definition
+m2 = Sketchup.active_model = Sketchup::Model.new
+geteilt = unterschrank(m2, strebe_geteilt: true)
+m2.selection.add(geteilt)
+T.einrichten(m2)
+pruefe_kanten.(geteilt, 'geteilte Strebe')
+sv, sh = %w[StrebeVorn StrebeHinten].map { |n| geteilt.definition.entities.instances.find { |i| i.name == n } }
+check(sv.definition != sh.definition, 'Streben haben getrennte Definitionen')
+Sketchup.active_model = model
 
 # Einlegeböden: Formeln für Sichtbarkeit und Höhe (Fehler: Anzahl Einlegeböden wirkte nicht)
 # Kleiner Formel-Auswerter für die DC-Formeln: Unterschrank!X, IF(), + - * / >=
@@ -120,20 +173,6 @@ end
 class Sketchup::ComponentDefinition
   def instances = Sketchup.active_model.entities.instances.select { |i| i.definition == self }
   def delete_attribute(d, k) = dicts[d]&.delete(k)
-end
-class Sketchup::ComponentInstance
-  def make_unique
-    neu = Sketchup.active_model.definitions.add(@definition.name)
-    @definition.dicts.each { |d, h| h.each { |k, v| neu.set_attribute(d, k, v) } }
-    @definition.entities.instances.each do |i|
-      c = neu.entities.add_instance(i.definition, i.transformation)
-      c.name = i.name
-      c.layer = i.layer
-      i.dicts.each { |d, h| h.each { |k, v| c.set_attribute(d, k, v) } }
-    end
-    @definition = neu
-    self
-  end
 end
 check(File.exist?(T::SKP), 'Unterschrank.skp liegt in der Erweiterung')
 model = Sketchup.active_model = Sketchup::Model.new

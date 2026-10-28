@@ -27,6 +27,11 @@ module Geom
     def x = @a[0]
     def y = @a[1]
     def z = @a[2]
+    # nur Drehung um die z-Achse (mehr braucht der Test nicht)
+    def transform(t)
+      w = t.winkel
+      Vector3d.new(x * Math.cos(w) - y * Math.sin(w), x * Math.sin(w) + y * Math.cos(w), z)
+    end
   end
   class Transformation
     attr_reader :origin
@@ -35,6 +40,12 @@ module Geom
       t.instance_variable_set(:@origin, v.is_a?(Vector3d) ? v.a : v.map(&:to_f))
       t
     end
+    def self.rotation(_pt, _achse, winkel)
+      t = translation([0, 0, 0])
+      t.instance_variable_set(:@winkel, winkel)
+      t
+    end
+    def winkel = @winkel || 0.0
   end
 end
 
@@ -96,6 +107,24 @@ module Sketchup
     attr_accessor :name, :material, :layer, :hidden
     attr_reader :definition, :transformation
     def initialize(d, tr) = (@definition, @transformation = d, tr)
+    # eigene Kopie der Definition (Attribute, Flächen mit Material, Unterteile)
+    def make_unique
+      neu = Sketchup.active_model.definitions.add(@definition.name)
+      @definition.dicts.each { |d, h| h.each { |k, v| neu.set_attribute(d, k, v) } }
+      @definition.entities.faces.each do |f|
+        c = Face.new(neu.entities, [], f.normal.to_a)
+        c.material = f.material
+        neu.entities.faces << c
+      end
+      @definition.entities.instances.each do |i|
+        c = neu.entities.add_instance(i.definition, i.transformation)
+        c.name = i.name
+        c.layer = i.layer
+        i.dicts.each { |d, h| h.each { |k, v| c.set_attribute(d, k, v) } }
+      end
+      @definition = neu
+      self
+    end
   end
 
   class Mat

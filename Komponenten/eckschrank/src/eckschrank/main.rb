@@ -130,7 +130,9 @@ module Eckschrank
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
-  def self.lemans(p) = LEMANS_MODELLE.fetch(p['LeMans'].to_i) { raise ArgumentError, "LeMans #{p['LeMans'].to_i} gibt es nicht (40, 45, 50, 60)" }
+  def self.lemans(p)
+    LEMANS_MODELLE.fetch(p['LeMans'].to_i) { raise ArgumentError, "LeMans #{p['LeMans'].to_i} gibt es nicht (40, 45, 50, 60)" }
+  end
 
   def self.berechne(p)
     mk, h, n = p['Materialstaerke_Korpus'], p['Hoehe'], p['Anz_Einlegeboeden'].to_i
@@ -142,8 +144,12 @@ module Eckschrank
   end
 
   # x-Lage bei Blindseite links (Tür rechts) -> tatsächliche Lage; Formel und Wert
-  def self.spiegel_f(xl, w) = "IF(#{NAME}!Blindseite=1,#{NAME}!Breite-(#{xl})-(#{w}),#{xl})"
-  def self.spiegel(p, xl, w) = p['Blindseite'].to_i == 1 ? p['Breite'] - xl - w : xl
+  def self.spiegel_f(xl, w)
+    "IF(#{NAME}!Blindseite=1,#{NAME}!Breite-(#{xl})-(#{w}),#{xl})"
+  end
+  def self.spiegel(p, xl, w)
+    p['Blindseite'].to_i == 1 ? p['Breite'] - xl - w : xl
+  end
 
   # ---------------------------------------------------------------------------
   # Hilfen für Dynamic-Component-Attribute
