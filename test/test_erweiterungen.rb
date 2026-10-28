@@ -1,4 +1,4 @@
-# Test ohne SketchUp: alle Komponenten und der TCN-Export sind Erweiterungen (.rbz)
+# Test ohne SketchUp: alle Komponenten, der TCN-Export und das Aktualisieren sind Erweiterungen (.rbz)
 # und erscheinen unter Erweiterungen > Küchenplaner, das Untermenü gibt es nur einmal.
 haupt = File.expand_path('..', __dir__)
 $LOAD_PATH.unshift(File.join(haupt, 'sketchup-tcn-export-plugin/test'))
@@ -30,8 +30,8 @@ module UI
 end
 Sketchup.active_model = Sketchup::Model.new
 
-SRC = Dir[File.join(haupt, 'Komponenten/*/src')].sort + [File.join(haupt, 'sketchup-tcn-export-plugin/src')]
-RBZ = ->(src) { d = File.dirname(src); n = File.basename(d); File.join(d, "#{n == 'sketchup-tcn-export-plugin' ? 'schrank_cnc' : n}.rbz") }
+SRC = Dir[File.join(haupt, 'Komponenten/*/src')].sort + %w[sketchup-tcn-export-plugin/src kuechenplaner-update/src].map { |s| File.join(haupt, s) }
+RBZ = ->(src) { d = File.dirname(src); n = File.basename(d); File.join(d, "#{{ 'sketchup-tcn-export-plugin' => 'schrank_cnc', 'kuechenplaner-update' => 'kuechenplaner_update' }.fetch(n, n)}.rbz") }
 dateien = ->(src) { Dir.chdir(src) { Dir['**/*'].reject { |f| File.directory?(f) }.sort } }
 im_zip = ->(rbz, f) { IO.popen(['unzip', '-p', rbz, f], err: File::NULL, &:read).b }
 zip_liste = ->(rbz) { IO.popen(['zipinfo', '-1', rbz], err: File::NULL, &:read).split("\n").reject { |f| f.end_with?('/') }.sort }
@@ -86,7 +86,8 @@ kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e }
 soll = ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Oberschrank…', 'Unterschrank Geschirrspüler…',
         'Unterschrank Handtuchauszug…', 'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…',
-        'Spülenschrank…', 'Unterschrank mit Tür…', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…']
+        'Spülenschrank…', 'Unterschrank mit Tür…', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
+        :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 check(kp.grep(Array).all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
