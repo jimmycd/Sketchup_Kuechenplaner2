@@ -20,3 +20,4 @@ jobs:
         with:
           ruby-version: '2.7'
       - run: find Komponenten/*/src sketchup-tcn-export-plugin/src kuechenplaner-update/src -name '*.rb' -print0 | xargs -0 -n1 ruby -c
+      - run: for t in sketchup-tcn-export-plugin/test/test_*.rb; do ruby "$t" || exit 1; done

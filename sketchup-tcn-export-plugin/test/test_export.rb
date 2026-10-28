@@ -31,9 +31,13 @@ def bearbeitungen(text, side)
   block.map { |z| z.sub(/WS=\d+ +(W\$=\S+ +)?/, 'WS ') }
 end
 
-def beispiel(name) = File.binread(File.join(BEISPIELE, name)).force_encoding('Windows-1252').encode('UTF-8')
+def beispiel(name)
+  File.binread(File.join(BEISPIELE, name)).force_encoding('Windows-1252').encode('UTF-8')
+end
 
-def kopf(text) = text.split("\r\n").first(3)
+def kopf(text)
+  text.split("\r\n").first(3)
+end
 
 model = Sketchup.active_model = Sketchup::Model.new
 # Unterschrank 90 x 56 wie die Beispiele Boden/Deckel (DL 862, DH 558)
@@ -317,8 +321,12 @@ Sketchup.active_model = model
 module UI
   class << self
     attr_accessor :ordner, :meldung
-    def select_directory(**) = ordner
-    def messagebox(m, *) = (self.meldung = m)
+    def select_directory(**)
+      ordner
+    end
+    def messagebox(m, *)
+      (self.meldung = m)
+    end
   end
 end
 Dir.mktmpdir do |dir|
@@ -380,7 +388,9 @@ check(bl.find { |t| t.jt('teil') == 'Blende' }.jt('griff_lochmass').nil? &&
 
 # --- Schmaler Unterschrank mit Häfele HU Slim Base: Schienen an einer Seite, Front, keine Lochreihen ---
 # Wert einer Lage im Fräsmaß ab der Nullkante: "x-45" -> max - 45
-def lage_mm(v, max) = v.start_with?('x-', 'y-') ? max - v[2..].to_f : v.to_f
+def lage_mm(v, max)
+  v.start_with?('x-', 'y-') ? max - v[2..].to_f : v.to_f
+end
 hm = Sketchup.active_model = Sketchup::Model.new
 UnterschrankHandtuch.erstellen({})
 dh, mh = S::Export.erzeugen(hm)

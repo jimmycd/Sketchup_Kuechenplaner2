@@ -56,7 +56,9 @@ def mat_von(model, kategorie, schrank = nil)
   F.fronten(model, kategorie: kategorie).select { |t| schrank.nil? || t.pfad.first.equal?(schrank) }.map { |t| t.inst.material&.name }.uniq
 end
 
-def kanten_von(t) = t.inst.definition.entities.faces.map(&:material).compact.map(&:name).uniq
+def kanten_von(t)
+  t.inst.definition.entities.faces.map(&:material).compact.map(&:name).uniq
+end
 
 # --- Oberschränke auf Eiche ---
 n = F.anwenden(model, ober, eiche)
@@ -105,8 +107,12 @@ check(F.fronten(model, kategorie: 'Unterschrank').size == 6 && mat_von(model, 'U
 module UI
   class << self
     attr_accessor :antwort, :meldungen
-    def inputbox(*) = antwort
-    def messagebox(m, *_) = ((self.meldungen ||= []) << m) && IDOK
+    def inputbox(*)
+      antwort
+    end
+    def messagebox(m, *_)
+      ((self.meldungen ||= []) << m) && IDOK
+    end
   end
 end
 UI.antwort = ['Front Eiche 19mm', 'Nur Hochschränke', 'Nein', 'setzen', '128', 'Mitte', '40,5']
