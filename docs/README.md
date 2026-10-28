@@ -26,7 +26,7 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 
 | Thema | Stand | Plan |
 |---|---|---|
-| Arbeitsplatte über Unterschränken (L/U-Ecken, Verbindungsfräsung) | Bau läuft: Schritt 1 (Zeilen und Ecken erkennen) in [`Komponenten/arbeitsplatte/`](../Komponenten/arbeitsplatte/) | [Plan](plaene/arbeitsplatte.md) |
+| Arbeitsplatte über Unterschränken (L/U-Ecken, Verbindungsfräsung) | Bau läuft: Schritt 1 und 2 (Zeilen, Ecken, Plattenlayout) in [`Komponenten/arbeitsplatte/`](../Komponenten/arbeitsplatte/) | [Plan](plaene/arbeitsplatte.md) |
 | Weitere Spezialschränke | Vorschlagsliste, noch nichts ausgewählt | [Vorschläge](vorschlaege-weitere-spezialschraenke.md) |
 
 ## Weitere Unterlagen
