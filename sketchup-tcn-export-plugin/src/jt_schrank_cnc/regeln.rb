@@ -7,7 +7,9 @@
 # Fläche. Dazu (Schritt 6): Nut für eine Rückwand, die in Seiten und Boden
 # steckt (Oberschrank), Schrauben Deckel–Rückwand, Lochreihen für Einlegeböden
 # und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks;
-# Schienen und Front des Hochauszugs Häfele HU Slim Base. Die Bearbeitungen entstehen zuerst in
+# Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
+# der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II.
+# Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
 # Werkstückkoordinaten (Fräsmaß) umgerechnet.
 
@@ -72,18 +74,22 @@ module JTools
               stoss(a, b, regel, meldungen)
             end
           end
+          eckschrank_streben(teile, meldungen)
           teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
             ausschnitt(rw)
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
             teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
           end
           hu = hu_slim_base?(teile)
-          lochreihen(teile) unless hu # Seiten mit Hochauszug: keine Lochreihe (wie bei Schubladen)
+          lm = lemans?(teile)
+          lochreihen(teile) unless hu || lm # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen)
           hu_slim_base(teile, meldungen) if hu
+          lemans(teile, meldungen) if lm
           schienen(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
+          teile.each { |w| ecke(w) }
         end
         meldungen
       end
@@ -408,20 +414,177 @@ module JTools
         w.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, w.mass(k) + DURCH, nil, nil, 'Kanalausschnitt')
       end
 
-      # Sockelfüße: Bohrbild aus Boden.tcn in der Unterseite des Bodens,
-      # x entlang der längeren Plattenrichtung (wie DL)
-      def self.sockelfuesse(w)
+      # --- Eckschrank ---------------------------------------------------------------------
+      ECKSCHRANK = 'Eckschrank'.freeze
+      # Innenecke einer L-Platte: die Kanten bekommen Anleimer (OCL erkennt ihn dort nicht),
+      # also 2 mm zurückfräsen; nach außen fährt die Kontur einen Fräserdurchmesser über die Platte.
+      ECKE = { anleimer: 2.0, ueberlauf: NUT[:d_werkzeug] }.freeze
+
+      def self.eckschrank?(teile)
+        teile.first.teil.jt('typ') == ECKSCHRANK
+      end
+
+      # Ausgefräste Ecke einer L-Platte in Weltkoordinaten (mm): Fräsmaß-Grenzen der Ecke je Achse,
+      # dazu je Plattenachse, an welchem Ende (:lo/:hi) die Ecke liegt und wo ihre Innenkante ist.
+      # Die Ecke steht als ecke_x/ecke_y (Zoll, lokal) an der Definition; sie reicht von ecke_x
+      # bis zum Ende in x und von 0 bis ecke_y in y.
+      def self.ecke_rechteck(w)
+        d = Schraenke.definition(w.teil.inst)
+        ex, ey = d.get_attribute(DC_DICT, 'ecke_x'), d.get_attribute(DC_DICT, 'ecke_y')
+        return unless ex && ey
+        m = Geometrie.welt(w.teil.pfad)
+        mx = d.bounds.max.to_a.map(&:to_f)
+        p0 = Geometrie.punkt(m, [ex.to_f, 0.0, 0.0]).map { |v| v * Geometrie::MM }
+        p1 = Geometrie.punkt(m, [mx[0], ey.to_f, 0.0]).map { |v| v * Geometrie::MM }
+        aussen = {}
+        innen = {}
+        w.flaechen_achsen.each do |a|
+          lo, hi = [p0[a], p1[a]].minmax
+          if (lo - w.lo[a]).abs < TOL then aussen[a], innen[a] = :lo, hi + ECKE[:anleimer]
+          else aussen[a], innen[a] = :hi, lo - ECKE[:anleimer]
+          end
+        end
+        { aussen: aussen, innen: innen }
+      end
+
+      def self.ecke(w)
+        e = ecke_rechteck(w) or return
         k = w.dicke_achse
-        ax = w.flaechen_achsen.max_by { |a| [w.hi_f(a) - w.lo_f(a), -a] }
+        p0 = [0.0, 0.0, 0.0]
+        p1 = [0.0, 0.0, 0.0]
+        p0[k] = p1[k] = w.lo[k]
+        e[:aussen].each do |a, ende|
+          if ende == :lo then p0[a], p1[a] = w.lo[a] - ECKE[:ueberlauf], e[:innen][a]
+          else p0[a], p1[a] = e[:innen][a], w.hi[a] + ECKE[:ueberlauf]
+          end
+        end
+        w.ops << Op.new(:ausschnitt, :"#{Geometrie::ACHSEN[k]}min", p0, p1, NUT[:d_werkzeug], w.mass(k) + DURCH, nil, nil,
+                        'Ausschnitt Innenecke')
+      end
+
+      # L-Form: in der Ecke stößt eine Strebe mit dem Ende an die Längskante der anderen (Dübel)
+      def self.eckschrank_streben(teile, meldungen)
+        return unless eckschrank?(teile)
+        streben = teile.select { |w| w.rolle == 'Strebe' }
+        streben.permutation(2).each do |a, b|
+          next unless a.dicke_achse == b.dicke_achse
+          lang = a.flaechen_achsen.max_by { |x| a.mass(x) }
+          next unless lang == (b.flaechen_achsen - [b.flaechen_achsen.max_by { |x| b.mass(x) }]).first
+          stoss(a, b, VERBINDUNGEN['Strebe'].merge(schraube: false), meldungen, lang, DUEBEL[:tiefe_kante])
+        end
+      end
+
+      # Kesseböhmer LeMans II (Montageanleitung MA 406954 0000, S. 3 und 11) im Eckschrank
+      # Blindeck mit Variante 2. Säulenlager in Boden und Strebe vorn: Ø5 für die Systemschraube
+      # Ø6,3 × 13 bei X ab der Innenseite der Seite an der Tür und 69 mm ab Vorderkante, zwei
+      # Ø4,5-Schrauben 16 mm daneben auf 37 mm (vorgebohrt Ø3, Annahme). Der Boden wird von unten
+      # durchgebohrt (oben liegen die Sockelfüße nicht, Fläche 1 ist die Unterseite).
+      # Seitenprofil 500 an der Seite der Tür: 8 Löcher Ø5 (Systemschraube) im Raster 64,
+      # 52 mm ab Vorderkante, das unterste 28 mm über dem Boden.
+      LEMANS = {
+        name: 'Kesseboehmer LeMans II',
+        x: { 40 => 426, 45 => 476, 50 => 526, 60 => 626 },
+        korpus_min: { 40 => 764, 45 => 800, 50 => 910, 60 => 960 },
+        lager: { d: 5, tiefe: 13, vorn: 69 },
+        lager_schraube: { d: 3, tiefe: 10, vorn: 37, seitlich: 16 },
+        profil: { d: 5, tiefe: 13, vorn: 52, unten: 28, raster: 64, anzahl: 8 },
+        tiefe_min: 500, strebe_min: 60
+      }.freeze
+
+      def self.lemans?(teile)
+        sd = Schraenke.definition(teile.first.teil.schrank)
+        eckschrank?(teile) && sd.get_attribute(JT_DICT, 'beschlag') == LEMANS[:name] &&
+          sd.get_attribute(DC_DICT, 'variante').to_f.round == 2
+      end
+
+      def self.lemans(teile, meldungen)
+        sd = Schraenke.definition(teile.first.teil.schrank)
+        groesse = sd.get_attribute(DC_DICT, 'lemans').to_f.round
+        x = LEMANS[:x][groesse]
+        unless x
+          meldungen << "LeMans #{groesse} gibt es nicht (40, 45, 50, 60)"
+          return
+        end
+        # Blindseite links (0) -> Tür und Beschlag rechts
+        tuerseite = sd.get_attribute(DC_DICT, 'blindseite').to_f > 0.5 ? 'SeiteL' : 'SeiteR'
+        s = teile.find { |w| w.teil.jt('teil') == tuerseite } or return
+        andere = teile.find { |w| w.rolle == 'Seite' && !w.equal?(s) } or return
+        boden = teile.find { |w| w.rolle == 'Boden' } or return
+        strebe = teile.find { |w| w.teil.jt('teil') == 'StrebeVorn' }
+        k = s.dicke_achse
+        t = ([0, 1, 2] - [k, 2]).first
+        mitte = ->(w, i) { (w.lo[i] + w.hi[i]) / 2.0 }
+        nach_max = mitte.(andere, k) > mitte.(s, k)
+        seite, flaeche = flaeche_innen(s, k, nach_max)
+        richtung = nach_max ? 1 : -1
+        f = teile.find { |w| %w[Front Tuer].include?(w.rolle) }
+        vorn_max = f && mitte.(f, t) > mitte.(s, t)
+        vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
+
+        # Seitenprofil
+        pr = LEMANS[:profil]
+        pr[:anzahl].times do |i|
+          p = punkt(k => flaeche, t => vorne + dir * pr[:vorn], 2 => boden.hi[2] + pr[:unten] + i * pr[:raster])
+          s.ops << Op.new(:bohrung, seite, p, nil, pr[:d], pr[:tiefe], nil, nil, 'Profil LeMans')
+        end
+
+        # Säulenlager unten (durch den Boden, von unten) und oben (Unterseite Strebe vorn)
+        sx = flaeche + richtung * x
+        la, ls = LEMANS[:lager], LEMANS[:lager_schraube]
+        [[boden, :durch], [strebe, :unten]].each do |w, art|
+          next unless w
+          z = w.lo[2]
+          tief = ->(normal) { art == :durch ? w.mass(2) + DURCH : normal }
+          w.ops << Op.new(:bohrung, :zmin, punkt(k => sx, t => vorne + dir * la[:vorn], 2 => z), nil, la[:d], tief.(la[:tiefe]),
+                          nil, nil, 'Lager LeMans')
+          [-1, 1].each do |sg|
+            w.ops << Op.new(:bohrung, :zmin, punkt(k => sx + sg * ls[:seitlich], t => vorne + dir * ls[:vorn], 2 => z), nil,
+                            ls[:d], tief.(ls[:tiefe]), nil, nil, 'Lager LeMans Schraube')
+          end
+        end
+
+        # Mindestmaße laut Montageanleitung
+        breite = [s.hi[k], andere.hi[k]].max - [s.lo[k], andere.lo[k]].min
+        rw = teile.select { |w| w.rolle == 'Rueckwand' }.map { |w| vorn_max ? vorne - w.hi[t] : w.lo[t] - vorne }.select(&:positive?).min
+        tiefe = rw || (s.hi[t] - s.lo[t])
+        { "Korpusbreite für LeMans #{groesse}" => [breite, LEMANS[:korpus_min][groesse]], 'Tiefe' => [tiefe, LEMANS[:tiefe_min]],
+          'Strebe vorn' => [strebe ? strebe.hi[t] - strebe.lo[t] : 0, LEMANS[:strebe_min]] }.each do |was, (ist, min)|
+          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, LeMans II braucht mindestens #{min} mm" if ist < min - TOL
+        end
+      end
+
+      # Sockelfüße: Bohrbild aus Boden.tcn in der Unterseite des Bodens,
+      # x entlang der längeren Plattenrichtung (wie DL). L-Boden (Eckschrank): je Schenkel
+      # ein Rechteck, so stehen Füße an beiden Enden und an der Innenecke
+      def self.sockelfuesse(w)
+        lo = (0..2).map { |a| w.lo_f(a) }
+        hi = (0..2).map { |a| w.hi_f(a) }
+        e = ecke_rechteck(w)
+        return sockelfuesse_rechteck(w, lo, hi) unless e
+        a, b = w.flaechen_achsen
+        # Schenkel 1: ganze Länge in a, in b neben der Ecke
+        l1, h1 = lo.dup, hi.dup
+        e[:aussen][b] == :lo ? l1[b] = e[:innen][b] : h1[b] = e[:innen][b]
+        # Schenkel 2: in b auf Höhe der Ecke, in a neben ihr
+        l2, h2 = lo.dup, hi.dup
+        e[:aussen][b] == :lo ? h2[b] = e[:innen][b] : l2[b] = e[:innen][b]
+        e[:aussen][a] == :lo ? l2[a] = e[:innen][a] : h2[a] = e[:innen][a]
+        sockelfuesse_rechteck(w, l1, h1)
+        sockelfuesse_rechteck(w, l2, h2)
+      end
+
+      def self.sockelfuesse_rechteck(w, lo, hi)
+        k = w.dicke_achse
+        ax = w.flaechen_achsen.max_by { |a| [hi[a] - lo[a], -a] }
         ay = (w.flaechen_achsen - [ax]).first
         f = SOCKELFUSS
-        xs = [[w.lo_f(ax) + f[:rand_x], w.lo_f(ax) + f[:rand_x] + f[:raster]],
-              [w.hi_f(ax) - f[:rand_x] - f[:raster], w.hi_f(ax) - f[:rand_x]]]
-        ys = [w.lo_f(ay) + f[:rand_y], w.lo_f(ay) + f[:rand_y] + f[:raster],
-              w.hi_f(ay) - f[:rand_y], w.hi_f(ay) - f[:rand_y] - f[:raster]]
+        xs = [[lo[ax] + f[:rand_x], lo[ax] + f[:rand_x] + f[:raster]],
+              [hi[ax] - f[:rand_x] - f[:raster], hi[ax] - f[:rand_x]]]
+        ys = [lo[ay] + f[:rand_y], lo[ay] + f[:rand_y] + f[:raster],
+              hi[ay] - f[:rand_y], hi[ay] - f[:rand_y] - f[:raster]]
         # schmaler Boden (z. B. 112 mm beim Handtuchschrank): nur ein Fuß je Ende, mittig
-        if w.hi_f(ay) - w.lo_f(ay) < 2 * (f[:rand_y] + f[:raster])
-          m = (w.lo_f(ay) + w.hi_f(ay)) / 2.0
+        if hi[ay] - lo[ay] < 2 * (f[:rand_y] + f[:raster])
+          m = (lo[ay] + hi[ay]) / 2.0
           ys = [m - f[:raster] / 2.0, m + f[:raster] / 2.0]
         end
         xs.each do |x0, x1|
@@ -432,8 +595,9 @@ module JTools
         end
       end
 
-      def self.stoss(a, b, regel, meldungen)
-        k = b.dicke_achse
+      # k: Achse, entlang der A an B stößt (Standard: auf die Fläche von B; beim Eckschrank auch
+      # an eine Kante von B), tiefe_b: Dübeltiefe in B
+      def self.stoss(a, b, regel, meldungen, k = b.dicke_achse, tiefe_b = DUEBEL[:tiefe_flaeche])
         return if k == a.dicke_achse
         if (a.lo[k] - b.hi[k]).abs < TOL
           sa, sb, kp = :"#{Geometrie::ACHSEN[k]}min", :"#{Geometrie::ACHSEN[k]}max", b.hi[k]
@@ -464,7 +628,7 @@ module JTools
         p1 = pt.(hi - regel[:rand])
         titel = "Duebel #{b.teil.jt('teil')}"
         a.ops << Op.new(:reihe, sa, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_kante], regel[:raster], regel[:verteilt], titel)
-        b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_flaeche], regel[:raster], regel[:verteilt],
+        b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], tiefe_b, regel[:raster], regel[:verteilt],
                         "Duebel #{a.teil.jt('teil')}")
         return unless regel[:schraube]
         b.ops << Op.new(:bohrung, sb, pt.((lo + hi) / 2.0), nil, SCHRAUBE[:d], SCHRAUBE[:tiefe], nil, nil,

@@ -84,7 +84,7 @@ check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenp
       "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
 kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e }
-soll = ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Oberschrank…', 'Unterschrank Geschirrspüler…',
+soll = ['Apothekerschrank…', 'Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Hochschrank…', 'Hochschrank Geräte…', 'Oberschrank…', 'Unterschrank Geschirrspüler…',
         'Unterschrank Handtuchauszug…', 'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…',
         'Spülenschrank…', 'Unterschrank mit Tür…', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
