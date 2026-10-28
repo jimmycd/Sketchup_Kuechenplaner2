@@ -6,7 +6,7 @@ SketchUp-Komponenten für den Küchenbau und das TCN-Export-Plugin. Alles sind S
 * **Alles auf einmal:** [`Kuechenplaner_alle.rbz`](Kuechenplaner_alle.rbz) in SketchUp über *Erweiterungen → Extension Manager → Erweiterung installieren* wählen.
 * **Einzeln:** die `.rbz` im Ordner der Komponente (z. B. `Komponenten/hochschrank/hochschrank.rbz`) bzw. `sketchup-tcn-export-plugin/schrank_cnc.rbz` installieren.
 
-Danach steht unter *Erweiterungen › Küchenplaner* je Komponente ein Eintrag (Apothekerschrank, Hochschrank, Hochschrank Geräte, Oberschrank, Unterschrank Geschirrspüler, Unterschrank Handtuchauszug, Unterschrank Kochfeld mit Abzug, Unterschrank mit Schubladen, Spülenschrank, Unterschrank mit Tür) und darunter *TCN exportieren…* und *Frontfarbe und Griffe ändern…*. Das Untermenü gibt es nur einmal, egal wie viele der Erweiterungen installiert sind. Einzeln und zusammen installieren verträgt sich (gleiche Dateien).
+Danach steht unter *Erweiterungen › Küchenplaner* je Komponente ein Eintrag (Apothekerschrank, Eckschrank Blindeck, Eckschrank L-Form, Hochschrank, Hochschrank Geräte, Oberschrank, Unterschrank Geschirrspüler, Unterschrank Handtuchauszug, Unterschrank Kochfeld mit Abzug, Unterschrank mit Schubladen, Spülenschrank, Unterschrank mit Tür) und darunter *TCN exportieren…* und *Frontfarbe und Griffe ändern…*. Das Untermenü gibt es nur einmal, egal wie viele der Erweiterungen installiert sind. Einzeln und zusammen installieren verträgt sich (gleiche Dateien).
 
 Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, dass sie zum Quelltext passen):
 
@@ -22,6 +22,7 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 | [`Komponenten/unterschrank_spuele/`](Komponenten/unterschrank_spuele/) | Spülenschrank mit Türen oder Blende + Auszug, Installationsebene (`.rbz`) |
 | [`Komponenten/unterschrank_kochfeld/`](Komponenten/unterschrank_kochfeld/) | Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen, Kanal (`.rbz`) |
 | [`Komponenten/unterschrank_handtuch/`](Komponenten/unterschrank_handtuch/) | Schmaler Unterschrank 150/200 mm mit Hochauszug Häfele HU Slim Base (`.rbz`) |
+| [`Komponenten/eckschrank/`](Komponenten/eckschrank/) | Eck-Unterschrank: Blindeck mit einer Tür, zwei Türen oder Kesseböhmer LeMans II; L-Form mit Falttür (`.rbz`) |
 | [`Komponenten/hochschrank/`](Komponenten/hochschrank/) | Hochschrank (`.rbz`) |
 | [`Komponenten/hochschrank_geraete/`](Komponenten/hochschrank_geraete/) | Hochschrank für zwei Einbaugeräte, z. B. Backofen + Mikrowelle (`.rbz`) |
 | [`Komponenten/unterschrank_geschirrspueler/`](Komponenten/unterschrank_geschirrspueler/) | Nische für vollintegrierten Geschirrspüler 45/60 mit Front (`.rbz`) |

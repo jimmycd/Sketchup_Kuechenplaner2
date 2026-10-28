@@ -13,6 +13,7 @@ load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
+load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -413,6 +414,89 @@ fr2 = h2['USH1_Front']
 w2 = bearbeitungen(fr2.text, 1).select { |x| x.include?('#3=-5 ') }.map { |x| lage_mm(x[/#2=(\S+)/, 1], fr2.lage.dh) }.uniq.sort
 check(w2 == [30.0, 164.0], "Handtuch: Frontbohrungen M200 X = 134: #{w2}")
 check(mh2.any? { |m| m.include?('lichte Höhe 512') } && mh2.any? { |m| m.include?('Tiefe 450') }, "Handtuch: zu kleiner Einbauraum gemeldet: #{mh2}")
+
+# --- Eckschrank Blindeck: Blende ohne Bearbeitung, Lochreihen; Le Mans: Profil und Säulenlager ---
+lage_xy = ->(d, z) { [lage_mm(z[/#1=(\S+)/, 1], d.lage.dl), lage_mm(z[/#2=(\S+)/, 1], d.lage.dh)] }
+em = Sketchup.active_model = Sketchup::Model.new
+Eckschrank.erstellen({})
+de, me = S::Export.erzeugen(em)
+e = de.to_h { |x| [x.name, x] }
+check(me.empty?, "Eckschrank: keine Meldungen: #{me}")
+check(e.keys.sort == %w[UES1_Blende UES1_Boden UES1_Einlegeboden1 UES1_Rueckwand UES1_SeiteL UES1_SeiteR UES1_StrebeHinten UES1_StrebeVorn UES1_Tuer],
+      "Eckschrank: Dateien ohne Le-Mans-Platzhalter und ausgeblendete Teile: #{e.keys}")
+check(bearbeitungen(e['UES1_Blende'].text, 1).size == 1, 'Eckschrank: Blende nur formatieren')
+check(%w[UES1_SeiteL UES1_SeiteR].all? { |n| e[n].text.include?('#8522=5 ') && !e[n].text.include?('#3=-13 ') },
+      'Eckschrank: Lochreihen in beiden Seiten, keine Le-Mans-Bohrungen')
+fr_e = S::Frontfarbe.fronten(em).select(&:sichtbar?)
+check(fr_e.map { |t| t.jt('teil') }.sort == %w[Blende Tuer], "Eckschrank: Frontfarbe findet Blende und Tür: #{fr_e.map { |t| t.jt('teil') }}")
+S::Frontfarbe.anwenden(em, fr_e, nil, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+fe = S::Schraenke.teile(em).select { |t| t.front? && t.sichtbar? }.to_h { |t| [t.jt('teil'), t.jt('griff_lochmass')] }
+check(fe == { 'Blende' => nil, 'Tuer' => 160.0 }, "Eckschrank: Griff an der Tür, nicht an der Blende: #{fe}")
+
+[[0.0, 'SeiteR', 'SeiteL'], [1.0, 'SeiteL', 'SeiteR']].each do |blind, tuerseite, blindseite|
+  lm = Sketchup.active_model = Sketchup::Model.new
+  Eckschrank.erstellen({ 'Variante' => 2.0, 'Blindseite' => blind })
+  dl, ml = S::Export.erzeugen(lm)
+  l = dl.to_h { |x| [x.name, x] }
+  tx = "Le Mans Blindseite #{blind.to_i}"
+  check(ml.empty?, "#{tx}: keine Meldungen bei 1000 mm und LeMans 50: #{ml}")
+  check(!l.key?('UES1_Einlegeboden1') && dl.none? { |x| x.text.include?('#8522=5 ') && x.text.include?('fitting') && x.text.include?('#8512=32 ') },
+        "#{tx}: keine Einlegeböden, keine Lochreihen")
+  s = l["UES1_#{tuerseite}"]
+  pr = bearbeitungen(s.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-13 ') }.map { |x| lage_xy.(s, x) }
+  # Seite 700 hoch (DL), Profil 52 mm ab Vorderkante (Fräsmaß 50), unterstes Loch 19 + 28 mm über Unterkante, Raster 64
+  hoehen = pr.map(&:first).sort
+  check(pr.size == 8 && hoehen == (0..7).map { |i| 47.0 + 64 * i } && pr.map(&:last).uniq.size == 1 &&
+        [50.0, s.lage.dh - 50].include?(pr.first.last), "#{tx}: Profil 500 an der Türseite: #{pr}")
+  check(!l["UES1_#{blindseite}"].text.include?('#3=-13 '), "#{tx}: Blindseite ohne Profil")
+  # Säulenlager: X = 526 ab Innenseite der Türseite (Boden 962 lang: 981 - 526 - 19 = 436 ab links), 69/37 ab Vorderkante
+  x_soll = blind.zero? ? 436.0 : 962.0 - 436.0
+  bo = l['UES1_Boden']
+  lb = bearbeitungen(bo.text, 1).select { |x| x.include?('#3=-20 ') }.map { |x| [lage_xy.(bo, x), x[/#1002=(\S+)/, 1]] }
+  check(lb.size == 3 && lb.map { |(p, _)| p[0] }.sort == [x_soll - 16, x_soll, x_soll + 16] &&
+        lb.find { |_, d| d == '5' }[0][1].then { |y| [67.0, bo.lage.dh - 67].include?(y) },
+        "#{tx}: Säulenlager im Boden (durchgebohrt von unten): #{lb}")
+  sv = l['UES1_StrebeVorn']
+  ls = bearbeitungen(sv.text, 1).select { |x| x.include?('W#81') }.map { |x| [lage_xy.(sv, x), x[/#3=(\S+)/, 1]] }
+  check(ls.size == 3 && ls.map { |(p, _)| p[0] }.sort == [x_soll - 16, x_soll, x_soll + 16] && ls.map(&:last).sort == %w[-10 -10 -13],
+        "#{tx}: Säulenlager unter der Strebe vorn: #{ls}")
+end
+lm2 = Sketchup.active_model = Sketchup::Model.new
+Eckschrank.erstellen({ 'Variante' => 2.0, 'LeMans' => 60.0, 'Breite' => 90.0, 'Tiefe' => 48.0 })
+_, ml2 = S::Export.erzeugen(lm2)
+check(ml2.any? { |m| m.include?('Korpusbreite für LeMans 60 900') } && ml2.any? { |m| m.include?('Tiefe 480') },
+      "Le Mans: zu kleiner Korpus gemeldet: #{ml2}")
+
+# --- Eckschrank L-Form: Innenecke ausfräsen, Sockelfüße je Schenkel, Streben in der Ecke ---
+lf = Sketchup.active_model = Sketchup::Model.new
+Eckschrank.erstellen({}, l_form: true)
+dlf, mlf = S::Export.erzeugen(lf)
+f = dlf.to_h { |x| [x.name, x] }
+check(mlf.empty?, "L-Form: keine Meldungen: #{mlf}")
+bo = f['UES1_Boden']
+check(bo.lage.dl == 873 && bo.lage.dh == 873 && bo.lage.flaeche1 == :zmin, "L-Boden: Rechteck 873 x 873, Fläche 1 unten: #{bo.lage.to_a.drop(1)}")
+kont = bearbeitungen(bo.text, 1).drop_while { |x| !x.include?('W#89') }
+# Ecke vom Rand bis 2 mm hinter die Korpusvorderkante (Anleimer), 8 mm über die Platte hinaus: 323 x 323,
+# Kontur um den Fräserradius nach innen versetzt
+check(kont.size == 5 && kont[0].include?('#1=562.015 #2=562.015 #3=-20 ') && kont[1].include?('#1=315 #2=0 ') &&
+      kont[2].include?('#1=0 #2=315 '), "L-Boden: Innenecke ausgefräst: #{kont}")
+fuss = bearbeitungen(bo.text, 1).select { |x| x.include?('#8522=3 ') }.map { |x| [x[/#8510=(\S+)/, 1], x[/#8518=(\S+)/, 1]] }
+# Füße nur außerhalb der Ecke (lage_mm: x 0…873, die Ecke liegt bei x > 558 und y > 558)
+lage = ->(v) { lage_mm(v, 873) }
+check(fuss.size == 16 && fuss.none? { |x, y| lage.(x) > 558 && lage.(y) > 558 }, "L-Boden: 16 Sockelfuß-Reihen außerhalb der Ecke: #{fuss}")
+check(fuss.any? { |x, y| lage.(x).between?(470, 558) && lage.(y).between?(558, 700) }, "L-Boden: Fuß an der Innenecke: #{fuss}")
+eb = f['UES1_Einlegeboden1']
+check(bearbeitungen(eb.text, 1).any? { |x| x.include?('W#89') && x.include?('#1=552.015 ') }, 'L-Einlegeboden: Ecke 10 mm weiter zurück')
+check(%w[SeiteL SeiteR].all? { |n| f["UES1_#{n}"].text.include?('#8522=5 ') }, 'L-Form: Lochreihen in beiden Seiten')
+# Strebe B stößt mit dem Ende an die Kante von Strebe A: Dübel in beiden (A in der Kante, 22 tief)
+%w[StrebeVorn StrebeHinten].each do |sn|
+  a = f["UES1_#{sn}1"]
+  b = f["UES1_#{sn}2"]
+  kante = [3, 5].flat_map { |sd| bearbeitungen(a.text, sd) }.select { |x| x.include?('#8522=8 ') && x.include?('#8513=-22 ') }
+  ende = [4, 6].map { |sd| bearbeitungen(b.text, sd).count { |x| x.include?('#8522=8 ') } }
+  check(kante.size == 1 && ende == [1, 1], "L-Form: #{sn} in der Ecke verdübelt (#{kante.size}, #{ende})")
+end
+check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'L-Form: Frontfarbe findet beide Türen')
 
 if $fehler.zero?
   puts 'test_export: alles OK'
