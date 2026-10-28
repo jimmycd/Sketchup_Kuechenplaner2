@@ -40,6 +40,9 @@ module Eckschrank
   BESCHLAG = 'Kesseböhmer LeMans II'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze
   KUERZEL  = 'UES'.freeze
+  L_DICT   = 'JT_Eckschrank'.freeze
+  L_GEBAUT = 'l_gebaut'.freeze # [Schenkel A, Schenkel B, Tiefe] in cm, mit denen die L-Form gebaut ist
+  L_MASSE  = %w[Schenkel_A Schenkel_B Tiefe].freeze
 
   # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
   # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
@@ -119,8 +122,8 @@ module Eckschrank
   HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür, OpenCutList-fähig'.freeze
   HILFE_L = [
     'L-förmiger Korpus, Falttür (zwei Türen mit Blum-Scharnier verbunden).',
-    'Schenkellängen und Tiefe sind beim Erzeugen festgelegt (Erweiterungen › Küchenplaner › Unterschränke › Eckschrank L-Form); zum Ändern neu erzeugen.',
-    'Höhe und Anzahl Einlegeböden hier ändern.',
+    'Schenkel A, Schenkel B, Tiefe, Höhe und Anzahl Einlegeböden hier ändern.',
+    'Nach einer Änderung von Schenkel oder Tiefe baut die Erweiterung den Schrank neu auf (eine L-Platte lässt sich nicht per Formel umformen); Frontmaterial und Griffe bleiben erhalten.',
     'Boden und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export aus. OpenCutList rechnet mit dem Rechteck; die Anleimer der Innenecke erkennt OCL nicht.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UES1_Boden, UES1_TuerL.',
@@ -573,10 +576,13 @@ module Eckschrank
     n = p['Anz_Einlegeboeden'].to_i
 
     haupt = hauptteil(model, 'Eckschrank L-Form', u, kz, HILFE_KURZ_L, HILFE_L)
-    # Schenkel und Tiefe nur anzeigen: eine L-Platte lässt sich nicht per Formel umformen
-    attribut(haupt, 'Schenkel_A', a, access: 'VIEW', formlabel: 'Schenkel A (hinten, fest)')
-    attribut(haupt, 'Schenkel_B', bb, access: 'VIEW', formlabel: 'Schenkel B (links, fest)')
-    attribut(haupt, 'Tiefe', t, access: 'VIEW', formlabel: 'Tiefe (fest)')
+    # Schenkel und Tiefe sind änderbar, aber eine L-Platte lässt sich nicht per Formel
+    # umformen: nach einer Änderung baut l_pruefen den Schrank neu auf (L_GEBAUT merkt
+    # sich die Maße, mit denen er gebaut ist)
+    attribut(haupt, 'Schenkel_A', a, access: 'TEXTBOX', formlabel: 'Schenkel A (hinten)')
+    attribut(haupt, 'Schenkel_B', bb, access: 'TEXTBOX', formlabel: 'Schenkel B (links)')
+    attribut(haupt, 'Tiefe', t, access: 'TEXTBOX', formlabel: 'Tiefe')
+    haupt.set_attribute(L_DICT, L_GEBAUT, [a, bb, t])
     attribut(haupt, 'Hoehe', h, access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Anz_Einlegeboeden', n.to_f, laenge: false, access: 'LIST', formlabel: 'Anzahl Einlegeböden',
              units: 'INTEGER', options: '&0=0&1=1&2=2&')
@@ -643,6 +649,109 @@ module Eckschrank
   end
 
   # ---------------------------------------------------------------------------
+  # L-Form nach dem Ändern von Schenkel oder Tiefe neu aufbauen
+  # ---------------------------------------------------------------------------
+  # Wert wie die DC ihn sieht: zuerst an der Instanz (dort schreibt das Fenster
+  # Komponentenoptionen hin), sonst an der Definition
+  def self.dc_wert(inst, k)
+    v = inst.get_attribute(DICT, k.downcase)
+    v = inst.definition.get_attribute(DICT, k.downcase) if v.nil?
+    v
+  end
+
+  def self.dc_cm(inst, k)
+    dc_wert(inst, k).to_f * 2.54
+  end
+
+  # Alle L-Eckschränke im Modell prüfen; geänderte Maße -> neu aufbauen
+  def self.l_pruefen(model)
+    model.definitions.to_a.select { |d| d.get_attribute(L_DICT, L_GEBAUT) }.each do |d|
+      gebaut = d.get_attribute(L_DICT, L_GEBAUT)
+      d.instances.to_a.each do |inst|
+        neu = L_MASSE.map { |k| dc_cm(inst, k).round(2) }
+        l_neu_aufbauen(model, inst, neu) unless neu.zip(gebaut).all? { |x, y| (x - y).abs < 0.01 }
+      end
+    end
+  end
+
+  def self.l_neu_aufbauen(model, inst, masse)
+    alt = inst.definition
+    gebaut = alt.get_attribute(L_DICT, L_GEBAUT)
+    p = DEFAULTS_L.merge(L_MASSE.zip(masse).to_h)
+    begin
+      masse_l(p)
+    rescue ArgumentError => e
+      # ungültig: alte Maße zurück
+      L_MASSE.zip(gebaut).each do |k, v|
+        [inst, alt].each { |ent| ent.set_attribute(DICT, k.downcase, inch(v)) unless ent.get_attribute(DICT, k.downcase).nil? }
+      end
+      UI.messagebox("Eckschrank L-Form: #{e.message}. Die alten Maße bleiben.")
+      return nil
+    end
+    p['Hoehe'] = dc_cm(inst, 'Hoehe')
+    p['Anz_Einlegeboeden'] = dc_wert(inst, 'Anz_Einlegeboeden').to_f
+    p['Kuerzel'] = alt.get_attribute(JT_DICT, 'schrank')
+    FEST.each_key { |k| p[k] = dc_cm(inst, k) unless dc_wert(inst, k).nil? }
+    # Frontmaterial und Griffe (Frontfarbe) der Teile merken
+    vorher = alt.entities.grep(Sketchup::ComponentInstance).to_h do |c|
+      [c.name, [c.material, c.attribute_dictionary(JT_DICT) && c.attribute_dictionary(JT_DICT).to_h]]
+    end
+    model.start_operation('Eckschrank L-Form ändern', true, false, true)
+    neu = erzeuge_l(model, p)
+    neu.entities.grep(Sketchup::ComponentInstance).each do |c|
+      mat, jt = vorher[c.name]
+      next unless mat || jt
+      c.material = mat if mat
+      jt.each { |k, v| c.set_attribute(JT_DICT, k, v) if k.start_with?('griff_') } if jt
+    end
+    inst.definition = neu
+    L_MASSE.zip(masse).each { |k, v| inst.set_attribute(DICT, k.downcase, inch(v)) unless inst.get_attribute(DICT, k.downcase).nil? }
+    model.definitions.remove(alt) if alt.instances.empty? && model.definitions.respond_to?(:remove)
+    model.commit_operation
+    if defined?($dc_observers) && $dc_observers
+      $dc_observers.get_latest_class.redraw_with_undo(inst)
+    end
+    inst
+  rescue StandardError
+    model.abort_operation
+    raise
+  end
+
+  # Nach jedem Vorgang (z. B. „Übernehmen“ im Fenster Komponentenoptionen) prüfen;
+  # verzögert, weil das Modell im Beobachter nicht geändert werden soll
+  if defined?(Sketchup::ModelObserver)
+    class LBeobachter < Sketchup::ModelObserver
+      def onTransactionCommit(model)
+        return if @laeuft
+        @laeuft = true
+        UI.start_timer(0, false) do
+          begin
+            Eckschrank.l_pruefen(model)
+          ensure
+            @laeuft = false
+          end
+        end
+      end
+    end
+
+    class LAppBeobachter < Sketchup::AppObserver
+      def onNewModel(model)
+        Eckschrank.beobachten(model)
+      end
+
+      def onOpenModel(model)
+        Eckschrank.beobachten(model)
+      end
+    end
+  end
+
+  def self.beobachten(model)
+    return unless model && defined?(LBeobachter)
+    @beobachter ||= LBeobachter.new
+    model.add_observer(@beobachter)
+  end
+
+  # ---------------------------------------------------------------------------
   # Erzeugen
   # ---------------------------------------------------------------------------
   def self.erstellen(eingabe = {}, l_form: false)
@@ -705,5 +814,9 @@ end unless defined?(Kuechenplaner.untermenu)
 unless file_loaded?(__FILE__)
   Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank Blindeck…') { Eckschrank.erstellen }
   Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank L-Form…') { Eckschrank.dialog_l }
+  if defined?(Eckschrank::LAppBeobachter)
+    Sketchup.add_observer(Eckschrank::LAppBeobachter.new)
+    Eckschrank.beobachten(Sketchup.active_model)
+  end
   file_loaded(__FILE__)
 end
