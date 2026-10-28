@@ -69,9 +69,11 @@ SRC.each do |src|
 end
 
 # Tag-Schema: ROLLEN-Tabelle in jeder Komponente vorhanden und gleich
-rollen = Dir[File.join(haupt, 'Komponenten/*/src/*/main.rb')].map { |f| File.read(f, encoding: 'UTF-8')[/  ROLLEN = \{.*?\}\.freeze/m] }
-check(rollen.size == komponenten.size && rollen.all? && rollen.uniq.size == 1,
-      "ROLLEN-Tabelle in allen #{komponenten.size} Komponenten gleich (#{rollen.compact.size} gefunden, #{rollen.compact.uniq.size} Varianten)")
+# (Schränke; die Geräte sind keine Schrankteile und haben keine ROLLEN)
+schraenke = komponenten - ['geraete']
+rollen = schraenke.map { |k| File.read(File.join(haupt, 'Komponenten', k, 'src', k, 'main.rb'), encoding: 'UTF-8')[/  ROLLEN = \{.*?\}\.freeze/m] }
+check(rollen.all? && rollen.uniq.size == 1,
+      "ROLLEN-Tabelle in allen #{schraenke.size} Schrank-Komponenten gleich (#{rollen.compact.size} gefunden, #{rollen.compact.uniq.size} Varianten)")
 
 # Alle Erweiterungen laden (wie SketchUp beim Start: alphabetisch nach Lade-Datei), dann zweimal
 lade = SRC.map { |src| File.join(src, File.basename(Dir[File.join(src, '*.rb')].first, '.rb'), 'main.rb') }
@@ -84,14 +86,15 @@ check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenp
       "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
 kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
-soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
+soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…']
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…'],
+  'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen']
 }
 alle_eintraege = kp.grep(Array)
 gruppen.each do |g, eintraege|

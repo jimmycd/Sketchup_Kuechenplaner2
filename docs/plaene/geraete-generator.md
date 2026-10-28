@@ -1,5 +1,5 @@
 > Quelle: [Plan: Geräte-Generator für Kundenrenderings](https://claude.ai/artifact/JF7SYsCoZHFVMbYFrZ8XzP) (Plan-Dokument aus dem Projekt-Thread, Stand 28.10.2026)  
-> Status: **noch offen**: wartet auf Jürgens Antworten; Schnittstelle `JT_Nische` ist in den Spezialschränken schon umgesetzt
+> Status: umgesetzt in `Komponenten/geraete/` (Jürgens Freigabe 26.10.2026, Start 28.10.2026). Abweichungen vom Plan: ein Menüpunkt setzt alle Geräte auf einmal (statt einem je Gerätetyp); Geräte werden nicht automatisch beim Erzeugen des Schranks gesetzt; Spüle und Armatur sind dabei; Kühlschrank folgt mit dem Kühlschrank-Hochschrank.
 
 # Plan: Geräte-Generator für Kundenrenderings
 
