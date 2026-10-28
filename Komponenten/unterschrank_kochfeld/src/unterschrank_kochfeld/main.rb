@@ -597,7 +597,9 @@ module UnterschrankKochfeld
     werte
   end
 
-  def self.mm(text) = text.to_s.tr(',', '.').to_f / 10.0
+  def self.mm(text)
+    text.to_s.tr(',', '.').to_f / 10.0
+  end
 
   def self.dialog
     prompts = ['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Höhe Blende (mm)', 'Anzahl Schubladen',

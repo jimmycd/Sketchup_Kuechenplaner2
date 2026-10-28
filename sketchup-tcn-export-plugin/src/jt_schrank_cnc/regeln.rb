@@ -88,7 +88,9 @@ module JTools
         meldungen
       end
 
-      def self.ueberlapp(a, b, i) = [a.hi[i], b.hi[i]].min - [a.lo[i], b.lo[i]].max
+      def self.ueberlapp(a, b, i)
+        [a.hi[i], b.hi[i]].min - [a.lo[i], b.lo[i]].max
+      end
 
       def self.punkt(werte)
         p = [0.0, 0.0, 0.0]
@@ -163,7 +165,9 @@ module JTools
         b.ops << Op.new(:reihe, sb, p0, p1, r[:d_deckel], r[:tiefe_deckel], raster, false, "Schraube #{a.teil.jt('teil')}")
       end
 
-      def self.flaeche_innen(s, k, nach_max) = nach_max ? [:"#{Geometrie::ACHSEN[k]}max", s.hi[k]] : [:"#{Geometrie::ACHSEN[k]}min", s.lo[k]]
+      def self.flaeche_innen(s, k, nach_max)
+        nach_max ? [:"#{Geometrie::ACHSEN[k]}max", s.hi[k]] : [:"#{Geometrie::ACHSEN[k]}min", s.lo[k]]
+      end
 
       # feste Böden (und Streben), die an der Seite stoßen, nach Höhe; Seite der Seite, an der sie liegen
       def self.boeden_an(s, teile)
@@ -224,7 +228,9 @@ module JTools
       end
 
       # sichtbare Schubladen: Kastenteile je Bereich
-      def self.kaesten(teile) = teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }.values
+      def self.kaesten(teile)
+        teile.select { |w| KASTEN.include?(w.rolle) }.group_by { |w| w.teil.jt('bereich') }.values
+      end
 
       # Schienenbohrungen je sichtbarer Schublade in beiden Seiten
       def self.schienen(teile, meldungen)
