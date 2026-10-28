@@ -6,11 +6,12 @@
 #   Arbeitsplatte neu berechnen   APL<n> (markiert, sonst alle) mit denselben
 #                                 Einstellungen über den Schränken neu aufbauen
 #
-# Plan: docs/plaene/arbeitsplatte.md. Stand Schritt 3: Platten mit Material,
-# Anleimer und Tags; Ausschnitte (Schritt 4) und Verbindungsfräsung/TCN (Schritt 5)
-# folgen.
+# Plan: docs/plaene/arbeitsplatte.md. Stand Schritt 4: Platten mit Material,
+# Anleimer, Tags und Ausschnitten für Spüle und Kochfeld; Verbindungsfräsung/TCN
+# (Schritt 5) folgt.
 #
 #   erkennung.rb  Zeilen und Ecken aus Grundriss-Rechtecken (ohne SketchUp, getestet)
+#   ausschnitte.rb  Spüle und Kochfeld aus den Schränken, Prüfungen
 #   layout.rb     Platten zuschneiden: Überstände, Ecken, Stoßarten, Teilung, Format
 #   modell.rb     Schränke aus dem Modell lesen (JT_Schrank)
 #   dialog.rb     Einstellungen abfragen
@@ -37,7 +38,7 @@ module Arbeitsplatte
     'Platte' => 'Arbeitsplatte'
   }.freeze
 
-  %w[erkennung layout modell dialog ausgabe].each { |f| load File.join(PATH, "#{f}.rb") }
+  %w[erkennung ausschnitte layout modell dialog ausgabe].each { |f| load File.join(PATH, "#{f}.rb") }
 
   def self.meldung(erg, lay, kz)
     ["Arbeitsplatte #{kz}", '', Erkennung.zusammenfassung(erg), '', Layout.zusammenfassung(lay)].join("\n")

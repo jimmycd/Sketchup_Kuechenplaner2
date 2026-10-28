@@ -48,7 +48,7 @@ module Arbeitsplatte
       besaeumen: 10.0,           # je Plattenende vom Rohformat ab
       min_stueck: 300.0,         # kürzestes Stück beim Teilen
       ecken: {}                  # je Ecke: { nr => { stoss:, durchlaufend: Zeilennummer } }
-    }.freeze
+    }.merge(Ausschnitte::OPTIONEN).freeze
 
     # -------------------------------------------------------------------------
     # Koordinaten einer Zeile: s längs, q quer (Weltachsen)
@@ -222,10 +222,12 @@ module Arbeitsplatte
     end
 
     # -------------------------------------------------------------------------
-    # Teilen bei Überlänge: Stoß über einer Schrankseite
+    # Teilen bei Überlänge: Stoß über einer Schrankseite, nicht neben einem Ausschnitt
+    # (sperren: Bereiche längs der Zeile)
     # -------------------------------------------------------------------------
-    def self.teilungen(z, s_a, s_e, nutzbar, o, warnungen)
-      grenzen = z[:elemente].flat_map { |e| [e[:s0], e[:s1]] }.uniq.sort
+    def self.teilungen(z, s_a, s_e, nutzbar, o, warnungen, sperren = [])
+      frei = ->(g) { sperren.none? { |a, b| g > a && g < b } }
+      grenzen = z[:elemente].flat_map { |e| [e[:s0], e[:s1]] }.uniq.sort.select(&frei)
       schnitte = []
       cur = s_a
       while s_e - cur > nutzbar
@@ -233,6 +235,8 @@ module Arbeitsplatte
         s = kand.max
         unless s
           s = cur + nutzbar
+          sp = sperren.find { |a, b| s > a && s < b }
+          s = sp[0] if sp && sp[0] > cur + o[:min_stueck]
           warnungen << "Zeile #{z[:nr]}: Längsstoß bei #{s.round} mm liegt nicht über einer Schrankseite"
         end
         schnitte << s
@@ -308,11 +312,14 @@ module Arbeitsplatte
         l.to_f - 2 * o[:besaeumen]
       end
 
+      alle_ausschnitte = []
       erg[:zeilen].each do |z|
+        ausschnitte = Ausschnitte.fuer_zeile(z, o)
+        alle_ausschnitte.concat(ausschnitte)
         s_a = end_s(z, :start, o, ecken)
         s_e = end_s(z, :ende, o, ecken)
         breite = (q_wand(z, o) - q_vorn(z, o)).abs
-        schnitte = teilungen(z, s_a, s_e, nutzbar_fuer.(breite), o, warnungen)
+        schnitte = teilungen(z, s_a, s_e, nutzbar_fuer.(breite), o, warnungen, Ausschnitte.sperren(ausschnitte, o))
         grenzen = [z[:enden][:start]] + schnitte.map { |s| { art: :laengs, s: s } } + [z[:enden][:ende]]
         stuecke = grenzen.each_cons(2).map { |s0, s1| [s0, s1] }
         stuecke.each_with_index do |(st, en), i|
@@ -341,13 +348,17 @@ module Arbeitsplatte
                      pfad: k[:pfad] }
       end
       erg[:zeilen].each { |z| z.delete(:platten) }
+      Ausschnitte.zuordnen(erg, platten, stoesse, alle_ausschnitte, o, warnungen)
       { platten: platten, stoesse: stoesse, warnungen: warnungen, optionen: o }
     end
 
     def self.zusammenfassung(lay)
       txt = lay[:platten].map do |p|
+        aus = (p[:ausschnitte] || []).map do |a|
+          "#{Ausschnitte::NAMEN[a[:art]]} #{a[:breite].round} × #{a[:tiefe].round}"
+        end
         "Platte #{p[:nr]} (Zeile #{p[:zeile]}): #{p[:laenge].round} × #{p[:breite].round} × #{p[:staerke].round} mm, " \
-          "Format #{p[:format].map(&:round).join(' × ')}"
+          "Format #{p[:format].map(&:round).join(' × ')}#{aus.empty? ? '' : ", Ausschnitt #{aus.join(', ')}"}"
       end
       txt += lay[:stoesse].map do |s|
         name = { gehrungsansatz: 'Gehrungsansatz', stumpf: 'stumpf', gehrung: 'Gehrung 45°', laengs: 'Längsstoß' }[s[:art]]
