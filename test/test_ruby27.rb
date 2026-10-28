@@ -5,7 +5,7 @@
 haupt = File.expand_path('..', __dir__)
 KURZ = /^\s*def\s+(?:self\.)?\w+[?!]?(?:\((?:[^()]|\([^()]*\))*\))?\s+=\s/
 
-fehler = Dir[File.join(haupt, '{Komponenten/*/src,sketchup-tcn-export-plugin/src}/**/*.rb')].sort.flat_map do |f|
+fehler = Dir[File.join(haupt, '{Komponenten/*/src,sketchup-tcn-export-plugin/src,kuechenplaner-update/src}/**/*.rb')].sort.flat_map do |f|
   File.readlines(f, encoding: 'UTF-8').each_with_index.select { |l, _| l =~ KURZ }
       .map { |l, i| "#{f.sub("#{haupt}/", '')}:#{i + 1}: #{l.strip}" }
 end

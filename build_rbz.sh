@@ -4,15 +4,17 @@
 # .rbz zum Quelltext passen.
 #   Komponenten/<name>/<name>.rbz              eine Erweiterung je Komponente
 #   sketchup-tcn-export-plugin/schrank_cnc.rbz TCN-Export, Frontfarbe und Griffe
+#   kuechenplaner-update/kuechenplaner_update.rbz  Plugins aktualisieren (ohne Extension Manager)
 #   Kuechenplaner_alle.rbz                     alles zusammen in einer Datei
 set -e
 cd "$(dirname "$0")"
 top=$(pwd)
 rm -f Kuechenplaner_alle.rbz
-for src in Komponenten/*/src sketchup-tcn-export-plugin/src; do
+for src in Komponenten/*/src sketchup-tcn-export-plugin/src kuechenplaner-update/src; do
   dir=$(dirname "$src")
   name=$(basename "$dir")
   [ "$name" = sketchup-tcn-export-plugin ] && name=schrank_cnc
+  [ "$name" = kuechenplaner-update ] && name=kuechenplaner_update
   rm -f "$dir/$name.rbz"
   (cd "$src" && zip -q -X -r "$top/$dir/$name.rbz" . && zip -q -X -r "$top/Kuechenplaner_alle.rbz" .)
   echo "$dir/$name.rbz erstellt"
