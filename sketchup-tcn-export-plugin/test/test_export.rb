@@ -522,14 +522,15 @@ check(fuss.any? { |x, y| lage.(x).between?(470, 558) && lage.(y).between?(558, 7
 eb = f['UES1_Einlegeboden1']
 check(bearbeitungen(eb.text, 1).any? { |x| x.include?('W#89') && x.include?('#1=552.015 ') }, 'L-Einlegeboden: Ecke 10 mm weiter zurück')
 check(%w[SeiteL SeiteR].all? { |n| f["UES1_#{n}"].text.include?('#8522=5 ') }, 'L-Form: Lochreihen in beiden Seiten')
-# Strebe B stößt mit dem Ende an die Kante von Strebe A: Dübel in beiden (A in der Kante, 22 tief)
-%w[StrebeVorn StrebeHinten].each do |sn|
-  a = f["UES1_#{sn}1"]
-  b = f["UES1_#{sn}2"]
-  kante = [3, 5].flat_map { |sd| bearbeitungen(a.text, sd) }.select { |x| x.include?('#8522=8 ') && x.include?('#8513=-22 ') }
-  ende = [4, 6].map { |sd| bearbeitungen(b.text, sd).count { |x| x.include?('#8522=8 ') } }
-  check(kante.size == 1 && ende == [1, 1], "L-Form: #{sn} in der Ecke verdübelt (#{kante.size}, #{ende})")
-end
+# Strebe vorn B stößt mit dem Ende an die Kante der durchlaufenden Strebe vorn A: Dübel in
+# beiden (A in der Kante, 22 tief); hinten nur eine Strebe an A
+a = f['UES1_StrebeVorn1']
+b = f['UES1_StrebeVorn2']
+kante = [3, 5].flat_map { |sd| bearbeitungen(a.text, sd) }.select { |x| x.include?('#8522=8 ') && x.include?('#8513=-22 ') }
+ende = [4, 6].map { |sd| bearbeitungen(b.text, sd).count { |x| x.include?('#8522=8 ') } }
+check(kante.size == 1 && ende == [1, 1], "L-Form: Strebe vorn in der Ecke verdübelt (#{kante.size}, #{ende})")
+check(a.lage.dl == 873 && f['UES1_StrebeHinten'] && !f['UES1_StrebeHinten2'],
+      "L-Form: Strebe vorn A 873 lang bis an die Rückwand B, eine Strebe hinten (#{a.lage.dl}, #{f.keys.grep(/Strebe/)})")
 check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'L-Form: Frontfarbe findet beide Türen')
 
 if $fehler.zero?

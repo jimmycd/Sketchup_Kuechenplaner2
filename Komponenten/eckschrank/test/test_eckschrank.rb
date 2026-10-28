@@ -192,7 +192,7 @@ KANTEN_SOLL = {
 }.freeze
 KANTEN_SOLL_L = {
   'SeiteR' => %i[ymin], 'SeiteL' => %i[xmax], 'Boden' => [], 'StrebeVorn1' => %i[ymin], 'StrebeVorn2' => %i[xmax],
-  'StrebeHinten1' => [], 'StrebeHinten2' => [], 'Rückwand1' => [], 'Rückwand2' => [], 'Einlegeboden1' => [],
+  'StrebeHinten' => [], 'Rückwand1' => [], 'Rückwand2' => [], 'Einlegeboden1' => [],
   'Einlegeboden2' => [], 'TürR' => %i[xmin xmax zmin zmax], 'TürL' => %i[ymin ymax zmin zmax]
 }.freeze
 
@@ -267,7 +267,7 @@ rescue ArgumentError
 end
 
 # --- L-Form ----------------------------------------------------------------------
-TAGS_L = %w[SeiteL SeiteR Boden StrebeVorn1 StrebeVorn2 StrebeHinten1 StrebeHinten2 Rueckwand1 Rueckwand2
+TAGS_L = %w[SeiteL SeiteR Boden StrebeVorn1 StrebeVorn2 StrebeHinten Rueckwand1 Rueckwand2
             Einlegeboden1 Einlegeboden2 TuerL TuerR].freeze
 
 def pruefe_l(w, p, label)
@@ -305,10 +305,15 @@ def pruefe_l(w, p, label)
   check(nahe(bd[:q][0], RW) && nahe(bd[:q][1], a - MK) && nahe(bd[:q][2], ye) && nahe(bd[:q][3], MK + t) && nahe(bd[:q][5], MK),
         "#{label}: L-Boden zwischen den Seiten #{bd[:q]}")
   check(nahe(n[0], xk) && nahe(n[3], MK), "#{label}: Innenecke des Bodens an der Korpusvorderkante #{n}")
-  # Streben: hinten und vorn je Schenkel, in der Ecke stößt B an A
-  check(nahe(q.('StrebeVorn2')[3], q.('StrebeVorn1')[2]) && nahe(q.('StrebeHinten2')[3], q.('StrebeHinten1')[2]),
-        "#{label}: Streben B stoßen an Streben A")
-  check(%w[StrebeVorn1 StrebeVorn2 StrebeHinten1 StrebeHinten2].all? { |s| nahe(q.(s)[5], h) }, "#{label}: Streben oben")
+  # Streben (Jürgens Skizze): vorn A durch die Ecke bis an die Rückwand von B, vorn B stößt an
+  # vorn A, hinten nur an A über die ganze Länge
+  sva, svb, sh = q.('StrebeVorn1'), q.('StrebeVorn2'), q.('StrebeHinten')
+  check(nahe(sva[0], RW) && nahe(sva[1], a - MK) && nahe(sva[2], MK) && nahe(sva[3], MK + BS),
+        "#{label}: Strebe vorn A durch die Ecke bis an die Rückwand B #{sva}")
+  check(nahe(svb[3], sva[2]) && nahe(svb[2], ye) && nahe(svb[1], xk), "#{label}: Strebe vorn B stößt an Strebe vorn A #{svb}")
+  check(nahe(sh[0], RW) && nahe(sh[1], a - MK) && nahe(sh[3], MK + t), "#{label}: Strebe hinten über die ganze Länge von A #{sh}")
+  check(alle.none? { |t2| t2[:name] == 'StrebeHinten2' }, "#{label}: keine Strebe hinten an B")
+  check([sva, svb, sh].all? { |s| nahe(s[5], h) }, "#{label}: Streben oben")
   # Falttür: Tür A vor Schenkel A durch die Ecke, Tür B vor Schenkel B bis 1 mm vor Tür A
   ta, tbq = q.('TürR'), q.('TürL')
   check(nahe(ta[2], -SP) && nahe(ta[3], MK - SP) && nahe(ta[0], xk + SP) && nahe(ta[1], a - SP / 2), "#{label}: Tür A #{ta}")
@@ -344,6 +349,7 @@ def lauf_l(p, label, umkonf = nil)
 end
 
 lauf_l({}, 'L-Form 900 x 900', { 'Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2 })
+lauf_l({ 'Schenkel_A' => 75.6, 'Schenkel_B' => 75.6, 'Tiefe' => 46.0 }, 'L-Form 756 x 756, Tiefe 460 (Jürgens Skizze)')
 lauf_l({ 'Schenkel_A' => 120.0, 'Schenkel_B' => 100.0, 'Tiefe' => 60.0, 'Anz_Einlegeboeden' => 0.0 }, 'L-Form 1200 x 1000',
        { 'Anz_Einlegeboeden' => 1 })
 begin
