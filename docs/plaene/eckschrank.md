@@ -1,5 +1,5 @@
 > Quelle: [Plan: Eck-Unterschrank (einfach, doppelt, Le Mans)](https://claude.ai/artifact/Tw9s6uuZSr6NpYj1Xuf3TU) (Plan-Dokument aus dem Projekt-Thread, Stand 28.10.2026)  
-> Status: **noch offen**: Plan in Arbeit, noch nicht gebaut
+> Status: **gebaut**: freigegeben am 28.10.2026, umgesetzt in [`Komponenten/eckschrank/`](../../Komponenten/eckschrank/) (Antworten von Jürgen: doppelt = beide wählbar, L-Boden gefräst, Falttür mit Blum-Standardscharnier, LeMans 50 / Bohrungen per CNC / Profil 500)
 
 # Plan: Eck-Unterschrank (einfach, doppelt, Le Mans)
 
