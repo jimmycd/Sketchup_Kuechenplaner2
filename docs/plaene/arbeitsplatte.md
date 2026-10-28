@@ -1,19 +1,19 @@
 > Quelle: [Plan: Arbeitsplatte über geplanten Unterschränken](https://claude.ai/artifact/AmbiukmZYXGJrdpz25sYmG) (Plan-Dokument aus dem Projekt-Thread, Stand 28.10.2026)  
-> Status: **Plan**, wartet auf Jürgens Antworten und Freigabe
+> Status: **freigegeben** am 28.10.2026, Bau läuft in `Komponenten/arbeitsplatte/`
 
 # Plan: Arbeitsplatte über geplanten Unterschränken
 
 Ein neues Werkzeug im Menü **Küchenplaner** legt die Arbeitsplatte über die schon platzierten Unterschränke. Es findet die Schrankzeilen, erkennt L- und U-Ecken, schneidet die Platten mit der passenden Eckverbindung zu und setzt die Verbindungsfräsung (Hundeknochen für Zugbolzen, Lamellos). Spüle und Kochfeld bekommen ihren Ausschnitt dort, wo die Schränke es vorgeben. Alles ist OpenCutList-tauglich und geht über das Schrank-CNC-Plugin als TCN an die Maschine.
 
-## Fragen an Jürgen (mit Vorschlag)
+## Antworten von Jürgen (28.10.2026)
 
-1. **Plattenaufbau und Vorderkante?** Vorschlag: 38 mm Spanplatte mit Schichtstoff, Vorderkante wählbar: Postforming oder gerade mit 2-mm-ABS-Anleimer.
-2. **Material und Rohformat?** Vorschlag: „Arbeitsplatte Dekor 38“, Rohformat 4100 × 900 mm. Korpusse sind 800 mm tief, mit Front und Überstand wird die Platte etwa 840 mm tief.
-3. **Eckverbindung als Standard?** Vorschlag: Stoß mit Gehrungsansatz bei Postforming, stumpfer Stoß bei gerader Kante. Die längere Zeile läuft durch, je Ecke umschaltbar. Gehrung 45° als dritte Wahl.
-4. **Verbinder, Lamellos per CNC?** Vorschlag: Zugbolzen 150 mm (M8), Hundeknochen mit Ø35 (Topfbandbohrer) und 12-mm-Steg, 3 Stück bei 840 mm Tiefe, 4 bei Gehrung. Lamellos Gr. 20 nur mit Horizontalaggregat, sonst Handfräse.
-5. **CNC-Grenzen?** Bitte nennen: maximale Länge × Breite und Dicke. Vorschlag: Dekor unten aufspannen (Taschen und Ausschnitte in einer Aufspannung, Lamellonut von der Dekorseite gemessen). Platte länger als Tisch: nur das Stoßende bearbeiten (eigene TCN je Plattenende).
-6. **Überstände und Wand?** Vorschlag: vorn 20 mm vor der Front, seitlich an freien Enden 0 mm, 5 mm Wandluft (Wandabschlussleiste), 2 mm Fuge an Hochschränken.
-7. **Passt der Ablauf?** Nach Freigabe Bau in den Schritten unten.
+1. **Platte mit fertigem Anleimer oder Massivholz.** Plattenart im Dialog: Schichtstoff mit Anleimer ab Werk (Standard 38 mm) oder Massivholz (Standard 40 mm, Annahme). Vorderkante ab Werk bekantet, OCL zieht sie nicht ab; freie Enden bekommen den Anleimer wie gewohnt.
+2. **Format nach Schranktiefe, Auswahl aus Standardformaten oder Eingabe.** Liste 4100 × 600 / 650 / 900 / 1200; Vorschlag ist die schmalste, die die Tiefe abdeckt; anderes Format oder Länge × Breite eingeben.
+3. **Stoß mit Gehrungsansatz ist Standard, Übergang von Gehrung zu geradem Schnitt ist eine Kurve.** Bogen mit Radius R (Standard 30 mm, Annahme, einstellbar, größer als Fräserradius). Stumpf und 45° als Option.
+4. **Verbinder: passt.** Lamellos im Export erst einmal aus (Horizontalaggregat offen).
+5. **CNC 3200 × 1300, Auflage in x unbegrenzt, Anschlag links unten am Gehrungsansatz, Ablängen bauseits.** Je Stoßende eine TCN, Stoßende links am Anschlag, Vorderkante unten, Bearbeitung bis 3200 mm vom Anschlag; Ausschnitt weiter hinten wird gemeldet. Zweites Stoßende (U-Mittelplatte): Platte in der Ebene drehen, Hinterkante am Anschlag (vorher auf Tiefe formatieren).
+6. **Überstände und Wandabstand: einstellbar.** Standard vorn 20, seitlich 0, Wand 5, Hochschrank 2 mm.
+7. **Ablauf: ok.**
 
 ## Ablauf in SketchUp
 
@@ -45,16 +45,16 @@ Gelesen werden nur Instanzen mit `JT_Schrank`; Vorderkante lokal auf `ymin`. Dar
 
 ## Eckverbindung und Verbindungsfräsung
 
-- **Stumpfer Stoß** (gerade Kante): anstoßende Platte endet an der Vorderkante der durchlaufenden.
-- **Stoß mit Gehrungsansatz** (Postforming): durchlaufende Platte bekommt die weibliche Fräsung (Vorderkante auf Profiltiefe zurückgesetzt), anstoßende die männliche mit kurzem 45°-Schnitt über das Profil.
-- **Gehrung 45°**: für jede Kante, Stoß sichtbar, längere Fuge.
+- **Stumpfer Stoß** (Option): anstoßende Platte endet an der Vorderkante der durchlaufenden.
+- **Stoß mit Gehrungsansatz** (Standard): durchlaufende Platte bekommt die weibliche Fräsung (Vorderkante auf Gehrungstiefe zurückgesetzt), anstoßende die männliche mit kurzem 45°-Schnitt über die Vorderkante. Übergang vom geraden Schnitt in die Gehrung als Bogen mit Radius R.
+- **Gehrung 45°** (Option): Stoß sichtbar, längere Fuge.
 
 | Bearbeitung | Werte | Wo |
 |---|---|---|
-| Stoßkante | gerade oder 45°, Profiltiefe als Parameter (Annahme 30 mm) | Kontur |
+| Stoßkante | gerade oder 45°, Gehrungstiefe und Radius R als Parameter (Annahme je 30 mm) | Kontur |
 | Zugbolzen-Tasche (Hundeknochen) | 2 × Ø35, 20 tief, Mitte 65 vom Stoß; Steg 12 breit, 20 tief (Annahme) | Unterseite, quer zum Stoß |
 | Anzahl Zugbolzen | bis 650: 2, bis 900: 3, Gehrung: 4; erster/letzter 80 von den Kanten | gleich verteilt |
-| Lamello Gr. 20 | Nut 4 mm, Mitte 15 unter Dekor, 3–5 Stück zwischen den Bolzen | Stirnseite, optional |
+| Lamello Gr. 20 | Nut 4 mm, Mitte 15 unter Dekor, 3–5 Stück zwischen den Bolzen | Stirnseite, im Export erst einmal aus |
 | Fuge | keine, Platten stoßen auf Endmaß | – |
 
 Die Fräsung liegt als Daten am Teil (`JT_Arbeitsplatte`: Liste der Stöße mit Art, Lage, Taschen, Lamellos), gezeichnet wird nur die Kontur.
@@ -73,8 +73,8 @@ Unterbauspüle und flächenbündiges Kochfeld später.
 
 ## OpenCutList, Tags und Kanten
 
-- Material mit `ladb_opencutlist` Typ 2, Dicke 38 mm, Standardformat 4100 × 900.
-- Anleimer (Typ 4, 2 mm, abgezogen) an gerader Vorderkante und freien Enden; keiner an Wand- und Stoßkanten; bei Postforming keiner vorn.
+- Schichtstoff: `ladb_opencutlist` Typ 2 (38 mm); Massivholz: Typ 1 (40 mm); Standardformat nach Schranktiefe.
+- Vorderkante: Kantenmaterial „Anleimer Arbeitsplatte ab Werk“ (Typ 4, nicht abgezogen). Freie Enden: Anleimer (Typ 4, 2 mm, abgezogen). Wand- und Stoßkanten ohne. Massivholz ohne Anleimer.
 - Kürzel `APL` (AP ist der Apothekerschrank): `APL1_Platte1` …, `JT_Schrank` mit `kategorie`/`typ = Arbeitsplatte`, neue Rolle `Arbeitsplatte` in der ROLLEN-Tabelle (in allen Komponenten gleich).
 - Zugbolzen und Lamellos als OCL-Beschlag; Wandabschlussleiste optional.
 - „Frontfarbe ändern“ lässt die Arbeitsplatte in Ruhe.
@@ -86,13 +86,13 @@ Neue Regel für die Rolle Arbeitsplatte in `regeln.rb` des Schrank-CNC-Plugins, 
 - Kontur mit `W#89`/`W#2201` (wie Nut/Ausschnitt in `tcn.rb`), inkl. Gehrung und Gehrungsansatz; `squad.tmcr` nur für gerade Kanten.
 - Ausschnitte über die vorhandene Methode `ausschnitt`.
 - Hundeknochen: 2 × `W#81` Ø35 plus Tasche `rect.tmcr` (`W#1022`).
-- Lamellos auf `SIDE#4`/`SIDE#6` nur mit Horizontalaggregat; auf der Gehrung nur Zugbolzen.
-- Platte länger als Tisch: je Stoßende eine TCN mit Nullpunkt am Stoß (`APL1_Platte1_StossA.tcn`).
+- Lamellos auf `SIDE#4`/`SIDE#6`, erst einmal aus; auf der Gehrung nur Zugbolzen.
+- Je Stoßende eine TCN (`APL1_Platte1_StossA.tcn`): Stoßende links am Anschlag, Vorderkante unten, bis 3200 mm vom Anschlag, Breite bis 1300 mm; Ablängen bauseits.
 - Wunsch: eine echte TCN einer schon gefrästen Arbeitsplatte als Testvorlage.
 
 ## Prüfungen und Warnungen
 
-- Platte länger als Rohformat oder CNC-Tisch.
+- Platte länger als Rohformat, breiter als 1300 mm, Ausschnitt oder Stoß weiter als 3200 mm vom bearbeiteten Stoßende.
 - Ausschnitt < 150 mm am Stoß, < 50 mm an der Vorderkante, oder über einer Schrankseite.
 - Kochfeld < 300 mm neben Hochschrank.
 - Unterschiedliche Oberkante/Frontlinie, überlappende Schränke.
