@@ -1,5 +1,5 @@
 > Quelle: [Plan: Arbeitsplatte über geplanten Unterschränken](https://claude.ai/artifact/AmbiukmZYXGJrdpz25sYmG) (Plan-Dokument aus dem Projekt-Thread, Stand 28.10.2026)  
-> Status: **freigegeben** am 28.10.2026, Bau läuft in `Komponenten/arbeitsplatte/`
+> Status: **freigegeben** am 28.10.2026, gebaut in `Komponenten/arbeitsplatte/` (Schritt 1–5), TCN im Schrank-CNC-Plugin
 
 # Plan: Arbeitsplatte über geplanten Unterschränken
 

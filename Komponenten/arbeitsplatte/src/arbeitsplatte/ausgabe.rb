@@ -16,7 +16,7 @@
 #
 # Für "neu berechnen" und den TCN-Export stehen im Wörterbuch JT_Arbeitsplatte
 # an der Definition die Einstellungen, die Schrank-Kürzel und die Stöße (JSON),
-# an jeder Platte Umriss und Kantenarten.
+# an jeder Platte Umriss, Kantenarten, Frontrichtung und Stärke.
 
 require 'json'
 
@@ -132,6 +132,7 @@ module Arbeitsplatte
         'teil' => teil, 'rolle' => ROLLEN.fetch('Platte') }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
       { 'nr' => p[:nr], 'zeile' => p[:zeile], 'punkte' => json(p[:punkte]), 'kanten' => json(p[:kanten]),
         'format' => json(p[:format]), 'laenge' => p[:laenge], 'breite' => p[:breite],
+        'front' => p[:front].to_s, 'achse' => p[:achse], 'staerke' => p[:staerke],
         'ausschnitte' => json(p[:ausschnitte] || []) }
         .each { |k, v| inst.set_attribute(AP_DICT, k, v) }
       inst

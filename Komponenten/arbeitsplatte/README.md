@@ -4,10 +4,11 @@ Werkzeug, das nach dem Stellen der Unterschränke die Arbeitsplatte darüber leg
 auch für L- und U-Küchen mit Eckverbindung und Verbindungsfräsung.
 Plan: [docs/plaene/arbeitsplatte.md](../../docs/plaene/arbeitsplatte.md).
 
-**Stand: Schritt 4 von 5.** Die Platten werden mit Eckverbindung und Ausschnitten
-für Spüle und Kochfeld gezeichnet, OpenCutList-fähig (Material, Anleimer, Tags). Noch
-offen: Verbindungsfräsung und TCN-Export (Schritt 5); bis dahin übergeht der TCN-Export
-die Arbeitsplatten.
+**Stand: alle 5 Schritte gebaut, noch nicht in SketchUp und an der Maschine
+erprobt.** Die Platten werden mit Eckverbindung und Ausschnitten für Spüle und
+Kochfeld gezeichnet, OpenCutList-fähig (Material, Anleimer, Tags). *TCN exportieren…*
+(Schrank-CNC-Plugin) schreibt je Stoßende eine TCN mit Stoßkontur, Hundeknochen
+für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 
 ## Benutzung
 
@@ -81,6 +82,31 @@ Warnungen: Ausschnitt näher als 150 mm an einem Stoß, näher als 50 mm an der 
 breiter als der Schrank, ragt aus der Platte; Kochfeld näher als 300 mm am Hochschrank.
 Längsstöße halten 150 mm Abstand zu Ausschnitten.
 
+## TCN
+
+Der Export steht in `sketchup-tcn-export-plugin/src/jt_schrank_cnc/arbeitsplatte.rb`
+und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
+
+- Je Stoßende eine Datei `APL<n>_Platte<k>_Stoss<nr>.tcn`, Platten ohne Stoß mit
+  Ausschnitt `APL<n>_Platte<k>.tcn`. Abgelängt wird bauseits, die TCN fräst nur.
+- Dekor unten, Stoßende am Anschlag links unten (x = 0). DL = Plattenlänge,
+  DH = Tiefe, DS = Stärke. Arbeitsbereich 3200 × 1300 mm: was weiter weg liegt,
+  fehlt in der TCN und steht in den Hinweisen.
+- **Stoßkontur** mit dem Konturfräser (Annahme Werkzeug 2220, Ø 20) um den Radius in
+  den Abfall versetzt, Stärke + 1 mm tief, 10 mm über die Plattenkanten hinaus.
+  Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
+  durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
+  die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).
+- **Hundeknochen** je Verbinder: Bohrung Ø 35, 20 tief, 65 mm vom Stoß, und ein
+  Steg mit dem 12er Fräser (Annahme Werkzeug 2212) von der Stoßkante zur Bohrung.
+  Verbinder 80 mm von Wand und Vorderkante, 2 bis 650 mm Stoßlänge, 3 bis 900,
+  sonst 4, bei Gehrung immer 4. Keine Lamellos.
+- **Ausschnitte** (Spüle, Kochfeld) als geschlossene Kontur in der TCN, in der sie
+  am nächsten am Anschlag liegen. Ecken bis R 10 entstehen durch den Fräser, größere
+  Radien werden mitgefräst.
+
+Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`.
+
 ## Dateien
 
 - `src/arbeitsplatte/erkennung.rb`: Zeilen und Ecken aus Grundriss-Rechtecken, ohne SketchUp
@@ -91,7 +117,8 @@ Längsstöße halten 150 mm Abstand zu Ausschnitten.
 - `src/arbeitsplatte/ausgabe.rb`: Platten zeichnen
 - `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
-- `test/test_ausgabe.rb`: Zeichnen, OCL, Tags, Anleimer, Dialog, Neuberechnen, TCN-Export übergeht die Platten
+- `test/test_ausgabe.rb`: Zeichnen, OCL, Tags, Anleimer, Dialog, Neuberechnen, Schrank-Export übergeht die Platten
+- `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen) und einer Platte mit Spüle, Teileliste
 - `test/test_ausschnitte.rb`: Ausschnitte, Prüfungen, Längsstoß weicht aus, Dialog, Löcher
 - `test/test_layout.rb`: Layout: Überstände, Formate, Teilung, Stoßarten, Bogen, Flächen passen lückenlos
 
