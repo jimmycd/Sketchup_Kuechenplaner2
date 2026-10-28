@@ -11,3 +11,12 @@ jobs:
         with:
           ruby-version: '3.3'
       - run: ./run_tests.sh
+  ruby27:
+    # SketchUp 2021–2023 hat Ruby 2.7: der Quelltext der Erweiterungen muss dort laden
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - run: find Komponenten/*/src sketchup-tcn-export-plugin/src -name '*.rb' -print0 | xargs -0 -n1 ruby -c

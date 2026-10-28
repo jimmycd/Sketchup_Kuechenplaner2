@@ -149,7 +149,9 @@ module Apothekerschrank
   # ---------------------------------------------------------------------------
   # Formeln (nur Eingabe-Attribute des Apothekerschranks verwenden, keine berechneten)
   # ---------------------------------------------------------------------------
-  def self.a(n) = "#{NAME}!#{n}"
+  def self.a(n)
+    "#{NAME}!#{n}"
+  end
 
   def self.f_raum(f)
     if f == 'A'

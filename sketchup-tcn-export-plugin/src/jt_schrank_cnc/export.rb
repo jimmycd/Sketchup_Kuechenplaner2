@@ -14,7 +14,9 @@ module JTools
         end.map { |t| Geometrie.werkstueck(t) }
       end
 
-      def self.dateiname(name) = name.to_s.gsub(/[\\\/:*?"<>|\s]+/, '_')
+      def self.dateiname(name)
+        name.to_s.gsub(/[\\\/:*?"<>|\s]+/, '_')
+      end
 
       # Ergebnis: [Dateien, Meldungen]
       def self.erzeugen(model, auswahl: nil)
