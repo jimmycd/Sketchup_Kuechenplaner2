@@ -12,7 +12,7 @@ Die Gerätemaße sind **Richtwerte**. Vor dem Bau mit der Einbauanleitung des Ge
 
 ## Installation
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_kochfeld.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. Danach: *Erweiterungen → Küchenplaner → Unterschrank Kochfeld mit Abzug…*
+2. Danach: *Erweiterungen → Küchenplaner → Unterschränke → Unterschrank Kochfeld mit Abzug…*
 
 Ohne Installation: Ruby-Konsole `load 'C:/Pfad/zu/src/unterschrank_kochfeld/main.rb'`, dann `UnterschrankKochfeld.dialog`.
 

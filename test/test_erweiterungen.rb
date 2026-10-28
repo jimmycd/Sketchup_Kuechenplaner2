@@ -51,7 +51,7 @@ SRC.each do |src|
   check(l.include?("SketchupExtension.new('Küchenplaner – ") && l.include?('Sketchup.register_extension'),
         "#{name}: registriert Erweiterung „Küchenplaner – …“")
   main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
-  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.menu\)\n/m]
+  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.untermenu\)\n/m]
   check(s, "#{name}: gemeinsames Küchenplaner-Menü fehlt")
   snippet ||= s
   check(s == snippet, "#{name}: Küchenplaner-Menü nicht wortgleich")
@@ -83,13 +83,24 @@ erw = UI.menu('Extensions').eintraege
 check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenplaner',
       "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
 kp = erw.first.eintraege
-titel = kp.map { |e| e.is_a?(Array) ? e.first : e }
-soll = ['Apothekerschrank…', 'Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Hochschrank…', 'Hochschrank Geräte…', 'Oberschrank…', 'Unterschrank Geschirrspüler…',
-        'Unterschrank Handtuchauszug…', 'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…',
-        'Spülenschrank…', 'Unterschrank mit Tür…', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
+titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
+soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…',
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
-check(kp.grep(Array).all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
+gruppen = {
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
+  'Oberschränke' => ['Oberschrank…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…']
+}
+alle_eintraege = kp.grep(Array)
+gruppen.each do |g, eintraege|
+  m = kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }
+  ist = m ? m.eintraege.map { |e| e.is_a?(Array) ? e.first : e } : []
+  check(ist == eintraege, "Untermenü #{g}: #{ist.inspect}")
+  alle_eintraege += m.eintraege.grep(Array) if m
+end
+check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

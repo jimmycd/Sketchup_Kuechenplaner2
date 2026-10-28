@@ -4,7 +4,7 @@ Nische für einen **vollintegrierten Geschirrspüler** (45 oder 60 cm) in der Un
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_geschirrspueler.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. *Erweiterungen → Küchenplaner → Unterschrank Geschirrspüler…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
+2. *Erweiterungen → Küchenplaner → Unterschränke → Unterschrank Geschirrspüler…* baut den Schrank im aktuellen Modell (Kürzel für die Tags automatisch, siehe unten). Maße und Optionen danach in den *Komponentenoptionen* einstellen.
 
 Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 

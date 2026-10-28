@@ -4,7 +4,7 @@ Erweiterung, die analog zum bestehenden „Unterschrank“ (mit Tür) eine **Dyn
 
 ## Installation
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_schubladen.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. Danach: *Erweiterungen → Küchenplaner → Unterschrank mit Schubladen…*
+2. Danach: *Erweiterungen → Küchenplaner → Unterschränke → Unterschrank mit Schubladen…*
 
 Ohne Installation geht es auch über die Ruby-Konsole: `load 'C:/Pfad/zu/src/unterschrank_schubladen/main.rb'` und dann `UnterschrankSchubladen.dialog`.
 

@@ -2,7 +2,7 @@
 #
 # Eck-Unterschrank – erzeugt eine Dynamic Component
 #
-# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Eckschrank Blindeck bzw.
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Unterschränke > Eckschrank Blindeck bzw.
 # Eckschrank L-Form baut den Schrank im aktuellen Modell.
 #
 # Blindeck: gerader Korpus wie der Unterschrank mit Tür; ein Teil der Breite steckt
@@ -119,7 +119,7 @@ module Eckschrank
   HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür, OpenCutList-fähig'.freeze
   HILFE_L = [
     'L-förmiger Korpus, Falttür (zwei Türen mit Blum-Scharnier verbunden).',
-    'Schenkellängen und Tiefe sind beim Erzeugen festgelegt (Erweiterungen › Küchenplaner › Eckschrank L-Form); zum Ändern neu erzeugen.',
+    'Schenkellängen und Tiefe sind beim Erzeugen festgelegt (Erweiterungen › Küchenplaner › Unterschränke › Eckschrank L-Form); zum Ändern neu erzeugen.',
     'Höhe und Anzahl Einlegeböden hier ändern.',
     'Boden und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export aus. OpenCutList rechnet mit dem Rechteck; die Anleimer der Innenecke erkennt OCL nicht.',
     'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
@@ -684,14 +684,25 @@ end
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+# Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
+# 'Hochschränke'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke'].freeze
+
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
   end
-end unless defined?(Kuechenplaner.menu)
+
+  # Alle Gruppen beim ersten Aufruf anlegen, damit die Reihenfolge nicht von der
+  # Ladereihenfolge der Erweiterungen abhängt.
+  def self.untermenu(gruppe)
+    @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
+    @untermenues.fetch(gruppe)
+  end
+end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.menu.add_item('Eckschrank Blindeck…') { Eckschrank.erstellen }
-  Kuechenplaner.menu.add_item('Eckschrank L-Form…') { Eckschrank.dialog_l }
+  Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank Blindeck…') { Eckschrank.erstellen }
+  Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank L-Form…') { Eckschrank.dialog_l }
   file_loaded(__FILE__)
 end

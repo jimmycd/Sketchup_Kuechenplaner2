@@ -2,7 +2,7 @@
 #
 # Hochschrank Geräte – erzeugt eine Dynamic Component
 #
-# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Hochschrank Geräte baut den Schrank im
+# Erweiterung (.rbz): Erweiterungen > Küchenplaner > Hochschränke > Hochschrank Geräte baut den Schrank im
 # aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau von unten nach oben:
@@ -678,13 +678,24 @@ end
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+# Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
+# 'Hochschränke'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke'].freeze
+
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
   end
-end unless defined?(Kuechenplaner.menu)
+
+  # Alle Gruppen beim ersten Aufruf anlegen, damit die Reihenfolge nicht von der
+  # Ladereihenfolge der Erweiterungen abhängt.
+  def self.untermenu(gruppe)
+    @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
+    @untermenues.fetch(gruppe)
+  end
+end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.menu.add_item('Hochschrank Geräte…') { HochschrankGeraete.erstellen }
+  Kuechenplaner.untermenu('Hochschränke').add_item('Hochschrank Geräte…') { HochschrankGeraete.erstellen }
   file_loaded(__FILE__)
 end
