@@ -6,7 +6,7 @@ SketchUp-Komponenten für den Küchenbau und das TCN-Export-Plugin. Alles sind S
 * **Alles auf einmal:** [`Kuechenplaner_alle.rbz`](Kuechenplaner_alle.rbz) in SketchUp über *Erweiterungen → Extension Manager → Erweiterung installieren* wählen.
 * **Einzeln:** die `.rbz` im Ordner der Komponente (z. B. `Komponenten/hochschrank/hochschrank.rbz`) bzw. `sketchup-tcn-export-plugin/schrank_cnc.rbz` installieren.
 
-Danach steht unter *Erweiterungen › Küchenplaner* je Komponente ein Eintrag (Apothekerschrank, Eckschrank Blindeck, Eckschrank L-Form, Hochschrank, Hochschrank Geräte, Oberschrank, Unterschrank Geschirrspüler, Unterschrank Handtuchauszug, Unterschrank Kochfeld mit Abzug, Unterschrank mit Schubladen, Spülenschrank, Unterschrank mit Tür) und darunter *TCN exportieren…* und *Frontfarbe und Griffe ändern…*. Das Untermenü gibt es nur einmal, egal wie viele der Erweiterungen installiert sind. Einzeln und zusammen installieren verträgt sich (gleiche Dateien).
+Danach steht unter *Erweiterungen › Küchenplaner* je Komponente ein Eintrag (Apothekerschrank, Eckschrank Blindeck, Eckschrank L-Form, Hochschrank, Hochschrank Geräte, Oberschrank, Unterschrank Geschirrspüler, Unterschrank Handtuchauszug, Unterschrank Kochfeld mit Abzug, Unterschrank mit Schubladen, Spülenschrank, Unterschrank mit Tür) und darunter *TCN exportieren…* und *Frontfarbe und Griffe ändern…*. Ganz unten folgen *Plugins aktualisieren (GitHub)…* und *Plugins aus Ordner laden…*: damit kommen neue Versionen ohne Extension Manager und ohne Neustart (siehe [`kuechenplaner-update/`](kuechenplaner-update/)). Das Untermenü gibt es nur einmal, egal wie viele der Erweiterungen installiert sind. Einzeln und zusammen installieren verträgt sich (gleiche Dateien).
 
 Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, dass sie zum Quelltext passen):
 
@@ -29,6 +29,7 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 | [`Komponenten/oberschrank/`](Komponenten/oberschrank/) | Oberschrank mit 0–2 Türen (`.rbz`) |
 | [`Komponenten/apothekerschrank/`](Komponenten/apothekerschrank/) | Apothekerschrank: Hochfront mit Vollauszug und 2–6 LEGRABOX-Kästen (`.rbz`) |
 | [`docs/`](docs/) | Pläne und Vorschläge aus den Projekt-Threads, Übersicht welcher Schrank in welchem Ordner liegt, Beschlag-Unterlagen |
+| [`kuechenplaner-update/`](kuechenplaner-update/) | Erweiterung „Plugins aktualisieren“ (`kuechenplaner_update.rbz`): neue Versionen von GitHub oder aus einem Ordner laden, ohne Extension Manager |
 | [`sketchup-tcn-export-plugin/`](sketchup-tcn-export-plugin/) | Plugin „Schrank-CNC“ (`schrank_cnc.rbz`): TCN-Export für TpaCAD, Frontfarbe und Griffe ändern |
 
 ## Regeln für alle Komponenten
