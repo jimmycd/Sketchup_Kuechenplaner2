@@ -67,6 +67,23 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * Maserung: aus dem Material (`grained` im OCL-Wörterbuch, bleibt der Materialstamm).
 * Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
 
+## Etiketten
+*Erweiterungen › Küchenplaner › Etiketten…* ersetzt die Etiketten aus OpenCutList. Ein Etikett je Stück (Anzahl 3 = „1/3“, „2/3“, „3/3“), in der Reihenfolge und mit den Nummern der Stückliste. Inhalt: Tag, Nummer, Schrank · Teil, Material und Stärke, Rohmaß (fett), Fertigmaß, TCN-Dateiname und ein Kantenbild (Länge waagrecht, Anleimer als dicke Linie: L1 unten, L2 oben, B1 links, B2 rechts). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+
+Vor dem Schreiben fragt ein Fenster das Format ab (vorbelegt mit dem zuletzt benutzten, gespeichert für alle Modelle):
+
+| Feld | Standard | Bedeutung |
+| --- | --- | --- |
+| Art | Bogen | **Bogen**: A4 hoch, Etiketten in Spalten × Zeilen. **Endlos**: Etikettendrucker mit Rolle, je Etikett eine Seite in Etikettengröße |
+| Etikett Breite / Höhe | 70 × 37 mm | Größe eines Etiketts |
+| Spalten / Zeilen | 3 × 8 | nur Bogen |
+| Rand oben / links | 0,5 / 0 mm | nur Bogen, Abstand der ersten Etikettkante vom Blattrand |
+| Abstand waagrecht / senkrecht | 0 / 0 mm | nur Bogen, Lücke zwischen den Etiketten |
+| QR-Code | nein | ja: QR-Code mit dem TCN-Dateinamen (die QR-Bibliothek kommt beim Öffnen aus dem Internet) |
+| erstes freies Etikett | 1 | angebrochener Bogen: Nummer des ersten freien Etiketts, zeilenweise von oben links |
+
+Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im Browser. Drucken mit Größe 100 % (nicht „an Seite anpassen“) und ohne Ränder; die Seitengröße steht in der Datei (`@page`), beim Endlos-Drucker also die Etikettengröße.
+
 ## Einstellungen
 *Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
 
@@ -114,8 +131,10 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
 * `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
 * `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
+* `src/jt_schrank_cnc/etiketten.rb` – Etiketten (Bogen oder Endlos, HTML zum Drucken)
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
+* `test/test_etiketten.rb` – Etiketten: Bogen-Lage, Startposition, Endlos, Kantenbild, QR-Code, Format-Dialog
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form)
 
 ## Grundidee
