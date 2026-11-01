@@ -296,3 +296,28 @@ module Sketchup
     end
   end
 end
+
+# Symbolleiste (kuechenplaner-symbolleiste): Befehle und Symbolleisten aufzeichnen
+MF_ENABLED = 0 unless defined?(MF_ENABLED)
+MF_GRAYED = 1 unless defined?(MF_GRAYED)
+TB_NEVER_SHOWN = -1 unless defined?(TB_NEVER_SHOWN)
+module Sketchup
+  def self.platform = :platform_win
+end
+module UI
+  class Command
+    attr_accessor :small_icon, :large_icon, :tooltip, :status_bar_text
+    attr_reader :titel, :aktion, :validation
+    def initialize(titel, &aktion) = (@titel, @aktion = titel, aktion)
+    def set_validation_proc(&blk) = @validation = blk
+  end
+  class Toolbar
+    attr_reader :name, :befehle, :sichtbar
+    def self.alle = (@alle ||= [])
+    def initialize(name) = (@name, @befehle = name, []).tap { Toolbar.alle << self }
+    def add_item(c) = @befehle << c
+    def get_last_state = TB_NEVER_SHOWN
+    def show = @sichtbar = true
+    def restore = nil
+  end
+end

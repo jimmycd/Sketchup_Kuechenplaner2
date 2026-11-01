@@ -621,8 +621,9 @@ end
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
-# Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
-# 'Hochschränke'), Geräte in 'Geräte', Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
+# 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
+# Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
   GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
 
@@ -636,9 +637,20 @@ module Kuechenplaner
     @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
     @untermenues.fetch(gruppe)
   end
-end unless defined?(Kuechenplaner.untermenu)
+
+  # Schrank in seiner Gruppe ins Menü eintragen und für die Symbolleiste merken
+  def self.schrank(gruppe, titel, &aktion)
+    untermenu(gruppe).add_item(titel, &aktion)
+    schraenke << [gruppe, titel, aktion]
+  end
+
+  # Alle eingetragenen Schränke als [gruppe, titel, aktion]
+  def self.schraenke
+    @schraenke ||= []
+  end
+end unless defined?(Kuechenplaner.schrank)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.untermenu('Unterschränke').add_item('Spülenschrank…') { Spuelenschrank.dialog }
+  Kuechenplaner.schrank('Unterschränke', 'Spülenschrank…') { Spuelenschrank.dialog }
   file_loaded(__FILE__)
 end
