@@ -1,0 +1,141 @@
+# Test ohne SketchUp: alle Komponenten, der TCN-Export und das Aktualisieren sind Erweiterungen (.rbz)
+# und erscheinen unter Erweiterungen > Küchenplaner, das Untermenü gibt es nur einmal.
+haupt = File.expand_path('..', __dir__)
+$LOAD_PATH.unshift(File.join(haupt, 'sketchup-tcn-export-plugin/test'))
+require 'sketchup_mock'
+
+$fehler = 0
+def check(bed, msg)
+  return if bed
+  $fehler += 1
+  puts "FEHLER: #{msg}"
+end
+
+# Menü-Aufzeichnung statt der Attrappe
+module UI
+  class Menu
+    attr_reader :titel, :eintraege
+    def initialize(titel = nil) = (@titel, @eintraege = titel, [])
+    def add_submenu(t) = Menu.new(t).tap { |m| @eintraege << m }
+    def add_item(t, &blk) = @eintraege << [t, blk]
+    def add_separator = @eintraege << :trenner
+  end
+  @menues = {}
+  @timer = []
+  def self.menu(n) = (@menues[n] ||= Menu.new(n))
+  def self.start_timer(_s, _r = false, &blk) = @timer << blk
+  def self.timer_ablaufen
+    @timer.shift.call until @timer.empty?
+  end
+end
+Sketchup.active_model = Sketchup::Model.new
+
+SRC = Dir[File.join(haupt, 'Komponenten/*/src')].sort + %w[sketchup-tcn-export-plugin/src kuechenplaner-update/src kuechenplaner-symbolleiste/src].map { |s| File.join(haupt, s) }
+RBZ = ->(src) { d = File.dirname(src); n = File.basename(d); File.join(d, "#{{ 'sketchup-tcn-export-plugin' => 'schrank_cnc', 'kuechenplaner-update' => 'kuechenplaner_update', 'kuechenplaner-symbolleiste' => 'kuechenplaner_symbolleiste' }.fetch(n, n)}.rbz") }
+dateien = ->(src) { Dir.chdir(src) { Dir['**/*'].reject { |f| File.directory?(f) }.sort } }
+im_zip = ->(rbz, f) { IO.popen(['unzip', '-p', rbz, f], err: File::NULL, &:read).b }
+zip_liste = ->(rbz) { IO.popen(['zipinfo', '-1', rbz], err: File::NULL, &:read).split("\n").reject { |f| f.end_with?('/') }.sort }
+
+komponenten = Dir[File.join(haupt, 'Komponenten/*/')].map { |d| File.basename(d) }.sort
+check(komponenten.all? { |k| File.directory?(File.join(haupt, 'Komponenten', k, 'src')) },
+      "jede Komponente hat src/: #{komponenten.reject { |k| File.directory?(File.join(haupt, 'Komponenten', k, 'src')) }}")
+
+snippet = nil
+alle = File.join(haupt, 'Kuechenplaner_alle.rbz')
+alle_liste = zip_liste.(alle)
+SRC.each do |src|
+  loader = Dir[File.join(src, '*.rb')]
+  check(loader.size == 1, "#{src}: genau eine Lade-Datei")
+  name = File.basename(loader.first, '.rb')
+  l = File.read(loader.first, encoding: 'UTF-8')
+  check(l.include?("SketchupExtension.new('Küchenplaner – ") && l.include?('Sketchup.register_extension'),
+        "#{name}: registriert Erweiterung „Küchenplaner – …“")
+  main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
+  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.schrank\)\n/m]
+  check(s, "#{name}: gemeinsames Küchenplaner-Menü fehlt")
+  snippet ||= s
+  check(s == snippet, "#{name}: Küchenplaner-Menü nicht wortgleich")
+  check(main.scan("UI.menu(").size == 1, "#{name}: Menüeinträge nur über Kuechenplaner.menu")
+  check(!main.include?('_TEST)'), "#{name}: kein automatischer Lauf beim Laden")
+
+  rbz = RBZ.(src)
+  check(File.exist?(rbz), "#{rbz} fehlt (./build_rbz.sh ausführen)")
+  check(zip_liste.(rbz) == dateien.(src), "#{File.basename(rbz)}: Dateiliste passt nicht zu src/ (./build_rbz.sh ausführen)")
+  dateien.(src).each do |f|
+    inhalt = File.binread(File.join(src, f))
+    check(im_zip.(rbz, f) == inhalt, "rbz veraltet: #{File.basename(rbz)} #{f} (./build_rbz.sh ausführen)")
+    check(alle_liste.include?(f) && im_zip.(alle, f) == inhalt, "Kuechenplaner_alle.rbz veraltet: #{f} (./build_rbz.sh ausführen)")
+  end
+end
+
+# Tag-Schema: ROLLEN-Tabelle in jeder Komponente vorhanden und gleich
+# (Schränke; Geräte und Raum sind keine Schrankteile und haben keine ROLLEN)
+schraenke = komponenten - %w[geraete raum]
+rollen = schraenke.map { |k| File.read(File.join(haupt, 'Komponenten', k, 'src', k, 'main.rb'), encoding: 'UTF-8')[/  ROLLEN = \{.*?\}\.freeze/m] }
+check(rollen.all? && rollen.uniq.size == 1,
+      "ROLLEN-Tabelle in allen #{schraenke.size} Schrank-Komponenten gleich (#{rollen.compact.size} gefunden, #{rollen.compact.uniq.size} Varianten)")
+
+# Alle Erweiterungen laden (wie SketchUp beim Start: alphabetisch nach Lade-Datei), dann zweimal
+lade = SRC.map { |src| File.join(src, File.basename(Dir[File.join(src, '*.rb')].first, '.rb'), 'main.rb') }
+         .sort_by { |m| File.basename(File.dirname(m)) }
+$VERBOSE = nil # zweites Laden überschreibt Konstanten
+2.times { lade.each { |m| load m } }
+UI.timer_ablaufen
+erw = UI.menu('Extensions').eintraege
+check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenplaner',
+      "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
+kp = erw.first.eintraege
+titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
+soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :trenner, 'Arbeitsplatte erzeugen…', 'Arbeitsplatte neu berechnen', :trenner, 'TCN exportieren…', 'Stückliste…', 'Etiketten…', 'Zuschnittplan…', 'Frontfarbe und Griffe ändern…', 'Schrank andocken…', 'Einstellungen…',
+        :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
+check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
+gruppen = {
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
+  'Oberschränke' => ['Oberschrank…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…'],
+  'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
+  'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
+}
+alle_eintraege = kp.grep(Array)
+gruppen.each do |g, eintraege|
+  m = kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }
+  ist = m ? m.eintraege.map { |e| e.is_a?(Array) ? e.first : e } : []
+  check(ist == eintraege, "Untermenü #{g}: #{ist.inspect}")
+  alle_eintraege += m.eintraege.grep(Array) if m
+end
+check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
+
+# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm),
+# und der Schrank wird mit der eingegebenen Tiefe gebaut
+module UI
+  class << self
+    attr_accessor :abfragen
+  end
+  def self.inputbox(prompts, defaults, *_rest)
+    (@abfragen ||= []) << [prompts, defaults]
+    defaults.each_with_index.map { |d, i| prompts[i] == 'Tiefe Korpus (mm)' ? '610' : d }
+  end
+end
+unterschraenke = kp.find { |e| e.is_a?(UI::Menu) && e.titel == 'Unterschränke' }.eintraege
+schrank_eintraege = %w[Unterschränke Oberschränke Hochschränke].flat_map do |g|
+  kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }.eintraege.grep(Array)
+end
+schrank_eintraege.each do |titel, blk|
+  next if titel == 'Unterschrank mit Tür…' # lädt Unterschrank.skp, eigener Test in Komponenten/unterschrank_tuer
+  m = Sketchup.active_model = Sketchup::Model.new
+  UI.abfragen = []
+  blk.call
+  frage = UI.abfragen.first
+  i = frage && frage[0].index('Tiefe Korpus (mm)')
+  soll = titel == 'Oberschrank…' ? '400' : '520'
+  check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
+  check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
+  inst = m.entities.grep(Sketchup::ComponentInstance).last
+  t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
+  check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
+end
+check(unterschraenke.size == 8, 'alle Unterschränke geprüft')
+
+puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
+exit($fehler.zero? ? 0 : 1)

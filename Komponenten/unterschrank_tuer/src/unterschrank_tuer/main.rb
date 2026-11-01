@@ -1,0 +1,308 @@
+# encoding: UTF-8
+#
+# Unterschrank mit Tür: fügt die von Hand gebaute Unterschrank.skp (liegt in der
+# Erweiterung) über Erweiterungen > Küchenplaner > Unterschränke > Unterschrank mit Tür ins Modell
+# ein und richtet sie ein: Kurzhilfe, ein eigener Tag je Teil (<Kürzel>_<Teil>,
+# z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer), das Wörterbuch "JT_Schrank"
+# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (OpenCutList)
+# an Boden, Einlegeböden und Streben. Jeder eingefügte Schrank
+# bekommt ein eigenes Kürzel (UST1, UST2 …).
+
+require 'sketchup.rb'
+
+module UnterschrankTuer
+
+  DICT = 'dynamic_attributes'.freeze
+  KUERZEL = 'UST'.freeze
+  DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_tuer'.freeze
+  HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden, OpenCutList-fähig'.freeze
+  HILFE = [
+    'Breite, Höhe, Tiefe (Korpus ohne Front/Rückwand), Tür ja/nein und Anzahl Einlegeböden (0–3) hier ändern.',
+    'Korpus 19 mm, Rückwand 8 mm, Streben 100 mm, Fugen 2 mm.',
+    'Material „Melamin weiss“; OpenCutList erstellt daraus die Zuschnittliste.',
+    'Anleimer vorne an Boden, Einlegeböden und vorderer Strebe, hintere Strebe ohne; gezeichnet ist das Endmaß, den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UST1_SeiteL, UST1_Tuer.',
+    'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
+    "Doku: #{DOKU_URL}"
+  ].join(' ').freeze
+
+  # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
+  # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
+  JT_DICT   = 'JT_Schrank'.freeze
+  TYP       = 'Unterschrank_Tuer'.freeze
+  KATEGORIE = 'Unterschrank'.freeze # Unterschrank, Oberschrank oder Hochschrank
+  ROLLEN = {
+    'SeiteL' => 'Seite', 'SeiteR' => 'Seite', 'Boden' => 'Boden', 'Deckel' => 'Deckel',
+    'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
+    'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
+    'Mittelboden' => 'Zwischenboden',
+    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
+    'Blende' => 'Front',
+    'WangeL' => 'Wange', 'WangeR' => 'Wange',
+    'Platte' => 'Arbeitsplatte'
+  }.freeze
+
+  # Namen der Teile in Unterschrank.skp (Instanz- oder Definitionsname) -> Teil
+  TEILE = {
+    'SeiteL' => 'SeiteL', 'SeiteR' => 'SeiteR', 'Boden' => 'Boden',
+    'StrebeVorn' => 'StrebeVorn', 'StrebeV' => 'StrebeVorn',
+    'StrebeHinten' => 'StrebeHinten', 'StrebeH' => 'StrebeHinten',
+    'Rückwand' => 'Rueckwand', 'Rueckwand' => 'Rueckwand',
+    'Front' => 'Tuer', 'Tür' => 'Tuer', 'Tuer' => 'Tuer',
+    'Einlegeboden1' => 'Einlegeboden1', 'Einlegeboden2' => 'Einlegeboden2', 'Einlegeboden3' => 'Einlegeboden3',
+    'Boden#1' => 'Einlegeboden1', 'Boden#2' => 'Einlegeboden2', 'Boden#3' => 'Einlegeboden3'
+  }.freeze
+
+  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
+  def self.hilfe(d)
+    d.description = HILFE_KURZ
+    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
+      d.set_attribute(DICT, k, text)
+      d.set_attribute(DICT, "_#{k}_label", label)
+      d.set_attribute(DICT, "_#{k}_formlabel", label)
+      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
+      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+    end
+    d.set_attribute(DICT, 'dialogwidth', 520)
+    d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
+  end
+
+  # Freies Kürzel für die Tags, z. B. UST1, UST2 …
+  def self.freies_kuerzel(model)
+    n = 1
+    n += 1 while model.layers.to_a.any? { |l| l.name.start_with?("#{KUERZEL}#{n}_") }
+    "#{KUERZEL}#{n}"
+  end
+
+  # Tag <Kürzel>_<Bereich>_<Teil> und JT_Schrank am Teil
+  def self.kennzeichnen(model, inst, kz, teil, bereich = nil)
+    name = [kz, bereich, teil].compact.join('_')
+    inst.layer = model.layers[name] || model.layers.add(name)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE, 'bereich' => bereich.to_s,
+      'teil' => teil, 'rolle' => ROLLEN.fetch(teil.sub(/\d+\z/, '')) }.each { |k, v| inst.set_attribute(JT_DICT, k, v) }
+    inst
+  end
+
+  # Teil zuerst am Instanznamen erkennen, dann Einlegeböden an ihrer Sichtbarkeitsformel,
+  # zuletzt am Definitionsnamen (SketchUp hängt bei Kopien "#2" usw. an)
+  def self.teil_von(inst)
+    d = inst.definition
+    [inst.get_attribute(DICT, '_name'), inst.name].each { |n| return TEILE[n] if TEILE[n] }
+    f = d.get_attribute(DICT, '_hidden_formula') || inst.get_attribute(DICT, '_hidden_formula')
+    # alte Form "Anz_Einlegeboeden>0" = Boden 1, neue Form "Anz_Einlegeboeden>=1" = Boden 1
+    return "Einlegeboden#{$2.to_i + ($1 == '>=' ? 0 : 1)}" if f.to_s =~ /Anz_Einlegeboeden\s*(>=?)\s*(\d)/
+    [d.get_attribute(DICT, '_name'), d.name, d.name.sub(/#\d+\z/, '')].each { |n| return TEILE[n] if TEILE[n] }
+    nil
+  end
+
+  # Einlegeböden: Formeln für Sichtbarkeit und Höhe. In der von Hand gebauten
+  # Unterschrank.skp hatten die Böden nur eine Sichtbarkeitsformel in der Form
+  # " IF (…)" (mit Leerzeichen, wird nicht zuverlässig ausgewertet) und gar keine
+  # Formel für die Höhe – sie standen fest bei 14/26/40,5 cm. Jetzt teilen die
+  # sichtbaren Böden den Innenraum zwischen Boden und Streben in gleich hohe Fächer;
+  # ausgeblendete Böden liegen auf dem Boden.
+  def self.einlegeboden_formeln(u, k)
+    n = "#{u}!Anz_Einlegeboeden"
+    mk = "#{u}!Materialstaerke_Korpus"
+    {
+      hidden: "IF(#{n}>=#{k},0,1)",
+      z: "IF(#{n}>=#{k},#{mk}+#{k}*(#{u}!Hoehe-(#{n}+2)*#{mk})/(#{n}+1)+#{k - 1}*#{mk},#{mk})"
+    }
+  end
+
+  def self.einlegeboden_reparieren(d, inst, k)
+    u = d.get_attribute(DICT, '_name') || 'Unterschrank'
+    f = einlegeboden_formeln(u, k)
+    # Sichtbarkeit an der Definition (dort stand die alte Formel) und an der Instanz
+    [inst.definition, inst].each do |e|
+      e.set_attribute(DICT, '_hidden_formula', f[:hidden])
+      e.set_attribute(DICT, '_hidden_label', 'Hidden')
+      e.set_attribute(DICT, '_hidden_formlabel', 'Hidden')
+      e.set_attribute(DICT, '_hidden_units', 'BOOLEAN')
+      e.set_attribute(DICT, '_hidden_error', '')
+    end
+    inst.set_attribute(DICT, '_name', "Einlegeboden#{k}")
+    inst.set_attribute(DICT, '_z_formula', f[:z])
+    inst.set_attribute(DICT, '_z_label', 'Z')
+    inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
+  end
+
+  # Anleimer (Kanten für OpenCutList), wie bei den anderen Unterschränken: nur die
+  # Vorderkante. In der von Hand gebauten Unterschrank.skp fehlte sie am Boden, die
+  # vordere Strebe hatte auch hinten eine Kante und die hintere Strebe Kanten.
+  # Seiten, Tür und Rückwand sind dort richtig und werden nicht angefasst.
+  ANLEIMER = 'Anleimer weiss'.freeze
+  OCL_DICT = 'ladb_opencutlist'.freeze
+  OCL_ANLEIMER = {
+    'type' => 4, # Kante
+    'thickness' => '2 mm', 'length_increase' => '0', 'width_increase' => '0',
+    'thickness_increase' => '0', 'grained' => false, 'edge_decremented' => true,
+    'std_widths' => '19 mm;23 mm;28 mm;33 mm;35 mm;43 mm', 'std_lengths' => '75 m'
+  }.freeze
+  KANTEN = {
+    'Boden'        => %i[vorn],
+    'Einlegeboden' => %i[vorn],
+    'StrebeVorn'   => %i[vorn],
+    'StrebeHinten' => []
+  }.freeze
+
+  def self.anleimer_material(model)
+    m = model.materials[ANLEIMER] || model.materials.add(ANLEIMER).tap { |n| n.color = Sketchup::Color.new(245, 245, 240) }
+    OCL_ANLEIMER.each { |k, v| m.set_attribute(OCL_DICT, k, v) } if m.get_attribute(OCL_DICT, 'type').nil?
+    m
+  end
+
+  def self.anleimer?(mat)
+    mat && (mat.get_attribute(OCL_DICT, 'type').to_i == 4 || mat.name.to_s =~ /anleimer/i)
+  end
+
+  # Flächen der Teildefinition, die im Schrank nach vorne zeigen (Front liegt bei -y)
+  def self.vorderflaechen(inst)
+    inst.definition.entities.grep(Sketchup::Face).select { |f| f.normal.transform(inst.transformation).y < -0.5 }
+  end
+
+  def self.kanten_setzen(model, d)
+    anleimer = anleimer_material(model)
+    soll = {}
+    d.entities.grep(Sketchup::ComponentInstance).each do |inst|
+      kanten = KANTEN[teil_von(inst).to_s.sub(/\d+\z/, '')]
+      next unless kanten
+      flaechen = kanten.include?(:vorn) ? vorderflaechen(inst) : []
+      # Definition mit einem anderen Teil geteilt (z. B. beide Streben): eigene Definition
+      if soll.key?(inst.definition) && soll[inst.definition] != flaechen
+        inst.make_unique
+        flaechen = kanten.include?(:vorn) ? vorderflaechen(inst) : []
+      end
+      soll[inst.definition] = flaechen
+      inst.definition.entities.grep(Sketchup::Face).each do |f|
+        if flaechen.include?(f) then f.material = anleimer
+        elsif anleimer?(f.material) then f.material = nil
+        end
+      end
+    end
+  end
+
+  # Tags und JT_Schrank an allen Teilen; gibt die nicht erkannten Teilnamen zurück
+  def self.tags_setzen(model, d)
+    kz = d.get_attribute(JT_DICT, 'schrank') || freies_kuerzel(model)
+    { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| d.set_attribute(JT_DICT, k, v) }
+    unbekannt = []
+    d.entities.grep(Sketchup::ComponentInstance).each do |inst|
+      teil = teil_von(inst)
+      einlegeboden_reparieren(d, inst, $1.to_i) if teil.to_s =~ /\AEinlegeboden(\d)\z/
+      teil ? kennzeichnen(model, inst, kz, teil) : unbekannt << (inst.name.to_s.empty? ? inst.definition.name : inst.name)
+    end
+    unbekannt
+  end
+
+  def self.einrichten(model = Sketchup.active_model)
+    ziele = model.selection.grep(Sketchup::ComponentInstance)
+    if ziele.empty?
+      UI.messagebox('Bitte zuerst den Unterschrank auswählen.')
+      return []
+    end
+    model.start_operation('Unterschrank einrichten', true)
+    unbekannt = ziele.map(&:definition).uniq.flat_map do |d|
+      hilfe(d)
+      kanten_setzen(model, d)
+      tags_setzen(model, d)
+    end
+    model.commit_operation
+    # Dynamic Components neu berechnen, damit die Einlegeböden sofort richtig stehen
+    ziele.each { |i| $dc_observers.get_latest_class.redraw_with_undo(i) } if defined?($dc_observers) && $dc_observers
+    hinweis = unbekannt.empty? ? '' : "\nOhne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}"
+    UI.messagebox('Kurzhilfe, Tags und Anleimer gesetzt.' + hinweis)
+    ziele
+  end
+
+  SKP = File.join(File.dirname(__FILE__), 'Unterschrank.skp').freeze
+
+  # Neuer Schrank: Breite, Höhe und Tiefe (Korpus ohne Front/Rückwand) beim Einfügen abfragen.
+  # Unterschrank.skp rechnet alle Teile per Formel aus „Breite“, „Hoehe“ und „Tiefe“; die Maße
+  # bleiben danach im Fenster Komponentenoptionen änderbar.
+  MASSE_NEU = { 'Breite' => 60.0, 'Hoehe' => 70.0, 'Tiefe' => 52.0 }.freeze # cm, Vorschlag im Dialog
+  TIEFE_NEU = MASSE_NEU['Tiefe']
+  TIEFE_MIN = 20.0
+
+  def self.dialog
+    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür')
+    return unless res
+    masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
+    t = masse['Tiefe']
+    raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
+    einfuegen(Sketchup.active_model, SKP, masse: masse)
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
+  # Unterschrank.skp einfügen und einrichten. Ab dem zweiten Exemplar im Modell
+  # bekommt der Schrank eine eigene Definition, damit seine Teile eigene Tags haben.
+  # masse (cm, z. B. { 'Tiefe' => 52.0 }): wie im Fenster Komponentenoptionen an die Instanz
+  # geschrieben, die DC rechnet neu.
+  def self.einfuegen(model = Sketchup.active_model, pfad = SKP, masse: {})
+    model.start_operation('Unterschrank mit Tür', true)
+    d = model.definitions.load(pfad)
+    x = model.entities.length > 0 ? model.bounds.max.x + 10.cm : 0
+    inst = model.entities.add_instance(d, Geom::Transformation.translation([x, 0, 0]))
+    inst.make_unique if d.instances.length > 1
+    d = inst.definition
+    d.delete_attribute(JT_DICT, 'schrank') # neues Kürzel
+    hilfe(d)
+    kanten_setzen(model, d)
+    unbekannt = tags_setzen(model, d)
+    masse.each { |k, v| inst.set_attribute(DICT, k.downcase, v / 2.54) }
+    model.commit_operation
+    $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
+    # Andock-Werkzeug (Schrank-CNC): neuen Schrank an Nachbarn oder Wand setzen
+    Kuechenplaner.neuer_schrank(inst) if Kuechenplaner.respond_to?(:neuer_schrank)
+    model.selection.clear
+    model.selection.add(inst)
+    puts "Unterschrank mit Tür: ohne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}" unless unbekannt.empty?
+    inst
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Einfügen: #{e.message}")
+    raise
+  end
+end
+
+# Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
+# den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
+# das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
+# Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
+# 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
+# Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+module Kuechenplaner
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
+
+  def self.menu
+    @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
+  end
+
+  # Alle Gruppen beim ersten Aufruf anlegen, damit die Reihenfolge nicht von der
+  # Ladereihenfolge der Erweiterungen abhängt.
+  def self.untermenu(gruppe)
+    @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
+    @untermenues.fetch(gruppe)
+  end
+
+  # Schrank in seiner Gruppe ins Menü eintragen und für die Symbolleiste merken
+  def self.schrank(gruppe, titel, &aktion)
+    untermenu(gruppe).add_item(titel, &aktion)
+    schraenke << [gruppe, titel, aktion]
+  end
+
+  # Alle eingetragenen Schränke als [gruppe, titel, aktion]
+  def self.schraenke
+    @schraenke ||= []
+  end
+end unless defined?(Kuechenplaner.schrank)
+
+unless file_loaded?(__FILE__)
+  Kuechenplaner.schrank('Unterschränke', 'Unterschrank mit Tür…') { UnterschrankTuer.dialog }
+  file_loaded(__FILE__)
+end
