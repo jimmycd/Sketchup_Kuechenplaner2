@@ -9,7 +9,7 @@
 #     linker oder rechter Seite (Ecke einer L- oder U-Küche, z. B. vor ein Blindeck);
 #   * über einer Wand des Raums (Erweiterung Raum): Rückseite an die Wand, rastet an
 #     Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke
-#     stehen auf dem Fußboden des Raums (Korpus 100 mm Sockel darüber);
+#     stehen auf dem Fußboden des Raums plus dessen Sockelhöhe (Raum › Raum bearbeiten);
 #   * über einer anderen senkrechten Fläche: Rückseite daran, Mitte unter der Maus;
 #   * sonst: folgt der Maus auf seiner Höhe.
 #   Tab oder Pfeil rechts/links drehen um 90°, Klick setzt ab, Esc lässt ihn stehen.
@@ -27,7 +27,7 @@ module JTools
       VIERTEL = Math::PI / 2
       MM = 1 / 25.4            # SketchUp rechnet in Zoll
       FANG = 100 * MM          # Einrasten an Wandenden und Laibungen
-      SOCKEL = 100 * MM        # Korpusunterkante über dem Fußboden
+      SOCKEL = 100 * MM        # Korpusunterkante über dem Fußboden, wenn der Raum keine Sockelhöhe angibt
       RAUM_DICT = 'JT_Raum'.freeze
 
       module Rechnung
@@ -146,6 +146,13 @@ module JTools
           xs = beste[1] if beste
           x, y = welt(wl, xs - k[0], -k[3])
           [winkel(wl[0]), x, y, xs]
+        end
+
+        # Höhe an einer Raumwand: Unter- und Hochschränke stehen auf dem Fußboden (boden_z)
+        # plus Sockelhöhe des Raums (mm, nil = 100 mm); Oberschränke behalten ihre Höhe.
+        def raum_hoehe(kat, boden_z, sockel_mm, eigene_z)
+          return eigene_z unless %w[Unterschrank Hochschrank].include?(kat)
+          boden_z + (sockel_mm.nil? ? SOCKEL : sockel_mm.to_f * MM)
         end
 
         # frei: Mitte des Grundrisses unter der Maus
@@ -384,7 +391,7 @@ module JTools
             links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
             rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
             w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG)
-            z = %w[Unterschrank Hochschrank].include?(@kat) ? wl[3] + SOCKEL : @start[3]
+            z = Rechnung.raum_hoehe(@kat, wl[3], winst.get_attribute(RAUM_DICT, 'sockel'), @start[3])
             @ziel = [w, x, y, z]
             b = @kasten[1] - @kasten[0]
             @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"
