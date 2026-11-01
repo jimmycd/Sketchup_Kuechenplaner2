@@ -73,6 +73,9 @@ module TiefeHelfer
   # neuen Tiefe erzeugten Schrank vergleichen. erzeugen: ->(eingabe) { Instanz }.
   # Liefert { "a -> b" => [Abweichungen] }.
   def self.pruefen(knoten, dict, erzeugen, paare, eingabe = {})
+    Sketchup.active_model = Sketchup::Model.new
+    i0 = erzeugen.call(eingabe)
+    bezuege = bezuege_auf_eigene_formeln(knoten.new(i0, i0.definition, nil)).uniq
     paare.to_h do |t0, t1|
       Sketchup.active_model = Sketchup::Model.new
       inst = erzeugen.call(eingabe.merge('Tiefe' => t0))
@@ -85,6 +88,30 @@ module TiefeHelfer
       n.redraw
       schluessel = (inst2.definition.attribute_dictionary(dict) || {}).keys.grep(/\A_(.+)_formula\z/) { $1 }
       ["#{(t0 * 10).round} -> #{(t1 * 10).round} mm", abweichungen(g, n, schluessel.uniq.sort)]
+    end.merge('(Formeln, die auf Formeln desselben Bauteils verweisen)' => bezuege)
+  end
+end
+
+module TiefeHelfer
+  # SketchUp wertet die Formeln eines Bauteils nur einmal und der Reihe nach aus. Verweist eine
+  # Formel auf ein anderes Attribut desselben Bauteils, das selbst eine Formel hat, kann sie dessen
+  # alten Wert lesen (z. B. NL aus T_Innen beim Spülenschrank: nach einer Tiefenänderung blieb der
+  # Auszug zu lang/kurz). Liefert alle solchen Bezüge "Bauteil.Attribut -> Attribut".
+  def self.bezuege_auf_eigene_formeln(k, out = [])
+    eigene = schluessel_von(k)
+    eigene.each do |key|
+      f = k.formel(key) or next
+      f.gsub(/"[^"]*"/, '').scan(/(?<![!\w])([A-Za-z_]\w*)\b(?!\s*[(!])/).flatten.uniq.each do |r|
+        r = r.downcase
+        out << "#{k.name}.#{key} -> #{r}" if r != key && eigene.include?(r)
+      end
     end
+    k.kinder.each { |c| bezuege_auf_eigene_formeln(c, out) }
+    out
+  end
+
+  def self.schluessel_von(k)
+    dicts = [k.defn, k.inst].compact.map { |e| e.attribute_dictionary('dynamic_attributes') }.compact
+    dicts.flat_map(&:keys).grep(/\A_(.+)_formula\z/) { $1 }.uniq
   end
 end

@@ -535,7 +535,7 @@ module Apothekerschrank
   # ---------------------------------------------------------------------------
   # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
-  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Neuer Schrank: Maße beim Anlegen abfragen, Tiefe = Korpus ohne Front/Rückwand. Danach bleiben sie im
   # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
@@ -544,13 +544,17 @@ module Apothekerschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Apothekerschrank')
+    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Apothekerschrank')
     return unless res
-    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+    t = eingabe['Tiefe']
     if t < tiefe_min - 0.000001
       raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
     end
-    erstellen({ 'Tiefe' => t })
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

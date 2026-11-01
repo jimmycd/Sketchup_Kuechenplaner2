@@ -391,7 +391,7 @@ module Eckschrank
     attribut(haupt, 'Tiefe_Nachbar', p['Tiefe_Nachbar'], access: 'TEXTBOX', formlabel: 'Nachbarschrank: Wand bis Front')
     attribut(haupt, 'Passleiste', p['Passleiste'], access: 'TEXTBOX', formlabel: 'Passleiste (sichtbare Blende)')
     attribut(haupt, 'Abstand_Wand', r[:abstand], access: 'VIEW', formlabel: 'Abstand Blindseite zur Wand',
-             formula: 'MAX(Tiefe_Nachbar+Passleiste-Breite+TB,0)')
+             formula: 'MAX(Tiefe_Nachbar+Passleiste-Breite+IF(Variante=2,LeMans,Tuerbreite),0)')
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     FEST.each_key { |n| attribut(haupt, n, p[n], units: 'STRING') }
@@ -483,7 +483,7 @@ module Eckschrank
     attribut(halter, 'H_Tuer', h, units: 'STRING', formula: h_f)
     attribut(halter, 'Mk', mk, units: 'STRING', formula: mk_f)
     attribut(halter, 'Links', links ? 1.0 : 0.0, laenge: false, formula: "#{u}!Blindseite")
-    attribut(halter, 'Winkel', links ? -100.0 : 100.0, laenge: false, formula: 'IF(Links=1,-100,100)')
+    attribut(halter, 'Winkel', links ? -100.0 : 100.0, laenge: false, formula: "IF(#{u}!Blindseite=1,-100,100)")
     tuer_drehen(halter, eine, "IF(#{u}!Variante=1,1,0)", 'Winkel')
     t1 = platte(model, 'Tür', 'Tür', [tb - sp, mk, h], ["#{hn}!B_Tuer", "#{hn}!Mk", "#{hn}!H_Tuer"])
     einsetzen(halter.entities, t1, 'Tür', [links ? 0 : -(tb - sp), 0, 0], ["IF(#{hn}!Links=1,0,-#{hn}!B_Tuer)", nil, nil],
@@ -755,7 +755,7 @@ module Eckschrank
   # ---------------------------------------------------------------------------
   # Erzeugen
   # ---------------------------------------------------------------------------
-  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Neuer Schrank: Maße beim Anlegen abfragen, Tiefe = Korpus ohne Front/Rückwand. Danach bleiben sie im
   # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
@@ -764,13 +764,17 @@ module Eckschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck')
+    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck')
     return unless res
-    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+    t = eingabe['Tiefe']
     if t < tiefe_min - 0.000001
       raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
     end
-    erstellen({ 'Tiefe' => t })
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

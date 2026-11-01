@@ -360,11 +360,14 @@ module Spuelenschrank
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
     attribut(haupt, 'H_Auszug', r[:h_auszug], units: 'STRING', formula: 'Hoehe-Hoehe_Blende-Spaltbreite')
     # Nennlänge der LEGRABOX-Schiene aus der lichten Tiefe bis zur Rückwand
-    attribut(haupt, 'NL', r[:nl], units: 'STRING', formula: f_nennlaenge('T_Innen'))
+    # (Formeln am selben Bauteil nie auf andere Formel-Attribute stützen: SketchUp rechnet sie nur
+    # einmal und der Reihe nach, NL käme sonst vor T_Innen dran und bliebe nach einer Tiefenänderung alt)
+    attribut(haupt, 'NL', r[:nl], units: 'STRING',
+             formula: f_nennlaenge('(Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand)'))
     attribut(haupt, 'A_Unten', r[:a_unten], units: 'STRING',
              formula: 'MAX(Ausschnitt_Unten,Materialstaerke_Korpus+Ausschnitt_Rand)')
     attribut(haupt, 'A_Hoehe', r[:a_hoehe], units: 'STRING',
-             formula: 'MAX(MIN(Ausschnitt_Hoehe,Hoehe-Ausschnitt_Rand-A_Unten),0)')
+             formula: 'MAX(MIN(Ausschnitt_Hoehe,Hoehe-Ausschnitt_Rand-MAX(Ausschnitt_Unten,Materialstaerke_Korpus+Ausschnitt_Rand)),0)')
 
     mk = p['Materialstaerke_Korpus']
     b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
@@ -526,7 +529,7 @@ module Spuelenschrank
     # Höhe Holzrückwand: höchstens Hoehe_Kastenrueckwand, Oberkante Kasten Siphon_Freiraum unter der Blende
     attribut(d, 'Hrw', r[:hrw], units: 'STRING',
              formula: "MAX(MIN(#{u}!Hoehe_Kastenrueckwand,#{u}!Hoehe-#{u}!Hoehe_Blende-#{u}!Siphon_Freiraum" \
-                      "-Ab_unten-Mb),2)")
+                      "-(#{f_kasten_unten})-#{u}!Materialstaerke_Kastenboden),2)")
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     sichtbarkeit(d, auszug, formel)
     # Mit "Interagieren" anklicken -> Auszug fährt heraus
@@ -558,7 +561,7 @@ module Spuelenschrank
   # ---------------------------------------------------------------------------
   # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
-  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Neuer Schrank: Maße beim Anlegen abfragen, Tiefe = Korpus ohne Front/Rückwand. Danach bleiben sie im
   # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
@@ -567,13 +570,17 @@ module Spuelenschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Spülenschrank')
+    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Spülenschrank')
     return unless res
-    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+    t = eingabe['Tiefe']
     if t < tiefe_min - 0.000001
       raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm vor der Installationsebene, mindestens #{(tiefe_min * 10).round} mm)"
     end
-    erstellen({ 'Tiefe' => t })
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
