@@ -73,14 +73,14 @@ bb = bohrungen(b.text).sort
 check(ba.map { |x, y, _, _| [x, y] } == [[80, 740], [417.5, 740], [755, 740]], "Bohrungen A (weiblich): #{ba}")
 check(bb.map { |x, y, _, _| [x, y] }.sort_by(&:last) == [[65, 80], [65, 417.5], [65, 755]], "Bohrungen B (männlich): #{bb}")
 check((ba + bb).all? { |_, _, t, d| t == -20 && d == 35 }, 'Ø 35, 20 tief')
-# Stege von 5 mm vor der Stoßkante (im Abfall) zur Bohrung, 12 breit mit dem VHM Ø 8 (2200) in zwei Bahnen ±2
+# Stege starten außerhalb (Fräserrand 5 mm vor der Stoßkante) und fahren zur Bohrung, 12 breit mit dem VHM Ø 8 (2200) in zwei Bahnen ±2
 check(S::Arbeitsplatten::KONTUR[:werkzeug] == 1004 && S::Arbeitsplatten::STEG[:werkzeug] == 2200, 'Werkzeuge aus der Werkzeugliste')
 sa = bahnen(a.text, S::Arbeitsplatten::STEG[:werkzeug])
-check(sa.size == 6 && sa.all? { |pts, t| t == -20 && pts.size == 2 && nahe(pts[0][1], 810) && nahe(pts[1][1], 740) && nahe(pts[0][0], pts[1][0]) },
+check(sa.size == 6 && sa.all? { |pts, t| t == -20 && pts.size == 2 && nahe(pts[0][1], 814) && nahe(pts[1][1], 740) && nahe(pts[0][0], pts[1][0]) },
       "Stege A: #{sa}")
 check(sa.map { |pts, _| pts[0][0] }.sort.each_slice(2).all? { |x0, x1| nahe(x1 - x0, 4) }, "Stege A: zwei Bahnen 4 auseinander: #{sa}")
 sb = bahnen(b.text, S::Arbeitsplatten::STEG[:werkzeug])
-check(sb.size == 6 && sb.all? { |pts, _| nahe(pts[0][0], -5) && nahe(pts[1][0], 65) }, "Stege B: #{sb}")
+check(sb.size == 6 && sb.all? { |pts, _| nahe(pts[0][0], -9) && nahe(pts[1][0], 65) }, "Stege B: #{sb}")
 check(sb.map { |pts, _| pts[0][1] }.sort.map { |y| y.round(3) } == [78, 82, 415.5, 419.5, 753, 757], "Stege B: Lage der Bahnen: #{sb}")
 
 # Kontur: durch, um 10 in den Abfall versetzt
