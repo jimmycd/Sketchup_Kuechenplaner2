@@ -140,6 +140,9 @@ module Sketchup
 
   class << self
     attr_accessor :active_model
+    def defaults = (@defaults ||= {})
+    def read_default(s, k, d = nil) = defaults.fetch([s, k], d)
+    def write_default(s, k, v) = defaults[[s, k]] = v
   end
 end
 

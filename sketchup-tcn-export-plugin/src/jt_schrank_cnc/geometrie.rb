@@ -58,8 +58,9 @@ module JTools
         t =~ /\A\s*([\d.,]+)\s*mm\s*\z/ ? $1.tr(',', '.').to_f : 2.0
       end
 
-      # Werkstück: Teil, Quader lo/hi (mm, Welt), Anleimer je Weltseite (mm)
-      Werkstueck = Struct.new(:teil, :lo, :hi, :kanten, :ops) do
+      # Werkstück: Teil, Quader lo/hi (mm, Welt), Anleimer je Weltseite (mm),
+      # Name des Anleimer-Materials je Weltseite (für Stückliste und Etiketten)
+      Werkstueck = Struct.new(:teil, :lo, :hi, :kanten, :ops, :kanten_mat) do
         def name
           teil.name
         end
@@ -96,12 +97,15 @@ module JTools
         lo = (0..2).map { |a| pts.map { |p| p[a] }.min * MM }
         hi = (0..2).map { |a| pts.map { |p| p[a] }.max * MM }
         kanten = {}
+        kanten_mat = {}
         d.entities.grep(Sketchup::Face).each do |f|
           mat = f.material
           next unless mat && mat.get_attribute(OCL_DICT, 'type').to_i == 4
-          kanten[seite(richtung(m, f.normal.to_a))] = kantenstaerke(mat)
+          s = seite(richtung(m, f.normal.to_a))
+          kanten[s] = kantenstaerke(mat)
+          kanten_mat[s] = mat.name.to_s
         end
-        Werkstueck.new(teil, lo, hi, kanten, [])
+        Werkstueck.new(teil, lo, hi, kanten, [], kanten_mat)
       end
 
       # Lage auf der Maschine: Achse und Richtung (+1/-1) je Werkstückachse x, y, z.

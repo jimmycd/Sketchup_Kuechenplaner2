@@ -58,10 +58,27 @@ Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küche
 
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
 
+## Stückliste
+*Erweiterungen › Küchenplaner › Stückliste…* ersetzt die Stückliste aus OpenCutList. Sie fragt nach einem Ordner, schreibt `Stueckliste.csv` (Semikolon, Dezimalkomma, Windows-1252 für Excel) und `Stueckliste.html` und öffnet die Druckseite im Browser (A4 quer, je Material und Stärke eine Tabelle mit Stückzahl, Rohfläche und Anleimer-Laufmetern). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+
+* Eine Zeile je TCN-Datei wie beim TCN-Export (gleiche Teile zusammengefasst, Spalte Anzahl), mit laufender Nummer, Tag und TCN-Dateiname. So passen Stückliste, TCN und Fräsliste immer zusammen.
+* **Fertigmaß** = Maß im Modell, **Fräsmaß** = Fertigmaß minus Anleimer an jeder Kante mit Anleimer (= DL/DH der TCN), **Rohmaß** = Fräsmaß plus Übermaß (Zuschnitt an der Formatsäge). L ist die längere, B die kürzere Seite.
+* Kanten: L1/L2 die beiden Längskanten, B1/B2 die Querkanten, jeweils mit dem Anleimer-Material (auf der Druckseite als Kürzel A, B … mit Legende).
+* Maserung: aus dem Material (`grained` im OCL-Wörterbuch, bleibt der Materialstamm).
+* Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
+
+## Einstellungen
+*Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
+
+| Einstellung | Standard | wirkt auf |
+| --- | --- | --- |
+| Übermaß Länge gesamt (mm) | 10 | Rohmaß der längeren Seite, `OFFSET` der Fräsliste (halber Wert) |
+| Übermaß Breite gesamt (mm) | 10 | Rohmaß der kürzeren Seite, `OFFSET` der Fräsliste (halber Wert) |
+
 ## TCN exportieren
 *Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS, OCL-Teil). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
-**Fräsliste** `Liste_<Ordnername>.xmlst` (Aufbau wie csv2tcn und Treppenbau): alle TCN des Exports zusammen für das TpaCAD-Board, mit vollem Windows-Pfad, `REPETITIONS` = Stückzahl und `FIELD` 9. Sortiert nach Größe: größte Fläche DL × DH zuerst, bei gleicher Fläche die längere. `OFFSET X/Y` = halbes Übermaß des Plattenmaterials aus OpenCutList (`length_increase` für die längere, `width_increase` für die kürzere Seite), weil die TCN im Fräsmaß ist und das Rohteil aus OCL um das Übermaß größer; `OFFSET Z` = 0. `COMMENT` = Teilname in OCL (Name der Komponentendefinition, z. B. `Front S1`); denselben Namen hat die Teileliste in der Spalte OCL-Teil.
+**Fräsliste** `Liste_<Ordnername>.xmlst` (Aufbau wie csv2tcn und Treppenbau): alle TCN des Exports zusammen für das TpaCAD-Board, mit vollem Windows-Pfad, `REPETITIONS` = Stückzahl und `FIELD` 9. Sortiert nach Größe: größte Fläche DL × DH zuerst, bei gleicher Fläche die längere. `OFFSET X/Y` = halbes Übermaß aus den *Einstellungen* (Länge für die längere, Breite für die kürzere Seite), weil die TCN im Fräsmaß ist und das Rohteil um das Übermaß größer; `length_increase`/`width_increase` aus OpenCutList werden nicht mehr gelesen; `OFFSET Z` = 0. `COMMENT` = Teilname in OCL (Name der Komponentendefinition, z. B. `Front S1`); denselben Namen hat die Teileliste in der Spalte OCL-Teil.
 
 * Maße und Lagen sind **Fräsmaß** wie in OpenCutList: an jeder Seite mit Anleimer (Kantenfläche mit OCL-Kante, Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke. Ausnahme Seiten: immer wie `Seite.tcn` DL = Höhe (Unterkante bei x = 0), DH = Tiefe, auch wenn die Seite tiefer als hoch ist.
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden: erster und letzter Dübel 30 mm von der fertigen Kante (mit Anleimer), in der TCN (Fräsmaß) also 28 an einer Kante mit 2-mm-Anleimer und 30 ohne; „gerade Anzahl“ aus (0/0), Schritt ST errechnet: n = ⌈(L−60)/160⌉ + 1 Dübel, ST = (L−60)/(n−1) mit L = fertige Länge, also höchstens 160 mm Abstand (z. B. Tiefe 560, vorn Anleimer → 30 … x-28, 5 Dübel, ST 125). Die Seite bekommt dieselbe Reihe aus denselben Weltkoordinaten, nach dem Anleimen liegen die Löcher also übereinander. Strebe: genau 2 Dübel, 20 mm von der fertigen Kante (Fräsmaß 18 an der Kante mit Anleimer), ST = Abstand der beiden, 0/0 – wie `Strebe.tcn`. In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
@@ -95,7 +112,10 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
+* `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
+* `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
+* `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form)
 
 ## Grundidee
