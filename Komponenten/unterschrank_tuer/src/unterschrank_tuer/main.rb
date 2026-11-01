@@ -275,9 +275,9 @@ end
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
-# Geräte in Kuechenplaner.untermenu('Geräte'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')

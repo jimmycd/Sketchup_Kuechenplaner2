@@ -14,9 +14,9 @@ require 'sketchup.rb'
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
-# Geräte in Kuechenplaner.untermenu('Geräte'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
@@ -45,6 +45,10 @@ module KuechenplanerSymbolleiste
   ICONS = File.join(File.dirname(__FILE__), 'icons').freeze
   NAME  = 'Küchenplaner'.freeze
   SCHRANK_GRUPPEN = { 'Unterschränke' => 'unterschrank', 'Oberschränke' => 'oberschrank', 'Hochschränke' => 'hochschrank' }.freeze
+  # Befehle der Erweiterung „Raum“ (Komponenten/raum): [Titel, Methode von ::Raum]
+  RAUM = [['Raum anlegen', :raum_anlegen_dialog], ['Wände aus Linien', :waende_aus_linien],
+          ['Fenster/Tür einsetzen', :einsetzen_dialog], ['Öffnung bearbeiten', :oeffnung_bearbeiten_dialog],
+          ['Raum bearbeiten', :raum_bearbeiten_dialog]].freeze
 
   # [Icon, Titel, Hilfetext, verfügbar?, Aktion]
   BEFEHLE = [
@@ -54,6 +58,8 @@ module KuechenplanerSymbolleiste
      -> { defined?(JTools::SchrankCnc::Andocken) }, -> { JTools::SchrankCnc::Andocken.starten }],
     ['arbeitsplatte', 'Arbeitsplatte', 'Arbeitsplatte über den Unterschränken erzeugen; ist eine Arbeitsplatte gewählt, wird sie neu berechnet',
      -> { defined?(::Arbeitsplatte) }, -> { KuechenplanerSymbolleiste.arbeitsplatte }],
+    ['raum', 'Raum', 'Raum anlegen und bearbeiten: Wände, Fenster, Türen, Durchgänge',
+     -> { defined?(::Raum) }, -> { KuechenplanerSymbolleiste.raum_auswahl }],
     ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'TCN exportieren', 'CNC-Programme (TCN) für die Schränke exportieren',
@@ -91,13 +97,29 @@ module KuechenplanerSymbolleiste
       gewaehlt ? ::Arbeitsplatte.neu_berechnen(model) : ::Arbeitsplatte.erzeugen(model)
     end
 
-    # ---------- Schrank-Auswahl ----------
+    # ---------- Auswahl-Fenster ----------
 
+    # Schränke aus dem Menü, gegliedert nach Unter-, Ober- und Hochschränken
     def schrank_auswahl
+      gruppen = SCHRANK_GRUPPEN.map do |gruppe, bild|
+        eintraege = Kuechenplaner.schraenke.select { |g, _, _| g == gruppe }.sort_by { |_, t, _| t.downcase }
+        [gruppe, bild, eintraege.map { |_, t, aktion| [t.sub(/…\z/, ''), aktion] }]
+      end
+      auswahl('Schrank einfügen', gruppen)
+    end
+
+    def raum_auswahl
+      eintraege = RAUM.select { |_, m| ::Raum.respond_to?(m) }.map { |t, m| [t, -> { ::Raum.public_send(m) }] }
+      auswahl('Raum', [['Raum', 'raum', eintraege]])
+    end
+
+    # gruppen: [[Überschrift, Bild, [[Titel, Aktion], …]], …]
+    def auswahl(titel, gruppen)
       @dialog.close if @dialog && @dialog.visible?
-      d = UI::HtmlDialog.new(dialog_title: 'Schrank einfügen', preferences_key: 'Kuechenplaner_Schrankauswahl',
+      @aktionen = []
+      d = UI::HtmlDialog.new(dialog_title: titel, preferences_key: "Kuechenplaner_Auswahl_#{titel}",
                              width: 560, height: 420, resizable: true, style: UI::HtmlDialog::STYLE_DIALOG)
-      d.set_html(html)
+      d.set_html(html(gruppen))
       d.add_action_callback('waehlen') { |_ctx, i| waehlen(i.to_i) }
       d.add_action_callback('schliessen') { |_ctx| d.close }
       d.center
@@ -105,22 +127,21 @@ module KuechenplanerSymbolleiste
       @dialog = d
     end
 
-    # Dialog schließen, dann die Aktion des Schranks wie aus dem Menü (Maße abfragen,
-    # erzeugen, andocken) – per Timer, damit dessen Eingabefenster nicht im HTML-Dialog hängt
+    # Dialog schließen, dann die Aktion wie aus dem Menü (z. B. Maße abfragen, erzeugen,
+    # andocken) – per Timer, damit deren Eingabefenster nicht im HTML-Dialog hängt
     def waehlen(i)
-      eintrag = Kuechenplaner.schraenke[i] or return
+      aktion = (@aktionen || [])[i] or return
       @dialog.close if @dialog
-      UI.start_timer(0, false) { eintrag[2].call }
+      UI.start_timer(0, false) { aktion.call }
     end
 
-    def html
-      gruppen = SCHRANK_GRUPPEN.map do |gruppe, icon|
-        eintraege = Kuechenplaner.schraenke.each_with_index.select { |(g, _, _), _| g == gruppe }
-                                 .sort_by { |(_, t, _), _| t.downcase }
+    def html(gruppen)
+      teile = gruppen.map do |gruppe, bild, eintraege|
         next if eintraege.empty?
-        bild = File.read(File.join(ICONS, "#{icon}.svg"), encoding: 'UTF-8')
-        knoepfe = eintraege.map do |(_, titel, _), i|
-          %(<button onclick="sketchup.waehlen(#{i})">#{bild}<span>#{h(titel.sub(/…\z/, ''))}</span></button>)
+        svg = File.read(File.join(ICONS, "#{bild}.svg"), encoding: 'UTF-8').strip
+        knoepfe = eintraege.map do |titel, aktion|
+          @aktionen << aktion
+          %(<button onclick="sketchup.waehlen(#{@aktionen.size - 1})">#{svg}<span>#{h(titel)}</span></button>)
         end
         %(<section><h2>#{h(gruppe)}</h2><div class="raster">#{knoepfe.join}</div></section>)
       end
@@ -133,7 +154,7 @@ module KuechenplanerSymbolleiste
           border-radius:6px;background:#fff;cursor:pointer;font:inherit;color:inherit}
         button:hover,button:focus{border-color:#2e7d32;background:#eef6ee;outline:none}
         button svg{width:40px;height:40px}
-        </style></head><body>#{gruppen.compact.join}
+        </style></head><body>#{teile.compact.join}
         <script>document.addEventListener('keydown',function(e){if(e.key==='Escape')sketchup.schliessen()})</script>
         </body></html>
       HTML

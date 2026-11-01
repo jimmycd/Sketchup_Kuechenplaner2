@@ -43,7 +43,7 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Frontfarbe und Griffe', 'TCN exportieren'],
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Frontfarbe und Griffe', 'TCN exportieren'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
 tb.befehle.each do |c|
@@ -79,18 +79,17 @@ check(d && !d.geschlossen, 'Schrank einfügen öffnet die Auswahl')
 html = d.html
 pos = %w[Unterschränke Oberschränke Hochschränke].map { |g| html.index("<h2>#{g}</h2>") }
 check(pos.all? && pos == pos.sort, "Gruppen in der Reihenfolge Unter, Ober, Hoch: #{pos.inspect}")
-schraenke.each_with_index do |(_, t, _), i|
-  check(html.include?(%(onclick="sketchup.waehlen(#{i})">)) && html.include?("<span>#{t.sub(/…\z/, '')}</span>"), "Auswahl enthält #{t}")
-end
+knopf = ->(h, titel) { h[%r{sketchup\.waehlen\((\d+)\)"><svg(?:(?!<button).)*</svg><span>#{Regexp.escape(titel)}</span>}m, 1] }
+schraenke.each { |_, t, _| check(knopf.(html, t.sub(/…\z/, '')), "Auswahl enthält #{t}") }
 check(html.scan('<svg').size == schraenke.size, 'jeder Schrank mit Bild')
 aufgerufen = nil
 Kuechenplaner.schraenke << ['Unterschränke', 'Test<&>', -> { aufgerufen = true }]
-d.callbacks['waehlen'].call(nil, (Kuechenplaner.schraenke.size - 1).to_s)
+tb.befehle[0].aktion.call
+d = UI::HtmlDialog.letzter
+d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Test&lt;&amp;&gt;'))
 check(d.geschlossen && !aufgerufen, 'Auswahl schließt sich vor dem Einfügen')
 UI.timer_ablaufen
 check(aufgerufen, 'Auswahl ruft die Aktion des Schranks')
-tb.befehle[0].aktion.call
-check(UI::HtmlDialog.letzter.html.include?('Test&lt;&amp;&gt;'), 'Titel in der Auswahl maskiert')
 Kuechenplaner.schraenke.pop
 
 # Echter Ablauf über die Auswahl: Unterschrank mit Schubladen wird erzeugt
@@ -99,16 +98,28 @@ module UI
 end
 m = Sketchup.active_model = Sketchup::Model.new
 tb.befehle[0].aktion.call
-i = Kuechenplaner.schraenke.index { |e| e[1] == 'Unterschrank mit Schubladen…' }
-UI::HtmlDialog.letzter.callbacks['waehlen'].call(nil, i)
+d = UI::HtmlDialog.letzter
+d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Unterschrank mit Schubladen'))
 UI.timer_ablaufen
 check(m.entities.grep(Sketchup::ComponentInstance).size == 1, 'Schrank aus der Auswahl eingefügt')
+
+# Raum: Auswahl mit den Befehlen der Raum-Erweiterung
+tb.befehle[3].aktion.call
+d = UI::HtmlDialog.letzter
+raum = ['Raum anlegen', 'Wände aus Linien', 'Fenster/Tür einsetzen', 'Öffnung bearbeiten', 'Raum bearbeiten']
+check(d.html.scan(%r{<span>(.*?)</span>}).flatten == raum, "Raum-Auswahl: #{d.html.scan(%r{<span>(.*?)</span>}).flatten.inspect}")
+gerufen = nil
+Raum.define_singleton_method(:einsetzen_dialog) { gerufen = :einsetzen }
+d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Fenster/Tür einsetzen'))
+UI.timer_ablaufen
+check(gerufen == :einsetzen, 'Raum-Auswahl ruft Fenster/Tür einsetzen')
 
 # Arbeitsplatte: ohne Auswahl erzeugen, mit gewählter Arbeitsplatte neu berechnen
 aufrufe = []
 Arbeitsplatte.define_singleton_method(:erzeugen) { |*_a| aufrufe << :erzeugen }
 Arbeitsplatte.define_singleton_method(:neu_berechnen) { |*_a| aufrufe << :neu }
 ap = tb.befehle[2].aktion
+check(tb.befehle[2].titel == 'Arbeitsplatte', 'Icon 3 ist Arbeitsplatte')
 m = Sketchup.active_model = Sketchup::Model.new
 ap.call
 m.selection.add(m.entities.add_instance(Sketchup::ComponentDefinition.new('Schrank'), Geom::Transformation.new))

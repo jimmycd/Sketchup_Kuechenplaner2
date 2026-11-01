@@ -116,12 +116,14 @@ model.selection.add(usg)
 check(G.in_schraenke_setzen(model) == 1, 'mit Auswahl nur der gewählte Schrank')
 model.selection.clear
 
-# Szenen
+# Szenen (mit Raum: dessen Tags nur in Planung und Kunde sichtbar)
+%w[Raum-Wand Raum-Fenster].each { |t| model.layers.add(t) }
 G.szenen_anlegen(model)
 { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.each do |n, (p, r)|
   s = model.pages[n]
   check(s && s.sichtbar[G::TAG_PLAN] == p && s.sichtbar[G::TAG_RENDER] == r, "Szene #{n}: #{s&.sichtbar}")
-  check(s.sichtbar.all? { |k, v| [G::TAG_PLAN, G::TAG_RENDER].include?(k) || v }, "Szene #{n}: Schrank-Tags sichtbar")
+  check(s.sichtbar.all? { |k, v| [G::TAG_PLAN, G::TAG_RENDER].include?(k) || k.start_with?('Raum-') || v }, "Szene #{n}: Schrank-Tags sichtbar")
+  check(s.sichtbar['Raum-Wand'] == (n != 'Zuschnitt') && s.sichtbar['Raum-Fenster'] == (n != 'Zuschnitt'), "Szene #{n}: Raum-Tags")
 end
 G.szenen_anlegen(model)
 check(model.pages.size == 3, 'Szenen werden beim zweiten Mal aktualisiert, nicht verdoppelt')
