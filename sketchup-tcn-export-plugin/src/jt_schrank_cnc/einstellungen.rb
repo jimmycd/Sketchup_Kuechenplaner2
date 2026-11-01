@@ -7,6 +7,7 @@
 # 10 mm = 5 mm je Kante. Länge = längere, Breite = kürzere Seite des Teils.
 # Früher kam das Übermaß aus OpenCutList (length_increase/width_increase am
 # Material); nach Jürgen (2026-11-01) ist es eine allgemeine Einstellung.
+# Zuschnitt: Schnittbreite des Sägeblatts (Jürgen: 3 mm) und Besäumen ringsum.
 
 module JTools
   module SchrankCnc
@@ -18,7 +19,9 @@ module JTools
       # Schlüssel => [Bezeichnung, Standardwert]
       WERTE = {
         'uebermass_laenge' => ['Übermaß Länge gesamt (mm)', 10.0],
-        'uebermass_breite' => ['Übermaß Breite gesamt (mm)', 10.0]
+        'uebermass_breite' => ['Übermaß Breite gesamt (mm)', 10.0],
+        'schnittbreite' => ['Zuschnitt: Schnittbreite Sägeblatt (mm)', 3.0],
+        'besaeumen' => ['Zuschnitt: Besäumen je Plattenkante (mm)', 10.0]
       }.freeze
 
       def wert(k)
@@ -37,6 +40,14 @@ module JTools
 
       def uebermass_breite
         wert('uebermass_breite')
+      end
+
+      def schnittbreite
+        wert('schnittbreite')
+      end
+
+      def besaeumen
+        wert('besaeumen')
       end
 
       # Übermaß [in Richtung a, in Richtung b] für ein Teil a × b (mm, gesamt):
