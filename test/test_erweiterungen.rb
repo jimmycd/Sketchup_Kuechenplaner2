@@ -105,7 +105,7 @@ gruppen.each do |g, eintraege|
 end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
-# Neue Schränke: jeder Menüeintrag fragt die Tiefe ab (Vorschlag 520 mm, Oberschrank 400 mm),
+# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm),
 # und der Schrank wird mit der eingegebenen Tiefe gebaut
 module UI
   class << self
@@ -129,6 +129,7 @@ schrank_eintraege.each do |titel, blk|
   i = frage && frage[0].index('Tiefe Korpus (mm)')
   soll = titel == 'Oberschrank…' ? '400' : '520'
   check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
+  check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")

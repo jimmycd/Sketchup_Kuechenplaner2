@@ -368,7 +368,7 @@ module UnterschrankHandtuch
   # ---------------------------------------------------------------------------
   # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
-  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Neuer Schrank: Maße beim Anlegen abfragen, Tiefe = Korpus ohne Front/Rückwand. Danach bleiben sie im
   # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
@@ -377,13 +377,17 @@ module UnterschrankHandtuch
   end
 
   def self.dialog
-    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Unterschrank Handtuchauszug')
+    res = UI.inputbox(['Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Unterschrank Handtuchauszug')
     return unless res
-    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+    eingabe = { 'Hoehe' => w[0], 'Tiefe' => w[1] }
+    t = eingabe['Tiefe']
     if t < tiefe_min - 0.000001
       raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (Häfele HU Slim Base braucht 485 mm, mindestens #{(tiefe_min * 10).round} mm)"
     end
-    erstellen({ 'Tiefe' => t })
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

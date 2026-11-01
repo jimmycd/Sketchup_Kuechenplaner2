@@ -219,26 +219,31 @@ module UnterschrankTuer
 
   SKP = File.join(File.dirname(__FILE__), 'Unterschrank.skp').freeze
 
-  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Einfügen abfragen. Unterschrank.skp
-  # rechnet Seiten, Boden, Einlegeböden, hintere Strebe und Rückwand per Formel aus „Tiefe“;
-  # die Tiefe bleibt danach im Fenster Komponentenoptionen änderbar.
-  TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
+  # Neuer Schrank: Breite, Höhe und Tiefe (Korpus ohne Front/Rückwand) beim Einfügen abfragen.
+  # Unterschrank.skp rechnet alle Teile per Formel aus „Breite“, „Hoehe“ und „Tiefe“; die Maße
+  # bleiben danach im Fenster Komponentenoptionen änderbar.
+  MASSE_NEU = { 'Breite' => 60.0, 'Hoehe' => 70.0, 'Tiefe' => 52.0 }.freeze # cm, Vorschlag im Dialog
+  TIEFE_NEU = MASSE_NEU['Tiefe']
   TIEFE_MIN = 20.0
 
   def self.dialog
-    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Unterschrank mit Tür')
+    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür')
     return unless res
-    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
+    t = masse['Tiefe']
     raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
-    einfuegen(Sketchup.active_model, SKP, tiefe: t)
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
+    einfuegen(Sketchup.active_model, SKP, masse: masse)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
 
   # Unterschrank.skp einfügen und einrichten. Ab dem zweiten Exemplar im Modell
   # bekommt der Schrank eine eigene Definition, damit seine Teile eigene Tags haben.
-  # tiefe (cm): wie im Fenster Komponentenoptionen an die Instanz geschrieben, die DC rechnet neu.
-  def self.einfuegen(model = Sketchup.active_model, pfad = SKP, tiefe: nil)
+  # masse (cm, z. B. { 'Tiefe' => 52.0 }): wie im Fenster Komponentenoptionen an die Instanz
+  # geschrieben, die DC rechnet neu.
+  def self.einfuegen(model = Sketchup.active_model, pfad = SKP, masse: {})
     model.start_operation('Unterschrank mit Tür', true)
     d = model.definitions.load(pfad)
     x = model.entities.length > 0 ? model.bounds.max.x + 10.cm : 0
@@ -249,7 +254,7 @@ module UnterschrankTuer
     hilfe(d)
     kanten_setzen(model, d)
     unbekannt = tags_setzen(model, d)
-    inst.set_attribute(DICT, 'tiefe', tiefe / 2.54) if tiefe
+    masse.each { |k, v| inst.set_attribute(DICT, k.downcase, v / 2.54) }
     model.commit_operation
     $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
     # Andock-Werkzeug (Schrank-CNC): neuen Schrank an Nachbarn oder Wand setzen
