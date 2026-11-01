@@ -69,8 +69,8 @@ SRC.each do |src|
 end
 
 # Tag-Schema: ROLLEN-Tabelle in jeder Komponente vorhanden und gleich
-# (Schränke; die Geräte sind keine Schrankteile und haben keine ROLLEN)
-schraenke = komponenten - ['geraete']
+# (Schränke; Geräte und Raum sind keine Schrankteile und haben keine ROLLEN)
+schraenke = komponenten - %w[geraete raum]
 rollen = schraenke.map { |k| File.read(File.join(haupt, 'Komponenten', k, 'src', k, 'main.rb'), encoding: 'UTF-8')[/  ROLLEN = \{.*?\}\.freeze/m] }
 check(rollen.all? && rollen.uniq.size == 1,
       "ROLLEN-Tabelle in allen #{schraenke.size} Schrank-Komponenten gleich (#{rollen.compact.size} gefunden, #{rollen.compact.uniq.size} Varianten)")
@@ -86,7 +86,7 @@ check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenp
       "genau ein Untermenü Küchenplaner unter Erweiterungen: #{erw.map { |e| e.respond_to?(:titel) ? e.titel : e }}")
 kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
-soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', :trenner, 'Arbeitsplatte erzeugen…', 'Arbeitsplatte neu berechnen', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…', 'Schrank andocken…',
+soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :trenner, 'Arbeitsplatte erzeugen…', 'Arbeitsplatte neu berechnen', :trenner, 'TCN exportieren…', 'Frontfarbe und Griffe ändern…', 'Schrank andocken…',
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
@@ -94,7 +94,8 @@ gruppen = {
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…'],
-  'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen']
+  'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
+  'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
 alle_eintraege = kp.grep(Array)
 gruppen.each do |g, eintraege|

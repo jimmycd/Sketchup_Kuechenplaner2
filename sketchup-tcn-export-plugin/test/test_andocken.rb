@@ -84,6 +84,23 @@ check(nah(e.map { |p| p[1] }.sum / 8.0, 50), 'Wand links: Mitte an der Maus')
 fx, = R.welt([w, x, y, 0], 30, -2)
 check(fx > 50, 'Wand links: Front zeigt in den Raum')
 check(nah(R.frei(K, [0, 0], 0), [0, -30, -28]), 'frei: Mitte unter der Maus')
+
+# --- Wand des Raums: Wand-Koordinaten wie beim Schrank (x entlang, y in die Wand) -----------
+# Wand 1 eines Raums: beginnt bei (0, 300), läuft in +x; Raum liegt bei y < 300
+wl = [0, 0, 300, 0]
+w, x, y, xs = R.an_raumwand(K, wl, 100, [0], [400], 10)
+check(nah([w, x, y, xs], [0, 70, 242, 70]), "Raumwand: Mitte an der Maus, Rückseite an der Wand (#{[w, x, y, xs]})")
+e = R.ecken(K, [w, x, y, 0])
+check(nah(e.map { |p| p[1] }.max, 300) && nah(e.map { |p| p[1] }.min, 240), 'Raumwand: Front zeigt in den Raum')
+check(nah(R.an_raumwand(K, wl, 37, [0], [400], 10)[3], 0), 'Raumwand: rastet in der linken Ecke ein')
+check(nah(R.an_raumwand(K, wl, 365, [0], [400], 10)[3], 340), 'Raumwand: rastet in der rechten Ecke ein')
+check(nah(R.an_raumwand(K, wl, 250, [0, 210], [400, 150], 10)[3], 210), 'Raumwand: rastet an der Türlaibung ein')
+check(nah(R.an_raumwand(K, wl, 200, [0], [400], 10)[3], 170), 'Raumwand: weit weg von Kanten frei')
+# Wand 2 (rechts, läuft in -y): Schrank um -90° gedreht, Rückseite an x = 400
+w, x, y, = R.an_raumwand(K, [-V, 400, 300, 0], 30, [0], [300], 10)
+e = R.ecken(K, [w, x, y, 0])
+check(nah(e.map { |p| p[0] }.max, 400) && nah(e.map { |p| p[1] }.max, 300), "Raumwand rechts: in der Ecke hinten rechts (#{e.map { |p| p[0] }.max}, #{e.map { |p| p[1] }.max})")
+
 check(nah(R.winkel(4 * V + 1e-12), 0) && nah(R.winkel(-V), 3 * V), 'Winkel auf 90° gerundet und 0..360°')
 
 # --- Einbindung: neuer Schrank in SketchUp -----------------------------------------

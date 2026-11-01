@@ -364,8 +364,9 @@ module Geraete
     raise
   end
 
-  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte, für OCL)
+  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum, für OCL)
   SZENEN = { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.freeze
+  RAUM_TAGS = 'Raum-'.freeze # Tags der Erweiterung Raum (Wände, Fenster, Türen, Boden)
 
   def self.szenen_anlegen(model = Sketchup.active_model)
     plan, render = tag(model, TAG_PLAN), tag(model, TAG_RENDER)
@@ -373,6 +374,7 @@ module Geraete
     SZENEN.each do |name, (p, r)|
       plan.visible = p
       render.visible = r
+      model.layers.to_a.each { |l| l.visible = name != 'Zuschnitt' if l.name.start_with?(RAUM_TAGS) }
       seite = model.pages[name]
       seite ? seite.update(32) : model.pages.add(name) # 32 = sichtbare Tags
     end
@@ -387,7 +389,7 @@ end
 # Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke'), Geräte in 'Geräte', Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')

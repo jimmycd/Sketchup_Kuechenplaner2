@@ -7,7 +7,10 @@
 #     übernimmt Drehung und Höhe (Rückwände bündig, Pfeil hoch/runter: Fronten bündig);
 #   * über der Front eines Schranks: stellt sich quer davor, bündig mit dessen
 #     linker oder rechter Seite (Ecke einer L- oder U-Küche, z. B. vor ein Blindeck);
-#   * über einer Wand: Rückseite an die Wand, Mitte unter der Maus;
+#   * über einer Wand des Raums (Erweiterung Raum): Rückseite an die Wand, rastet an
+#     Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke
+#     stehen auf dem Fußboden des Raums (Korpus 100 mm Sockel darüber);
+#   * über einer anderen senkrechten Fläche: Rückseite daran, Mitte unter der Maus;
 #   * sonst: folgt der Maus auf seiner Höhe.
 #   Tab oder Pfeil rechts/links drehen um 90°, Klick setzt ab, Esc lässt ihn stehen.
 # War beim Erzeugen genau ein Schrank ausgewählt, kommt der neue ohne Maus direkt
@@ -22,6 +25,10 @@ module JTools
   module SchrankCnc
     module Andocken
       VIERTEL = Math::PI / 2
+      MM = 1 / 25.4            # SketchUp rechnet in Zoll
+      FANG = 100 * MM          # Einrasten an Wandenden und Laibungen
+      SOCKEL = 100 * MM        # Korpusunterkante über dem Fußboden
+      RAUM_DICT = 'JT_Raum'.freeze
 
       module Rechnung
         module_function
@@ -124,6 +131,21 @@ module JTools
           mitte = (k[0] + k[1]) / 2.0
           dx, dy = drehe(w, mitte, k[3])
           [w, punkt[0] - dx, punkt[1] - dy]
+        end
+
+        # Rückseite an eine Wand des Raums. wl = Lage der Wand (x entlang der Wand von links
+        # nach rechts aus dem Raum gesehen, y in die Wand hinein, wie bei einem Schrank),
+        # lx = Maus entlang der Wand, links/rechts = Kanten, an denen die linke bzw. rechte
+        # Schrankseite einrastet. Liefert [winkel, x, y, linke Schrankkante entlang der Wand].
+        def an_raumwand(k, wl, lx, links, rechts, fang)
+          breite = k[1] - k[0]
+          xs = lx - breite / 2.0
+          dl = links.map { |s| [(xs - s).abs, s] }.min
+          dr = rechts.map { |s| [(xs + breite - s).abs, s - breite] }.min
+          beste = [dl, dr].compact.select { |d, _| d <= fang }.min
+          xs = beste[1] if beste
+          x, y = welt(wl, xs - k[0], -k[3])
+          [winkel(wl[0]), x, y, xs]
         end
 
         # frei: Mitte des Grundrisses unter der Maus
@@ -247,7 +269,7 @@ module JTools
         end
 
         def status
-          Sketchup.status_text = 'Schrank andocken: über Schrank = daneben, über Front = quer davor, über Wand = an die Wand. ' \
+          Sketchup.status_text = 'Schrank andocken: über Schrank = daneben, über Front = quer davor, über Wand = an die Wand (rastet in Ecken ein). ' \
                                  'Tab/Pfeil links-rechts: drehen, Pfeil hoch-runter: Rückwand/Front bündig, Klick: absetzen, Esc: abbrechen'
         end
 
@@ -318,6 +340,17 @@ module JTools
           nil
         end
 
+        # Wand des Raums im Pfad der Maus: [Instanz, Welt-Transformation]
+        def raumwand(pfad)
+          tr = Geom::Transformation.new
+          pfad.each do |e|
+            break unless e.respond_to?(:transformation)
+            tr *= e.transformation
+            return [e, tr] if e.respond_to?(:get_attribute) && e.get_attribute(RAUM_DICT, 'typ') == 'Wand'
+          end
+          nil
+        end
+
         # Instanzen unter der Maus von außen nach innen (InputPoint ab SketchUp 2017,
         # sonst PickHelper)
         def pfad(view)
@@ -343,6 +376,18 @@ module JTools
             @ziel = [w, x, y, z]
             name = ninst.respond_to?(:name) && !ninst.name.to_s.empty? ? ninst.name : 'Schrank'
             @info = { rechts: 'rechts an', links: 'links an', vorne_rechts: 'quer vor (rechts)', vorne_links: 'quer vor (links)' }[seite] + " #{name}"
+          elsif !eigen && (rw = raumwand(pf))
+            winst, wtr = rw
+            wl = Andocken.lage(wtr)
+            lx, = Rechnung.lokal(wl, p.x, p.y)
+            laenge = winst.get_attribute(RAUM_DICT, 'laenge').to_f * MM
+            links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
+            rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
+            w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG)
+            z = %w[Unterschrank Hochschrank].include?(@kat) ? wl[3] + SOCKEL : @start[3]
+            @ziel = [w, x, y, z]
+            b = @kasten[1] - @kasten[0]
+            @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"
           elsif !eigen && (wn = wand(view))
             @ziel = Rechnung.an_wand(@kasten, [p.x, p.y], wn) + [@start[3]]
             @info = 'an die Wand'

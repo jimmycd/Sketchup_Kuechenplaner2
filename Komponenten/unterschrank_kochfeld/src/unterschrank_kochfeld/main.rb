@@ -21,7 +21,7 @@ require 'sketchup.rb'
 # Schränke kommen in Kuechenplaner.untermenu('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke'), Geräte in 'Geräte', Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
