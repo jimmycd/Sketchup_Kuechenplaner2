@@ -29,7 +29,7 @@ module JTools
       # 160 mm; der Schritt ST (#8512) wird errechnet, "gerade Anzahl" aus (#8508/#8509 0/0).
       # Lagen kommen aus Weltkoordinaten, Boden und Seite passen daher nach dem Anleimen zusammen.
       VERBINDUNGEN = {
-        'Boden'         => { rand: 30, max_abstand: 160, fertig: true },
+        'Boden'         => { rand: 30, max_abstand: 160, fertig: true, schrauben_reihe: true },
         'Deckel'        => { rand: 30, max_abstand: 160, fertig: true },
         'Zwischenboden' => { rand: 30, max_abstand: 160, fertig: true },
         # Strebe (Jürgen 2026-10-28): genau 2 Dübel, 20 mm von der fertigen Kante (Strebe.tcn: 20 … x-20),
@@ -38,6 +38,7 @@ module JTools
       }.freeze
       DUEBEL = { d: 8, tiefe_kante: 22, tiefe_flaeche: 14 }.freeze # Seite 14 tief (Seiten_SK, Jürgen: das tiefere)
       SCHRAUBE = { d: 3, tiefe: 21 }.freeze # Seite.tcn: Ø3, 21 tief in der Mitte der Strebe
+      SCHRAUBEN_REIHE = { d: 3, tiefe: 12, raster: 130 }.freeze # Seite.tcn: Ø3-Reihe am Boden (fittingy, 1/1)
       # Deckel–Rückwand (Oberschrank): 3 Schrauben, 50 mm von den Seiten und in der Mitte;
       # Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Deckelkante (Annahme)
       RUECKWAND_SCHRAUBE = { rand: 50, d_rueckwand: 4, d_deckel: 3, tiefe_deckel: 15, durch: 1 }.freeze
@@ -647,6 +648,11 @@ module JTools
         a.ops << Op.new(:reihe, sa, p0, p1, DUEBEL[:d], DUEBEL[:tiefe_kante], raster, verteilt, titel)
         b.ops << Op.new(:reihe, sb, p0, p1, DUEBEL[:d], tiefe_b, raster, verteilt,
                         "Duebel #{a.teil.jt('teil')}")
+        if regel[:schrauben_reihe]
+          # Seite.tcn: Schraubenreihe Ø3 × 12 auf der Dübellinie des Bodens, gleiche Enden, ST 130, verteilt (1/1)
+          r = SCHRAUBEN_REIHE
+          b.ops << Op.new(:reihe, sb, p0, p1, r[:d], r[:tiefe], r[:raster], true, "Schraube #{a.teil.jt('teil')}")
+        end
         return unless regel[:schraube]
         b.ops << Op.new(:bohrung, sb, pt.((lo + hi) / 2.0), nil, SCHRAUBE[:d], SCHRAUBE[:tiefe], nil, nil,
                         "Schraube #{a.teil.jt('teil')}")

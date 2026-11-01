@@ -149,6 +149,9 @@ module JTools
         az = achse(flaeche1)
         sz = max?(flaeche1) ? 1 : -1
         ax = ws.flaechen_achsen.max_by { |a| [ws.hi_f(a) - ws.lo_f(a), -a] }
+        # Seiten immer wie Seite.tcn: x = Höhe (Unterkante bei x = 0), y = Tiefe, auch wenn
+        # die Seite tiefer als hoch ist (Jürgen 2026-11-01)
+        ax = 2 if ws.rolle == 'Seite' && ws.flaechen_achsen.include?(2)
         ay = ws.flaechen_achsen.find { |a| a != ax }
         # y = z × x: Vorzeichen aus dem Kreuzprodukt der Einheitsvektoren
         ez = [0, 0, 0]; ez[az] = sz
