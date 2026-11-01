@@ -51,9 +51,10 @@ module Raum
   }.freeze
 
   ARTEN = %w[Fenster Tür Durchgang].freeze
+  SOCKEL_TEXT = 'Sockelhöhe Unter-/Hochschränke (mm)'.freeze
 
   # Vorschläge in den Dialogen (mm)
-  RAUM_STD = { 'breite' => 4000.0, 'tiefe' => 3000.0, 'hoehe' => 2500.0, 'dicke' => 240.0 }.freeze
+  RAUM_STD = { 'breite' => 4000.0, 'tiefe' => 3000.0, 'hoehe' => 2500.0, 'dicke' => 240.0, 'sockel' => 100.0 }.freeze
   OEFFNUNG_STD = {
     'Fenster'   => { 'breite' => 1000.0, 'hoehe' => 1200.0, 'bruestung' => 950.0, 'fensterbank' => 'ja', 'ueberstand' => 30.0 },
     'Tür'       => { 'breite' => 885.0, 'hoehe' => 2010.0, 'anschlag' => 'links', 'richtung' => 'innen' },
@@ -220,6 +221,12 @@ module Raum
       zahl(o, 'abstand') + zahl(o, 'breite')
     end
 
+    # Sockelhöhe (Fußboden bis Korpusunterkante); ältere Räume ohne Angabe: 100 mm
+    def sockel(daten)
+      v = daten['sockel']
+      v.nil? ? 100.0 : v.to_f
+    end
+
     # Raummaße prüfen; liefert Fehlertext oder nil
     def pruefe_raum(hoehe, dicke)
       return 'Die Raumhöhe muss mindestens 1000 mm sein.' if hoehe < 1000
@@ -258,6 +265,8 @@ module Raum
     def pruefe(daten)
       f = pruefe_raum(daten['hoehe'].to_f, daten['dicke'].to_f)
       return f if f
+      s = sockel(daten)
+      return 'Die Sockelhöhe muss zwischen 0 und 300 mm liegen.' if s < 0 || s > 300
       ws = waende(daten['punkte'], daten['geschlossen'], daten['dicke'].to_f)
       (daten['oeffnungen'] || []).each do |o|
         return "Öffnung an Wand #{o['wand']}: diese Wand gibt es nicht." unless ws.any? { |w| w[:nr] == o['wand'] }
@@ -526,7 +535,8 @@ module Raum
       inst.layer = tag(model, TAG_WAND)
       kl, kr = Rechnung.kanten(w, oe)
       { 'typ' => 'Wand', 'wand' => w[:nr], 'laenge' => w[:laenge].round(2),
-        'kanten_links' => kl.map { |v| v.round(2) }, 'kanten_rechts' => kr.map { |v| v.round(2) } }
+        'kanten_links' => kl.map { |v| v.round(2) }, 'kanten_rechts' => kr.map { |v| v.round(2) },
+        'sockel' => Rechnung.sockel(d) }
         .each { |k, v| inst.set_attribute(DICT, k, v) }
       inst
     end
@@ -537,9 +547,9 @@ module Raum
   end
 
   # neuen Raum als Gruppe anlegen; punkte = Grundriss (Innenkante) relativ zur Gruppe
-  def self.anlegen(model, punkte, geschlossen, hoehe, dicke, ursprung = [0, 0, 0])
+  def self.anlegen(model, punkte, geschlossen, hoehe, dicke, ursprung = [0, 0, 0], sockel = RAUM_STD['sockel'])
     daten = { 'punkte' => punkte.map { |x, y| [x.to_f.round(2), y.to_f.round(2)] }, 'geschlossen' => geschlossen,
-              'hoehe' => hoehe.to_f, 'dicke' => dicke.to_f, 'oeffnungen' => [] }
+              'hoehe' => hoehe.to_f, 'dicke' => dicke.to_f, 'sockel' => sockel.to_f, 'oeffnungen' => [] }
     f = Rechnung.pruefe(daten)
     raise Fehler, f if f
     gruppe = model.active_entities.add_group
@@ -606,12 +616,12 @@ module Raum
 
   def self.raum_anlegen_dialog(model = Sketchup.active_model)
     s = RAUM_STD
-    r = UI.inputbox(['Breite innen (mm)', 'Tiefe innen (mm)', 'Raumhöhe (mm)', 'Wanddicke (mm)'],
-                    [s['breite'], s['tiefe'], s['hoehe'], s['dicke']].map { |v| v.round.to_s }, 'Raum anlegen')
+    r = UI.inputbox(['Breite innen (mm)', 'Tiefe innen (mm)', 'Raumhöhe (mm)', 'Wanddicke (mm)', SOCKEL_TEXT],
+                    [s['breite'], s['tiefe'], s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s }, 'Raum anlegen')
     return nil unless r
-    b, t, h, d = zahlen(r)
+    b, t, h, d, so = zahlen(r)
     model.start_operation('Raum anlegen', true)
-    g = anlegen(model, Rechnung.rechteck(b, t), true, h, d)
+    g = anlegen(model, Rechnung.rechteck(b, t), true, h, d, [0, 0, 0], so)
     model.commit_operation
     auswaehlen(model, g)
     g
@@ -640,12 +650,12 @@ module Raum
     auge = model.active_view.camera.eye
     punkte = Rechnung.orientieren(punkte, geschlossen, [mm(auge.x), mm(auge.y)])
     s = RAUM_STD
-    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)'], [s['hoehe'], s['dicke']].map { |v| v.round.to_s },
+    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT], [s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s },
                     'Wände aus Linien')
     return nil unless r
-    h, d = zahlen(r)
+    h, d, so = zahlen(r)
     model.start_operation('Wände aus Linien', true)
-    g = anlegen(model, punkte, geschlossen, h, d, [0, 0, mm(zs.min)])
+    g = anlegen(model, punkte, geschlossen, h, d, [0, 0, mm(zs.min)], so)
     model.commit_operation
     auswaehlen(model, g)
     g
@@ -742,13 +752,15 @@ module Raum
       return nil
     end
     d = daten(raum)
-    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)'], [d['hoehe'], d['dicke']].map { |v| v.to_f.round.to_s },
+    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT],
+                    [d['hoehe'], d['dicke'], Rechnung.sockel(d)].map { |v| v.to_f.round.to_s },
                     'Raum bearbeiten')
     return nil unless r
-    h, di = zahlen(r)
+    h, di, so = zahlen(r)
     f = aendern(raum, 'Raum bearbeiten') do |dd|
       dd['hoehe'] = h
       dd['dicke'] = di
+      dd['sockel'] = so
     end
     UI.messagebox(f) if f
     f.nil?

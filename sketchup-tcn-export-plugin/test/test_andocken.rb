@@ -96,6 +96,10 @@ check(nah(R.an_raumwand(K, wl, 37, [0], [400], 10)[3], 0), 'Raumwand: rastet in 
 check(nah(R.an_raumwand(K, wl, 365, [0], [400], 10)[3], 340), 'Raumwand: rastet in der rechten Ecke ein')
 check(nah(R.an_raumwand(K, wl, 250, [0, 210], [400, 150], 10)[3], 210), 'Raumwand: rastet an der Türlaibung ein')
 check(nah(R.an_raumwand(K, wl, 200, [0], [400], 10)[3], 170), 'Raumwand: weit weg von Kanten frei')
+check(nah(R.raum_hoehe('Unterschrank', 10, 150, 99), 10 + 150 / 25.4), 'Raumwand: Unterschrank auf Fußboden + Sockelhöhe des Raums')
+check(nah(R.raum_hoehe('Hochschrank', 0, nil, 99), 100 / 25.4), 'Raumwand: ohne Angabe 100 mm Sockel')
+check(nah(R.raum_hoehe('Hochschrank', 0, 0, 99), 0), 'Raumwand: Sockelhöhe 0 möglich')
+check(R.raum_hoehe('Oberschrank', 0, 150, 99) == 99, 'Raumwand: Oberschrank behält seine Höhe')
 # Wand 2 (rechts, läuft in -y): Schrank um -90° gedreht, Rückseite an x = 400
 w, x, y, = R.an_raumwand(K, [-V, 400, 300, 0], 30, [0], [300], 10)
 e = R.ecken(K, [w, x, y, 0])

@@ -44,7 +44,7 @@ Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für al
 |---|---|
 | einem Schrank (Seite, Deckel) | links oder rechts bündig daneben, je nach Hälfte unter der Maus; übernimmt Drehung und Höhe |
 | der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks) |
-| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite an die Wand, rastet an Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke stehen auf dem Fußboden des Raums (Korpusunterkante 100 mm darüber), Oberschränke behalten ihre Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
+| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite an die Wand, rastet an Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke stehen auf dem Fußboden des Raums (Korpusunterkante um die Sockelhöhe des Raums darüber, einstellbar unter *Raum › Raum bearbeiten…*), Oberschränke behalten ihre Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
 | einer anderen senkrechten Fläche | Rückseite an die Wand, Mitte unter der Maus, Front in den Raum |
 | sonst | folgt der Maus auf seiner Höhe |
 
