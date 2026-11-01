@@ -13,6 +13,7 @@ load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
+load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -394,6 +395,28 @@ end
 fr = dg.find { |x| x.name == 'USG1_Front' }
 check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
 check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
+# --- Unterschrank Mülltrennung: LEGRABOX-Auszug(e) wie Schubladen, Behälter werden nicht exportiert ---
+schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } }
+[[0.0, 4, %w[A]], [1.0, 8, %w[A B]]].each do |fv, n_schiene, bereiche|
+  am = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankAbfall.erstellen({ 'Frontvariante' => fv, 'Tiefe' => 52.0 })
+  da_, ma = S::Export.erzeugen(am)
+  check(ma.empty?, "Mülltrennung #{fv}: keine Meldungen #{ma}")
+  dam = da_.to_h { |x| [x.name, x] }
+  soll = %w[USM1_Boden USM1_Rueckwand USM1_SeiteL USM1_SeiteR USM1_StrebeHinten USM1_StrebeVorn] +
+         bereiche.flat_map { |b| %w[Front KastenBoden KastenRueckwand].map { |t| "USM1_#{b}_#{t}" } }
+  check(dam.keys.sort == soll.sort, "Mülltrennung #{fv}: Dateien ohne Behälter #{dam.keys}")
+  %w[USM1_SeiteL USM1_SeiteR].each do |sn|
+    check(schiene_bohr.(dam[sn].text) == n_schiene, "Mülltrennung #{fv} #{sn}: #{n_schiene} Schienenbohrungen (#{schiene_bohr.(dam[sn].text)})")
+    check(bearbeitungen(dam[sn].text, 1).none? { |x| x.include?('#8522=5 ') && x.include?('fitting') }, "Mülltrennung #{fv} #{sn}: keine Lochreihe")
+  end
+  bereiche.each do |b|
+    fb = bearbeitungen(dam["USM1_#{b}_Front"].text, 1).count { |x| x.include?('#1002=3 ') }
+    check(fb >= 4 && fb.even?, "Mülltrennung #{fv}: Frontbefestigung #{b} (#{fb})")
+  end
+  check(dam['USM1_Boden'].text.include?('#8522=3 '), "Mülltrennung #{fv}: Sockelfüße")
+  check(S::Frontfarbe.fronten(am, kategorie: 'Unterschrank').count(&:sichtbar?) == bereiche.size, "Mülltrennung #{fv}: Frontfarbe findet die Fronten")
+end
 Sketchup.active_model = model
 
 # --- Dialog ---
