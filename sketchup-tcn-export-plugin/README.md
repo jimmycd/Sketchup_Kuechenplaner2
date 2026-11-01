@@ -1,4 +1,4 @@
-# SketchUp-Plugin „Schrank-CNC“ (TCN-Export und Frontfarbe)
+# SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Frontfarbe, Andocken)
 
 **Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base und Kesseböhmer LeMans II im Eckschrank kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
@@ -32,6 +32,30 @@ Was geändert wird:
 * Die Anleimer der Fronten (Kantenflächen mit einer OCL-Kante, Typ 4) bekommen den passenden Anleimer: eine OCL-Kante mit dem Dekor im Namen („Anleimer Eiche“ zu „Front Eiche 19mm“), sonst legt das Plugin „Anleimer <Dekor>“ an (Kante, 2 mm, Abzug an).
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
+
+## Schrank andocken
+Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*.
+
+**Anreihen ohne Maus:** Ist beim Erzeugen genau ein Schrank ausgewählt, steht der neue sofort rechts bündig daneben: gleiche Drehung, Rückwände in einer Flucht, gleiche Unterkante. Weil der neue Schrank danach ausgewählt ist, entsteht so eine Zeile von links nach rechts, einfach durch mehrmaliges Erzeugen.
+
+**Andock-Werkzeug:** Ist nichts ausgewählt, hängt der neue Schrank als Vorschau an der Maus (blauer Kasten, Front rot):
+
+| Maus über … | Ergebnis |
+|---|---|
+| einem Schrank (Seite, Deckel) | links oder rechts bündig daneben, je nach Hälfte unter der Maus; übernimmt Drehung und Höhe |
+| der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks) |
+| einer Wand (senkrechte Fläche) | Rückseite an die Wand, Mitte unter der Maus, Front in den Raum |
+| sonst | folgt der Maus auf seiner Höhe |
+
+* **Tab** oder **Pfeil rechts/links**: um 90° drehen (am Nachbarn: gegenüber dem Nachbarn, z. B. für den zweiten Schenkel einer L-Küche, Rückwand an der Wand des Nachbarn)
+* **Pfeil hoch/runter**: Rückwände bündig (Vorgabe) oder Fronten bündig, wenn die Schränke verschieden tief sind
+* **Klick**: absetzen (ein Schritt *Rückgängig*), **Esc**: Schrank bleibt, wo er erzeugt wurde
+* Höhe: Unterkanten gleich; ein Oberschrank neben einem Hochschrank bekommt dieselbe Oberkante; Ober- neben Unterschrank behält seine Höhe.
+* Ausgeblendete Teile (z. B. abgeschaltete Wangen) zählen für die Maße nicht.
+
+Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küchenplaner › Schrank andocken…*.
+
+Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
 
 ## TCN exportieren
 *Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.

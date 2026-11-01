@@ -388,6 +388,8 @@ module UnterschrankGeschirrspueler
     if defined?($dc_observers) && $dc_observers
       $dc_observers.get_latest_class.redraw_with_undo(inst)
     end
+    # Andock-Werkzeug (Schrank-CNC): neuen Schrank an Nachbarn oder Wand setzen
+    Kuechenplaner.neuer_schrank(inst) if Kuechenplaner.respond_to?(:neuer_schrank)
     model.selection.clear
     model.selection.add(inst)
 

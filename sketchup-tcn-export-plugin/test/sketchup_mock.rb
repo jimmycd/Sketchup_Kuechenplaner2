@@ -243,3 +243,56 @@ module Sketchup
     end
   end
 end
+
+# --- Andock-Werkzeug: Drehung, Punkte, BoundingBox, Werkzeuge ---
+module Geom
+  class Point3d
+    attr_reader :x, :y, :z
+    def initialize(x = 0, y = 0, z = 0) = (@x, @y, @z = x.to_f, y.to_f, z.to_f)
+    def to_a = [x, y, z]
+  end
+  class BoundingBox
+    attr_reader :min, :max
+    def add(*ps)
+      ps = ps.flat_map { |p| p.is_a?(BoundingBox) ? [p.min, p.max] : [p] }
+      ps.each do |p|
+        p = p.to_a
+        @min = @min ? @min.zip(p).map(&:min) : p.dup
+        @max = @max ? @max.zip(p).map(&:max) : p.dup
+      end
+      self
+    end
+    def empty? = @min.nil?
+  end
+  class Transformation
+    attr_reader :achsen
+    def self.axes(o, x, y, z)
+      t = translation(o.to_a)
+      t.instance_variable_set(:@achsen, [x.to_a, y.to_a, z.to_a])
+      t
+    end
+    def xaxis = Vector3d.new(*(achsen ? achsen[0] : [1, 0, 0]))
+  end
+end
+
+module Sketchup
+  class ComponentInstance
+    def model = Sketchup.active_model
+    attr_writer :transformation
+  end
+  class Model
+    attr_reader :werkzeug
+    def select_tool(t) = @werkzeug = t
+  end
+end
+
+module Sketchup
+  class ComponentInstance
+    # Grenzen im Elternsystem (nur Verschiebung, wie bei den Teilen der Komponenten)
+    def bounds
+      b = definition.bounds
+      o = transformation.origin
+      Geom::BoundingBox.new.add(b.min.zip(o).map(&:sum), b.max.zip(o).map(&:sum))
+    end
+  end
+end
