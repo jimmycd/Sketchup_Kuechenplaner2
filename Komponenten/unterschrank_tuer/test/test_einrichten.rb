@@ -184,6 +184,30 @@ check(e1.definition != e2.definition, 'zweiter Schrank hat eigene Definition')
 check(e2.definition.description == T::HILFE_KURZ, 'Kurzhilfe am eingefügten Schrank')
 check(e2.definition.get_attribute(T::JT_DICT, 'schrank') == 'UST2', 'JT_Schrank am zweiten Schrank')
 check(model.selection.to_a == [e2], 'eingefügter Schrank ist ausgewählt')
+# Tiefe beim Einfügen: steht wie aus den Komponentenoptionen an der Instanz, die Teile folgen per Formel
+e3 = T.einfuegen(model, T::SKP, tiefe: 52.0)
+check((e3.get_attribute(T::DICT, 'tiefe') * 2.54 - 52.0).abs < 1e-9, 'Tiefe 520 an der Instanz')
+check(e1.get_attribute(T::DICT, 'tiefe').nil?, 'ohne Tiefe bleibt die Tiefe aus Unterschrank.skp')
+module UI
+  def self.inputbox(prompts, defaults, _titel)
+    $abfrage = [prompts, defaults]
+    ['600']
+  end
+end
+e4 = T.dialog
+check($abfrage == [['Tiefe Korpus (mm)'], ['520']], "Dialog fragt die Tiefe ab, Vorschlag 520 mm: #{$abfrage.inspect}")
+check(e4 && (e4.get_attribute(T::DICT, 'tiefe') * 2.54 - 60.0).abs < 1e-9, 'Tiefe aus dem Dialog an der Instanz')
+# Unterschrank.skp rechnet alle tiefenabhängigen Teile aus Unterschrank!Tiefe (Formeln in der Datei)
+roh = File.binread(T::SKP)
+zip = roh[roh.index("PK\x03\x04".b)..]
+require 'tmpdir'
+modell_dat = Dir.mktmpdir do |dir|
+  File.binwrite(File.join(dir, 'u.zip'), zip)
+  IO.popen(['unzip', '-p', File.join(dir, 'u.zip'), 'model.dat'], err: File::NULL, &:read).b
+end
+%w[Unterschrank!Tiefe Unterschrank!Tiefe-Unterschrank!BreiteStreben Unterschrank!Tiefe+Unterschrank!Materialstaerke_Korpus].each do |f|
+  check(modell_dat.include?(f.b), "Unterschrank.skp: Formel #{f}")
+end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

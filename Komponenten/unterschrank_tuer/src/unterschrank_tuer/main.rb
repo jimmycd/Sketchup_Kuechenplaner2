@@ -219,9 +219,26 @@ module UnterschrankTuer
 
   SKP = File.join(File.dirname(__FILE__), 'Unterschrank.skp').freeze
 
+  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Einfügen abfragen. Unterschrank.skp
+  # rechnet Seiten, Boden, Einlegeböden, hintere Strebe und Rückwand per Formel aus „Tiefe“;
+  # die Tiefe bleibt danach im Fenster Komponentenoptionen änderbar.
+  TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
+  TIEFE_MIN = 20.0
+
+  def self.dialog
+    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Unterschrank mit Tür')
+    return unless res
+    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
+    einfuegen(Sketchup.active_model, SKP, tiefe: t)
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
   # Unterschrank.skp einfügen und einrichten. Ab dem zweiten Exemplar im Modell
   # bekommt der Schrank eine eigene Definition, damit seine Teile eigene Tags haben.
-  def self.einfuegen(model = Sketchup.active_model, pfad = SKP)
+  # tiefe (cm): wie im Fenster Komponentenoptionen an die Instanz geschrieben, die DC rechnet neu.
+  def self.einfuegen(model = Sketchup.active_model, pfad = SKP, tiefe: nil)
     model.start_operation('Unterschrank mit Tür', true)
     d = model.definitions.load(pfad)
     x = model.entities.length > 0 ? model.bounds.max.x + 10.cm : 0
@@ -232,6 +249,7 @@ module UnterschrankTuer
     hilfe(d)
     kanten_setzen(model, d)
     unbekannt = tags_setzen(model, d)
+    inst.set_attribute(DICT, 'tiefe', tiefe / 2.54) if tiefe
     model.commit_operation
     $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
     model.selection.clear
@@ -266,6 +284,6 @@ module Kuechenplaner
 end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.untermenu('Unterschränke').add_item('Unterschrank mit Tür…') { UnterschrankTuer.einfuegen }
+  Kuechenplaner.untermenu('Unterschränke').add_item('Unterschrank mit Tür…') { UnterschrankTuer.dialog }
   file_loaded(__FILE__)
 end

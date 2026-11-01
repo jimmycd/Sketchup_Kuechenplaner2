@@ -45,6 +45,7 @@ class Knoten
   def AND(*a) = a.all?
   def INT(x) = x.floor.to_f
   def MIN(*a) = a.min
+  def MAX(*a) = a.max
 
   def auswerten(f)
     ruby = f.gsub(/(?<![<>=!])=(?!=)/, '==').gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -137,7 +138,7 @@ def pruefe(w, p, label)
 
   # Schubkasten LEGRABOX free: Boden LW-35 x NL-10 mittig ab Korpusvorderkante, Holzrückwand LW-38 hinten auf
   # dem Boden; Schienenbohrung (Unterkante Kasten + Höhenoffset) im Lochraster 35 + n * 32 mm ab Unterkante Seite
-  nl = [65.0, ((t - 0.3) / 5 + 0.000001).floor * 5.0].min
+  nl = ([35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].select { |n| n + 0.3 <= t + 1e-6 }.max || 35.0)
   check((w.wert('NL') - nl).abs < EPS, "#{label}: NL #{w.wert('NL')} statt #{nl}")
   off = p['Hoehenoffset_Schiene']
   mb, mrw = p['Materialstaerke_Kastenboden'], p['Materialstaerke_Kastenrueckwand']
@@ -264,6 +265,14 @@ check(hd.get_attribute(H::DICT, 'description') == H::HILFE, 'Hilfe: description'
 check(%w[summary description].all? { |k| hd.get_attribute(H::DICT, "_#{k}_access") == 'VIEW' }, 'Hilfe: nur anzeigen')
 check(H::HILFE.include?(H::DOKU_URL), 'Hilfe: Link zur Doku')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
+
+
+# --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
+require_relative '../../../test/tiefe_helfer'
+TiefeHelfer.pruefen(Knoten, H::DICT, ->(e) { H.erstellen(e) },
+                    [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]]).each do |was, abw|
+  check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
+end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
