@@ -2,7 +2,7 @@
 
 **Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base und Kesseböhmer LeMans II im Eckschrank kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
-Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Später schreibt es je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
+Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
 
 * Ausführlicher Plan: [Plan: TCN-Export für Schrank-Komponenten](https://claude.ai/artifact/1txhjwKrxeGrWi3j7F5wNN)
 * Vorbild für den TCN-Writer: [jimmycd/sketchup-treppenbauer](https://github.com/jimmycd/sketchup-treppenbauer) (`src/jt_treppenbau/tcn.rb`, `fraesliste.rb`)
@@ -59,7 +59,9 @@ Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küche
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
 
 ## TCN exportieren
-*Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+*Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS, OCL-Teil). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+
+**Fräsliste** `Liste_<Ordnername>.xmlst` (Aufbau wie csv2tcn und Treppenbau): alle TCN des Exports zusammen für das TpaCAD-Board, mit vollem Windows-Pfad, `REPETITIONS` = Stückzahl und `FIELD` 9. Sortiert nach Größe: größte Fläche DL × DH zuerst, bei gleicher Fläche die längere. `OFFSET X/Y` = halbes Übermaß des Plattenmaterials aus OpenCutList (`length_increase` für die längere, `width_increase` für die kürzere Seite), weil die TCN im Fräsmaß ist und das Rohteil aus OCL um das Übermaß größer; `OFFSET Z` = 0. `COMMENT` = Teilname in OCL (Name der Komponentendefinition, z. B. `Front S1`); denselben Namen hat die Teileliste in der Spalte OCL-Teil.
 
 * Maße und Lagen sind **Fräsmaß** wie in OpenCutList: an jeder Seite mit Anleimer (Kantenfläche mit OCL-Kante, Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke.
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden: erster und letzter Dübel 30 mm von der fertigen Kante (mit Anleimer), in der TCN (Fräsmaß) also 28 an einer Kante mit 2-mm-Anleimer und 30 ohne; „gerade Anzahl“ aus (0/0), Schritt ST errechnet: n = ⌈(L−60)/160⌉ + 1 Dübel, ST = (L−60)/(n−1) mit L = fertige Länge, also höchstens 160 mm Abstand (z. B. Tiefe 560, vorn Anleimer → 30 … x-28, 5 Dübel, ST 125). Die Seite bekommt dieselbe Reihe aus denselben Weltkoordinaten, nach dem Anleimen liegen die Löcher also übereinander. Strebe: genau 2 Dübel, 20 mm von der fertigen Kante (Fräsmaß 18 an der Kante mit Anleimer), ST = Abstand der beiden, 0/0 – wie `Strebe.tcn`. In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
@@ -92,6 +94,7 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
+* `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form)
 
