@@ -263,11 +263,12 @@ check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zw
 Sketchup.active_model = model
 
 # --- Schreiben: TCN + Teileliste + Fräsliste ---
-# Übermaß wie in OCL am Plattenmaterial (Länge 10, Breite 6 mm)
+# Übermaß aus den allgemeinen Einstellungen (Länge 10, Breite 6 mm), nicht mehr aus OCL am Material
+check(S::Einstellungen.uebermass_laenge == 10.0 && S::Einstellungen.uebermass_breite == 10.0, 'Einstellungen: Übermaß Standard 10/10 mm')
+S::Einstellungen.setzen('uebermass_breite', 6)
 platte = dateien.find { |x| x.name == 'HS1_Boden' }.ws.teil.inst.material
-alt_ue = %w[length_increase width_increase].map { |k| platte.get_attribute('ladb_opencutlist', k) }
-platte.set_attribute('ladb_opencutlist', 'length_increase', '10 mm')
-platte.set_attribute('ladb_opencutlist', 'width_increase', '6mm')
+alt_li = platte.get_attribute('ladb_opencutlist', 'length_increase')
+platte.set_attribute('ladb_opencutlist', 'length_increase', '40 mm')
 Dir.mktmpdir do |dir|
   S::Export.schreiben(dir, dateien)
   check(dateien.all? { |x| File.exist?(File.join(dir, "#{x.name}.tcn")) }, 'alle TCN geschrieben')
@@ -292,12 +293,13 @@ Dir.mktmpdir do |dir|
   boden = x[/<Row[^>]*HS1_Boden\.tcn.*?<\/Row>/m].to_s
   check(boden.include?('"REPETITIONS" DataType="164">1<') && boden.include?('"FIELD" DataType="171">9<'), 'Fräsliste Boden: Anzahl, Feld')
   check(boden.include?('"OFFSET X" DataType="277">5<') && boden.include?('"OFFSET Y" DataType="278">3<') &&
-        boden.include?('"OFFSET Z" DataType="279">0<'), "Fräsliste Boden: Offset = halbes OCL-Übermaß (10/6 mm): #{boden[/OFFSET X.*?</m]}")
+        boden.include?('"OFFSET Z" DataType="279">0<'), "Fräsliste Boden: Offset = halbes Übermaß aus den Einstellungen (10/6 mm, OCL-Wert am Material egal): #{boden[/OFFSET X.*?</m]}")
   check(boden.include?('"COMMENT" DataType="162">Boden<'), 'Fräsliste: OCL-Name als Kommentar')
   zb = x[/<Row[^>]*HS1_ZwischenbodenUnten\.tcn.*?<\/Row>/m].to_s
   check(zb.include?('"REPETITIONS" DataType="164">2<') || dateien.find { |d| d.name == 'HS1_ZwischenbodenUnten' }.anzahl == 1, 'Fräsliste: Wiederholungen = Anzahl')
 end
-%w[length_increase width_increase].zip(alt_ue) { |k, v| platte.set_attribute('ladb_opencutlist', k, v) }
+platte.set_attribute('ladb_opencutlist', 'length_increase', alt_li)
+S::Einstellungen.setzen('uebermass_breite', 10)
 
 # Fräsliste: Windows-Pfade, Name, Maße aus OCL
 check(S::Fraesliste.name('E:\\Auftrag\\Kueche Meier') == 'Liste_Kueche_Meier.xmlst', 'Fräsliste: Name aus Ordner')

@@ -5,9 +5,9 @@
 # je TCN-Datei eine <Row> mit vollem Windows-Pfad und REPETITIONS = Stückzahl.
 # Reihenfolge: nach Größe, die größte Fläche (DL × DH) zuerst, bei gleicher
 # Fläche die längere, dann nach Name.
-# OFFSET X/Y: halbes OCL-Übermaß des Plattenmaterials (Wörterbuch ladb_opencutlist,
-# length_increase/width_increase), damit squad das Rohteil rundum gleich formatiert:
-# die TCN ist im Fräsmaß, das Rohteil aus OCL um das Übermaß größer. OFFSET Z = 0.
+# OFFSET X/Y: halbes Übermaß aus den allgemeinen Einstellungen (einstellungen.rb),
+# damit squad das Rohteil rundum gleich formatiert: die TCN ist im Fräsmaß, das
+# Rohteil (Stückliste, Zuschnitt) um das Übermaß größer. OFFSET Z = 0.
 # COMMENT: Teilname in OCL (Name der Komponentendefinition).
 
 module JTools
@@ -17,8 +17,6 @@ module JTools
 
       # FIELD in der Liste: 9 wie in csv2tcn (Liste_Regalbad.xmlst) und im Treppenbau
       FIELD = 9
-
-      OCL_DICT = 'ladb_opencutlist'.freeze
 
       # Längenangabe aus OCL ("10 mm", "1 cm", "0.5\"", "0") in mm
       def mm(v)
@@ -32,17 +30,9 @@ module JTools
         end
       end
 
-      def material(d)
-        d.ws.teil.inst.material
-      end
-
-      # [OFFSET X, OFFSET Y] in mm: OCL length_increase gilt für die längere Seite
+      # [OFFSET X, OFFSET Y] in mm: Längen-Übermaß für die längere Seite
       def offset(d)
-        mat = material(d)
-        return [0.0, 0.0] unless mat
-        li = mm(mat.get_attribute(OCL_DICT, 'length_increase'))
-        wi = mm(mat.get_attribute(OCL_DICT, 'width_increase'))
-        d.lage.dl >= d.lage.dh ? [li / 2.0, wi / 2.0] : [wi / 2.0, li / 2.0]
+        Einstellungen.uebermass(d.lage.dl, d.lage.dh).map { |u| u / 2.0 }
       end
 
       # Teilname wie in OpenCutList (Definition), z. B. "Front S1"
