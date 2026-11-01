@@ -92,20 +92,22 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
 - Dekor unten, Stoßende am Anschlag links unten (x = 0). DL = Plattenlänge,
   DH = Tiefe, DS = Stärke. Arbeitsbereich 3200 × 1300 mm: was weiter weg liegt,
   fehlt in der TCN und steht in den Hinweisen.
-- **Stoßkontur** mit dem Konturfräser (Annahme Werkzeug 2220, Ø 20) um den Radius in
+- **Stoßkontur** mit dem 20er Diafräser (Werkzeug 1001) um den Radius in
   den Abfall versetzt, Stärke + 1 mm tief, 10 mm über die Plattenkanten hinaus.
   Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
   die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).
 - **Hundeknochen** je Verbinder: Bohrung Ø 35, 20 tief, 65 mm vom Stoß, und ein
-  Steg mit dem 12er Fräser (Annahme Werkzeug 2212) von der Stoßkante zur Bohrung.
+  Steg 12 mm breit von der Stoßkante zur Bohrung, mit dem VHM Ø 8 (Werkzeug 2200)
+  in zwei Bahnen nebeneinander (ein 12er Fräser ist nicht vorhanden).
   Verbinder 80 mm von Wand und Vorderkante, 2 bis 650 mm Stoßlänge, 3 bis 900,
-  sonst 4, bei Gehrung immer 4. Keine Lamellos.
+  sonst 4, bei Gehrung immer 4. Lamellos werden von Hand gefräst, nicht in der TCN.
 - **Ausschnitte** (Spüle, Kochfeld) als geschlossene Kontur in der TCN, in der sie
   am nächsten am Anschlag liegen. Ecken bis R 10 entstehen durch den Fräser, größere
   Radien werden mitgefräst.
 
-Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`.
+Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`
+(aus Jürgens Werkzeugliste, Fläche 1).
 
 ## Dateien
 
