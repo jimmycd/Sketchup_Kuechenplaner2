@@ -116,6 +116,10 @@ check(pb.all? { |x, _| x <= 30 + 10 + 0.01 }, "Kontur B nur am Gehrungsansatz: #
 # R 30 um den Fräserradius versetzt, A innen (R 20), B außen (R 40), je 45°
 check(a.text.scan('W#2125').size == 1 && b.text.scan('W#2125').size == 1, 'je ein Bogen W#2125')
 check($boegen.map { |r, w| [r.round(2), w.round(2)] }.sort == [[20.0, 45.0], [40.0, -45.0]], "Bögen: #{$boegen}")
+# Bogenzeile wie in beispiele/bogen.tcn (EW2 Drehrichtung = Automatisch), nur Radius und Winkel anders
+muster = ->(l) { l.sub(/#8017=\S+/, '#8017=R').sub(/#8046=\S+/, '#8046=W') }
+vorlage = File.read(File.join(haupt, 'sketchup-tcn-export-plugin/beispiele/bogen.tcn'))[/^W#2125\{.*\}W/]
+check(vorlage && (a.text + b.text).scan(/^W#2125\{.*\}W/).all? { |l| muster.(l) == muster.(vorlage) }, 'Bogenzeile wie im Beispiel (EW2 automatisch)')
 check(a.text.split("\r\n").count { |l| l.start_with?('W#2201') } < 10, 'keine kurzen Geraden mehr im Bogen')
 
 # Teileliste mit den Arbeitsplatten

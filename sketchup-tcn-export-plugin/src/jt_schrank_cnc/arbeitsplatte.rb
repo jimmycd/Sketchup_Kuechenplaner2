@@ -277,7 +277,9 @@ module JTools
       # das gibt einen sauberen Übergang; breiter als der Fräser in Bahnen nebeneinander
       # Bahn aus Stücken in Maschinenkoordinaten: Geraden relativ (W#2201), Bögen wie in
       # Jürgens bogen.tcn als tangentialer Bogen mit Radius und Winkel (W#2125,
-      # #8046 Winkel in Grad, positiv gegen den Uhrzeigersinn)
+      # #8046 Winkel in Grad, positiv gegen den Uhrzeigersinn). Die übrigen Werte genau
+      # wie im Beispiel lassen: dort steht EW2 (Drehrichtung) auf Automatisch, nur dann
+      # gilt das Vorzeichen des Winkels als Drehrichtung (Jürgen 2026-11-01)
       def self.bahn_stuecke(ws, st, tiefe, werkzeug)
         n = ->(v) { Tcn.n(v) }
         out = bahn(ws, [st[0][1]], tiefe, werkzeug)
