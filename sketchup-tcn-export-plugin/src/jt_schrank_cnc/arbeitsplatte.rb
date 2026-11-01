@@ -26,7 +26,7 @@ module JTools
       # VHM Ø 8 (2200) in zwei Bahnen, ein 12er Fräser ist nicht vorhanden.
       # Die Bohrung Ø 35 wählt die Maschine über den Durchmesser.
       KONTUR = { werkzeug: 1004, d: 20.0, ueberlauf: 10.0, durch: 1.0 }.freeze
-      STEG = { werkzeug: 2200, d: 8.0, breite: 12.0 }.freeze
+      STEG = { werkzeug: 2200, d: 8.0, breite: 12.0, ueberlauf: 5.0 }.freeze
       HUNDEKNOCHEN = { d: 35.0, tiefe: 20.0, abstand: 65.0, rand: 80.0 }.freeze
       FELD = { x: 3200.0, y: 1300.0 }.freeze
       NORMALE = { 'ny' => [0.0, -1.0], 'py' => [0.0, 1.0], 'nx' => [-1.0, 0.0], 'px' => [1.0, 0.0] }.freeze
@@ -210,11 +210,13 @@ module JTools
           pts.each_cons(2).map { |a, b| "W#2201{ ::WTl  #8015=1 #1=#{n.(b[0] - a[0])} #2=#{n.(b[1] - a[1])} }W" }
       end
 
-      # Steg von der Stoßkante zur Bohrung: breiter als der Fräser in Bahnen nebeneinander
+      # Steg von der Stoßkante zur Bohrung, an der Kante um ueberlauf in den Abfall
+      # hinaus; breiter als der Fräser in Bahnen nebeneinander
       def self.steg(q, c, tiefe)
         rest = STEG[:breite] - STEG[:d]
         e = einheit(minus(c, q))
         nrm = [-e[1], e[0]]
+        q = plus(q, e, -STEG[:ueberlauf])
         bahnen = rest < 0.05 ? 1 : (rest / STEG[:d]).ceil + 1
         (0...bahnen).map do |i|
           o = bahnen == 1 ? 0.0 : -rest / 2.0 + rest * i / (bahnen - 1)

@@ -98,7 +98,7 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
   die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).
 - **Hundeknochen** je Verbinder: Bohrung Ø 35, 20 tief, 65 mm vom Stoß, und ein
-  Steg 12 mm breit von der Stoßkante zur Bohrung, mit dem VHM Ø 8 (Werkzeug 2200)
+  Steg 12 mm breit von 5 mm vor der Stoßkante (im Abfall) zur Bohrung, mit dem VHM Ø 8 (Werkzeug 2200)
   in zwei Bahnen nebeneinander (ein 12er Fräser ist nicht vorhanden).
   Verbinder 80 mm von Wand und Vorderkante, 2 bis 650 mm Stoßlänge, 3 bis 900,
   sonst 4, bei Gehrung immer 4. Lamellos werden von Hand gefräst, nicht in der TCN.
