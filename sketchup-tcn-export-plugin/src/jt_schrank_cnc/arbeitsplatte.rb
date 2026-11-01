@@ -187,6 +187,68 @@ module JTools
         end.compact
       end
 
+      # Konturzug -> Stücke [:linie, a, b] / [:bogen, a, b, mitte, r]: aufeinanderfolgende
+      # Sehnen auf einem Bogen des Stoßpfads werden wieder zu einem Bogen
+      def self.stuecke(pts, pfad)
+        boegen = pfad.select { |seg| seg[0] == 'bogen' }.map { |seg| [seg[3], seg[4].to_f] }
+        auf = lambda do |a, b|
+          boegen.find do |c, r|
+            m = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0]
+            (Math.hypot(*minus(a, c)) - r).abs < 0.05 && (Math.hypot(*minus(b, c)) - r).abs < 0.05 &&
+              Math.hypot(*minus(m, c)) < r - 1e-6
+          end
+        end
+        out = []
+        pts.each_cons(2) do |a, b|
+          bg = auf.(a, b)
+          if bg && out.last && out.last[0] == :bogen && out.last[3] == bg[0]
+            out.last[2] = b
+          elsif bg
+            out << [:bogen, a, b, bg[0], bg[1]]
+          else
+            out << [:linie, a, b]
+          end
+        end
+        out
+      end
+
+      def self.drehsinn(a, b, c)
+        (a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0]) > 0 ? 1 : -1
+      end
+
+      # Stücke um d nach rechts versetzt (Bögen bleiben Bögen, tangentiale Übergänge
+      # bleiben tangential, Ecken als Schnitt der Geraden), Anfang und Ende um
+      # aus verlängert
+      def self.versatz_rechts(st, d, aus)
+        v = st.map do |seg|
+          if seg[0] == :linie
+            e = einheit(minus(seg[2], seg[1]))
+            nr = [e[1], -e[0]]
+            [:linie, plus(seg[1], nr, d), plus(seg[2], nr, d)]
+          else
+            _, a, b, c, r = seg
+            r2 = r + drehsinn(a, b, c) * d # gegen den Uhrzeigersinn: Mitte links, rechts = außen
+            f = ->(q) { plus(c, einheit(minus(q, c)), r2) }
+            [:bogen, f.(a), f.(b), c, r2]
+          end
+        end
+        v.each_cons(2) do |s1, s2|
+          next if Math.hypot(*minus(s1[2], s2[1])) < 0.01 || s1[0] != :linie || s2[0] != :linie
+          d1, d2 = minus(s1[2], s1[1]), minus(s2[2], s2[1])
+          k = d1[0] * d2[1] - d1[1] * d2[0]
+          next if k.abs < 1e-9
+          t = ((s2[1][0] - s1[1][0]) * d2[1] - (s2[1][1] - s1[1][1]) * d2[0]) / k
+          x = plus(s1[1], d1, t) # Schnitt der beiden Geraden
+          s1[2] = x
+          s2[1] = x
+        end
+        if v.first[0] == :linie
+          v.first[1] = plus(v.first[1], einheit(minus(v.first[1], v.first[2])), aus)
+        end
+        v.last[2] = plus(v.last[2], einheit(minus(v.last[2], v.last[1])), aus) if v.last[0] == :linie
+        v
+      end
+
       # Ausschnitt als geschlossene Fräserbahn (Weltkoordinaten), um den Radius nach innen
       def self.ausschnitt_bahn(a)
         r = KONTUR[:d] / 2.0
@@ -213,6 +275,27 @@ module JTools
       # Steg: startet ganz außerhalb der Stoßkante (Fräser samt Radius im Abfall, der
       # Konturfräser hat ihn vorher entfernt) und fährt ins Material bis zur Bohrung,
       # das gibt einen sauberen Übergang; breiter als der Fräser in Bahnen nebeneinander
+      # Bahn aus Stücken in Maschinenkoordinaten: Geraden relativ (W#2201), Bögen wie in
+      # Jürgens bogen.tcn als tangentialer Bogen mit Radius und Winkel (W#2125,
+      # #8046 Winkel in Grad, positiv gegen den Uhrzeigersinn)
+      def self.bahn_stuecke(ws, st, tiefe, werkzeug)
+        n = ->(v) { Tcn.n(v) }
+        out = bahn(ws, [st[0][1]], tiefe, werkzeug)
+        st.each do |seg|
+          a, b = seg[1], seg[2]
+          if seg[0] == :linie
+            out << "W#2201{ ::WTl  #8015=1 #1=#{n.(b[0] - a[0])} #2=#{n.(b[1] - a[1])} }W"
+          else
+            c, r = seg[3], seg[4]
+            w = Math.atan2(b[1] - c[1], b[0] - c[0]) - Math.atan2(a[1] - c[1], a[0] - c[0])
+            w -= 2 * Math::PI while w > Math::PI
+            w += 2 * Math::PI while w <= -Math::PI
+            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n.(r)} #8048=1 #8046=#{n.(w * 180 / Math::PI)} #42=0 #49=0 }W"
+          end
+        end
+        out
+      end
+
       def self.steg(q, c, tiefe)
         rest = STEG[:breite] - STEG[:d]
         e = einheit(minus(c, q))
@@ -253,12 +336,10 @@ module JTools
           k = kontur(p, s, pfad)
           if k
             # Abfall liegt rechts (Umriss gegen den Uhrzeigersinn), Bahn über die Kanten hinaus
-            v = versatz(k, -r)
-            v[0] = plus(v[0], einheit(minus(v[0], v[1])), r + KONTUR[:ueberlauf])
-            v[-1] = plus(v[-1], einheit(minus(v[-1], v[-2])), r + KONTUR[:ueberlauf])
-            m = v.map(&abb)
-            if im_feld?(m)
-              b << bahn('@', m, p[:staerke] + KONTUR[:durch], KONTUR[:werkzeug])
+            v = versatz_rechts(stuecke(k, s['pfad']), r, r + KONTUR[:ueberlauf])
+            m = v.map { |seg| seg[0] == :linie ? [seg[0], abb.(seg[1]), abb.(seg[2])] : [seg[0], abb.(seg[1]), abb.(seg[2]), abb.(seg[3]), seg[4]] }
+            if im_feld?(m.flat_map { |seg| [seg[1], seg[2]] })
+              b << bahn_stuecke('@', m, p[:staerke] + KONTUR[:durch], KONTUR[:werkzeug])
             else
               meldungen << "#{name}: Stoßkontur #{s['nr']} liegt außerhalb des Arbeitsbereichs #{FELD[:x].round} × #{FELD[:y].round}"
             end
