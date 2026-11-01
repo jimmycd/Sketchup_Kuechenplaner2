@@ -139,10 +139,7 @@ module JTools
 
       def self.ausschnitt(a)
         inst = a.teil.inst
-        d = Schraenke.definition(inst)
-        x, z, b, h = %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h].map do |k|
-          (inst.get_attribute(DC_DICT, k) || d.get_attribute(DC_DICT, k)).to_f
-        end
+        x, z, b, h = %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h].map { |k| Schraenke.dc(inst, k).to_f }
         return if b <= NUT[:d_werkzeug] || h <= NUT[:d_werkzeug]
         m = Geometrie.welt(a.teil.pfad)
         p0 = Geometrie.punkt(m, [x, 0, z]).map { |v| v * Geometrie::MM }
@@ -233,7 +230,7 @@ module JTools
       # Nennlänge aus dem Attribut NL am Schrank (cm), wenn es eine LEGRABOX-Nennlänge ist;
       # nötig, wenn hinter den Kästen Platz frei bleibt (Unterschrank Kochfeld: Installationsraum)
       def self.nennlaenge_schrank(schrank)
-        v = schrank.get_attribute(DC_DICT, 'nl') or return
+        v = Schraenke.dc(schrank, 'nl') or return
         nl = (v.to_f * Geometrie::MM).round
         SCHIENE[:hinten].key?(nl) ? nl : nil
       end
@@ -247,8 +244,8 @@ module JTools
       def self.schienen(teile, meldungen)
         kaesten(teile).each do |kasten|
           unten = kasten.map { |w| w.lo[2] }.min
-          schrank = Schraenke.definition(kasten.first.teil.schrank)
-          z = unten + schrank.get_attribute(DC_DICT, 'hoehenoffset_schiene').to_f * Geometrie::MM
+          schrank = kasten.first.teil.schrank
+          z = unten + Schraenke.dc(schrank, 'hoehenoffset_schiene').to_f * Geometrie::MM
           lo = (0..1).map { |i| kasten.map { |w| w.lo[i] }.min }
           hi = (0..1).map { |i| kasten.map { |w| w.hi[i] }.max }
           teile.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }.each do |s|
@@ -260,8 +257,10 @@ module JTools
                        end
             next if nach_max.nil?
             seite, flaeche = flaeche_innen(s, k, nach_max)
-            nl = nennlaenge_schrank(schrank) || nennlaenge(s, teile)
-            unless nl
+            # NL am Schrank (z. B. kürzer wegen Installationsraum), aber nie länger als die
+            # gezeichnete lichte Tiefe zulässt (z. B. nach einer Tiefenänderung)
+            nl = [nennlaenge_schrank(schrank), nennlaenge(s, teile)].compact.min
+            if nl.nil? || nennlaenge(s, teile).nil?
               meldungen << "#{s.name}: zu wenig Tiefe für eine LEGRABOX-Schiene (NL 350 braucht 353 mm)"
               next
             end
@@ -351,8 +350,7 @@ module JTools
       end
 
       def self.hu_slim_base(teile, meldungen)
-        sd = Schraenke.definition(teile.first.teil.schrank)
-        rechts = sd.get_attribute(DC_DICT, 'seite_beschlag').to_f > 0.5
+        rechts = Schraenke.dc(teile.first.teil.schrank, 'seite_beschlag').to_f > 0.5
         s = teile.find { |w| w.teil.jt('teil') == (rechts ? 'SeiteR' : 'SeiteL') } or return
         andere = teile.find { |w| w.rolle == 'Seite' && !w.equal?(s) } or return
         boden = teile.find { |w| w.rolle == 'Boden' } or return
@@ -403,8 +401,7 @@ module JTools
       # Lage aus den DC-Attributen des Schranks: Ausschnitt_Links ab dem Rand bei SeiteL,
       # Ausschnitt_Hinten ab dem Rand bei der Rückwand, dazu Breite und Tiefe (cm).
       def self.kanalausschnitt(w, teile)
-        sd = Schraenke.definition(w.teil.schrank)
-        wert = ->(k) { sd.get_attribute(DC_DICT, k)&.to_f&.*(Geometrie::MM) }
+        wert = ->(k) { Schraenke.dc(w.teil.schrank, k)&.to_f&.*(Geometrie::MM) }
         links, breite, hinten, tiefe = %w[ausschnitt_links ausschnitt_breite ausschnitt_hinten ausschnitt_tiefe].map(&wert)
         return unless links && breite && hinten && tiefe && breite > 0 && tiefe > 0
         k = w.dicke_achse
@@ -435,7 +432,7 @@ module JTools
       # bis zum Ende in x und von 0 bis ecke_y in y.
       def self.ecke_rechteck(w)
         d = Schraenke.definition(w.teil.inst)
-        ex, ey = d.get_attribute(DC_DICT, 'ecke_x'), d.get_attribute(DC_DICT, 'ecke_y')
+        ex, ey = Schraenke.dc(w.teil.inst, 'ecke_x'), Schraenke.dc(w.teil.inst, 'ecke_y')
         return unless ex && ey
         m = Geometrie.welt(w.teil.pfad)
         mx = d.bounds.max.to_a.map(&:to_f)
@@ -499,19 +496,19 @@ module JTools
       def self.lemans?(teile)
         sd = Schraenke.definition(teile.first.teil.schrank)
         eckschrank?(teile) && sd.get_attribute(JT_DICT, 'beschlag') == LEMANS[:name] &&
-          sd.get_attribute(DC_DICT, 'variante').to_f.round == 2
+          Schraenke.dc(teile.first.teil.schrank, 'variante').to_f.round == 2
       end
 
       def self.lemans(teile, meldungen)
-        sd = Schraenke.definition(teile.first.teil.schrank)
-        groesse = sd.get_attribute(DC_DICT, 'lemans').to_f.round
+        sk = teile.first.teil.schrank
+        groesse = Schraenke.dc(sk, 'lemans').to_f.round
         x = LEMANS[:x][groesse]
         unless x
           meldungen << "LeMans #{groesse} gibt es nicht (40, 45, 50, 60)"
           return
         end
         # Blindseite links (0) -> Tür und Beschlag rechts
-        tuerseite = sd.get_attribute(DC_DICT, 'blindseite').to_f > 0.5 ? 'SeiteL' : 'SeiteR'
+        tuerseite = Schraenke.dc(sk, 'blindseite').to_f > 0.5 ? 'SeiteL' : 'SeiteR'
         s = teile.find { |w| w.teil.jt('teil') == tuerseite } or return
         andere = teile.find { |w| w.rolle == 'Seite' && !w.equal?(s) } or return
         boden = teile.find { |w| w.rolle == 'Boden' } or return

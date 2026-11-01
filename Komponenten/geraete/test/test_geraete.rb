@@ -130,5 +130,14 @@ check(model.pages.size == 3, 'Szenen werden beim zweiten Mal aktualisiert, nicht
 leer = Sketchup::Model.new
 check(G.in_schraenke_setzen(leer) == 0 && $meldungen.last.include?('Keine Schränke'), 'Hinweis ohne Schränke')
 
+
+# --- Tiefe nachträglich geändert (Komponentenoptionen schreiben an die Instanz) ---
+[usg, usk, usp, hg].each do |i|
+  alt = G.nischen(i.definition).map { |n| n['tiefe'] }
+  i.set_attribute(G::DICT, 'tiefe', 52.0 / 2.54)
+  neu = G.nischen(i.definition, i).map { |n| n['tiefe'] }
+  check(alt.all? { |t| t > 520 } && neu.all? { |t| nah(t, 520.0) }, "#{i.definition.name}: Nische mit aktueller Tiefe 520 statt #{alt} (#{neu})")
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

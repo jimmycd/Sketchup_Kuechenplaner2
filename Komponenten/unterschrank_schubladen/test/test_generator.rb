@@ -53,6 +53,7 @@ class Knoten
   def IF(c, a, b) = c ? a : b
   def INT(x) = x.floor.to_f
   def MIN(*a) = a.min
+  def MAX(*a) = a.max
 
   def auswerten(f)
     ruby = f.gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -107,7 +108,7 @@ def pruefe(wurzel, anz, h, b, t, label)
     check((f.wert('lenx') - (b - sp)).abs < EPS, "#{label}: Frontbreite S#{i}")
     check((f.wert('x') - sp / 2).abs < EPS, "#{label}: Front x S#{i}")
     # LEGRABOX free: Boden LW-35 x NL-10 mittig, Holzrückwand LW-38 hinten auf dem Boden
-    nl = [65.0, ((t - 0.3) / 5 + 0.000001).floor * 5.0].min
+    nl = ([35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].select { |n| n + 0.3 <= t + 1e-6 }.max || 35.0)
     check((s.wert('NL') - nl).abs < EPS, "#{label}: NL #{s.wert('NL')} statt #{nl} S#{i}")
     check(nl + 0.3 <= t + EPS || nl == 35.0, "#{label}: NL + 3 mm passt in die Tiefe S#{i}")
     kb = s.finde('KastenBoden'); kr = s.finde('KastenRueckwand')
@@ -239,6 +240,19 @@ end
 check(%w[USS1_SeiteL USS1_Rueckwand USS1_S3_Front USS2_S1_KastenRueckwand USS1_S1_Schublade].all? { |n| model.layers[n] }, 'Tag-Namen')
 check(inst1.definition.get_attribute(U::JT_DICT, 'kategorie') == 'Unterschrank', 'JT_Schrank am Schrank')
 
+# LEGRABOX nur in festen Nennlängen: die größte mit NL + 3 mm <= Tiefe, sonst die kürzeste
+{ 30.0 => 35.0, 35.3 => 35.0, 40.2 => 35.0, 40.3 => 40.0, 52.0 => 50.0, 56.0 => 55.0, 80.0 => 65.0 }.each do |t, nl|
+  check(U.nennlaenge(t) == nl, "Nennlänge bei Tiefe #{t}: #{U.nennlaenge(t)} statt #{nl}")
+end
+formel = Object.new
+def formel.MAX(*a) = a.max
+def formel.MIN(*a) = a.min
+def formel.INT(x) = x.floor.to_f
+(250..900).each do |mm|
+  t = mm / 10.0
+  check(formel.instance_eval(U.f_nennlaenge(t.to_s)) == U.nennlaenge(t), "NL-Formel = Ruby bei Tiefe #{t}")
+end
+
 # Aufteilungs-Parser
 check(U.parse_aufteilung('1;1;2', 3) == [1.0, 1.0, 2.0], 'parse 1;1;2')
 check(U.parse_aufteilung('140/140 416', 3) == [140.0, 140.0, 416.0], 'parse mm')
@@ -259,6 +273,14 @@ rbz = File.expand_path('../unterschrank_schubladen.rbz', __dir__)
 %w[unterschrank_schubladen.rb unterschrank_schubladen/main.rb].each do |f|
   im_rbz = IO.popen(['unzip', '-p', rbz, f], &:read)
   check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (./build_rbz.sh im Hauptordner ausführen)")
+end
+
+
+# --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
+require_relative '../../../test/tiefe_helfer'
+TiefeHelfer.pruefen(Knoten, U::DICT, ->(e) { U.erstellen(e) },
+                    [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]], eingabe(3, [1, 1, 2])).each do |was, abw|
+  check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
 end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"

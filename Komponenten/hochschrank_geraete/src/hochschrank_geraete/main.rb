@@ -572,12 +572,17 @@ module HochschrankGeraete
   end
 
   # Größte LEGRABOX-Nennlänge (cm, 5er-Schritte, max. 65), für die die Einbautiefe reicht (LT >= NL + 3 mm)
+  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
+  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
+
   def self.nennlaenge(tiefe)
-    [65.0, ((tiefe - 0.3) / 5.0 + 0.000001).floor * 5.0].min
+    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
   end
 
+  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
   def self.f_nennlaenge(tiefe)
-    "MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5)"
+    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
   end
 
   def self.schublade(model, ents, p, fr, bb, i, mat, kz)
@@ -645,6 +650,26 @@ module HochschrankGeraete
   # ---------------------------------------------------------------------------
   # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
+  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
+  TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
+
+  def self.tiefe_min
+    35.3
+  end
+
+  def self.dialog
+    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Hochschrank Geräte')
+    return unless res
+    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    if t < tiefe_min - 0.000001
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    end
+    erstellen({ 'Tiefe' => t })
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
     model.start_operation('Hochschrank Geräte', true)
@@ -697,6 +722,6 @@ module Kuechenplaner
 end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.untermenu('Hochschränke').add_item('Hochschrank Geräte…') { HochschrankGeraete.erstellen }
+  Kuechenplaner.untermenu('Hochschränke').add_item('Hochschrank Geräte…') { HochschrankGeraete.dialog }
   file_loaded(__FILE__)
 end

@@ -391,6 +391,31 @@ xs = sr.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 
 check(k['USK1_SeiteR'].lage.dl == 798 && xs == [35.0, 67.0, 291.0, 355.0], "Kochfeld: Schienen NL 600 (37/69/293/357 roh): #{xs}")
 check(sr.map { |x| x[/#2=(\S+)/, 1] }.uniq.size == 2, "Kochfeld: Schienen für 2 Schubladen: #{sr}")
 check(S::Regeln.nennlaenge_schrank(km.definitions['Unterschrank Kochfeld mit Abzug']) == 600, 'NL-Attribut 60 cm = 600')
+# Tiefe im Fenster Komponentenoptionen geändert: die DC schreibt die Werte (auch NL) an die Instanz,
+# an der Definition steht noch der Stand beim Erzeugen -> der Export nimmt den Wert der Instanz
+ki = km.entities.grep(Sketchup::ComponentInstance).first
+ki.set_attribute('dynamic_attributes', 'nl', 45.0 / 2.54)
+check(S::Regeln.nennlaenge_schrank(ki) == 450, "NL an der Instanz geht vor: #{S::Regeln.nennlaenge_schrank(ki)}")
+ki.set_attribute('dynamic_attributes', 'hoehenoffset_schiene', 0.7 / 2.54)
+check(S::Schraenke.dc(ki, 'hoehenoffset_schiene') == 0.7 / 2.54 && S::Schraenke.dc(ki, 'breite') == ki.definition.get_attribute('dynamic_attributes', 'breite'),
+      'DC-Werte: Instanz vor Definition')
+ki.set_attribute('dynamic_attributes', 'hoehenoffset_schiene', 0.0)
+dk2, = S::Export.erzeugen(km)
+sr2 = bearbeitungen(dk2.find { |x| x.name == 'USK1_SeiteR' }.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+xs2 = sr2.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 - v.to_f }.uniq.sort
+check(xs2 == [35.0, 67.0, 259.0, 291.0], "Kochfeld: Schienen NL 450 aus der Instanz (37/69/261/293 roh): #{xs2}")
+# NL am Schrank größer als die gezeichnete lichte Tiefe (Tiefe 560 -> höchstens NL 550): Bohrungen für NL 550
+schienen_hs = lambda do |nl_instanz|
+  hm = Sketchup.active_model = Sketchup::Model.new
+  hi = Hochschrank.erstellen({ 'Tiefe' => 56.0 })
+  hi.set_attribute('dynamic_attributes', 'nl', nl_instanz / 2.54) if nl_instanz
+  dh, = S::Export.erzeugen(hm)
+  bearbeitungen(dh.find { |x| x.name == 'HS1_SeiteR' }.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+end
+soll_hs = schienen_hs.(nil)
+ist_hs = schienen_hs.(65.0)
+check(!soll_hs.empty? && ist_hs == soll_hs, "NL nie länger als die lichte Tiefe (Tiefe 560 -> NL 550): #{ist_hs - soll_hs}")
+Sketchup.active_model = km
 # Strebe vorn hochkant: Dübel in die Stirnseiten, Schraube in die Seite
 sv = k['USK1_StrebeVorn']
 check(sv.lage.dh == 100 && [4, 6].all? { |s2| bearbeitungen(sv.text, s2).size == 1 }, "Strebe vorn hochkant: Dübel beidseitig (#{sv.lage.to_a.drop(1)})")

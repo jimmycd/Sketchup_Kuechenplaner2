@@ -45,6 +45,15 @@ module JTools
         inst.respond_to?(:definition) ? inst.definition : inst.entities.parent
       end
 
+      # Wert eines DC-Attributs (Zoll bzw. Zahl): zuerst an der Instanz, dann an der Definition.
+      # Ändert man z. B. die Tiefe im Fenster Komponentenoptionen, schreibt die DC die neuen
+      # Werte (auch berechnete wie NL) an die Instanz; an der Definition steht noch der Stand
+      # beim Erzeugen.
+      def self.dc(inst, k)
+        v = inst.get_attribute(DC_DICT, k)
+        v.nil? ? definition(inst).get_attribute(DC_DICT, k) : v
+      end
+
       # Alle Teile mit JT_Schrank/teil im Modell (auch ausgeblendete)
       def self.teile(model, ents = model.entities, pfad = [], schrank = nil, out = [])
         instanzen(ents).each do |inst|

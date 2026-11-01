@@ -53,6 +53,7 @@ class Knoten
   def IF(c, a, b) = c ? a : b
   def INT(x) = x.floor.to_f
   def MIN(*a) = a.min
+  def MAX(*a) = a.max
 
   def auswerten(f)
     ruby = f.gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -83,7 +84,7 @@ def eingabe(anz, anteile, extra = {})
   e.merge(extra)
 end
 
-def nl_soll(lt) = [65.0, ((lt - 0.3) / 5 + 0.000001).floor * 5.0].min
+def nl_soll(lt) = ([35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].select { |n| n + 0.3 <= lt + 1e-6 }.max || 35.0)
 
 # Geometrische Prüfungen auf Basis der ausgewerteten Formeln
 def pruefe(wurzel, anz, h, b, t, label)
@@ -295,6 +296,14 @@ rbz = File.expand_path('../unterschrank_kochfeld.rbz', __dir__)
 %w[unterschrank_kochfeld.rb unterschrank_kochfeld/main.rb].each do |f|
   im_rbz = IO.popen(['unzip', '-p', rbz, f], &:read)
   check(im_rbz == File.read(File.expand_path("../src/#{f}", __dir__)), "rbz veraltet: #{f} (./build_rbz.sh im Hauptordner ausführen)")
+end
+
+
+# --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
+require_relative '../../../test/tiefe_helfer'
+TiefeHelfer.pruefen(Knoten, U::DICT, ->(e) { U.erstellen(e) },
+                    [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]], eingabe(3, [1, 1, 2])).each do |was, abw|
+  check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
 end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"

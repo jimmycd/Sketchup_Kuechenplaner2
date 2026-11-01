@@ -355,6 +355,26 @@ module UnterschrankGeschirrspueler
   # ---------------------------------------------------------------------------
   # Erzeugen (mit ziel zusätzlich als .skp speichern)
   # ---------------------------------------------------------------------------
+  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
+  TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
+
+  def self.tiefe_min
+    20.0
+  end
+
+  def self.dialog
+    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Unterschrank Geschirrspüler')
+    return unless res
+    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    if t < tiefe_min - 0.000001
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    end
+    erstellen({ 'Tiefe' => t })
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
   def self.erstellen(eingabe = {}, ziel = nil)
     model = Sketchup.active_model
     model.start_operation('Unterschrank Geschirrspüler', true)
@@ -407,6 +427,6 @@ module Kuechenplaner
 end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.untermenu('Unterschränke').add_item('Unterschrank Geschirrspüler…') { UnterschrankGeschirrspueler.erstellen }
+  Kuechenplaner.untermenu('Unterschränke').add_item('Unterschrank Geschirrspüler…') { UnterschrankGeschirrspueler.dialog }
   file_loaded(__FILE__)
 end
