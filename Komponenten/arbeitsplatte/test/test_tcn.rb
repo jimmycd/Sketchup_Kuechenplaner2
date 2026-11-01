@@ -74,7 +74,7 @@ check(ba.map { |x, y, _, _| [x, y] } == [[80, 740], [417.5, 740], [755, 740]], "
 check(bb.map { |x, y, _, _| [x, y] }.sort_by(&:last) == [[65, 80], [65, 417.5], [65, 755]], "Bohrungen B (männlich): #{bb}")
 check((ba + bb).all? { |_, _, t, d| t == -20 && d == 35 }, 'Ø 35, 20 tief')
 # Stege von der Stoßkante zur Bohrung, 12 breit mit dem VHM Ø 8 (2200) in zwei Bahnen ±2
-check(S::Arbeitsplatten::KONTUR[:werkzeug] == 1001 && S::Arbeitsplatten::STEG[:werkzeug] == 2200, 'Werkzeuge aus der Werkzeugliste')
+check(S::Arbeitsplatten::KONTUR[:werkzeug] == 1004 && S::Arbeitsplatten::STEG[:werkzeug] == 2200, 'Werkzeuge aus der Werkzeugliste')
 sa = bahnen(a.text, S::Arbeitsplatten::STEG[:werkzeug])
 check(sa.size == 6 && sa.all? { |pts, t| t == -20 && pts.size == 2 && nahe(pts[0][1], 805) && nahe(pts[1][1], 740) && nahe(pts[0][0], pts[1][0]) },
       "Stege A: #{sa}")

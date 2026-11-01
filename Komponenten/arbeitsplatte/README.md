@@ -92,7 +92,7 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
 - Dekor unten, Stoßende am Anschlag links unten (x = 0). DL = Plattenlänge,
   DH = Tiefe, DS = Stärke. Arbeitsbereich 3200 × 1300 mm: was weiter weg liegt,
   fehlt in der TCN und steht in den Hinweisen.
-- **Stoßkontur** mit dem 20er Diafräser (Werkzeug 1001) um den Radius in
+- **Stoßkontur** mit dem Fräser Ø 20 (Werkzeug 1004) um den Radius in
   den Abfall versetzt, Stärke + 1 mm tief, 10 mm über die Plattenkanten hinaus.
   Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird

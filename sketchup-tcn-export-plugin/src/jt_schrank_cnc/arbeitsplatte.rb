@@ -21,11 +21,11 @@ module JTools
   module SchrankCnc
     module Arbeitsplatten
       AP_DICT = 'JT_Arbeitsplatte'.freeze
-      # Werkzeuge aus Jürgens Werkzeugliste (Fläche 1): Kontur mit dem 20er
-      # Diafräser 1001 (sauberer Schnitt im Schichtstoff), Steg 12 mm breit mit dem
+      # Werkzeuge aus Jürgens Werkzeugliste (Fläche 1): Kontur mit 1004 (Ø 20,
+      # Jürgens Wahl 2026-11-01), Steg 12 mm breit mit dem
       # VHM Ø 8 (2200) in zwei Bahnen, ein 12er Fräser ist nicht vorhanden.
       # Die Bohrung Ø 35 wählt die Maschine über den Durchmesser.
-      KONTUR = { werkzeug: 1001, d: 20.0, ueberlauf: 10.0, durch: 1.0 }.freeze
+      KONTUR = { werkzeug: 1004, d: 20.0, ueberlauf: 10.0, durch: 1.0 }.freeze
       STEG = { werkzeug: 2200, d: 8.0, breite: 12.0 }.freeze
       HUNDEKNOCHEN = { d: 35.0, tiefe: 20.0, abstand: 65.0, rand: 80.0 }.freeze
       FELD = { x: 3200.0, y: 1300.0 }.freeze

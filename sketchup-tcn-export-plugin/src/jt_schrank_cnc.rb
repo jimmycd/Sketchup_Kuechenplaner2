@@ -7,7 +7,7 @@ require 'extensions.rb'
 
 module JTools
   module SchrankCnc
-    EXT_VERSION = '0.3.1'.freeze unless defined?(EXT_VERSION)
+    EXT_VERSION = '0.3.2'.freeze unless defined?(EXT_VERSION)
 
     unless defined?(@extension) && @extension
       ext = SketchupExtension.new('Küchenplaner – Schrank-CNC (TCN-Export)', File.join(File.dirname(File.expand_path(__FILE__)), 'jt_schrank_cnc', 'main'))
