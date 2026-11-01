@@ -110,6 +110,19 @@ check(z.any? { |x| x.include?('#8508=0 #8509=0 #8510=18 #8511=78 #8512=60') } &&
       'Seite: Strebe vorn 2 Dübel 18 … 78 (20 ab fertiger Kante), Schraube in der Mitte der fertigen Strebe')
 check(d['USS1_SeiteL'].text != seite.text && bearbeitungen(d['USS1_SeiteL'].text, 1).size == z.size, 'Seite links gespiegelt')
 check(kopf(seite.text)[0].end_with?('s54') && kopf(boden.text)[0].end_with?('s13'), 'Feld s je Rolle wie in den Vorlagen')
+# Schraubenreihe Ø3 × 12 an der Dübellinie des Bodens wie Seite.tcn (ST 130, verteilt 1/1, gleiche Enden wie die Dübel)
+sr = vorlage.find { |x| x.include?('#8522=3 ') }.sub('#8518=7.5', '#8518=9.5').sub('#8510=30', '#8510=28')
+check(z.include?(sr), "Seite: Schraubenreihe Ø3 am Boden wie Seite.tcn: #{z}")
+# Seite tiefer als hoch (Tiefe 80 cm): trotzdem wie Seite.tcn x = Höhe, y = Tiefe (Jürgen 2026-11-01)
+tief = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 80.0 })
+dt, = S::Export.erzeugen(model, auswahl: [tief])
+st = dt.find { |x| x.name =~ /SeiteR\z/ }
+zt = bearbeitungen(st.text, 1)
+check(st.lage.dl == 700 && st.lage.dh == 798, "tiefe Seite: DL = Höhe 700, DH = Tiefe 798: #{st.lage.dl} #{st.lage.dh}")
+check(zt.count { |x| x.include?('#8522=5 ') } == 2 && zt.select { |x| x.include?('#8522=5 ') }.all? { |x| x.include?('fittingx') && x.include?('#8510=57 #8511=x-52') } &&
+      zt.count { |x| x.include?('fittingy') && x.include?('#8518=9.5 ') } == 2 &&
+      zt.count { |x| x.include?('#8518=x-9.5 ') && x.include?('#8522=8 ') } == 2,
+      "tiefe Seite: Lochreihen in x, Boden- und Strebendübel in y wie Seite.tcn: #{zt}")
 
 # --- alle Dateien ---
 dateien.each do |x|
@@ -347,9 +360,9 @@ check(kontur.size == 5 && kontur[0].include?('#1=63.015 #2=235.015 #3=-9 ') && k
       "Rückwand Spüle: Ausschnitt als geschlossene Kontur, 9 tief: #{kontur}")
 z = bearbeitungen(dsp['USP1_SeiteR'].text, 1)
 nut = z.select { |x| x.start_with?('W#89', 'W#2201') }
-check(nut.size == 2 && nut[0].include?('#1=54 #2=19 #3=-9 ') && nut[1].include?('#1=0 #2=686 '),
+check(nut.size == 2 && nut[0].include?('#1=19 #2=744 #3=-9 ') && nut[1].include?('#1=686 #2=0 '),
       "Seite Spüle: Nut 50 + 4 mm vor der Hinterkante, ab Oberkante Boden bis über die Oberkante: #{nut}")
-check(z.none? { |x| x.include?('#8522=5 ') && x.include?('fittingy') }, 'Seite Spüle mit Auszug: keine Lochreihe')
+check(z.none? { |x| x.include?('#8522=5 ') && x.include?('fitting') }, 'Seite Spüle mit Auszug: keine Lochreihe')
 check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 4, 'Seite Spüle: Schienenbohrungen für den Auszug')
 bd = dsp['USP1_Boden'].text
 check(!bd.include?('W#89') && bd.include?('#8522=3 '), 'Boden Spüle: keine Nut, Sockelfüße')
@@ -365,7 +378,7 @@ dsp = ds.to_h { |x| [x.name, x] }
 check(dsp.key?('USP1_TuerL') && dsp.key?('USP1_TuerR') && !dsp.key?('USP1_A_Front'), "Spüle mit Türen: #{dsp.keys}")
 check(bearbeitungen(dsp['USP1_Rueckwand'].text, 1).size == 1, 'Rückwand ohne Ausschnitt: nur Formatieren')
 lr = bearbeitungen(dsp['USP1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
-check(lr.size == 2 && lr.map { |x| x[/#8518=(\S+)/, 1] }.sort == %w[93 x-35], "Spüle mit Türen: Lochreihen 35 vorn, 93 hinten (50 + 8 Nut + 35): #{lr}")
+check(lr.size == 2 && lr.map { |x| x[/#8518=(\S+)/, 1] }.sort == %w[35 y-93], "Spüle mit Türen: Lochreihen 35 vorn, 93 hinten (50 + 8 Nut + 35): #{lr}")
 # --- Geschirrspüler: Front und Wangen nur formatieren, Gerät wird nicht exportiert ---
 gm = Sketchup.active_model = Sketchup::Model.new
 usg = UnterschrankGeschirrspueler.erstellen({ 'Art_Wange' => 3.0 })
@@ -419,11 +432,11 @@ mitte_t = ta[0][/#8020=(\S+)/, 1]
 check(kb.lage.dl == 798 && mitte_t == 'x-75', "Kochfeld-Boden: Ausschnitt 20 mm vor der Hinterkante (Mitte 75 roh): #{ta}")
 check(bearbeitungen(kb.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Kochfeld-Boden: Sockelfüße bleiben')
 # Schienen: NL 600 aus dem Attribut (Tiefe 800 − Installationstiefe 150), nicht 650 aus dem Abstand zur Rückwand;
-# DL der Seite = Tiefe 798, also #1 = Lage in der Tiefe, #2 = Höhe
+# Seite wie Seite.tcn: DL = Höhe, DH = Tiefe 798 ab Vorderkante, also #1 = Höhe, #2 = Lage in der Tiefe
 sr = bearbeitungen(k['USK1_SeiteR'].text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
-xs = sr.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 - v.to_f }.uniq.sort
-check(k['USK1_SeiteR'].lage.dl == 798 && xs == [35.0, 67.0, 291.0, 355.0], "Kochfeld: Schienen NL 600 (37/69/293/357 roh): #{xs}")
-check(sr.map { |x| x[/#2=(\S+)/, 1] }.uniq.size == 2, "Kochfeld: Schienen für 2 Schubladen: #{sr}")
+xs = sr.map { |x| x[/#2=(\S+)/, 1].to_f }.uniq.sort
+check(k['USK1_SeiteR'].lage.dh == 798 && xs == [35.0, 67.0, 291.0, 355.0], "Kochfeld: Schienen NL 600 (37/69/293/357 roh): #{xs}")
+check(sr.map { |x| x[/#1=(\S+)/, 1] }.uniq.size == 2, "Kochfeld: Schienen für 2 Schubladen: #{sr}")
 check(S::Regeln.nennlaenge_schrank(km.definitions['Unterschrank Kochfeld mit Abzug']) == 600, 'NL-Attribut 60 cm = 600')
 # Tiefe im Fenster Komponentenoptionen geändert: die DC schreibt die Werte (auch NL) an die Instanz,
 # an der Definition steht noch der Stand beim Erzeugen -> der Export nimmt den Wert der Instanz
@@ -436,7 +449,7 @@ check(S::Schraenke.dc(ki, 'hoehenoffset_schiene') == 0.7 / 2.54 && S::Schraenke.
 ki.set_attribute('dynamic_attributes', 'hoehenoffset_schiene', 0.0)
 dk2, = S::Export.erzeugen(km)
 sr2 = bearbeitungen(dk2.find { |x| x.name == 'USK1_SeiteR' }.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
-xs2 = sr2.map { |x| v = x[/#1=(\S+)/, 1]; v.start_with?('x-') ? v[2..].to_f : 798 - v.to_f }.uniq.sort
+xs2 = sr2.map { |x| x[/#2=(\S+)/, 1].to_f }.uniq.sort
 check(xs2 == [35.0, 67.0, 259.0, 291.0], "Kochfeld: Schienen NL 450 aus der Instanz (37/69/261/293 roh): #{xs2}")
 # NL am Schrank größer als die gezeichnete lichte Tiefe (Tiefe 560 -> höchstens NL 550): Bohrungen für NL 550
 schienen_hs = lambda do |nl_instanz|
@@ -483,9 +496,10 @@ check(h.keys.sort == %w[USH1_Boden USH1_Front USH1_Rueckwand USH1_SeiteL USH1_Se
       "Handtuch: Dateien ohne Beschlag-Platzhalter: #{h.keys}")
 schiene = ->(t) { bearbeitungen(t, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-10 ') } }
 sl = h['USH1_SeiteL']
-pos = schiene.(sl.text).map { |x| [lage_mm(x[/#1=(\S+)/, 1], sl.lage.dl), lage_mm(x[/#2=(\S+)/, 1], sl.lage.dh)] }.sort
-# Seite 700 hoch, 800 tief (Fräsmaß DL 798 ab Vorderkante, Anleimer vorn 2 mm): 56/280/330 roh, 19 + 52 / 19 + 436 hoch
-check(pos == [54, 278, 328].product([71.0, 455.0]).sort, "Handtuch: Schienenbohrungen links (LH): #{pos}")
+pos = schiene.(sl.text).map { |x| [sl.lage.dh - lage_mm(x[/#2=(\S+)/, 1], sl.lage.dh), lage_mm(x[/#1=(\S+)/, 1], sl.lage.dl)] }.sort
+# Seite 700 hoch, 800 tief (wie Seite.tcn: DL = Höhe, DH = Tiefe 798, linke Seite mit der Vorderkante bei y = DH):
+# 56/280/330 roh, 19 + 52 / 19 + 436 hoch
+check(sl.lage.dh == 798 && pos == [54, 278, 328].product([71.0, 455.0]).sort, "Handtuch: Schienenbohrungen links (LH): #{pos}")
 check(schiene.(h['USH1_SeiteR'].text).empty?, 'Handtuch: rechte Seite ohne Schiene')
 check(dh.none? { |x| x.text.include?('#8522=5 ') }, 'Handtuch: keine Lochreihen')
 fr = h['USH1_Front']
