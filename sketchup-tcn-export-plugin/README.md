@@ -1,8 +1,8 @@
-# SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Frontfarbe, Andocken)
+# SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Frontfarbe, Andocken)
 
 **Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base und Kesseböhmer LeMans II im Eckschrank kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
-Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`).
+Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`). Stückliste, Etiketten und Zuschnittplan ersetzen OpenCutList ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
 
 * Ausführlicher Plan: [Plan: TCN-Export für Schrank-Komponenten](https://claude.ai/artifact/1txhjwKrxeGrWi3j7F5wNN)
 * Vorbild für den TCN-Writer: [jimmycd/sketchup-treppenbauer](https://github.com/jimmycd/sketchup-treppenbauer) (`src/jt_treppenbau/tcn.rb`, `fraesliste.rb`)
@@ -84,6 +84,16 @@ Vor dem Schreiben fragt ein Fenster das Format ab (vorbelegt mit dem zuletzt ben
 
 Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im Browser. Drucken mit Größe 100 % (nicht „an Seite anpassen“) und ohne Ränder; die Seitengröße steht in der Datei (`@page`), beim Endlos-Drucker also die Etikettengröße.
 
+## Zuschnittplan
+*Erweiterungen › Küchenplaner › Zuschnittplan…* ersetzt den Zuschnitt aus OpenCutList, gedacht für die Formatsäge (alles von Hand, kein Zuschnittprogramm). Je Material und Stärke verteilt der Guillotine-Optimierer BinPacking2D (aus OpenCutList übernommen, siehe [THIRD_PARTY.md](THIRD_PARTY.md)) die **Rohmaße** der Stückliste auf Platten, nur mit durchgehenden Schnitten. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+
+* Plattenformat aus dem Material (`std_sizes` im OCL-Wörterbuch, erstes Format), sonst 2800 × 2070 mm.
+* Schnittbreite und Besäumen aus den *Einstellungen* (Standard 3 mm und 10 mm je Plattenkante).
+* Maserung am Material (`grained`): dann wird nicht gedreht, die Teillänge L liegt längs der Platte.
+* Arbeitsplatten und Teile ohne Material bleiben draußen (Hinweis). Teile, die nicht auf die Platte passen, stehen in der Übersicht unter „passt nicht“.
+
+Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (Platten, Teile, Ausnutzung), dann je Platte eine Seite mit maßstäblicher Skizze (Teilnummern wie Stückliste und Etiketten, Reste schraffiert, Schnitte rot und nummeriert) und daneben die **Schnittliste in Reihenfolge**: zuerst Besäumen, dann die durchgehenden Schnitte, dann die Schnitte in den Streifen. Je Schnitt Richtung (längs/quer), Lage (`y =` bzw. `x =` ab der Plattenecke links oben) und Länge.
+
 ## Einstellungen
 *Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
 
@@ -91,6 +101,8 @@ Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im 
 | --- | --- | --- |
 | Übermaß Länge gesamt (mm) | 10 | Rohmaß der längeren Seite, `OFFSET` der Fräsliste (halber Wert) |
 | Übermaß Breite gesamt (mm) | 10 | Rohmaß der kürzeren Seite, `OFFSET` der Fräsliste (halber Wert) |
+| Zuschnitt: Schnittbreite Sägeblatt (mm) | 3 | Abstand der Teile im Zuschnittplan |
+| Zuschnitt: Besäumen je Plattenkante (mm) | 10 | Rand der Rohplatte, der zuerst abgeschnitten wird |
 
 ## TCN exportieren
 *Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS, OCL-Teil). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
@@ -132,8 +144,11 @@ Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im 
 * `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
 * `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
 * `src/jt_schrank_cnc/etiketten.rb` – Etiketten (Bogen oder Endlos, HTML zum Drucken)
+* `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan für die Formatsäge
+* `src/jt_schrank_cnc/bin_packing_2d/` – Guillotine-Optimierer aus OpenCutList (GPL-3.0, siehe `THIRD_PARTY.md`)
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
+* `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Besäumen eingehalten, Maserung, zu große Teile, Druckseite, Dialog
 * `test/test_etiketten.rb` – Etiketten: Bogen-Lage, Startposition, Endlos, Kantenbild, QR-Code, Format-Dialog
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form)
 
@@ -153,3 +168,6 @@ Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im 
 7. ~~Schubladen: Schienenbohrungen, Frontbefestigung, Kastenboden, Generatoren auf LEGRABOX.~~
 8. Türen und Griffbohrungen.
 9. Dialog, Listen.
+
+## Lizenz
+GPL-3.0 ([LICENSE](LICENSE)), weil der Zuschnitt-Optimierer aus OpenCutList stammt; Herkunft und Änderungen in [THIRD_PARTY.md](THIRD_PARTY.md).

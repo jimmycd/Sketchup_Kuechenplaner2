@@ -66,9 +66,9 @@ module UI
     def openURL(u) = (self.url = u)
   end
 end
-UI.antwort = ['12,5', '8']
+UI.antwort = ['12,5', '8', '3', '10']
 check(S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5 && S::Einstellungen.uebermass_breite == 8, 'Einstellungen-Dialog speichert (Komma erlaubt)')
-UI.antwort = ['x', '8']
+UI.antwort = ['x', '8', '3', '10']
 check(!S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5, 'ungültige Eingabe ändert nichts')
 UI.antwort = nil
 check(!S::Einstellungen.dialog, 'Abbrechen ändert nichts')
