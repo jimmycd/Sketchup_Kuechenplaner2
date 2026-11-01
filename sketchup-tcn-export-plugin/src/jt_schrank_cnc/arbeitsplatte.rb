@@ -8,7 +8,7 @@
 #   Kontur   Stoßkante (Gehrungsansatz mit Bogen, Gehrung, stumpf, Längsstoß) mit
 #            dem Konturfräser, um den Radius in den Abfall versetzt, ganz durch.
 #            Die durchlaufende Platte bekommt dazu ihr Ende an der Wand.
-#   Hundeknochen  je Verbinder Bohrung Ø 35 (65 mm vom Stoß) und Steg zum Stoß,
+#   Hundeknochen  je Verbinder Bohrung Ø 35 (65 mm vom Stoß) und Steg 12 breit zum Stoß,
 #            20 tief. 2 Verbinder bis 650 mm Stoßlänge, 3 bis 900, sonst 4;
 #            Gehrung immer 4. 80 mm von Wand und Vorderkante.
 #   Ausschnitte Spüle/Kochfeld, wenn sie im Arbeitsbereich liegen.
@@ -21,9 +21,12 @@ module JTools
   module SchrankCnc
     module Arbeitsplatten
       AP_DICT = 'JT_Arbeitsplatte'.freeze
-      # Annahmen, Werkzeugnummern bitte an die Maschine anpassen
-      KONTUR = { werkzeug: 2220, d: 20.0, ueberlauf: 10.0, durch: 1.0 }.freeze
-      STEG = { werkzeug: 2212, d: 12.0 }.freeze
+      # Werkzeuge aus Jürgens Werkzeugliste (Fläche 1): Kontur mit dem 20er
+      # Diafräser 1001 (sauberer Schnitt im Schichtstoff), Steg 12 mm breit mit dem
+      # VHM Ø 8 (2200) in zwei Bahnen, ein 12er Fräser ist nicht vorhanden.
+      # Die Bohrung Ø 35 wählt die Maschine über den Durchmesser.
+      KONTUR = { werkzeug: 1001, d: 20.0, ueberlauf: 10.0, durch: 1.0 }.freeze
+      STEG = { werkzeug: 2200, d: 8.0, breite: 12.0 }.freeze
       HUNDEKNOCHEN = { d: 35.0, tiefe: 20.0, abstand: 65.0, rand: 80.0 }.freeze
       FELD = { x: 3200.0, y: 1300.0 }.freeze
       NORMALE = { 'ny' => [0.0, -1.0], 'py' => [0.0, 1.0], 'nx' => [-1.0, 0.0], 'px' => [1.0, 0.0] }.freeze
@@ -207,6 +210,18 @@ module JTools
           pts.each_cons(2).map { |a, b| "W#2201{ ::WTl  #8015=1 #1=#{n.(b[0] - a[0])} #2=#{n.(b[1] - a[1])} }W" }
       end
 
+      # Steg von der Stoßkante zur Bohrung: breiter als der Fräser in Bahnen nebeneinander
+      def self.steg(q, c, tiefe)
+        rest = STEG[:breite] - STEG[:d]
+        e = einheit(minus(c, q))
+        nrm = [-e[1], e[0]]
+        bahnen = rest < 0.05 ? 1 : (rest / STEG[:d]).ceil + 1
+        (0...bahnen).map do |i|
+          o = bahnen == 1 ? 0.0 : -rest / 2.0 + rest * i / (bahnen - 1)
+          bahn('@', [plus(q, nrm, o), plus(c, nrm, o)], tiefe, STEG[:werkzeug])
+        end
+      end
+
       def self.text(lage, bearbeitungen)
         out = Tcn.kopf(lage.dl, lage.dh, lage.ds, 1, [1])
         ws = 0
@@ -252,7 +267,7 @@ module JTools
               next
             end
             b << [Tcn.bohrung('@', Tcn.n(mc[0]), Tcn.n(mc[1]), Op.new(hk[:d], hk[:tiefe]))]
-            b << bahn('@', [mq, mc], hk[:tiefe], STEG[:werkzeug])
+            b.concat(steg(mq, mc, hk[:tiefe]))
           end
         end
         b
