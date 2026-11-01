@@ -30,8 +30,8 @@ module UI
 end
 Sketchup.active_model = Sketchup::Model.new
 
-SRC = Dir[File.join(haupt, 'Komponenten/*/src')].sort + %w[sketchup-tcn-export-plugin/src kuechenplaner-update/src].map { |s| File.join(haupt, s) }
-RBZ = ->(src) { d = File.dirname(src); n = File.basename(d); File.join(d, "#{{ 'sketchup-tcn-export-plugin' => 'schrank_cnc', 'kuechenplaner-update' => 'kuechenplaner_update' }.fetch(n, n)}.rbz") }
+SRC = Dir[File.join(haupt, 'Komponenten/*/src')].sort + %w[sketchup-tcn-export-plugin/src kuechenplaner-update/src kuechenplaner-symbolleiste/src].map { |s| File.join(haupt, s) }
+RBZ = ->(src) { d = File.dirname(src); n = File.basename(d); File.join(d, "#{{ 'sketchup-tcn-export-plugin' => 'schrank_cnc', 'kuechenplaner-update' => 'kuechenplaner_update', 'kuechenplaner-symbolleiste' => 'kuechenplaner_symbolleiste' }.fetch(n, n)}.rbz") }
 dateien = ->(src) { Dir.chdir(src) { Dir['**/*'].reject { |f| File.directory?(f) }.sort } }
 im_zip = ->(rbz, f) { IO.popen(['unzip', '-p', rbz, f], err: File::NULL, &:read).b }
 zip_liste = ->(rbz) { IO.popen(['zipinfo', '-1', rbz], err: File::NULL, &:read).split("\n").reject { |f| f.end_with?('/') }.sort }
@@ -51,7 +51,7 @@ SRC.each do |src|
   check(l.include?("SketchupExtension.new('Küchenplaner – ") && l.include?('Sketchup.register_extension'),
         "#{name}: registriert Erweiterung „Küchenplaner – …“")
   main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
-  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.untermenu\)\n/m]
+  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.schrank\)\n/m]
   check(s, "#{name}: gemeinsames Küchenplaner-Menü fehlt")
   snippet ||= s
   check(s == snippet, "#{name}: Küchenplaner-Menü nicht wortgleich")
