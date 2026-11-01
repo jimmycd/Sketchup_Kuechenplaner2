@@ -234,6 +234,8 @@ module UnterschrankTuer
     unbekannt = tags_setzen(model, d)
     model.commit_operation
     $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
+    # Andock-Werkzeug (Schrank-CNC): neuen Schrank an Nachbarn oder Wand setzen
+    Kuechenplaner.neuer_schrank(inst) if Kuechenplaner.respond_to?(:neuer_schrank)
     model.selection.clear
     model.selection.add(inst)
     puts "Unterschrank mit Tür: ohne Tag (nicht erkannt): #{unbekannt.uniq.join(', ')}" unless unbekannt.empty?

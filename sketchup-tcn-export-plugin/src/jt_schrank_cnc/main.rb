@@ -27,7 +27,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[schraenke frontfarbe geometrie regeln tcn arbeitsplatte export].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[schraenke andocken frontfarbe geometrie regeln tcn arbeitsplatte export].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -37,6 +37,7 @@ module JTools
         menu.add_separator
         menu.add_item('TCN exportieren…') { Export.dialog }
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
+        menu.add_item('Schrank andocken…') { Andocken.starten }
       end
       file_loaded(__FILE__)
     end
