@@ -427,12 +427,17 @@ module UnterschrankSchubladen
   end
 
   # Nennlänge der LEGRABOX-Schiene (cm) zur lichten Tiefe (cm)
+  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
+  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
+
   def self.nennlaenge(tiefe)
-    [65.0, ((tiefe - 0.3) / 5.0 + 0.000001).floor * 5.0].min
+    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
   end
 
+  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
   def self.f_nennlaenge(tiefe)
-    "MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5)"
+    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
   end
 
   # Schublade mit Blum LEGRABOX free: Front, Boden (LW-35 x NL-10) und Holzrückwand
@@ -522,7 +527,7 @@ module UnterschrankSchubladen
     prompts = ['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Anzahl Schubladen',
                'Aufteilung von oben (Anteile oder mm, z. B. 1;1;2)',
                'Kürzel für Tags (eindeutig je Schrank)']
-    defaults = ['600', '700', '800', '3', '1;1;1', freies_kuerzel(Sketchup.active_model)]
+    defaults = ['600', '700', '520', '3', '1;1;1', freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '']
     res = UI.inputbox(prompts, defaults, lists, 'Unterschrank mit Schubladen')
     return unless res
@@ -536,6 +541,9 @@ module UnterschrankSchubladen
       'Kuerzel' => res[5].strip
     }
     raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+    if eingabe['Tiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+      raise ArgumentError, 'Tiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+    end
     if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
       raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
     end

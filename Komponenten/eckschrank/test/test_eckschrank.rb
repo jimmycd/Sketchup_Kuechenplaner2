@@ -410,5 +410,13 @@ check(Sketchup.active_model.layers['UES1_Blende'] && Sketchup.active_model.layer
 end
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
+
+# --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
+require_relative '../../../test/tiefe_helfer'
+TiefeHelfer.pruefen(Knoten, E::DICT, ->(e) { E.erstellen(e) },
+                    [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]]).each do |was, abw|
+  check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

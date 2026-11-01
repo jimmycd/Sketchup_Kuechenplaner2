@@ -755,6 +755,26 @@ module Eckschrank
   # ---------------------------------------------------------------------------
   # Erzeugen
   # ---------------------------------------------------------------------------
+  # Neuer Schrank: Tiefe (Korpus ohne Front/Rückwand) beim Anlegen abfragen. Danach bleibt sie im
+  # Fenster Komponentenoptionen änderbar; alle abhängigen Teile folgen dort per Formel.
+  TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
+
+  def self.tiefe_min
+    20.0
+  end
+
+  def self.dialog
+    res = UI.inputbox(['Tiefe Korpus (mm)'], [(TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck')
+    return unless res
+    t = res[0].to_s.tr(',', '.').to_f / 10.0
+    if t < tiefe_min - 0.000001
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    end
+    erstellen({ 'Tiefe' => t })
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
   def self.erstellen(eingabe = {}, l_form: false)
     model = Sketchup.active_model
     model.start_operation(l_form ? 'Eckschrank L-Form' : 'Eckschrank Blindeck', true)
@@ -784,7 +804,7 @@ module Eckschrank
   def self.dialog_l
     d = DEFAULTS_L
     werte = UI.inputbox(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
-                        [d['Schenkel_A'], d['Schenkel_B'], d['Tiefe']].map { |v| (v * 10).round.to_s },
+                        [d['Schenkel_A'], d['Schenkel_B'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
                         'Eckschrank L-Form')
     return unless werte
     a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
@@ -815,7 +835,7 @@ module Kuechenplaner
 end unless defined?(Kuechenplaner.untermenu)
 
 unless file_loaded?(__FILE__)
-  Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank Blindeck…') { Eckschrank.erstellen }
+  Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank Blindeck…') { Eckschrank.dialog }
   Kuechenplaner.untermenu('Unterschränke').add_item('Eckschrank L-Form…') { Eckschrank.dialog_l }
   if defined?(Eckschrank::LAppBeobachter)
     Sketchup.add_observer(Eckschrank::LAppBeobachter.new)

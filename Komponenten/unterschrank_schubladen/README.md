@@ -11,7 +11,7 @@ Ohne Installation geht es auch über die Ruby-Konsole: `load 'C:/Pfad/zu/src/unt
 ## Dialog
 | Feld | Bedeutung |
 |---|---|
-| Breite / Höhe / Tiefe (mm) | wie beim Unterschrank mit Tür (Standard 600 / 700 / 800) |
+| Breite / Höhe / Tiefe (mm) | Standard 600 / 700 / 800, im Dialog Tiefe 520 vorgeschlagen |
 | Anzahl Schubladen | 1–6 |
 | Kürzel für Tags | Vorschlag USS1, USS2 … (frei wählbar, muss im Modell neu sein) |
 | Aufteilung von oben | Anteile, z. B. `1;1;2` (unterste doppelt so hoch) oder direkt mm, z. B. `140;140;416` – wird auf die Höhe skaliert |

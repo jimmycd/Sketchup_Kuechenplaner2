@@ -211,18 +211,29 @@ module Geraete
   # Nischen eines Schranks lesen
   # ---------------------------------------------------------------------------
 
-  # Alle Wörterbücher JT_Nische* an der Definition, als Hash mit String-Schlüsseln
-  def self.nischen(defn)
+  # Alle Wörterbücher JT_Nische* an der Definition, als Hash mit String-Schlüsseln.
+  # Die Nischen stehen dort mit dem Stand beim Erzeugen; die Tiefe kann man danach im Fenster
+  # Komponentenoptionen ändern (die DC schreibt sie an die Instanz), daher gilt die aktuelle Tiefe.
+  def self.nischen(defn, inst = nil)
     dicts = defn.attribute_dictionaries
     liste = dicts ? dicts.select { |d| d.name.start_with?(NISCHE_DICT) }.sort_by(&:name)
                          .map { |d| d.to_h.transform_keys(&:to_s) } : []
-    liste << spuelen_nische(defn) if liste.empty? && defn.get_attribute(JT_DICT, 'typ') == 'Spuelenschrank'
+    liste << spuelen_nische(defn, inst) if liste.empty? && defn.get_attribute(JT_DICT, 'typ') == 'Spuelenschrank'
+    t = dc_mm(defn, inst, 'tiefe')
+    liste.each { |n| n['tiefe'] = t.round(1) } if t
     liste
   end
 
+  # DC-Attribut des Schranks in mm (gespeichert in Zoll): zuerst an der Instanz, dann an der Definition
+  def self.dc_mm(defn, inst, k)
+    v = inst && inst.get_attribute(DICT, k)
+    v = defn.get_attribute(DICT, k) if v.nil?
+    v.nil? ? nil : v.to_f * 25.4
+  end
+
   # Spülenschrank: Nische aus den Schrankmaßen (DC-Attribute in Zoll)
-  def self.spuelen_nische(defn)
-    mm = ->(k, std) { (v = defn.get_attribute(DICT, k)) ? v.to_f * 25.4 : std }
+  def self.spuelen_nische(defn, inst = nil)
+    mm = ->(k, std) { dc_mm(defn, inst, k) || std }
     mk = mm.('materialstaerke_korpus', 19.0)
     { 'nische' => 'SP', 'geraet' => 'Spuele', 'breite' => mm.('breite', 800.0) - 2 * mk,
       'hoehe' => 0.0, 'tiefe' => mm.('tiefe', 800.0), 'x' => mk, 'y' => mk, 'z' => mm.('hoehe', 700.0) }
@@ -312,7 +323,7 @@ module Geraete
   # Platzhalter der Schränke (Tag Geraete_Plan) ausgeblendet. Liefert die Anzahl.
   def self.einsetzen(model, schrank)
     defn = schrank.definition
-    liste = nischen(defn)
+    liste = nischen(defn, schrank)
     return 0 if liste.empty?
     ents = defn.entities
     alt = ents.grep(Sketchup::ComponentInstance).select { |i| geraet?(i) }

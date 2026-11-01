@@ -144,7 +144,7 @@ def pruefe(w, p, label)
   check((mb[:q][5] - ht).abs < EPS, "#{label}: Mittelboden an der Teilung") if nf == 2
 
   # Kästen je Front (LEGRABOX free): im Lochraster, gleichmäßig, im Raum zwischen den festen Böden
-  nl = [65.0, ((t - 0.3) / 5 + 0.000001).floor * 5.0].min
+  nl = ([35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].select { |n| n + 0.3 <= t + 1e-6 }.max || 35.0)
   check((w.wert('NL') - nl).abs < EPS, "#{label}: NL #{w.wert('NL')} statt #{nl}")
   off = p['Hoehenoffset_Schiene']
   mbd, mrw = p['Materialstaerke_Kastenboden'], p['Materialstaerke_Kastenrueckwand']
@@ -297,6 +297,14 @@ check(ad.get_attribute(A::DICT, 'description') == A::HILFE, 'Hilfe: description'
 check(%w[summary description].all? { |k| ad.get_attribute(A::DICT, "_#{k}_access") == 'VIEW' }, 'Hilfe: nur anzeigen')
 check(A::HILFE.include?(A::DOKU_URL), 'Hilfe: Link zur Doku')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
+
+
+# --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
+require_relative '../../../test/tiefe_helfer'
+TiefeHelfer.pruefen(Knoten, A::DICT, ->(e) { A.erstellen(e) },
+                    [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]]).each do |was, abw|
+  check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
+end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

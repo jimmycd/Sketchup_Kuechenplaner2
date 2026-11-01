@@ -518,12 +518,17 @@ module UnterschrankKochfeld
   end
 
   # Nennlänge der LEGRABOX-Schiene (cm) zur lichten Tiefe (cm)
+  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
+  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
+
   def self.nennlaenge(tiefe)
-    [65.0, ((tiefe - 0.3) / 5.0 + 0.000001).floor * 5.0].min
+    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
   end
 
+  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
   def self.f_nennlaenge(tiefe)
-    "MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5)"
+    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
   end
 
   # Schublade mit Blum LEGRABOX free: Front, Boden (LW-35 x NL-10) und Holzrückwand
@@ -617,7 +622,7 @@ module UnterschrankKochfeld
     prompts = ['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Höhe Blende (mm)', 'Anzahl Schubladen',
                'Aufteilung von oben (Anteile oder mm, z. B. 1;1)', 'Installationstiefe hinten (mm)',
                'Lüftung', 'Lage Kanalausschnitt', 'Kürzel für Tags (eindeutig je Schrank)']
-    defaults = ['800', '700', '800', '200', '2', '1;1', '150', LUEFTUNG.first, KANAL_LAGE[1],
+    defaults = ['800', '700', '520', '200', '2', '1;1', '150', LUEFTUNG.first, KANAL_LAGE[1],
                 freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '', LUEFTUNG.join('|'), KANAL_LAGE.join('|'), '']
     res = UI.inputbox(prompts, defaults, lists, 'Unterschrank Kochfeld mit Abzug')
@@ -636,6 +641,9 @@ module UnterschrankKochfeld
     end
     if eingabe['Installationstiefe'] < 2 * DEFAULTS['Kanal_Steg'] + 1
       raise ArgumentError, 'Installationstiefe zu klein für den Kanalausschnitt'
+    end
+    if eingabe['Tiefe'] - eingabe['Installationstiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+      raise ArgumentError, 'Tiefe minus Installationstiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
     end
     parse_aufteilung(res[5], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
     (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
