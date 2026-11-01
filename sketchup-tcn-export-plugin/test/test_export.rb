@@ -262,15 +262,49 @@ fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.i
 check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
 Sketchup.active_model = model
 
-# --- Schreiben: TCN + Teileliste ---
+# --- Schreiben: TCN + Teileliste + Fräsliste ---
+# Übermaß wie in OCL am Plattenmaterial (Länge 10, Breite 6 mm)
+platte = dateien.find { |x| x.name == 'HS1_Boden' }.ws.teil.inst.material
+alt_ue = %w[length_increase width_increase].map { |k| platte.get_attribute('ladb_opencutlist', k) }
+platte.set_attribute('ladb_opencutlist', 'length_increase', '10 mm')
+platte.set_attribute('ladb_opencutlist', 'width_increase', '6mm')
 Dir.mktmpdir do |dir|
   S::Export.schreiben(dir, dateien)
   check(dateien.all? { |x| File.exist?(File.join(dir, "#{x.name}.tcn")) }, 'alle TCN geschrieben')
   csv = File.binread(File.join(dir, 'Teileliste.csv'))
   zeilen = csv.split("\r\n")
-  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
-  check(zeilen.include?('HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19'), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
+  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;OCL-Teil' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
+  check(zeilen.include?('HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden'), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
+  check(zeilen.first.end_with?(';OCL-Teil'), 'Teileliste: Spalte OCL-Teil')
+
+  # Fräsliste .xmlst für das TpaCAD-Board
+  liste = File.join(dir, S::Fraesliste.name(dir))
+  check(File.exist?(liste) && liste.end_with?('.xmlst'), "Fräsliste geschrieben: #{liste}")
+  x = File.binread(liste).force_encoding('UTF-8')
+  check(x.start_with?("\uFEFF<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<List>\r\n"), 'Fräsliste: BOM, XML-Kopf, CRLF')
+  check(!x.gsub("\r\n", '').include?("\n"), 'Fräsliste: nur CRLF')
+  rows = x.scan(/<Row Index="(\d+)".*?<\/Row>/m).size
+  check(rows == dateien.size, "Fräsliste: eine Zeile je TCN (#{rows}/#{dateien.size})")
+  namen = x.scan(/<Cell Name="NAME" DataType="161">"(.*?)"<\/Cell>/).flatten
+  check(namen.all? { |n| n.start_with?(dir) } && namen.map { |n| File.basename(n) }.sort == dateien.map { |d| "#{d.name}.tcn" }.sort, 'Fräsliste: alle TCN mit Pfad')
+  flaechen = x.scan(/"LENGTH" DataType="168">([\d.]+)<.*?"HEIGHT" DataType="169">([\d.]+)</m).map { |l, h| l.to_f * h.to_f }
+  check(flaechen == flaechen.sort.reverse && flaechen.size == dateien.size, 'Fräsliste: größte Teile zuerst')
+  boden = x[/<Row[^>]*HS1_Boden\.tcn.*?<\/Row>/m].to_s
+  check(boden.include?('"REPETITIONS" DataType="164">1<') && boden.include?('"FIELD" DataType="171">9<'), 'Fräsliste Boden: Anzahl, Feld')
+  check(boden.include?('"OFFSET X" DataType="277">5<') && boden.include?('"OFFSET Y" DataType="278">3<') &&
+        boden.include?('"OFFSET Z" DataType="279">0<'), "Fräsliste Boden: Offset = halbes OCL-Übermaß (10/6 mm): #{boden[/OFFSET X.*?</m]}")
+  check(boden.include?('"COMMENT" DataType="162">Boden<'), 'Fräsliste: OCL-Name als Kommentar')
+  zb = x[/<Row[^>]*HS1_ZwischenbodenUnten\.tcn.*?<\/Row>/m].to_s
+  check(zb.include?('"REPETITIONS" DataType="164">2<') || dateien.find { |d| d.name == 'HS1_ZwischenbodenUnten' }.anzahl == 1, 'Fräsliste: Wiederholungen = Anzahl')
 end
+%w[length_increase width_increase].zip(alt_ue) { |k, v| platte.set_attribute('ladb_opencutlist', k, v) }
+
+# Fräsliste: Windows-Pfade, Name, Maße aus OCL
+check(S::Fraesliste.name('E:\\Auftrag\\Kueche Meier') == 'Liste_Kueche_Meier.xmlst', 'Fräsliste: Name aus Ordner')
+check(S::Fraesliste.name('E:/') == 'Liste_Export.xmlst', 'Fräsliste: Laufwerk als Ordner')
+check(S::Fraesliste.pfad('E:/Auftrag', 'A.tcn') == 'E:\\Auftrag\\A.tcn', 'Fräsliste: Windows-Pfad mit Backslash')
+check(S::Fraesliste.pfad('/tmp/x', 'A.tcn') == '/tmp/x/A.tcn', 'Fräsliste: anderer Pfad unverändert')
+check([S::Fraesliste.mm('10 mm'), S::Fraesliste.mm('1 cm'), S::Fraesliste.mm('0'), S::Fraesliste.mm(nil), S::Fraesliste.mm('0,5 m')] == [10.0, 10.0, 0.0, 0.0, 500.0], 'Fräsliste: OCL-Maße in mm')
 
 # --- gleicher Tag: gleiche TCN wird gezählt, andere TCN bekommt _2 ---
 a, b = %w[HS1_ZwischenbodenUnten HS1_ZwischenbodenOben].map { |n| dateien.find { |x| x.name == n } }
