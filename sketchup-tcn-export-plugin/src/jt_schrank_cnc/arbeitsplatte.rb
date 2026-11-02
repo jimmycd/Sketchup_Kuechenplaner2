@@ -318,9 +318,9 @@ module JTools
         out = Tcn.kopf(lage.dl, lage.dh, lage.ds, 1, [1])
         ws = 0
         out << 'SIDE#1{' << '$=F #1'
-        bearbeitungen.each do |zeilen|
-          ws += 1
-          out.concat(zeilen.map { |l| l.sub('WS=@', "WS=#{ws}") })
+        # Zustellung in Schritten ≤ 20 mm (Tcn.zustellen), jede Stufe mit eigener WS
+        Tcn.zustellen(bearbeitungen.flatten).each do |l|
+          out << (l.include?('WS=@') ? l.sub('WS=@', "WS=#{ws += 1}") : l)
         end
         out << '}SIDE'
         [3, 4, 5, 6].each { |side| out << "SIDE##{side}{" << "$=F ##{side}" << '}SIDE' }

@@ -93,7 +93,7 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
   DH = Tiefe, DS = Stärke. Arbeitsbereich 3200 × 1300 mm: was weiter weg liegt,
   fehlt in der TCN und steht in den Hinweisen.
 - **Stoßkontur** mit dem Fräser Ø 20 (Werkzeug 1004) um den Radius in
-  den Abfall versetzt, Stärke + 1 mm tief, 10 mm über die Plattenkanten hinaus.
+  den Abfall versetzt, Stärke + 1 mm tief (in Zustellschritten von höchstens 20 mm), 10 mm über die Plattenkanten hinaus.
   Der Bogen des Gehrungsansatzes ist ein echter Kreisbogen (`W#2125`, tangential,
   Radius und Winkel wie in `sketchup-tcn-export-plugin/beispiele/bogen.tcn`).
   Das Vorzeichen des Winkels gilt wie in der TPA-Ansicht (y nach unten):
