@@ -91,9 +91,9 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
-                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…'],
+                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
+  'Oberschränke' => ['Oberschrank…', 'Oberschrank mit Klappe…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -128,14 +128,14 @@ schrank_eintraege.each do |titel, blk|
   blk.call
   frage = UI.abfragen.first
   i = frage && frage[0].index('Tiefe Korpus (mm)')
-  soll = titel == 'Oberschrank…' ? '400' : '520'
+  soll = titel.start_with?('Oberschrank') ? '400' : '520'
   check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
   check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
 end
-check(unterschraenke.size == 10, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 11, 'alle Unterschränke geprüft')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

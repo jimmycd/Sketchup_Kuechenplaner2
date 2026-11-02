@@ -30,10 +30,10 @@ module JTools
       def front?
         %w[Front Tuer].include?(rolle)
       end
-      # sichtbare Platten ohne Griff, die das Frontmaterial bekommen (Inselschrank: Verkleidung der
-      # Rückseite; Abschlusswangen)
+      # sichtbare Platten ohne Griff, die das Frontmaterial bekommen: Verkleidung der Inselrückseite
+      # und die Abschlusswangen des Inselschranks
       def sichtteil?
-        %w[Verkleidung Wange].include?(rolle)
+        rolle == 'Verkleidung' || (rolle == 'Wange' && jt('typ') == 'Unterschrank_Insel')
       end
       # sichtbar nur, wenn weder das Teil noch eine Ebene darüber ausgeblendet ist
       def sichtbar?
