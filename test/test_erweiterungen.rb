@@ -92,7 +92,7 @@ check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Oberschrank…', 'Oberschrank mit Klappe…'],
+  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank mit Klappe…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
@@ -107,7 +107,7 @@ end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
 # Neue Schränke: jeder Menüeintrag öffnet ein Eingabefenster (HtmlDialog im Treppenplaner-Stil, kein
-# UI.inputbox) mit der Tiefe (Vorschlag 520 mm, Oberschrank 400 mm), und der Schrank wird nach „Einfügen“
+# UI.inputbox) mit der Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm), und der Schrank wird nach „Einfügen“
 # mit der eingegebenen Tiefe gebaut
 require_relative 'eingabe_helfer'
 module UI
@@ -142,13 +142,13 @@ schrank_eintraege.each do |titel, blk|
   next unless d
   felder = EingabeHelfer.felder(d.html)
   tiefe = felder.assoc('Tiefe Korpus')
-  soll = titel.start_with?('Oberschrank') ? '400' : '520'
+  soll = titel.start_with?('Oberschrank') ? '400' : titel.start_with?('Eck-Oberschrank') ? '350' : '520'
   check(tiefe && tiefe[1] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{felder.inspect})")
   check(d.html.include?('<span class="unit">mm</span>'), "#{titel}: Einheit mm neben dem Feld")
   check(titel == 'Eckschrank L-Form…' || felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
   check(d.html.include?('#f4f2ee') && d.html.include?('Einfügen</button>') && d.html.include?('Neuer Schrank'),
         "#{titel}: Fenster im Treppenplaner-Stil mit Knopf Einfügen")
-  EingabeHelfer.ok(d, 'Tiefe Korpus' => '610')
+  EingabeHelfer.ok(d, 'Tiefe Korpus' => '610', 'Schenkel A, hinten' => '1300', 'Schenkel B, links' => '1300')
   check(!d.visible? && d.skripte.empty?, "#{titel}: Fenster schließt nach dem Einfügen (#{d.skripte.inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
