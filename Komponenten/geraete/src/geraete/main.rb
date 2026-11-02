@@ -23,6 +23,7 @@
 # wählen (beide Geräte-Tags aus).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Geraete
 
@@ -58,6 +59,7 @@ module Geraete
     'Waermeschublade' => ['Wärmeschublade', 'Geraet Plan', 140.0],
     'Kuehlschrank'    => ['Kühlschrank integriert', 'Geraet Plan'],
     'KuehlschrankFrei' => ['Kühlschrank unterbaufähig', 'Geraet Plan'],
+    'Kuehlgeraet'     => ['Einbau-Kühlgerät', 'Geraet Plan'], # Hochschrank Kühlschrank, Zahl = Nischenhöhe cm
     'Weinkuehler'     => ['Weinkühler', 'Geraet Plan']
   }.freeze
   KUEHL_ARTEN = %w[Kuehlschrank Weinkuehler KuehlschrankFrei].freeze # Geraet_Art 0/1/2 des Kühlschrank-Unterschranks
@@ -130,6 +132,16 @@ module Geraete
     k = kuehl(n)
     { plan: [0, 0, 0, k[:b], k[:t], k[:h]],
       teile: [k[:gehaeuse], k[:fuesse], teil('Geraetetuer', 'Geraet Gehaeuse', [0, 0, k[:so]], [k[:b], 20, k[:h] - k[:so]])] }
+  end
+
+  # Einbau-Kühlgerät im Hochschrank Kühlschrank: Gehäuse und Gerätetür hinter der Möbeltür
+  # (die Möbeltür gehört zum Schrank), steht auf dem Boden der Nische
+  def self.berechne_kuehlgeraet(n, _)
+    b, h = zahl(n, 'breite'), zahl(n, 'hoehe')
+    t = [545.0, zahl(n, 'tiefe', 560.0)].min
+    { plan: [0, 0, 0, b, t, h],
+      teile: [teil('Gehaeuse', 'Geraet Gehaeuse', [2, 20, 0], [b - 4, t - 20, h - 2]),
+              teil('Geraetetuer', 'Geraet Gehaeuse', [2, 0, 0], [b - 4, 20, h - 2])] }
   end
 
   def self.berechne_kuehlschrankfrei(n, _)
@@ -467,7 +479,7 @@ module Geraete
   def self.in_schraenke_setzen(model = Sketchup.active_model)
     liste = schraenke(model)
     if liste.empty?
-      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte).')
+      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte, Hochschrank Kühlschrank).')
       return 0
     end
     model.start_operation('Geräte in Schränke setzen', true)

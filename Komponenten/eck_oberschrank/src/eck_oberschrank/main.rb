@@ -26,6 +26,7 @@
 # Anderes Kürzel: EckOberschrank.erstellen({ 'Kuerzel' => 'OES2' })
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module EckOberschrank
 
@@ -52,8 +53,9 @@ module EckOberschrank
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -515,13 +517,13 @@ module EckOberschrank
 
   def self.dialog
     d = DEFAULTS
-    werte = UI.inputbox(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
                         [d['Schenkel_A'], d['Schenkel_B'], d['Hoehe'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
-                        'Eck-Oberschrank L-Form')
-    return unless werte
-    a, b, h, t = werte.map { |v| Float(v.to_s.tr(',', '.')) / 10.0 }
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if [a, b, h, t].any? { |v| v <= 0 }
-    erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Hoehe' => h, 'Tiefe' => t })
+                        'Eck-Oberschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
+      a, b, h, t = werte.map { |v| Float(v.to_s.tr(',', '.')) / 10.0 }
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if [a, b, h, t].any? { |v| v <= 0 }
+      erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Hoehe' => h, 'Tiefe' => t })
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

@@ -29,6 +29,7 @@
 #   Eckschrank.erstellen({ 'Kuerzel' => 'UES2' })
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Eckschrank
 
@@ -54,8 +55,9 @@ module Eckschrank
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -771,17 +773,17 @@ module Eckschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
@@ -814,12 +816,12 @@ module Eckschrank
   # L-Form: Schenkel und Tiefe vor dem Erzeugen abfragen (mm)
   def self.dialog_l
     d = DEFAULTS_L
-    werte = UI.inputbox(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
                         [d['Schenkel_A'], d['Schenkel_B'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
-                        'Eckschrank L-Form')
-    return unless werte
-    a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
-    erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Tiefe' => t }, l_form: true)
+                        'Eckschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
+      a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
+      erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Tiefe' => t }, l_form: true)
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

@@ -29,6 +29,7 @@ Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld, Haube), türk
 | Spülenschrank | aus den Schrankmaßen (kein `JT_Nische`) | Edelstahlspüle mit einem Becken (höchstens 860 × 500 mm) und Armatur, Arbeitsplatte 40 mm |
 | Oberschrank Dunstabzug | `JT_Nische` (DA), Breite, Haubenraum, Abluft und Rohr aus den aktuellen Komponentenoptionen | Flachschirmhaube 60/90 unten bündig im Haubenraum: Wrasenschirm, Filterwanne, Lüfterbaustein; bei Abluft das Rohr durch den Ausschnitt bis zur Oberkante des Schranks |
 | Hochschrank Geräte | `JT_Nische_N1`, `JT_Nische_N2` | Backofen 60 (Front 595 × 595), Kompaktgerät 45 (595 × 455), Mikrowelle 38 (595 × 382), Wärmeschublade 14 (595 × 140); „frei“ bleibt leer |
+| Hochschrank Kühlschrank | `JT_Nische_N1` | Einbau-Kühlgerät (`Kuehlgeraet178` usw.): Gehäuse und Gerätetür hinter der Möbeltür des Schranks, Höhe = Nischenhöhe |
 
 Einbaugeräte haben eine 595 mm breite Front, mittig über der Nische und bündig mit den Möbelfronten (2 mm vor der Korpusvorderkante); das Gehäuse steckt in der Nische.
 

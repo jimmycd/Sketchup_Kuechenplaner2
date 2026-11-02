@@ -14,6 +14,7 @@
 # werden dann passend auf die Höhe skaliert.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -67,8 +68,9 @@ module UnterschrankSchubladen
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -545,27 +547,26 @@ module UnterschrankSchubladen
                'Kürzel für Tags (eindeutig je Schrank)']
     defaults = ['600', '700', '520', '3', '1;1;1', freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '']
-    res = UI.inputbox(prompts, defaults, lists, 'Unterschrank mit Schubladen')
-    return unless res
-
-    anz = res[3].to_i
-    eingabe = {
-      'Breite' => res[0].tr(',', '.').to_f / 10.0,
-      'Hoehe'  => res[1].tr(',', '.').to_f / 10.0,
-      'Tiefe'  => res[2].tr(',', '.').to_f / 10.0,
-      'Anz_Schubladen' => anz,
-      'Kuerzel' => res[5].strip
-    }
-    raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
-    if eingabe['Tiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
-      raise ArgumentError, 'Tiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Unterschrank mit Schubladen', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      anz = res[3].to_i
+      eingabe = {
+        'Breite' => res[0].tr(',', '.').to_f / 10.0,
+        'Hoehe'  => res[1].tr(',', '.').to_f / 10.0,
+        'Tiefe'  => res[2].tr(',', '.').to_f / 10.0,
+        'Anz_Schubladen' => anz,
+        'Kuerzel' => res[5].strip
+      }
+      raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+      if eingabe['Tiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+        raise ArgumentError, 'Tiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+      end
+      if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
+        raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+      end
+      parse_aufteilung(res[4], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
+      (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
+      erstellen(eingabe)
     end
-    if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
-      raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
-    end
-    parse_aufteilung(res[4], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
-    (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

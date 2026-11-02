@@ -15,6 +15,7 @@
 # Alle Maße bleiben über "Komponentenoptionen" änderbar.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -66,8 +67,9 @@ module UnterschrankBackofen
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -544,23 +546,22 @@ module UnterschrankBackofen
                'Kürzel für Tags (eindeutig je Schrank)']
     defaults = ['600', '700', (TIEFE_NEU * 10).round.to_s, '600', UNTEN.first, freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', '', UNTEN.join('|'), '']
-    res = UI.inputbox(prompts, defaults, lists, 'Unterschrank Backofen (Herdumbau)')
-    return unless res
-
-    eingabe = {
-      'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]), 'Nischenhoehe' => mm(res[3]),
-      'Unten' => UNTEN.index(res[4]).to_f, 'Kuerzel' => res[5].strip
-    }
-    raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
-    if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
-      raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Unterschrank Backofen (Herdumbau)', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      eingabe = {
+        'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]), 'Nischenhoehe' => mm(res[3]),
+        'Unten' => UNTEN.index(res[4]).to_f, 'Kuerzel' => res[5].strip
+      }
+      raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+      if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
+        raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+      end
+      p = DEFAULTS.merge(eingabe)
+      if p['Nischenhoehe'] > p['Hoehe'] - 2 * p['Materialstaerke_Korpus']
+        raise ArgumentError, 'Nischenhöhe zu groß für die Schrankhöhe (Boden und Einbauboden brauchen Platz)'
+      end
+      warnungen(p).each { |w| UI.messagebox(w) }
+      erstellen(eingabe)
     end
-    p = DEFAULTS.merge(eingabe)
-    if p['Nischenhoehe'] > p['Hoehe'] - 2 * p['Materialstaerke_Korpus']
-      raise ArgumentError, 'Nischenhöhe zu groß für die Schrankhöhe (Boden und Einbauboden brauchen Platz)'
-    end
-    warnungen(p).each { |w| UI.messagebox(w) }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
