@@ -12,10 +12,39 @@ def check(bed, msg)
 end
 
 module UI
+  # Timer wie in SketchUp: start_timer gibt eine Nummer zurück, stop_timer hält an.
+  # SketchUp-Eigenheit: öffnet ein Timer-Block ein modales Fenster, feuert derselbe
+  # (auch einmalige) Timer erneut, solange das Fenster offen ist – nachgestellt in modal.
   @timer = []
-  def self.start_timer(_s, _r = false, &blk) = @timer << blk
+  @laufend = []
+  @gestoppt = []
+  @nr = 0
+  def self.start_timer(_s, _r = false, &blk) = (@timer << [@nr += 1, blk]).last.first
+  def self.stop_timer(id) = @gestoppt << id
   def self.timer_ablaufen
-    @timer.shift.call until @timer.empty?
+    until @timer.empty?
+      id, blk = @timer.shift
+      next if @gestoppt.include?(id)
+      @laufend << [id, blk]
+      begin
+        blk.call
+      ensure
+        @laufend.pop
+      end
+    end
+  end
+
+  def self.modal
+    return if @laufend.size > 3
+    @laufend.dup.each do |id, blk|
+      next if @gestoppt.include?(id)
+      @laufend << [id, blk]
+      begin
+        blk.call
+      ensure
+        @laufend.pop
+      end
+    end
   end
 
   class HtmlDialog
@@ -44,7 +73,8 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Frontfarbe und Griffe', 'TCN exportieren'],
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Frontfarbe und Griffe', 'TCN exportieren',
+                 'Stückliste', 'Etiketten', 'Zuschnittplan'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
 tb.befehle.each do |c|
@@ -66,7 +96,7 @@ tb.befehle.each { |c| check(c.validation.call == MF_ENABLED, "#{c.titel}: mit al
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
 soll = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank mit Klappe…', 'Oberschrank…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Hochschrank…']
@@ -104,18 +134,44 @@ e = UI::HtmlDialog.letzter
 check(e != d && e.html.include?('<h1>Unterschrank mit Schubladen</h1>'), 'Auswahl öffnet das Eingabefenster des Schranks')
 EingabeHelfer.ok(e)
 check(e.geschlossen, 'Eingabefenster schließt nach dem Einfügen')
-check(m.entities.grep(Sketchup::ComponentInstance).size == 1, 'Schrank aus der Auswahl eingefügt')
+EingabeHelfer.ok(e) # Doppelklick
+check(UI::HtmlDialog.letzter == e, 'Eingabefenster genau einmal')
+check(m.entities.grep(Sketchup::ComponentInstance).size == 1,
+      "genau ein Schrank aus der Auswahl eingefügt: #{m.entities.grep(Sketchup::ComponentInstance).size}")
 
 # Raum: Auswahl mit den Befehlen der Raum-Erweiterung
 tb.befehle[3].aktion.call
 d = UI::HtmlDialog.letzter
 raum = ['Raum anlegen', 'Wände aus Linien', 'Fenster/Tür einsetzen', 'Öffnung bearbeiten', 'Raum bearbeiten']
 check(d.html.scan(%r{<span>(.*?)</span>}).flatten == raum, "Raum-Auswahl: #{d.html.scan(%r{<span>(.*?)</span>}).flatten.inspect}")
+# Raum anlegen über die Auswahl: Dialog einmal, genau ein Raum
+raeume = 0
+Raum.define_singleton_method(:anlegen) { |*_a| raeume += 1 }
+Raum.define_singleton_method(:auswaehlen) { |*_a| nil }
+d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Raum anlegen'))
+UI.timer_ablaufen
+e = UI::HtmlDialog.letzter
+check(e != d && e.html.include?('<h1>Raum anlegen</h1>'), 'Raum anlegen: Eingabefenster offen')
+EingabeHelfer.ok(e)
+EingabeHelfer.ok(e) # Doppelklick
+check(UI::HtmlDialog.letzter == e, 'Raum anlegen: Eingabefenster genau einmal')
+check(raeume == 1, "Raum anlegen: genau ein Raum: #{raeume}")
+tb.befehle[3].aktion.call
+d = UI::HtmlDialog.letzter
 gerufen = nil
 Raum.define_singleton_method(:einsetzen_dialog) { gerufen = :einsetzen }
 d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Fenster/Tür einsetzen'))
 UI.timer_ablaufen
 check(gerufen == :einsetzen, 'Raum-Auswahl ruft Fenster/Tür einsetzen')
+
+# Stückliste, Etiketten, Zuschnittplan: Icons öffnen dieselben Dialoge wie das Menü
+gerufen = []
+{ 'Stückliste' => JTools::SchrankCnc::Stueckliste, 'Etiketten' => JTools::SchrankCnc::Etiketten,
+  'Zuschnittplan' => JTools::SchrankCnc::Zuschnitt }.each do |t, mod|
+  mod.define_singleton_method(:dialog) { |*_a| gerufen << t }
+  tb.befehle.find { |c| c.titel == t }.aktion.call
+end
+check(gerufen == %w[Stückliste Etiketten Zuschnittplan], "Stückliste/Etiketten/Zuschnittplan öffnen ihren Dialog: #{gerufen.inspect}")
 
 # Arbeitsplatte: ohne Auswahl erzeugen, mit gewählter Arbeitsplatte neu berechnen
 aufrufe = []

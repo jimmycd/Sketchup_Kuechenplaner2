@@ -20,46 +20,52 @@
 # kommt in die Gruppe „Ecke 1“. listen: 'a|b|c' wird eine Auswahl, '' ein Eingabefeld.
 # Abbrechen oder Schließen ruft den Block nicht auf (wie nil/false bei UI.inputbox).
 # Ohne UI::HtmlDialog (sehr alte SketchUp-Versionen) wird UI.inputbox benutzt.
+# main.rb lädt die Datei mit require (einmal je Sitzung); „Plugins aktualisieren“
+# lädt sie neu, wenn sie sich geändert hat.
 
 require 'json'
 
 module Kuechenplaner
   module Eingabe
-    EINHEITEN = %w[mm cm m ° Stk %].freeze
-    BREITE = 480
+    # Keine Konstanten: „Plugins aktualisieren“ lädt diese Datei neu, ohne Warnungen
+    def self.einheiten
+      %w[mm cm m ° Stk %]
+    end
 
     # Aussehen wie die Dialoge im Treppenplaner (Farben, Schrift, Gruppen, Fußzeile mit Knöpfen)
-    CSS = <<~CSS.freeze
-      :root { --bg:#f4f2ee; --panel:#fff; --line:#d9d4ca; --text:#2a2723; --muted:#7a736a;
-        --accent:#2f6fb3; --accent2:#245a92; --ok:#2e7d4f; --warn:#b26a00; --err:#b3261e; }
-      * { box-sizing:border-box; }
-      html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
-        font:13px/1.35 "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif; }
-      body { display:flex; flex-direction:column; }
-      header { padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel); display:flex; gap:12px; align-items:baseline; }
-      header h1 { font-size:16px; margin:0; font-weight:600; }
-      header .sub { color:var(--muted); }
-      main { flex:1; min-height:0; overflow-y:auto; padding:10px 12px 12px; }
-      fieldset { border:1px solid var(--line); border-radius:6px; background:var(--panel); margin:0 0 10px; padding:6px 10px 8px; }
-      legend { font-weight:600; padding:0 4px; }
-      .row { display:grid; grid-template-columns:1fr 170px; gap:8px; align-items:center; padding:4px 0; border-top:1px dashed #eee; }
-      .row:first-of-type { border-top:0; }
-      .row .ctl { display:flex; align-items:center; gap:4px; }
-      .row input, .row select { width:100%; padding:4px 6px; border:1px solid #c8c2b7; border-radius:4px; font:inherit; background:#fff; }
-      .row input.zahl { text-align:right; font-variant-numeric:tabular-nums; }
-      .row input:focus, .row select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(47,111,179,.18); }
-      .unit { color:var(--muted); min-width:26px; font-size:12px; }
-      .help { grid-column:1 / -1; color:var(--muted); font-size:11.5px; margin-top:-2px; }
-      footer { border-top:1px solid var(--line); background:var(--panel); padding:8px 12px; display:flex; gap:8px; align-items:center; }
-      footer .spacer { flex:1; }
-      #status { color:var(--muted); }
-      #status.err { color:var(--err); }
-      button { font:inherit; padding:6px 14px; border-radius:4px; border:1px solid #b9b2a6; background:#fff; cursor:pointer; }
-      button:hover { background:#f1eee9; }
-      button.primary { background:var(--accent); color:#fff; border-color:var(--accent2); }
-      button.primary:hover { background:var(--accent2); }
-      button:disabled { opacity:.6; cursor:default; }
-    CSS
+    def self.css
+      <<~CSS
+        :root { --bg:#f4f2ee; --panel:#fff; --line:#d9d4ca; --text:#2a2723; --muted:#7a736a;
+          --accent:#2f6fb3; --accent2:#245a92; --ok:#2e7d4f; --warn:#b26a00; --err:#b3261e; }
+        * { box-sizing:border-box; }
+        html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+          font:13px/1.35 "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif; }
+        body { display:flex; flex-direction:column; }
+        header { padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel); display:flex; gap:12px; align-items:baseline; }
+        header h1 { font-size:16px; margin:0; font-weight:600; }
+        header .sub { color:var(--muted); }
+        main { flex:1; min-height:0; overflow-y:auto; padding:10px 12px 12px; }
+        fieldset { border:1px solid var(--line); border-radius:6px; background:var(--panel); margin:0 0 10px; padding:6px 10px 8px; }
+        legend { font-weight:600; padding:0 4px; }
+        .row { display:grid; grid-template-columns:1fr 170px; gap:8px; align-items:center; padding:4px 0; border-top:1px dashed #eee; }
+        .row:first-of-type { border-top:0; }
+        .row .ctl { display:flex; align-items:center; gap:4px; }
+        .row input, .row select { width:100%; padding:4px 6px; border:1px solid #c8c2b7; border-radius:4px; font:inherit; background:#fff; }
+        .row input.zahl { text-align:right; font-variant-numeric:tabular-nums; }
+        .row input:focus, .row select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(47,111,179,.18); }
+        .unit { color:var(--muted); min-width:26px; font-size:12px; }
+        .help { grid-column:1 / -1; color:var(--muted); font-size:11.5px; margin-top:-2px; }
+        footer { border-top:1px solid var(--line); background:var(--panel); padding:8px 12px; display:flex; gap:8px; align-items:center; }
+        footer .spacer { flex:1; }
+        #status { color:var(--muted); }
+        #status.err { color:var(--err); }
+        button { font:inherit; padding:6px 14px; border-radius:4px; border:1px solid #b9b2a6; background:#fff; cursor:pointer; }
+        button:hover { background:#f1eee9; }
+        button.primary { background:var(--accent); color:#fff; border-color:var(--accent2); }
+        button.primary:hover { background:var(--accent2); }
+        button:disabled { opacity:.6; cursor:default; }
+      CSS
+    end
 
     class << self
       # Das zuletzt geöffnete Fenster (für Tests)
@@ -75,7 +81,7 @@ module Kuechenplaner
         felder = felder(prompts, defaults, listen, gruppe)
         @dialog.close if @dialog && @dialog.visible?
         d = UI::HtmlDialog.new(dialog_title: titel, preferences_key: "Kuechenplaner_Eingabe_#{titel}",
-                               scrollable: false, resizable: true, width: BREITE, height: hoehe(felder),
+                               scrollable: false, resizable: true, width: 480, height: hoehe(felder),
                                min_width: 380, min_height: 220, style: UI::HtmlDialog::STYLE_DIALOG)
         d.set_html(html(titel, untertitel, felder, ok))
         fertig = false
@@ -116,7 +122,7 @@ module Kuechenplaner
         m = text.match(/\A(.*?)\s*\(([^()]*)\)\s*\z/)
         return [text, nil, nil] unless m
         teile = m[2].split(/,\s*/, 2)
-        if EINHEITEN.include?(teile[0])
+        if einheiten.include?(teile[0])
           [m[1], teile[0], teile[1]]
         else
           [m[1], nil, m[2]]
@@ -155,7 +161,7 @@ module Kuechenplaner
         <<~HTML
           <!DOCTYPE html>
           <html lang="de"><head><meta charset="utf-8"><title>#{h(titel)}</title>
-          <style>#{CSS}</style></head>
+          <style>#{css}</style></head>
           <body>
           <header><h1>#{h(titel)}</h1>#{untertitel ? %(<span class="sub">#{h(untertitel)}</span>) : ''}</header>
           <main>#{form.join}</main>
@@ -185,5 +191,5 @@ module Kuechenplaner
         HTML
       end
     end
-  end unless defined?(Kuechenplaner::Eingabe)
+  end
 end

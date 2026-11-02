@@ -64,7 +64,13 @@ module KuechenplanerSymbolleiste
     ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'TCN exportieren', 'CNC-Programme (TCN) für die Schränke exportieren',
-     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }]
+     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }],
+    ['stueckliste', 'Stückliste', 'Stückliste der Teile mit Maßen, Material und Kanten (CSV/HTML)',
+     -> { defined?(JTools::SchrankCnc::Stueckliste) }, -> { JTools::SchrankCnc::Stueckliste.dialog }],
+    ['etiketten', 'Etiketten', 'Etiketten für die Teile drucken (Bogen oder Endlos)',
+     -> { defined?(JTools::SchrankCnc::Etiketten) }, -> { JTools::SchrankCnc::Etiketten.dialog }],
+    ['zuschnitt', 'Zuschnittplan', 'Zuschnittplan je Platte für die Formatsäge',
+     -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }]
   ].freeze
 
   class << self
@@ -133,7 +139,18 @@ module KuechenplanerSymbolleiste
     def waehlen(i)
       aktion = (@aktionen || [])[i] or return
       @dialog.close if @dialog
-      UI.start_timer(0, false) { aktion.call }
+      einmal_spaeter { aktion.call }
+    end
+
+    # SketchUp-Eigenheit: öffnet ein Timer-Block ein modales Fenster (z. B.
+    # UI.messagebox), feuert auch ein einmaliger Timer immer wieder, solange das Fenster
+    # offen ist – jedes OK legte dann noch einen Schrank/Raum an. Deshalb den Timer
+    # als Erstes im Block anhalten.
+    def einmal_spaeter(&blk)
+      id = UI.start_timer(0, false) do
+        UI.stop_timer(id)
+        blk.call
+      end
     end
 
     # Gleiches Aussehen wie die Eingabefenster (Kuechenplaner::Eingabe, Stil Treppenplaner)
@@ -148,7 +165,7 @@ module KuechenplanerSymbolleiste
         %(<fieldset><legend>#{h(gruppe)}</legend><div class="raster">#{knoepfe.join}</div></fieldset>)
       end
       <<~HTML
-        <!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><style>#{Kuechenplaner::Eingabe::CSS}
+        <!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><style>#{Kuechenplaner::Eingabe.css}
         .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:4px 0 2px}
         button.kachel{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid var(--line);
           border-radius:6px;background:#fff;color:inherit}

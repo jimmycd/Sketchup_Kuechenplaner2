@@ -172,6 +172,9 @@ module KuechenplanerUpdate
       # diese Erweiterung selbst zuletzt, sie wird dabei ersetzt
       ordner = ordner.partition { |o| o != 'kuechenplaner_update' }.flatten
       geladen = []
+      # gemeinsames Eingabefenster zuerst (main.rb lädt es nur einmal je Sitzung)
+      gemeinsam = File.join(plugins_ordner, 'kuechenplaner_gemeinsam', 'eingabe.rb')
+      load gemeinsam if ziele.include?('kuechenplaner_gemeinsam/eingabe.rb') && File.file?(gemeinsam)
       # neue Erweiterungen registrieren (lädt sie auch)
       lader_neu.sort.each do |l|
         load File.join(plugins_ordner, l)

@@ -617,8 +617,8 @@ module Raum
 
   # Eingabefenster (Kuechenplaner::Eingabe, Stil wie Treppenplaner). Fehler im Block bleiben im
   # Fenster stehen; ohne HtmlDialog (Tests) läuft der Block sofort und Fehler kommen per Meldung.
-  def self.fenster(prompts, vorgaben, *rest, &blk)
-    Kuechenplaner::Eingabe.abfragen(prompts, vorgaben, *rest, &blk)
+  def self.fenster(*args, **opts, &blk)
+    Kuechenplaner::Eingabe.abfragen(*args, **opts, &blk)
   end
 
   # Änderung als eine Operation; bei Fehler zurücknehmen
