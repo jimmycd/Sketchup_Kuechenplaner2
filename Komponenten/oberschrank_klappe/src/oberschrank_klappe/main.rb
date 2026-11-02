@@ -49,7 +49,8 @@ module OberschrankKlappe
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Klappenarten (Blum AVENTOS) mit dem Bereich der Korpushöhe laut Blum (cm, nur als Hinweis)
