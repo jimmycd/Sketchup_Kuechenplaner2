@@ -40,6 +40,10 @@ check(p[:laenge] == 1800 && p[:breite] == 835 && p[:format] == [4100.0, 900.0] &
       "Maße: #{p.slice(:laenge, :breite, :format, :staerke, :z)}")
 check(L.flaeche(p[:punkte]) > 0, 'gegen den Uhrzeigersinn')
 
+# Schränke 30 mm von der Wand (Küchenplaner › Einstellungen): Platte reicht trotzdem bis 5 mm vor die Wand
+p = layout([hinten('USS1', 0, 600)], {}, schrank_wandabstand: 30.0)[:platten].first
+check(p[:punkte][1] == [600.0, 845.0] && p[:breite] == 865, "Wandabstand der Schränke überbrückt: #{p[:punkte]} #{p[:breite]}")
+
 # Überstände, Massivholz, Format wählbar
 lay = layout([hinten('USS1', 0, 600)], {}, ueberstand_seite: 20.0, ueberstand_vorn: 30.0, wandabstand: 0.0, art: :massivholz)
 p = lay[:platten].first

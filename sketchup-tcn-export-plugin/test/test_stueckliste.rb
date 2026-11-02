@@ -66,10 +66,18 @@ module UI
     def openURL(u) = (self.url = u)
   end
 end
-UI.antwort = ['12,5', '8', '3', '10']
+UI.antwort = %w[120 20 600 38 720] + ['12,5', '8', '3', '10']
 check(S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5 && S::Einstellungen.uebermass_breite == 8, 'Einstellungen-Dialog speichert (Komma erlaubt)')
-UI.antwort = ['x', '8', '3', '10']
+KE = Kuechenplaner::Einstellungen
+check(KE.sockelhoehe == 120 && KE.wandabstand == 20 && KE.abstand_oberschrank == 600 && KE.arbeitsplatte_staerke == 38 &&
+      KE.unterschrank_hoehe == 720, 'Einstellungen-Dialog speichert auch Sockel und Abstände der Küche')
+check(KE.oberschrank_unterkante == 120 + 720 + 38 + 600, "Unterkante Oberschrank = Sockel + Korpus + Platte + Abstand (#{KE.oberschrank_unterkante})")
+UI.antwort = %w[120 20 600 38 720] + ['x', '8', '3', '10']
 check(!S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5, 'ungültige Eingabe ändert nichts')
+UI.antwort = %w[400 0 550 40 700] + ['10', '10', '3', '10']
+check(!S::Einstellungen.dialog && KE.sockelhoehe == 120 && S::Einstellungen.uebermass_laenge == 12.5 && UI.meldung.to_s.include?('0–300'),
+      "Sockelhöhe über 300 mm abgelehnt, nichts gespeichert (#{UI.meldung})")
+%w[sockelhoehe wandabstand abstand_oberschrank arbeitsplatte_staerke unterschrank_hoehe].each { |k| KE.setzen(k, KE::WERTE[k][1]) }
 UI.antwort = nil
 check(!S::Einstellungen.dialog, 'Abbrechen ändert nichts')
 S::Einstellungen.setzen('uebermass_laenge', 10)
