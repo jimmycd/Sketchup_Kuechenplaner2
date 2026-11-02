@@ -75,7 +75,8 @@ module UnterschrankBackofen
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Nischen für die Geräte-Komponenten (Thread "Geräte in Schränken darstellen")

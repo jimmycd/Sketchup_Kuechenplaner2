@@ -76,7 +76,8 @@ module UnterschrankSchubladen
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen

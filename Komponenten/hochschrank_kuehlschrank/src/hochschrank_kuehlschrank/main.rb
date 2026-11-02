@@ -62,7 +62,8 @@ module HochschrankKuehlschrank
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Nische für die Geräte-Komponenten: Wörterbuch JT_Nische_N1 am Schrank
