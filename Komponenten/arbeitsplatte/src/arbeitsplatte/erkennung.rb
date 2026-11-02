@@ -28,7 +28,8 @@ module Arbeitsplatte
       toleranz_front: 5.0,     # Frontlinien, die so nah liegen, gehören zu einer Zeile
       toleranz_hoehe: 1.0,     # Oberkanten, die so nah liegen, gehören zu einer Zeile
       toleranz_ecke: 100.0,    # so weit darf ein Zeilenende von der anderen Zeile entfernt sein (Passleiste)
-      toleranz_hochschrank: 30.0 # Abstand Zeilenende – Hochschrank, damit die Zeile dort endet
+      toleranz_hochschrank: 30.0, # Abstand Zeilenende – Hochschrank, damit die Zeile dort endet
+      sitz_stuetzen: 350.0       # Insel: ab diesem Sitzüberstand Warnung (Stützen/Konsolen)
     }.freeze
 
     UNTERSCHRANK = 'Unterschrank'.freeze
@@ -108,14 +109,48 @@ module Arbeitsplatte
         # Frontlinie: die am weitesten vorstehende Front; Wand: hinter dem tiefsten Schrank
         z[:front_linie] = vz < 0 ? vorne.min : vorne.max
         z[:wand] = vz < 0 ? hinten.max : hinten.min
+        insel(z, o, warnungen)
         flach = z[:elemente].select { |e| (e[:hinten] - z[:wand]).abs > 1.0 }
-        unless flach.empty?
+        unless flach.empty? || z[:insel]
           warnungen << "Zeile #{bezeichnung(z)}: #{flach.map { |e| e[:kz] }.join(', ')} steht nicht an der Wand " \
                        "(#{flach.map { |e| (e[:hinten] - z[:wand]).abs.round(1) }.join(', ')} mm Abstand)"
         end
         z[:enden] = { start: { art: :frei }, ende: { art: :frei } }
       end
       zeilen.sort_by { |z| [z[:achse], z[:front_linie], z[:s0]] }.each_with_index { |z, i| z[:nr] = i + 1 }
+    end
+
+    # Insel-Zeile: nur Inselschränke (Element insel: true). Sie steht frei, hinten gibt es keinen Wandabstand,
+    # sondern den Sitzüberstand (kleinster der Schränke); haben alle eine erhöhte Theke, endet die Platte
+    # hinten an der Thekenwand (theke). Gemischte Zeilen werden wie Wandzeilen behandelt.
+    def self.insel(z, o, warnungen)
+      inseln = z[:elemente].select { |e| e[:insel] }
+      return if inseln.empty?
+      if inseln.size < z[:elemente].size
+        warnungen << "Zeile #{bezeichnung(z)}: Inselschränke und andere Schränke gemischt, Arbeitsplatte wie an der Wand"
+        return
+      end
+      z[:insel] = true
+      mit_theke = inseln.select { |e| e[:theke] }
+      if mit_theke.size == inseln.size
+        z[:theke] = true
+        z[:sitzueberstand] = 0.0
+      else
+        unless mit_theke.empty?
+          warnungen << "Zeile #{bezeichnung(z)}: nur #{mit_theke.map { |e| e[:kz] }.join(', ')} mit erhöhter Theke, " \
+                       'Arbeitsplatte mit Sitzüberstand'
+        end
+        sitz = inseln.reject { |e| e[:theke] }.map { |e| e[:sitzueberstand].to_f }
+        z[:sitzueberstand] = sitz.min
+        if sitz.uniq.size > 1
+          warnungen << "Zeile #{bezeichnung(z)}: Sitzüberstand verschieden (#{sitz.uniq.map(&:round).join(', ')} mm), " \
+                       "nehme #{sitz.min.round} mm"
+        end
+        if z[:sitzueberstand] >= o[:sitz_stuetzen] - 1e-6
+          warnungen << "Zeile #{bezeichnung(z)}: Sitzüberstand #{z[:sitzueberstand].round} mm, ab #{o[:sitz_stuetzen].round} mm " \
+                       'Stützen oder Konsolen vorsehen'
+        end
+      end
     end
 
     def self.bezeichnung(z)

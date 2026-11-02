@@ -50,6 +50,14 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
   an die andere Zeile heranreichen. Die Zeile, deren Schränke bis an die Wand der anderen
   laufen, steht in der Ecke; der Abstand der anderen zu deren Front ist die Passleiste.
 - Der **L-Eckschrank** zählt als zwei Schenkel (A an der hinteren, B an der linken Wand).
+- Eine **Insel** ist eine Zeile nur aus Inselschränken (`JT_Schrank/insel`, siehe
+  [`unterschrank_insel`](../unterschrank_insel/)). Sie steht frei: kein Wandabstand, die Platte steht
+  hinten um den **Sitzüberstand** des Schranks über die Verkleidung (Attribut `Sitzueberstand`,
+  Standard 300 mm; bei verschiedenen Werten gilt der kleinste, mit Warnung). Die Hinterkante ist
+  frei und bekommt den Anleimer. Haben alle Schränke eine **erhöhte Theke**, endet die Platte an der
+  hochgezogenen Verkleidung, hinten ohne Anleimer (Kantenart Theke). Als Oberkante gilt der Korpus,
+  nicht die Theke. Ab 350 mm Sitzüberstand warnt die Arbeitsplatte (Stützen oder Konsolen).
+  Inselschränke gemischt mit anderen Schränken in einer Zeile werden wie eine Wandzeile behandelt (Warnung).
 
 ## Wie die Platten zugeschnitten werden
 
@@ -66,7 +74,7 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 - Gehrungsansatz: die durchlaufende Platte bekommt die weibliche Fräsung (Vorderkante im
   Stoßbereich 30 mm zurück), die anstoßende ragt 30 mm hinein. Der Schnitt läuft vom
   inneren Eckpunkt der Vorderkanten 45° nach innen und im Bogen R in die Gerade zur Wand.
-- Jede Plattenkante hat eine Art: vorne, Wand, frei, Hochschrank, Stoß (für Anleimer und CNC).
+- Jede Plattenkante hat eine Art: vorne, Wand, frei, Hochschrank, Stoß, Theke (für Anleimer und CNC).
 
 ## Ausschnitte
 
