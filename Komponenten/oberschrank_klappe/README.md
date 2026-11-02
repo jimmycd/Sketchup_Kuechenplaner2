@@ -28,7 +28,7 @@ Mit *Interagieren* öffnet sich die Klappe nach vorne oben. Bei HF erst das ober
   * HF: zwei gleich hohe Teile, je Höhe/2 − 2 mm, mit 2 mm Fuge dazwischen.
 * Einlegeböden 10 mm von vorne zurückgesetzt, hinten bis zur Rückwand.
 
-Die AVENTOS-**Bohrungen** (Kraftspeicher in den Seiten, Frontbeschläge in der Klappe, bei HF die Scharniere zwischen den Teilen) setzt der TCN-Export noch nicht; das folgt mit der Blum-Montageanleitung. Am Schrank steht im Wörterbuch `JT_Schrank` der Eintrag `beschlag` (AVENTOS HK-top bzw. HF beim Erzeugen).
+Die AVENTOS-**Bohrungen** für HK-top setzt der TCN-Export: Kraftspeicher 4 × Ø5 in den Seiten (37/69/101/133 mm ab Vorderkante, 36 mm unter der Oberkante) und Frontbeschlag 2 × 2 × Ø5 in der Klappe (12,5 mm ab Innenseite der Seiten, 62/94 mm unter der Oberkante), abgeleitet aus der Blum-Montageanleitung, siehe [TCN-Export](../../sketchup-tcn-export-plugin/README.md). Für HF (Kraftspeicher, Frontbeschläge, Scharniere zwischen den Teilen) fehlen sie noch; der Export meldet das. Am Schrank steht im Wörterbuch `JT_Schrank` der Eintrag `beschlag` (AVENTOS HK-top bzw. HF beim Erzeugen).
 
 ## Material und Kanten
 Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, sichtbare Kanten das Kantenmaterial „Anleimer Melamin weiss“ (2 mm, wird erst in Stückliste/Zuschnitt abgezogen).
