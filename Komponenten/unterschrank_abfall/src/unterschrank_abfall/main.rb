@@ -50,7 +50,8 @@ module UnterschrankAbfall
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Standardwerte in cm

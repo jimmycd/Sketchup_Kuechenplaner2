@@ -90,7 +90,7 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
@@ -135,7 +135,7 @@ schrank_eintraege.each do |titel, blk, gruppe|
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
 end
-check(unterschraenke.size == 12, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

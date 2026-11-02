@@ -22,6 +22,8 @@ Wer vorher die Version 0.1 installiert hatte: Das alte Untermenü *Schrank-CNC* 
 | Bereich | alle Schränke, nur Oberschränke, nur Unterschränke oder nur Hochschränke (`kategorie` in `JT_Schrank`) |
 | Nur ausgewählte Schränke | Ja: nur Schränke, die gerade ausgewählt sind |
 | Griffe | unverändert lassen, setzen oder entfernen |
+
+Das Frontmaterial kommt auf Fronten und Türen (`rolle` Front, Tuer) und auf die Sichtteile ohne Griff: Verkleidung der Inselrückseite (`Verkleidung`) und Abschlusswangen (`Wange`, Inselschrank und Geschirrspüler). Griffe bekommen nur Fronten und Türen.
 | Griff: Lochmaß, Lage, Höhe | Lochmaß in mm (z. B. 160), Lage seitlich links / Mitte / rechts, Höhe in mm ab Unterkante der Front |
 
 Vor dem Ändern fragt das Plugin nach, z. B. „5 Fronten in 3 Schränken bekommen „Front Eiche 19mm“. Übernehmen?“ (gezählt werden sichtbare Fronten). Ein Schritt *Rückgängig* macht alles zurück.
