@@ -11,6 +11,7 @@ load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
+load File.join(komp, 'unterschrank_backofen/src/unterschrank_backofen/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
@@ -443,6 +444,29 @@ schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') &&
   end
   check(dam['USM1_Boden'].text.include?('#8522=3 '), "Mülltrennung #{fv}: Sockelfüße")
   check(S::Frontfarbe.fronten(am, kategorie: 'Unterschrank').count(&:sichtbar?) == bereiche.size, "Mülltrennung #{fv}: Frontfarbe findet die Fronten")
+end
+# --- Unterschrank Backofen (Herdumbau): Einbauboden wie Zwischenboden, keine Lochreihe, unten Blende oder Schublade ---
+[[70.0, false], [76.0, true]].each do |hoehe, schublade|
+  bm = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankBackofen.erstellen({ 'Tiefe' => 52.0, 'Hoehe' => hoehe })
+  db_, mb_ = S::Export.erzeugen(bm)
+  check(mb_.empty?, "Herdumbau #{hoehe}: keine Meldungen #{mb_}")
+  dbm = db_.to_h { |x| [x.name, x] }
+  soll = %w[USB1_Boden USB1_Rueckwand USB1_SeiteL USB1_SeiteR USB1_ZwischenbodenUnten] +
+         (schublade ? %w[USB1_S1_Front USB1_S1_KastenBoden USB1_S1_KastenRueckwand] : %w[USB1_Blende])
+  check(dbm.keys.sort == soll.sort, "Herdumbau #{hoehe}: Dateien #{dbm.keys.sort}")
+  eb = dbm['USB1_ZwischenbodenUnten']
+  check((eb.lage.dh - 468).abs < 1e-6 && eb.text.lines.count { |x| x.include?('#8513=-22 ') } == 2,
+        "Herdumbau #{hoehe}: Einbauboden 518 - 50 tief, Dübel in beiden Stirnseiten (#{eb.lage.dh})")
+  %w[USB1_SeiteL USB1_SeiteR].each do |sn|
+    z = bearbeitungen(dbm[sn].text, 1)
+    duebel_eb = z.count { |x| x.include?('#8513=-14 ') && x.include?("#8518=#{(hoehe * 10 - 600 - 9.5).round(1)} ") }
+    check(duebel_eb == 1, "Herdumbau #{hoehe} #{sn}: Dübelreihe Einbauboden (#{duebel_eb})")
+    check(z.none? { |x| x.include?('#8522=5 ') }, "Herdumbau #{hoehe} #{sn}: keine Lochreihe")
+    check(schiene_bohr.(dbm[sn].text) == (schublade ? 4 : 0), "Herdumbau #{hoehe} #{sn}: Schienenbohrungen #{schiene_bohr.(dbm[sn].text)}")
+  end
+  check(dbm['USB1_Boden'].text.include?('#8522=3 '), "Herdumbau #{hoehe}: Sockelfüße")
+  check(S::Frontfarbe.fronten(bm, kategorie: 'Unterschrank').count(&:sichtbar?) == 1, "Herdumbau #{hoehe}: eine sichtbare Front")
 end
 Sketchup.active_model = model
 

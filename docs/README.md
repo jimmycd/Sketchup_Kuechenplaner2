@@ -12,6 +12,7 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Unterschrank mit Schubladen | [`Komponenten/unterschrank_schubladen/`](../Komponenten/unterschrank_schubladen/) | USS | – |
 | Geschirrspüler-Unterschrank | [`Komponenten/unterschrank_geschirrspueler/`](../Komponenten/unterschrank_geschirrspueler/) | USG | [Plan](plaene/unterschrank-geschirrspueler.md) |
 | Herdschrank mit Kochfeldabzug | [`Komponenten/unterschrank_kochfeld/`](../Komponenten/unterschrank_kochfeld/) | USK | [Plan](plaene/unterschrank-kochfeld.md) |
+| Herdumbauschrank (Backofen unter dem Kochfeld) | [`Komponenten/unterschrank_backofen/`](../Komponenten/unterschrank_backofen/) | USB | [Plan](https://claude.ai/artifact/TZ469eXMLT6ahJRnASpMap) |
 | Spülenschrank | [`Komponenten/unterschrank_spuele/`](../Komponenten/unterschrank_spuele/) | USP | [Plan](plaene/unterschrank-spuele.md) |
 | Schmaler Unterschrank mit Hochauszug (Handtuch) | [`Komponenten/unterschrank_handtuch/`](../Komponenten/unterschrank_handtuch/) | USH | [Plan](plaene/unterschrank-handtuch.md) |
 | Unterschrank Mülltrennung (Müllauszug, wahlweise Schublade oben) | [`Komponenten/unterschrank_abfall/`](../Komponenten/unterschrank_abfall/) | USM | – |

@@ -1,6 +1,6 @@
 # Geräte (Planung und Kundenrendering)
 
-Setzt Geräte in die Nischen der Spezialschränke: **Geschirrspüler**, **Kochfeld mit Abzug**, **Spüle mit Armatur**, **Backofen**, **Kompaktgerät**, **Mikrowelle** und **Wärmeschublade**. Die Geräte werden selbst erzeugt (keine Herstellermodelle) und sind schlicht gehalten, damit das Modell leicht bleibt.
+Setzt Geräte in die Nischen der Spezialschränke: **Geschirrspüler**, **Kochfeld mit Abzug**, **Kochfeld** (ohne Abzug), **Spüle mit Armatur**, **Backofen**, **Kompaktgerät**, **Mikrowelle** und **Wärmeschublade**. Die Geräte werden selbst erzeugt (keine Herstellermodelle) und sind schlicht gehalten, damit das Modell leicht bleibt.
 
 Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, keine Teil-Tags. Der TCN-Export übergeht sie. Für OpenCutList die Szene **Zuschnitt** wählen (oder die Tags `Geraete_Plan` und `Geraete_Render` ausblenden), sonst listet OCL die Geräteteile mit.
 
@@ -24,6 +24,7 @@ Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld), türkis = Wa
 |---|---|---|
 | Unterschrank Geschirrspüler | `JT_Nische` (N1) | vollintegrierter Spüler 45/60; die Möbelfront bleibt beim Schrank |
 | Unterschrank Kochfeld mit Abzug | `JT_Nische` (KF) | Kochfeld 60/80/90 × 520 mm auf der Arbeitsplatte (Stärke aus der Nische, sonst 40 mm), Abzugsgitter in der Mitte, Lüftermodul unter der Platte, Kanal im Installationsraum |
+| Unterschrank Backofen (Herdumbau) | `JT_Nische_KF`, `JT_Nische_N1` | Kochfeld 60/80/90 ohne Abzug (Glas 590/790/890 × 520 mm auf der Arbeitsplatte, Wanne 50 mm darunter) und Backofen 60 auf dem Einbauboden |
 | Spülenschrank | aus den Schrankmaßen (kein `JT_Nische`) | Edelstahlspüle mit einem Becken (höchstens 860 × 500 mm) und Armatur, Arbeitsplatte 40 mm |
 | Hochschrank Geräte | `JT_Nische_N1`, `JT_Nische_N2` | Backofen 60 (Front 595 × 595), Kompaktgerät 45 (595 × 455), Mikrowelle 38 (595 × 382), Wärmeschublade 14 (595 × 140); „frei“ bleibt leer |
 
@@ -35,7 +36,7 @@ Ein Schrank mit Gerätenische legt an seiner Definition ein Wörterbuch `JT_Nisc
 | Schlüssel | Inhalt |
 |---|---|
 | `nische` | Name der Nische (N1, N2, KF …), wird zum Instanznamen `Geraet_<nische>` |
-| `geraet` | Kennung, z. B. `Backofen60`, `Kompakt45`, `Mikrowelle38`, `Waermeschublade14`, `Geschirrspueler60`, `KochfeldAbzug80`, `Spuele`; `frei`/`keine` = kein Gerät |
+| `geraet` | Kennung, z. B. `Backofen60`, `Kompakt45`, `Mikrowelle38`, `Waermeschublade14`, `Geschirrspueler60`, `KochfeldAbzug80`, `Kochfeld60`, `Spuele`; `frei`/`keine` = kein Gerät |
 | `breite`, `hoehe`, `tiefe` | lichte Maße in mm |
 | `x`, `y`, `z` | Einfügepunkt in mm relativ zum Schrankursprung: vorne links an der Korpusvorderkante, auf dem Einbauboden (Spüler: Fußboden, Kochfeld: Korpusoberkante) |
 | optional | `arbeitsplatte`, `installationstiefe`, `kanal_breite`, `kanal_x` (Kochfeld) |
@@ -43,6 +44,6 @@ Ein Schrank mit Gerätenische legt an seiner Definition ein Wörterbuch `JT_Nisc
 Die Werte sind der Stand beim Erzeugen des Schranks. Jedes Gerät trägt das Wörterbuch `JT_Geraet` (`geraet`, `nische`, `schrank`, `text`).
 
 ## Tests
-`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle und Hochschrank Geräte, setzt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder OCL-Material trägt und dass der TCN-Export die Geräte übergeht.
+`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte und Herdumbauschrank, setzt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder OCL-Material trägt und dass der TCN-Export die Geräte übergeht.
 
 **Noch nicht in echtem SketchUp geprüft.**
