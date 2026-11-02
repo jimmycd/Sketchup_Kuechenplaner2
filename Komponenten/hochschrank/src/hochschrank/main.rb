@@ -55,6 +55,7 @@ module Hochschrank
     'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
+    'Winkelleiste' => 'Leiste', 'Sockelblende' => 'Sockel', 'SockelSeiteL' => 'Sockel', 'SockelSeiteR' => 'Sockel',
     'Platte' => 'Arbeitsplatte',
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
@@ -630,10 +631,10 @@ end
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
-# 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
+# 'Hochschränke' | 'Blenden & Wangen', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
 # Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')

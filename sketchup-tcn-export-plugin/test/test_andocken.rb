@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank blenden].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -131,6 +131,16 @@ os = Oberschrank.erstellen({})
 kh = A.kasten(hs)
 ko = A.kasten(os)
 check(nah(os.transformation.origin.to_a[2] + ko[5], hs.transformation.origin.to_a[2] + kh[5], 1e-6), 'Oberschrank an Hochschrank: Oberkanten bündig')
+
+# Wange (Komponente Blenden) reicht bis zum Boden: angereiht zählt die Korpusunterkante
+model.select_tool(nil)
+model.selection.clear
+model.selection.add(us1)
+wg = Blenden.erstellen(:wange, {})
+kw = A.kasten(wg)
+check(nah(kw[4], 0) && nah(wg.transformation.origin.to_a[2], us1.transformation.origin.to_a[2], 1e-6),
+      "Wange angereiht: Unterkante Korpus gleich, Wange reicht bis zum Boden (#{wg.transformation.origin.to_a}, #{kw})")
+check(nah(wg.transformation.origin.to_a[0] + kw[0], us1.transformation.origin.to_a[0] + k1[1], 1e-6), 'Wange rechts neben dem Schrank')
 
 # Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
 wz = A::Werkzeug.new(us1)
