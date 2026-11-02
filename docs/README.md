@@ -11,12 +11,14 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Unterschrank mit Tür | [`Komponenten/unterschrank_tuer/`](../Komponenten/unterschrank_tuer/) | UST | – |
 | Unterschrank mit Schubladen | [`Komponenten/unterschrank_schubladen/`](../Komponenten/unterschrank_schubladen/) | USS | – |
 | Geschirrspüler-Unterschrank | [`Komponenten/unterschrank_geschirrspueler/`](../Komponenten/unterschrank_geschirrspueler/) | USG | [Plan](plaene/unterschrank-geschirrspueler.md) |
+| Unterbau-Kühlschrank / Weinkühler | [`Komponenten/unterschrank_kuehlschrank/`](../Komponenten/unterschrank_kuehlschrank/) | UKS | Plan im Thread (wie Geschirrspüler, ohne Korpus) |
 | Herdschrank mit Kochfeldabzug | [`Komponenten/unterschrank_kochfeld/`](../Komponenten/unterschrank_kochfeld/) | USK | [Plan](plaene/unterschrank-kochfeld.md) |
 | Spülenschrank | [`Komponenten/unterschrank_spuele/`](../Komponenten/unterschrank_spuele/) | USP | [Plan](plaene/unterschrank-spuele.md) |
 | Schmaler Unterschrank mit Hochauszug (Handtuch) | [`Komponenten/unterschrank_handtuch/`](../Komponenten/unterschrank_handtuch/) | USH | [Plan](plaene/unterschrank-handtuch.md) |
 | Unterschrank Mülltrennung (Müllauszug, wahlweise Schublade oben) | [`Komponenten/unterschrank_abfall/`](../Komponenten/unterschrank_abfall/) | USM | – |
 | Hochschrank | [`Komponenten/hochschrank/`](../Komponenten/hochschrank/) | HS | – |
 | Hochschrank für zwei Geräte | [`Komponenten/hochschrank_geraete/`](../Komponenten/hochschrank_geraete/) | HG | [Plan](plaene/hochschrank-geraete.md) |
+| Hochschrank Vorrat (Innenschubkästen) | [`Komponenten/hochschrank_vorrat/`](../Komponenten/hochschrank_vorrat/) | HV | – |
 | Apothekerschrank | [`Komponenten/apothekerschrank/`](../Komponenten/apothekerschrank/) | AP | [Plan](plaene/apothekerschrank.md) |
 | Eck-Unterschrank (Blindeck mit 1 oder 2 Türen oder LeMans II, L-Eck mit Falttür) | [`Komponenten/eckschrank/`](../Komponenten/eckschrank/) | UES | [Plan](plaene/eckschrank.md) |
 | Oberschrank (1 oder 2 Türen) | [`Komponenten/oberschrank/`](../Komponenten/oberschrank/) | OS | im [TCN-Plan](plaene/tcn-export.md#oberschränke-aus-deinen-zwei-komponenten) |

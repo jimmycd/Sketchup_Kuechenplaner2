@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../..', __dir__)
 $VERBOSE = nil
-%w[unterschrank_geschirrspueler unterschrank_kochfeld unterschrank_spuele hochschrank_geraete].each do |k|
+%w[unterschrank_geschirrspueler unterschrank_kuehlschrank unterschrank_kochfeld unterschrank_spuele hochschrank_geraete].each do |k|
   load File.join(komp, k, 'src', k, 'main.rb')
 end
 load File.expand_path('../src/geraete/main.rb', __dir__)
@@ -20,8 +20,9 @@ end
 def nah(a, b) = (a - b).abs < EPS
 
 # --- Reine Berechnung ---
+check(G.art('KuehlschrankFrei60') == ['KuehlschrankFrei', 60] && G.art('Weinkuehler30') == ['Weinkuehler', 30], 'Kühlgeräte lesen')
 check(G.art('Backofen60') == ['Backofen', 60] && G.art('Spuele') == ['Spuele', nil], 'Kennungen lesen')
-check(G.art('frei').nil? && G.art('keine').nil? && G.art('Kuehlschrank178').nil?, 'frei/keine/unbekannt -> kein Gerät')
+check(G.art('frei').nil? && G.art('keine').nil? && G.art('Toaster12').nil?, 'frei/keine/unbekannt -> kein Gerät')
 
 ofen = G.berechne('geraet' => 'Backofen60', 'breite' => 562.0, 'hoehe' => 590.0, 'tiefe' => 800.0, 'x' => 19.0, 'y' => 19.0, 'z' => 0.0)
 rahmen = ofen[:teile].find { |t| t[0] == 'Rahmen' }
@@ -31,7 +32,7 @@ check(ofen[:text] == 'Backofen 60 · Nische 562 × 590 mm', "Beschriftung: #{ofe
 check(G.berechne('geraet' => 'frei', 'breite' => 562.0, 'hoehe' => 300.0).nil?, 'freie Nische bleibt leer')
 
 %w[Geschirrspueler60 Geschirrspueler45 KochfeldAbzug60 KochfeldAbzug80 KochfeldAbzug90 Spuele
-   Backofen60 Kompakt45 Mikrowelle38 Waermeschublade14].each do |k|
+   Backofen60 Kompakt45 Mikrowelle38 Waermeschublade14 Kuehlschrank60 KuehlschrankFrei60 Weinkuehler30 Weinkuehler60].each do |k|
   r = G.berechne('geraet' => k, 'breite' => k.end_with?('45') ? 448.0 : 562.0, 'hoehe' => 590.0, 'tiefe' => 800.0,
                  'x' => 19.0, 'y' => 19.0, 'z' => 700.0)
   check(r && r[:teile].size >= 2, "#{k}: Teile")
@@ -49,6 +50,8 @@ schrank = lambda do |defn|
   i
 end
 usg = schrank.(UnterschrankGeschirrspueler.erzeuge(model, {}))
+uks = schrank.(UnterschrankKuehlschrank.erzeuge(model, {}))
+ukw = schrank.(UnterschrankKuehlschrank.erzeuge(model, { 'Geraet_Art' => 1.0, 'Breite' => 30.0, 'Art_Wange' => 1.0 }))
 usk = schrank.(UnterschrankKochfeld.erzeuge(model, {}))
 usp = schrank.(Spuelenschrank.erzeuge(model, {}))
 hg  = schrank.(HochschrankGeraete.erzeuge(model, {}))
@@ -57,8 +60,8 @@ hg1 = schrank.(HochschrankGeraete.erzeuge(model, { 'Geraet_N2' => HochschrankGer
 def geraete(inst) = inst.definition.entities.grep(Sketchup::ComponentInstance).select { |i| Geraete.geraet?(i) }
 
 anzahl = G.in_schraenke_setzen(model)
-check(anzahl == 6, "6 Geräte gesetzt (Spüler, Kochfeld, Spüle, 2 + 1 im Hochschrank): #{anzahl}")
-erwartet = { usg => ['Geschirrspueler60'], usk => ['KochfeldAbzug80'], usp => ['Spuele'],
+check(anzahl == 8, "8 Geräte gesetzt (Spüler, 2 Kühlgeräte, Kochfeld, Spüle, 2 + 1 im Hochschrank): #{anzahl}")
+erwartet = { usg => ['Geschirrspueler60'], uks => ['Kuehlschrank60'], ukw => ['Weinkuehler30'], usk => ['KochfeldAbzug80'], usp => ['Spuele'],
              hg => G.nischen(hg.definition).map { |n| n['geraet'] }, hg1 => [G.nischen(hg1.definition).first['geraet']] }
 erwartet.each do |s, soll|
   ist = geraete(s).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') }
@@ -67,13 +70,27 @@ end
 check(G.nischen(hg1.definition).size == 1, 'Hochschrank ohne Nische 2 hat nur JT_Nische_N1')
 
 # Einfügepunkt = x/y/z der Nische
-[usg, usk, hg].each do |s|
+[usg, uks, ukw, usk, hg].each do |s|
   G.nischen(s.definition).zip(geraete(s)).each do |n, g|
     soll = %w[x y z].map { |k| n[k].to_f / 25.4 }
     check(g.transformation.origin.zip(soll).all? { |a, b| nah(a, b) }, "#{s.definition.name} #{n['nische']}: Lage #{g.transformation.origin}")
     check(g.name == "Geraet_#{n['nische']}", "Name #{g.name}")
   end
 end
+kw = G.nischen(ukw.definition).first
+check(nah(kw['breite'], 296) && nah(kw['x'], 19) && nah(kw['z'], -100) && nah(kw['hoehe'], 800), "Weinkühler-Nische: #{kw}")
+
+# Kühlschrank: Gerät und Breite in den Komponentenoptionen geändert (an der Instanz) -> neues Gerät
+uks.set_attribute(G::DICT, 'geraet_art', 2.0)
+uks.set_attribute(G::DICT, 'breite', 45.0 / 2.54)
+uks.set_attribute(G::DICT, 'art_wange', 3.0)
+n = G.nischen(uks.definition, uks).first
+check(n['geraet'] == 'KuehlschrankFrei45' && nah(n['breite'], 446) && nah(n['x'], 19), "Kühlschrank umgestellt: #{n}")
+G.einsetzen(model, uks)
+check(geraete(uks).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') } == ['KuehlschrankFrei45'], 'Kühlschrank umgestellt: Gerät')
+{ 'geraet_art' => 0.0, 'breite' => 60.0 / 2.54, 'art_wange' => 0.0 }.each { |k, v| uks.set_attribute(G::DICT, k, v) }
+G.einsetzen(model, uks)
+check(geraete(uks).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') } == ['Kuehlschrank60'], 'Kühlschrank zurückgestellt')
 sp = G.nischen(usp.definition).first
 check(nah(sp['breite'], 800 - 2 * 19) && nah(sp['z'], 700), "Spülenschrank-Nische aus den Schrankmaßen: #{sp}")
 
