@@ -75,21 +75,9 @@ module UnterschrankGeschirrspueler
     'Geraet_Tiefe'             => 55.0
   }.freeze
 
-  # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
-  # "summary" und "description" oben im Fenster "Komponentenoptionen".
+  # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_geschirrspueler'.freeze
   HILFE_KURZ = 'Nische für vollintegrierten Geschirrspüler (45/60 cm) mit Möbelfront, OpenCutList-fähig'.freeze
-  HILFE = [
-    'Nischenbreite (450/600 mm), Höhe und Tiefe wie die Unterschränke daneben, Fronthöhe und Abschlusswangen hier ändern.',
-    'Kein Korpus: Die Front wird mit der Schablone des Geräteherstellers auf die Gerätetür geschraubt (keine CNC-Bohrungen).',
-    'Achtung: Prüfen, ob die Fronthöhe zum Gerät passt (Herstellerangabe zu Fronthöhe und Nischenhöhe, übliche Nische 815–875 mm inkl. Sockel).',
-    'Wangen und Geräte-Platzhalter reichen um die Sockelhöhe unter den Korpus bis zum Boden.',
-    'Der Platzhalter liegt auf dem Tag Geraete_Plan; vor OpenCutList ausblenden.',
-    'Mit „Interagieren“ klappt die Front auf.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. USG1_Front, USG1_WangeL.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -131,20 +119,33 @@ module UnterschrankGeschirrspueler
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d)
-    d.description = HILFE_KURZ
-    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
     end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end

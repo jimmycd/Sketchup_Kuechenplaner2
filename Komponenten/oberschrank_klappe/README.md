@@ -46,7 +46,7 @@ Jedes Teil hat einen eigenen Tag `<Kürzel>_<Teil>`: `OK1_SeiteL`, `OK1_SeiteR`,
 An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Oberschrank_Klappe), `kategorie` (Oberschrank), `bereich`, `teil` und `rolle`. Die Klappenteile haben die Rolle *Front*, damit Frontfarbe, Griffe und Stückliste sie wie Fronten behandeln.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/oberschrank_klappe/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank_klappe/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_oberschrank_klappe.rb` – prüft ohne SketchUp Geometrie (Korpus, Klappe und Fugen für HK-top und HF, Einlegeböden), Umkonfigurieren (Klappenart, Höhe, Breite), Tiefe nachträglich ändern, Material, Anleimer, Tags, `JT_Schrank`, Höhenhinweis und Kurzhilfe.

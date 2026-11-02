@@ -52,7 +52,7 @@ Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `HK1_SeiteL
 An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (`Hochschrank_Kuehlgeraet`), `kategorie` (`Hochschrank`), `bereich`, `teil` und `rolle`. Boden und `ZwischenbodenUnten` tragen zusätzlich `nische` = `N1`: Das TCN-Plugin bohrt in der Nische keine Lochreihen. Frontfarbe (Auswahl Hochschränke) und Sockelfüße funktionieren wie beim Hochschrank.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* und als Beschreibung in *Entitätsinformationen*, mit Link auf diese Seite.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank_kuehlschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_hochschrank_kuehlschrank.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Nischenhöhen, Lüftungsschacht und Rückwände, Türen und Fugen, Anschlag, Schubladen im Lochraster, Platzhalter, `JT_Nische_N1`, Material, Kanten, Tags, Hinweise im Dialog, die Kurzhilfe und das nachträgliche Ändern der Tiefe, jeweils auch nach dem Umstellen in den Komponentenoptionen. Der TCN-Export (Dübel an den gekürzten Böden, Nut, Lochreihen) steht in `sketchup-tcn-export-plugin/test/test_export.rb`. In echtem SketchUp noch nicht ausprobiert.

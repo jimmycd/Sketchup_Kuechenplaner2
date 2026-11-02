@@ -56,7 +56,7 @@ Arbeitsplatte, Kochfeldausschnitt in der Platte und Sockelblende gehören wie be
 Am Schrank steht das Wörterbuch `JT_Nische` (Stand beim Erzeugen, Maße in mm): `nische` = KF, `geraet` = KochfeldAbzug80 (nach Breite), `breite` (lichte Weite), `hoehe` (= Höhe Blende), `tiefe`, Einfügepunkt `x`/`y`/`z` vorne links auf der Korpusoberkante, dazu `lueftung` (Umluft/Abluft), `installationstiefe`, `kanal_breite`, `kanal_lage`, `kanal_x` (linke Kante des Ausschnitts ab Außenkante Schrank) und `arbeitsplatte`. Daran richtet sich der Platzhalter „Kochfeld mit Abzug“ aus. Geräte haben kein Plattenmaterial und kein `JT_Schrank`, OCL und TCN bleiben davon unberührt.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary/Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_kochfeld/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kochfeld/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Blende, Fronten, Installationsraum, Einbauraum, Strebe hochkant/flach, Kanalausschnitt, NL), OCL-Material, Anleimer, Tags, `JT_Nische` und die Kurzhilfe, auch nach Umkonfiguration. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` im Hauptordner `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.
