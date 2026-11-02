@@ -138,7 +138,18 @@ module KuechenplanerSymbolleiste
     def waehlen(i)
       aktion = (@aktionen || [])[i] or return
       @dialog.close if @dialog
-      UI.start_timer(0, false) { aktion.call }
+      einmal_spaeter { aktion.call }
+    end
+
+    # SketchUp-Eigenheit: öffnet ein Timer-Block ein modales Fenster (UI.inputbox,
+    # UI.messagebox), feuert auch ein einmaliger Timer immer wieder, solange das Fenster
+    # offen ist – jedes OK legte dann noch einen Schrank/Raum an. Deshalb den Timer
+    # als Erstes im Block anhalten.
+    def einmal_spaeter(&blk)
+      id = UI.start_timer(0, false) do
+        UI.stop_timer(id)
+        blk.call
+      end
     end
 
     def html(gruppen)

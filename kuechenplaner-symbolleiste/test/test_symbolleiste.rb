@@ -12,10 +12,39 @@ def check(bed, msg)
 end
 
 module UI
+  # Timer wie in SketchUp: start_timer gibt eine Nummer zurück, stop_timer hält an.
+  # SketchUp-Eigenheit: öffnet ein Timer-Block ein modales Fenster, feuert derselbe
+  # (auch einmalige) Timer erneut, solange das Fenster offen ist – nachgestellt in modal.
   @timer = []
-  def self.start_timer(_s, _r = false, &blk) = @timer << blk
+  @laufend = []
+  @gestoppt = []
+  @nr = 0
+  def self.start_timer(_s, _r = false, &blk) = (@timer << [@nr += 1, blk]).last.first
+  def self.stop_timer(id) = @gestoppt << id
   def self.timer_ablaufen
-    @timer.shift.call until @timer.empty?
+    until @timer.empty?
+      id, blk = @timer.shift
+      next if @gestoppt.include?(id)
+      @laufend << [id, blk]
+      begin
+        blk.call
+      ensure
+        @laufend.pop
+      end
+    end
+  end
+
+  def self.modal
+    return if @laufend.size > 3
+    @laufend.dup.each do |id, blk|
+      next if @gestoppt.include?(id)
+      @laufend << [id, blk]
+      begin
+        blk.call
+      ensure
+        @laufend.pop
+      end
+    end
   end
 
   class HtmlDialog
@@ -94,21 +123,44 @@ check(aufgerufen, 'Auswahl ruft die Aktion des Schranks')
 Kuechenplaner.schraenke.pop
 
 # Echter Ablauf über die Auswahl: Unterschrank mit Schubladen wird erzeugt
+# (Maß-Dialog ist modal: der Timer darf dabei nicht erneut feuern, sonst kommt der
+# Dialog nach jedem OK wieder und jedes OK fügt einen weiteren Schrank ein)
 module UI
-  def self.inputbox(_p, defaults, *_r) = defaults
+  @inputboxen = 0
+  class << self
+    attr_accessor :inputboxen
+  end
+  def self.inputbox(_p, defaults, *_r)
+    @inputboxen += 1
+    modal
+    defaults
+  end
 end
 m = Sketchup.active_model = Sketchup::Model.new
 tb.befehle[0].aktion.call
 d = UI::HtmlDialog.letzter
 d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Unterschrank mit Schubladen'))
 UI.timer_ablaufen
-check(m.entities.grep(Sketchup::ComponentInstance).size == 1, 'Schrank aus der Auswahl eingefügt')
+check(UI.inputboxen == 1, "Maß-Dialog genau einmal: #{UI.inputboxen}")
+check(m.entities.grep(Sketchup::ComponentInstance).size == 1,
+      "genau ein Schrank aus der Auswahl eingefügt: #{m.entities.grep(Sketchup::ComponentInstance).size}")
 
 # Raum: Auswahl mit den Befehlen der Raum-Erweiterung
 tb.befehle[3].aktion.call
 d = UI::HtmlDialog.letzter
 raum = ['Raum anlegen', 'Wände aus Linien', 'Fenster/Tür einsetzen', 'Öffnung bearbeiten', 'Raum bearbeiten']
 check(d.html.scan(%r{<span>(.*?)</span>}).flatten == raum, "Raum-Auswahl: #{d.html.scan(%r{<span>(.*?)</span>}).flatten.inspect}")
+# Raum anlegen über die Auswahl: Dialog einmal, genau ein Raum
+raeume = 0
+Raum.define_singleton_method(:anlegen) { |*_a| raeume += 1 }
+Raum.define_singleton_method(:auswaehlen) { |*_a| nil }
+UI.inputboxen = 0
+d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Raum anlegen'))
+UI.timer_ablaufen
+check(UI.inputboxen == 1, "Raum anlegen: Dialog genau einmal: #{UI.inputboxen}")
+check(raeume == 1, "Raum anlegen: genau ein Raum: #{raeume}")
+tb.befehle[3].aktion.call
+d = UI::HtmlDialog.letzter
 gerufen = nil
 Raum.define_singleton_method(:einsetzen_dialog) { gerufen = :einsetzen }
 d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Fenster/Tür einsetzen'))
