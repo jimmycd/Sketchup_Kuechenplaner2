@@ -71,6 +71,66 @@ module JTools
           [[bx, 0], [0, by], [-bx, 0], [0, -by]].map { |dx, dy| "W#2201{ ::WTl  #8015=1 #1=#{n(dx)} #2=#{n(dy)} }W" }
       end
 
+      # Schräg- oder Bogenkante (Abschlussregal) mit dem Konturfräser ganz durch: Bahn um den
+      # Fräserradius in den Abfall versetzt, abzüglich Anleimer (die Kante ist im Endmaß gezeichnet).
+      # Ein- und Auslauf tangential, so weit, dass der Fräser außerhalb der Platte startet und
+      # endet (Jürgen: Fräsbahnen außerhalb beginnen und ins Material fahren). Bögen wie in
+      # bogen.tcn als W#2125 mit Radius und Winkel (positiv gegen den Uhrzeigersinn, EW2 automatisch).
+      def kontur(ws, lage, op)
+        k = Regeln::KONTUR
+        r = k[:d] / 2.0
+        d = r - op.daten[:anleimer].to_f
+        p2 = ->(p) { [lage.x(p), lage.y(p)] }
+        poly = op.daten[:umriss].map(&p2)
+        ab = ->(a, b) { [a[0] - b[0], a[1] - b[1]] }
+        auf = ->(a, v, f) { [a[0] + v[0] * f, a[1] + v[1] * f] }
+        ein = ->(v) { l = Math.hypot(*v); [v[0] / l, v[1] / l] }
+        bahn = op.daten[:segmente].map do |seg|
+          a, b = p2.(seg[1]), p2.(seg[2])
+          if seg[0] == :linie
+            e = ein.(ab.(b, a))
+            nrm = [-e[1], e[0]]
+            m = auf.(a, ab.(b, a), 0.5)
+            nrm = [-nrm[0], -nrm[1]] if Regeln.innen?(auf.(m, nrm, 0.5), poly)
+            [:linie, auf.(a, nrm, d), auf.(b, nrm, d)]
+          else
+            c = p2.(seg[3])
+            rr = Math.hypot(*ab.(a, c))
+            w = Math.atan2(b[1] - c[1], b[0] - c[0]) - Math.atan2(a[1] - c[1], a[0] - c[0])
+            w -= 2 * Math::PI while w > Math::PI
+            w += 2 * Math::PI while w <= -Math::PI
+            wm = Math.atan2(a[1] - c[1], a[0] - c[0]) + w / 2.0
+            aussen = [c[0] + (rr + 0.5) * Math.cos(wm), c[1] + (rr + 0.5) * Math.sin(wm)]
+            r2 = Regeln.innen?(aussen, poly) ? rr - d : rr + d
+            f = ->(q) { auf.(c, ein.(ab.(q, c)), r2) }
+            [:bogen, f.(a), f.(b), c, r2, w]
+          end
+        end
+        tangente = lambda do |seg, q|
+          return ein.(ab.(seg[2], seg[1])) if seg[0] == :linie
+          v = ab.(q, seg[3])
+          seg[5] > 0 ? ein.([-v[1], v[0]]) : ein.([v[1], -v[0]])
+        end
+        aus = r + k[:ueberlauf]
+        start = auf.(bahn.first[1], tangente.(bahn.first, bahn.first[1]), -aus)
+        ende = auf.(bahn.last[2], tangente.(bahn.last, bahn.last[2]), aus)
+        gerade = ->(a, b) { "W#2201{ ::WTl  #8015=1 #1=#{n(b[0] - a[0])} #2=#{n(b[1] - a[1])} }W" }
+        out = ["W#89{ ::WTs WS=#{ws}  #8015=0 #1=#{n(start[0])} #2=#{n(start[1])} #3=#{n(-op.tiefe)} " \
+               "#201=1 #203=1 #205=#{k[:werkzeug]} #1001=100 #8101=0 #8096=0 #40=0 #46=1 " \
+               '#8135=0 #8136=0 #8180=0 #8181=0 #8185=0 #8186=0 #9511=0 #9512=0 #9513=0 }W']
+        pos = start
+        bahn.each do |seg|
+          out << gerade.(pos, seg[1]) if Math.hypot(*ab.(seg[1], pos)) > 0.001
+          if seg[0] == :linie
+            out << gerade.(seg[1], seg[2])
+          else
+            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n(seg[4])} #8048=1 #8046=#{n(seg[5] * 180 / Math::PI)} #42=0 #49=0 }W"
+          end
+          pos = seg[2]
+        end
+        out << gerade.(pos, ende)
+      end
+
       # Länge einer Tasche, über das ganze Werkstück als "h+20" wie in Schubkastenboden.tcn
       def laenge(v, gesamt, var)
         d = v - gesamt
@@ -96,6 +156,10 @@ module JTools
       def seiten(lage, meldungen = [])
         s = Hash.new { |h, k| h[k] = [] }
         lage.ws.ops.each do |op|
+          if op.art == :kontur # ganz durch, immer von Fläche 1 aus
+            s[1] << op
+            next
+          end
           side = lage.side(op.seite)
           if side == 2
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
@@ -115,6 +179,7 @@ module JTools
         return nut('@', lage, op) if op.art == :nut
         return ausschnitt('@', lage, op) if op.art == :ausschnitt
         return [tasche('@', lage, op)] if op.art == :tasche
+        return kontur('@', lage, op) if op.art == :kontur
         if side == 1
           if op.art == :bohrung
             x, y = lage.x(op.p0), lage.y(op.p0)

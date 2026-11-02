@@ -86,10 +86,10 @@ check(mel && mel[:kanten_lfm].values.sum > 0, 'Anleimer-Laufmeter je Kantenmater
 # --- CSV ---
 csv = S::Stueckliste.csv(zs)
 zeilen = csv.split("\r\n")
-check(zeilen.first == 'Nr;Tag;TCN-Datei;Anzahl;Schrank;Teil;Rolle;Material;Stärke;Roh L;Roh B;Fräs L;Fräs B;Fertig L;Fertig B;Kante L1;Kante L2;Kante B1;Kante B2;Maserung', "CSV-Kopf: #{zeilen.first}")
-check(zeilen.size == zs.size + 1 && zeilen.all? { |l| l.count(';') == 19 }, 'CSV: eine Zeile je Teil, 20 Spalten')
+check(zeilen.first == 'Nr;Tag;TCN-Datei;Anzahl;Schrank;Teil;Rolle;Material;Stärke;Roh L;Roh B;Fräs L;Fräs B;Fertig L;Fertig B;Kante L1;Kante L2;Kante B1;Kante B2;Maserung;Kante Kontur', "CSV-Kopf: #{zeilen.first}")
+check(zeilen.size == zs.size + 1 && zeilen.all? { |l| l.count(';') == 20 }, 'CSV: eine Zeile je Teil, 21 Spalten')
 bz = zeilen.find { |l| l.split(';')[1] == 'HS1_Boden' }.to_s.split(';')
-check(bz[2] == 'HS1_Boden.tcn' && bz[8] == '19' && bz[9, 6] == %w[808 572 798 562 800 562] && bz[15, 5] == ['', '', 'Anleimer Melamin weiss', '', 'nein'], "CSV Boden: #{bz}")
+check(bz[2] == 'HS1_Boden.tcn' && bz[8] == '19' && bz[9, 6] == %w[808 572 798 562 800 562] && bz[15, 5] == ['', '', 'Anleimer Melamin weiss', '', 'nein'] && bz[20].nil?, "CSV Boden: #{bz}")
 check(S::Stueckliste.zahl(12.25) == '12,3' || S::Stueckliste.zahl(12.25) == '12,2', 'Dezimalkomma')
 check(S::Stueckliste.zahl(564.0) == '564', 'ganze Zahl ohne Komma')
 

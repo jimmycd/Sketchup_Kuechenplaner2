@@ -7,6 +7,7 @@ komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
 load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
 load File.join(komp, 'oberschrank_klappe/src/oberschrank_klappe/main.rb')
+load File.join(komp, 'oberschrank_dunstabzug/src/oberschrank_dunstabzug/main.rb')
 load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
 load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
@@ -19,7 +20,9 @@ load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'unterschrank_insel/src/unterschrank_insel/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
+load File.join(komp, 'eck_oberschrank/src/eck_oberschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
+load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -376,6 +379,36 @@ dh, = S::Export.erzeugen(hm)
 check(dh.none? { |x| x.name == 'HG1_ZwischenbodenMitte' }, 'nur ein Gerät: kein Zwischenboden Mitte')
 zh = bearbeitungen(dh.find { |x| x.name == 'HG1_SeiteL' }.text, 1)
 check(zh.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, 'nur ein Gerät: 4 Dübelreihen')
+# --- Oberschrank Dunstabzug: Rohrausschnitt in Haubenboden, Deckel und Einlegeboden, Rückwand in der Haubenboden-Nut ---
+om = Sketchup.active_model = Sketchup::Model.new
+OberschrankDunstabzug.erstellen({ 'Anz_Einlegeboeden' => 1.0 })
+dd, mo = S::Export.erzeugen(om)
+check(mo.empty?, "Dunstabzug: keine Meldungen #{mo}")
+ddz = dd.to_h { |x| [x.name, x] }
+check(ddz.keys.sort == %w[OSD1_Boden OSD1_Deckel OSD1_Einlegeboden1 OSD1_Rueckwand OSD1_SeiteL OSD1_SeiteR OSD1_StrebeHinten
+                          OSD1_TuerL OSD1_TuerR], "Dunstabzug: Dateien #{ddz.keys}")
+# 170 x 170, mittig (562 breit: 196 vom Rand), 177 hinter der Korpusvorderkante = 175 im Fräsmaß (Anleimer vorn);
+# Einlegeboden 10 mm zurückgesetzt: 165; durch 19 + 1 mm, Fräser Ø8,03 innen
+{ 'OSD1_Boden' => 179.015, 'OSD1_Deckel' => 179.015, 'OSD1_Einlegeboden1' => 169.015 }.each do |n, y|
+  k = bearbeitungen(ddz[n].text, 1).select { |x| x.start_with?('W#89', 'W#2201') }.last(5)
+  check(ddz[n].lage.flaeche1 == :zmax && k[0].include?("#1=200.015 #2=#{y} #3=-20 ") && k[0].include?('#205=2200') &&
+        k.drop(1) == ['W#2201{ ::WTl  #8015=1 #1=161.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=161.97 }W',
+                      'W#2201{ ::WTl  #8015=1 #1=-161.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=-161.97 }W'],
+        "Dunstabzug #{n}: Rohrausschnitt von oben, durch: #{k}")
+end
+check(bearbeitungen(ddz['OSD1_Boden'].text, 1).count { |x| x.start_with?('W#89') } == 2, 'Haubenboden: Nut für die Rückwand und Ausschnitt')
+check(!ddz['OSD1_Boden'].text.include?('#8522=3 '), 'Haubenboden: keine Sockelfüße')
+check(ddz['OSD1_Deckel'].text.include?('#8522=3 '), 'Deckel: Schrauben zur Rückwand')
+lr = bearbeitungen(ddz['OSD1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
+check(lr.size == 4 && lr.all? { |x| x.include?('#8510=116 #8511=345') || x.include?('#8510=x-261 #8511=x-50') },
+      "Dunstabzug Seite: Lochreihen nur im Fach über dem Haubenboden: #{lr}")
+# Umluft: kein Ausschnitt
+om = Sketchup.active_model = Sketchup::Model.new
+OberschrankDunstabzug.erstellen({ 'Abluft' => 0.0 })
+dd, = S::Export.erzeugen(om)
+check(dd.find { |x| x.name == 'OSD1_Deckel' }.text.split("\r\n").none? { |x| x.start_with?('W#89') }, 'Umluft: Deckel ohne Ausschnitt')
+check(dd.find { |x| x.name == 'OSD1_Boden' }.text.split("\r\n").count { |x| x.start_with?('W#89') } == 1, 'Umluft: Haubenboden nur Nut')
+
 # --- Spülenschrank: Rückwand-Ausschnitt, Installationsebene (Rückwand in der Seitennut, auf dem Boden) ---
 sm = Sketchup.active_model = Sketchup::Model.new
 Spuelenschrank.erstellen({})
@@ -743,6 +776,114 @@ check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [3
 zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
 check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
 check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
+# --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
+# Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach
+# (520 - 150, 262) im Werkstück (x = Tiefe), Bahn 10 - 2 mm (Radius - Anleimer) in den Abfall versetzt
+rm = Sketchup.active_model = Sketchup::Model.new
+RegalAbschluss.erstellen('Form' => 1.0, 'Anz_Einlegeboeden' => 1.0)
+rd, rmeld = S::Export.erzeugen(rm)
+rf = rd.to_h { |x| [x.name, x] }
+check(rmeld.empty?, "Regal schräg: keine Meldungen #{rmeld}")
+check(rf.keys.sort == %w[RA1_Boden RA1_Deckel RA1_Einlegeboden1 RA1_Rueckwand RA1_SeiteL RA1_SeiteR], "Regal schräg: Dateien #{rf.keys}")
+rb = rf['RA1_Boden']
+check(rb.lage.dl.round(3) == 520 && rb.lage.dh.round(3) == 262, "Regal schräg: Boden als Rechteck 520 x 262 (#{rb.lage.dl} x #{rb.lage.dh})")
+k1 = bearbeitungen(rb.text, 1).drop_while { |x| !x.include?('W#89') }
+check(k1.size == 4 && k1[0].include?('#205=1004 ') && k1[0].include?('#3=-20 ') && k1[2].include?('#1=370 #2=262 '),
+      "Regal schräg: Kontur Gerade 370/262 mit 1004 ganz durch: #{k1}")
+if k1.size == 4
+  x0, y0 = k1[0][/#1=(\S+)/, 1].to_f, k1[0][/#2=(\S+)/, 1].to_f
+  dx, dy = k1[1][/#1=(\S+)/, 1].to_f, k1[1][/#2=(\S+)/, 1].to_f
+  ax, ay = x0 + dx, y0 + dy
+  abstand = (ax * 262 - ay * 370).abs / Math.hypot(370, 262)
+  check((abstand - 8).abs < 0.01, "Regal schräg: Bahn 8 mm neben der fertigen Schräge (#{abstand})")
+  check(x0 < -10 || y0 < -10, "Regal schräg: Fräser startet außerhalb der Platte (#{x0}, #{y0})")
+  check((dx * 262 - dy * 370).abs < 0.01 && dx > 0, 'Regal schräg: tangential einfahren')
+end
+# Dübel: Seite außen nur auf ihren 150 mm (x-120 … x-30), Seite innen über die volle Tiefe
+st = [3, 5].flat_map { |sd| bearbeitungen(rb.text, sd) }.select { |x| x.include?('#8522=8 ') }
+check(st.size == 2 && st.any? { |x| x.include?('#8510=x-120 #8511=x-30 ') } && st.any? { |x| x.include?('#8510=30 #8511=x-30 ') },
+      "Regal schräg: Dübel Boden an beiden Seiten #{st}")
+check(rf['RA1_SeiteR'].lage.dh.round(3) == 148 && bearbeitungen(rf['RA1_SeiteR'].text, 1).count { |x| x.include?('#8522=8 ') } == 2,
+      'Regal schräg: Seite außen 150 tief mit Dübeln für Boden und Deckel')
+check(%w[SeiteL SeiteR].all? { |n| bearbeitungen(rf["RA1_#{n}"].text, 1).count { |x| x.include?('#8522=5 ') } == 2 }, 'Regal: Lochreihen in beiden Seiten')
+# Sockelfüße: alle innerhalb der Schräge (mindestens 20 mm vom Rand)
+kd = S::Regeln.kontur_daten(rb.ws)
+poly = kd[:umriss].map { |q| [rb.lage.x(q), rb.lage.y(q)] }
+fuesse = rb.ws.ops.select { |o| o.titel == 'Sockelfuss' }
+check(fuesse.size == 8 && fuesse.all? { |o| [o.p0, o.p1].all? { |q| v = [rb.lage.x(q), rb.lage.y(q)]; S::Regeln.innen?(v, poly) && S::Regeln.randabstand(v, poly) >= 20 - 1e-6 } },
+      "Regal schräg: Sockelfüße im Boden (#{fuesse.size})")
+check(!rf['RA1_Deckel'].text.include?('#8522=3 '), 'Regal: keine Sockelfüße im Deckel')
+check(bearbeitungen(rf['RA1_Einlegeboden1'].text, 1).count { |x| x.include?('W#89') } == 1, 'Regal schräg: Einlegeboden mit Kontur')
+# Stückliste: Rechteck als Zuschnitt, Schräge als Kante Kontur mit Länge
+rz = S::Stueckliste.zeilen(rd).find { |x| x.tag == 'RA1_Boden' }
+check(rz && rz.fraes.map(&:round) == [520, 262] && rz.kanten.values.compact.empty? &&
+      (rz.kontur['Anleimer Melamin weiss'] - Math.hypot(370, 262)).abs < 0.01,
+      "Regal schräg: Stückliste Boden #{rz && [rz.fraes, rz.kanten, rz.kontur]}")
+rc = S::Stueckliste.csv(S::Stueckliste.zeilen(rd)).split("\r\n").find { |l| l.start_with?('') && l.include?('RA1_Boden;') }
+check(rc.to_s.end_with?(';Anleimer Melamin weiss 453,4 mm'), "Regal: CSV Kante Kontur #{rc}")
+check(S::Stueckliste.html(S::Stueckliste.zeilen(rd)).include?('(Kontur: A 453,4 mm)'), 'Regal: Druckseite Kontur')
+
+# Rund, Seite außen links: Viertelkreis R 262 als W#2125, Bahn R 270 (Radius + 10 - 2)
+rm = Sketchup.active_model = Sketchup::Model.new
+RegalAbschluss.erstellen('Form' => 2.0, 'Zeilenende' => 1.0, 'Anz_Einlegeboeden' => 0.0)
+rd, rmeld = S::Export.erzeugen(rm)
+rf = rd.to_h { |x| [x.name, x] }
+check(rmeld.empty?, "Regal rund: keine Meldungen #{rmeld}")
+k2 = bearbeitungen(rf['RA1_Boden'].text, 1).drop_while { |x| !x.include?('W#89') }
+check(k2.size == 4 && k2[2].include?('W#2125') && k2[2].include?('#8017=270 ') && k2[2] =~ /#8046=-?90 /,
+      "Regal rund: Bogen als W#2125 R 270, 90 Grad: #{k2}")
+check(rf['RA1_SeiteL'].lage.dh.round(3) == 256, "Regal rund: Seite außen links 258 tief (#{rf['RA1_SeiteL'].lage.dh})")
+rz = S::Stueckliste.zeilen(rd).find { |x| x.tag == 'RA1_Boden' }
+check(rz && (rz.kontur.values.sum - Math::PI / 2 * 262).abs < 1.0, "Regal rund: Bogenlänge #{rz && rz.kontur}")
+fu = rf['RA1_Boden'].ws.ops.select { |o| o.titel == 'Sockelfuss' }
+kd = S::Regeln.kontur_daten(rf['RA1_Boden'].ws)
+check(fu.size == 8 && fu.all? { |o| S::Regeln.innen?([o.p0[0], o.p0[1]], kd[:umriss].map { |q| q[0, 2] }) }, 'Regal rund: Sockelfüße im Boden')
+
+# Gerade: keine Kontur
+rm = Sketchup.active_model = Sketchup::Model.new
+RegalAbschluss.erstellen
+rd, = S::Export.erzeugen(rm)
+check(rd.none? { |x| x.text.include?('W#89') }, 'Regal gerade: keine Kontur')
+
+# Frontfarbe: Regal mit Farbe Frontfarbe bekommt das Material, aber keine Griffe
+rm = Sketchup.active_model = Sketchup::Model.new
+RegalAbschluss.erstellen('Form' => 1.0, 'Farbe' => 1.0)
+RegalAbschluss.erstellen
+fm = rm.materials.add('Front Eiche 19mm')
+fm.set_attribute('ladb_opencutlist', 'type', 2)
+ff = S::Frontfarbe.fronten(rm)
+check(ff.size == 6 && ff.all? { |t| t.jt('schrank') == 'RA1' }, "Frontfarbe: nur das Regal mit Frontfarbe (#{ff.map(&:name)})")
+S::Frontfarbe.anwenden(rm, ff, fm, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+rt = S::Schraenke.teile(rm)
+check(rt.select { |t| t.jt('schrank') == 'RA1' }.all? { |t| t.inst.material == fm && t.jt('griff_lochmass').nil? }, 'Frontfarbe: Regal in Frontmaterial, ohne Griff')
+check(rt.select { |t| t.jt('schrank') == 'RA2' }.all? { |t| t.inst.material.name == 'Melamin weiss' }, 'Frontfarbe: Regal in Korpusfarbe bleibt')
+kb = rt.find { |t| t.name == 'RA1_Boden' }.inst.definition.entities.grep(Sketchup::Face).select(&:material)
+check(!kb.empty? && kb.all? { |x| x.material.name == 'Anleimer Eiche' }, 'Frontfarbe: Anleimer an der Schräge passend')
+
+# --- Eck-Oberschrank L-Form: Rückwandnut in Seiten und L-Boden, Deckel an beide Rückwände geschraubt,
+# Innenecke von oben (Fläche 1 des Bodens = Nutseite), keine Sockelfüße ---
+eo = Sketchup.active_model = Sketchup::Model.new
+EckOberschrank.erstellen({})
+deo, meo = S::Export.erzeugen(eo)
+o = deo.to_h { |x| [x.name, x] }
+check(meo.empty?, "Eck-Oberschrank: keine Meldungen: #{meo}")
+check(o.keys.sort == %w[OES1_Auflageleiste1 OES1_Boden OES1_Deckel OES1_Einlegeboden1 OES1_Rueckwand1 OES1_Rueckwand2
+                        OES1_SeiteL OES1_SeiteR OES1_TuerL OES1_TuerR], "Eck-Oberschrank: Dateien #{o.keys}")
+ob = o['OES1_Boden']
+check(ob.lage.dl == 631 && ob.lage.dh == 631 && ob.lage.flaeche1 == :zmax, "Eck-Oberschrank Boden: 631 x 631, Fläche 1 oben: #{ob.lage.to_a.drop(1)}")
+b1 = bearbeitungen(ob.text, 1)
+check(b1.count { |x| x.include?('W#89') && x.include?('#3=-9 ') } == 2, "Eck-Oberschrank Boden: Nut für beide Rückwände: #{b1}")
+check(b1.any? { |x| x.include?('W#89') && x.include?('#1=352.015 ') && x.include?('#3=-20 ') }, "Eck-Oberschrank Boden: Innenecke von oben ausgefräst: #{b1}")
+check(deo.none? { |x| x.text.include?('#8522=3 ') && x.text.include?('#8513=-3 ') }, 'Eck-Oberschrank: keine Sockelfüße')
+%w[OES1_SeiteL OES1_SeiteR].each do |n|
+  check(bearbeitungen(o[n].text, 1).any? { |x| x.include?('W#89') } && o[n].text.include?('#8522=5 '), "#{n}: Rückwandnut und Lochreihen")
+end
+od = o['OES1_Deckel']
+schr = [3, 4, 5, 6].flat_map { |sd| bearbeitungen(od.text, sd) }.select { |x| x.include?('#8513=-15 ') }
+check(schr.size == 2, "Eck-Oberschrank Deckel: an beide Rückwände geschraubt: #{schr}")
+check(bearbeitungen(od.text, 1).any? { |x| x.include?('W#89') && x.include?('#3=-20 ') }, 'Eck-Oberschrank Deckel: Innenecke ausgefräst')
+check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
+check(S::Frontfarbe.fronten(eo).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'Eck-Oberschrank: Frontfarbe findet beide Türen')
 
 if $fehler.zero?
   puts 'test_export: alles OK'

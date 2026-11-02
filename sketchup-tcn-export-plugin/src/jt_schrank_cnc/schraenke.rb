@@ -35,6 +35,11 @@ module JTools
       def sichtteil?
         rolle == 'Verkleidung' || (rolle == 'Wange' && jt('typ') == 'Unterschrank_Insel')
       end
+      # bekommt bei „Frontfarbe ändern“ das Frontmaterial: Fronten, Türen, Sichtteile des Inselschranks
+      # und Teile mit JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“)
+      def frontfarbe?
+        front? || sichtteil? || (jt('frontfarbe') ? true : false)
+      end
       # sichtbar nur, wenn weder das Teil noch eine Ebene darüber ausgeblendet ist
       def sichtbar?
         pfad.none? { |i| i.hidden? }

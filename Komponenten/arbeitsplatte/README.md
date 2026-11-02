@@ -104,6 +104,8 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
   den Abfall versetzt, Stärke + 1 mm tief, 10 mm über die Plattenkanten hinaus.
   Der Bogen des Gehrungsansatzes ist ein echter Kreisbogen (`W#2125`, tangential,
   Radius und Winkel wie in `sketchup-tcn-export-plugin/beispiele/bogen.tcn`).
+  Das Vorzeichen des Winkels gilt wie in der TPA-Ansicht (y nach unten):
+  negativ = im Uhrzeigersinn auf dem Bildschirm.
   Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
   die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).

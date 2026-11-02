@@ -90,10 +90,10 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Oberschrank…', 'Oberschrank mit Klappe…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
+  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -106,7 +106,7 @@ gruppen.each do |g, eintraege|
 end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
-# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm),
+# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm),
 # und der Schrank wird mit der eingegebenen Tiefe gebaut
 module UI
   class << self
@@ -114,28 +114,28 @@ module UI
   end
   def self.inputbox(prompts, defaults, *_rest)
     (@abfragen ||= []) << [prompts, defaults]
-    defaults.each_with_index.map { |d, i| prompts[i] == 'Tiefe Korpus (mm)' ? '610' : d }
+    defaults.each_with_index.map { |d, i| prompts[i] == 'Tiefe Korpus (mm)' ? '610' : prompts[i].start_with?('Schenkel') ? '1300' : d }
   end
 end
 unterschraenke = kp.find { |e| e.is_a?(UI::Menu) && e.titel == 'Unterschränke' }.eintraege
 schrank_eintraege = %w[Unterschränke Oberschränke Hochschränke].flat_map do |g|
-  kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }.eintraege.grep(Array)
+  kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }.eintraege.grep(Array).map { |t, b| [t, b, g] }
 end
-schrank_eintraege.each do |titel, blk|
+schrank_eintraege.each do |titel, blk, gruppe|
   next if titel == 'Unterschrank mit Tür…' # lädt Unterschrank.skp, eigener Test in Komponenten/unterschrank_tuer
   m = Sketchup.active_model = Sketchup::Model.new
   UI.abfragen = []
   blk.call
   frage = UI.abfragen.first
   i = frage && frage[0].index('Tiefe Korpus (mm)')
-  soll = titel.start_with?('Oberschrank') ? '400' : '520'
+  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : '520'
   check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
   check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
 end
-check(unterschraenke.size == 12, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
