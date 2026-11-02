@@ -49,6 +49,7 @@ module Geraete
   ARTEN = {
     'Geschirrspueler' => ['Geschirrspüler', 'Geraet Plan Wasser'],
     'KochfeldAbzug'   => ['Kochfeld mit Abzug', 'Geraet Plan Kochen'],
+    'Kochfeld'        => ['Kochfeld', 'Geraet Plan Kochen'],
     'Spuele'          => ['Spüle', 'Geraet Plan Wasser'],
     'Flachschirmhaube' => ['Flachschirmhaube', 'Geraet Plan Kochen'],
     'Backofen'        => ['Backofen', 'Geraet Plan Kochen', 595.0],
@@ -242,6 +243,23 @@ module Geraete
                     [rb - 20, rt - 20, sh - h + 10])
     end
     { plan: [0, 0, 0, b, wt + 20, h], teile: teile }
+  end
+
+  # Kochfeld ohne Abzug (Herdumbauschrank): Glaskeramik auf der Arbeitsplatte, darunter die
+  # Gerätewanne (ca. 50 mm unter der Glasoberkante). Einfügepunkt: Korpusoberkante vorne links.
+  def self.berechne_kochfeld(n, groesse)
+    b = zahl(n, 'breite')
+    mk = zahl(n, 'x', 19.0)
+    ap = zahl(n, 'arbeitsplatte', ARBEITSPLATTE)
+    kb = [(groesse || 60) * 10.0 - 10, b + 2 * mk].min
+    kt = 520.0
+    kx = (b - kb) / 2.0
+    ky = 50.0 - zahl(n, 'y', 19.0) - SPALT # 50 mm hinter der Frontebene
+    wanne = 50.0
+    { plan: [kx, ky, ap + 6 - wanne, kb, kt, wanne],
+      teile: [teil('Kochfeld', 'Geraet Schwarzglas', [kx, ky, ap], [kb, kt, 6]),
+              teil('Wanne', 'Geraet Gehaeuse', [kx + 20, ky + 20, ap + 6 - wanne], [kb - 40, kt - 40, wanne - 6]),
+              teil('Bedienfeld', 'Geraet Edelstahl', [kx + kb / 2 - 100, ky + 10, ap + 6], [200, 40, 1])] }
   end
 
   # Spüle (Edelstahl, ein Becken) mit Armatur, auf der Arbeitsplatte
@@ -449,7 +467,7 @@ module Geraete
   def self.in_schraenke_setzen(model = Sketchup.active_model)
     liste = schraenke(model)
     if liste.empty?
-      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Spüle, Hochschrank Geräte).')
+      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte).')
       return 0
     end
     model.start_operation('Geräte in Schränke setzen', true)

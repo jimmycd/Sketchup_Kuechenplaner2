@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../..', __dir__)
 $VERBOSE = nil
-%w[unterschrank_geschirrspueler unterschrank_kuehlschrank unterschrank_kochfeld unterschrank_spuele hochschrank_geraete oberschrank_dunstabzug].each do |k|
+%w[unterschrank_geschirrspueler unterschrank_kuehlschrank unterschrank_kochfeld unterschrank_spuele hochschrank_geraete unterschrank_backofen oberschrank_dunstabzug].each do |k|
   load File.join(komp, k, 'src', k, 'main.rb')
 end
 load File.expand_path('../src/geraete/main.rb', __dir__)
@@ -22,6 +22,10 @@ def nah(a, b) = (a - b).abs < EPS
 # --- Reine Berechnung ---
 check(G.art('KuehlschrankFrei60') == ['KuehlschrankFrei', 60] && G.art('Weinkuehler30') == ['Weinkuehler', 30], 'Kühlgeräte lesen')
 check(G.art('Backofen60') == ['Backofen', 60] && G.art('Spuele') == ['Spuele', nil], 'Kennungen lesen')
+kf = G.berechne('geraet' => 'Kochfeld60', 'breite' => 562.0, 'hoehe' => 0.0, 'tiefe' => 520.0, 'x' => 19.0, 'y' => 19.0, 'z' => 700.0, 'arbeitsplatte' => 40.0)
+glas = kf[:teile].find { |t| t[0] == 'Kochfeld' }
+check(nah(glas[2][2], 40) && nah(glas[3][0], 590) && nah(glas[2][0], -14), "Kochfeld 60 ohne Abzug: 590 breit mittig auf der Arbeitsplatte: #{glas}")
+check(kf[:teile].none? { |t| t[0] == 'Abzug' } && kf[:text] == 'Kochfeld 60 · Nische 562 mm', "Kochfeld ohne Abzug: #{kf[:text]}")
 check(G.art('frei').nil? && G.art('keine').nil? && G.art('Toaster12').nil?, 'frei/keine/unbekannt -> kein Gerät')
 
 ofen = G.berechne('geraet' => 'Backofen60', 'breite' => 562.0, 'hoehe' => 590.0, 'tiefe' => 800.0, 'x' => 19.0, 'y' => 19.0, 'z' => 0.0)
@@ -31,7 +35,7 @@ check(nah(rahmen[2][1], -21) && nah(rahmen[2][0], -16.5), "Front mittig, 2 mm vo
 check(ofen[:text] == 'Backofen 60 · Nische 562 × 590 mm', "Beschriftung: #{ofen[:text]}")
 check(G.berechne('geraet' => 'frei', 'breite' => 562.0, 'hoehe' => 300.0).nil?, 'freie Nische bleibt leer')
 
-%w[Geschirrspueler60 Geschirrspueler45 KochfeldAbzug60 KochfeldAbzug80 KochfeldAbzug90 Spuele
+%w[Geschirrspueler60 Geschirrspueler45 KochfeldAbzug60 KochfeldAbzug80 KochfeldAbzug90 Kochfeld60 Kochfeld80 Spuele
    Backofen60 Kompakt45 Mikrowelle38 Waermeschublade14 Flachschirmhaube60 Flachschirmhaube90 Kuehlschrank60 KuehlschrankFrei60 Weinkuehler30 Weinkuehler60].each do |k|
   r = G.berechne('geraet' => k, 'breite' => k.end_with?('45') ? 448.0 : 562.0, 'hoehe' => 590.0, 'tiefe' => 800.0,
                  'x' => 19.0, 'y' => 19.0, 'z' => 700.0)
@@ -57,14 +61,15 @@ usp = schrank.(Spuelenschrank.erzeuge(model, {}))
 hg  = schrank.(HochschrankGeraete.erzeuge(model, {}))
 hg1 = schrank.(HochschrankGeraete.erzeuge(model, { 'Geraet_N2' => HochschrankGeraete::KEINE.to_f }))
 osd = schrank.(OberschrankDunstabzug.erzeuge(model, { 'Breite' => 90.0 }))
+usb = schrank.(UnterschrankBackofen.erzeuge(model, {}))
 
 def geraete(inst) = inst.definition.entities.grep(Sketchup::ComponentInstance).select { |i| Geraete.geraet?(i) }
 
 anzahl = G.in_schraenke_setzen(model)
-check(anzahl == 9, "9 Geräte gesetzt (Spüler, 2 Kühlgeräte, Kochfeld, Spüle, 2 + 1 im Hochschrank, Haube): #{anzahl}")
+check(anzahl == 11, "11 Geräte gesetzt (Spüler, 2 Kühlgeräte, Kochfeld, Spüle, 2 + 1 im Hochschrank, Kochfeld + Backofen im Herdumbau, Haube): #{anzahl}")
 erwartet = { usg => ['Geschirrspueler60'], uks => ['Kuehlschrank60'], ukw => ['Weinkuehler30'], usk => ['KochfeldAbzug80'], usp => ['Spuele'],
              hg => G.nischen(hg.definition).map { |n| n['geraet'] }, hg1 => [G.nischen(hg1.definition).first['geraet']],
-             osd => ['Flachschirmhaube90'] }
+             usb => %w[Kochfeld60 Backofen60], osd => ['Flachschirmhaube90'] }
 erwartet.each do |s, soll|
   ist = geraete(s).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') }
   check(ist == soll, "#{s.definition.name}: #{ist.inspect} statt #{soll.inspect}")
@@ -72,7 +77,7 @@ end
 check(G.nischen(hg1.definition).size == 1, 'Hochschrank ohne Nische 2 hat nur JT_Nische_N1')
 
 # Einfügepunkt = x/y/z der Nische
-[usg, uks, ukw, usk, hg, osd].each do |s|
+[usg, uks, ukw, usk, hg, usb, osd].each do |s|
   G.nischen(s.definition).zip(geraete(s)).each do |n, g|
     soll = %w[x y z].map { |k| n[k].to_f / 25.4 }
     check(g.transformation.origin.zip(soll).all? { |a, b| nah(a, b) }, "#{s.definition.name} #{n['nische']}: Lage #{g.transformation.origin}")
