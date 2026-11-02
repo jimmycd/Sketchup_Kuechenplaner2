@@ -42,8 +42,9 @@ module JTools
       SCHRAUBE = { d: 3, tiefe: 21 }.freeze # Seite.tcn: Ø3, 21 tief in der Mitte der Strebe
       SCHRAUBEN_REIHE = { d: 3, tiefe: 12, raster: 130 }.freeze # Seite.tcn: Ø3-Reihe am Boden (fittingy, 1/1)
       # Deckel–Rückwand (Oberschrank): 3 Schrauben, 50 mm von den Seiten und in der Mitte;
-      # Ø4 durch die Rückwand (1 mm tiefer als ihre Stärke), Ø3 × 15 in die Deckelkante (Annahme)
-      RUECKWAND_SCHRAUBE = { rand: 50, d_rueckwand: 4, d_deckel: 3, tiefe_deckel: 15, durch: 1 }.freeze
+      # Ø5 durch die Rückwand (1 mm tiefer als ihre Stärke; Durchgangsbohrer gibt es nur in
+      # Ø5/6/8/10). Die Deckelkante wird nicht vorgebohrt: waagrecht gibt es nur Ø8 (Werkzeugliste).
+      RUECKWAND_SCHRAUBE = { rand: 50, d_rueckwand: 5, durch: 1 }.freeze
       # Seite.tcn: Lochreihe Ø5, 12 tief, Raster 32, 35 mm von vorn und hinten,
       # 55 … x-50 im Fräsmaß der Seite = 38 über dem Boden und 33 unter dem Deckel.
       # Jede Seite bekommt sie in jedem Fach ohne Schubladen (Seiten sind immer gleich).
@@ -181,7 +182,6 @@ module JTools
         p1 = punkt(ca => kp, kb => m, la => hi)
         raster = (hi - lo) / 2.0
         a.ops << Op.new(:reihe, sa, p0, p1, r[:d_rueckwand], a.mass(ca) + r[:durch], raster, false, "Schraube #{b.teil.jt('teil')}")
-        b.ops << Op.new(:reihe, sb, p0, p1, r[:d_deckel], r[:tiefe_deckel], raster, false, "Schraube #{a.teil.jt('teil')}")
       end
 
       def self.flaeche_innen(s, k, nach_max)
@@ -558,7 +558,8 @@ module JTools
       # Blindeck mit Variante 2. Säulenlager in Boden und Strebe vorn: Ø5 für die Systemschraube
       # Ø6,3 × 13 bei X ab der Innenseite der Seite an der Tür und 69 mm ab Vorderkante, zwei
       # Ø4,5-Schrauben 16 mm daneben auf 37 mm (vorgebohrt Ø3, Annahme). Der Boden wird von unten
-      # durchgebohrt (oben liegen die Sockelfüße nicht, Fläche 1 ist die Unterseite).
+      # durchgebohrt (oben liegen die Sockelfüße nicht, Fläche 1 ist die Unterseite); durch den
+      # Boden bohrt der Durchgangsbohrer Ø5 (Werkzeugliste: durch nur Ø5/6/8/10).
       # Seitenprofil 500 an der Seite der Tür: 8 Löcher Ø5 (Systemschraube) im Raster 64,
       # 52 mm ab Vorderkante, das unterste 28 mm über dem Boden.
       LEMANS = {
@@ -566,7 +567,7 @@ module JTools
         x: { 40 => 426, 45 => 476, 50 => 526, 60 => 626 },
         korpus_min: { 40 => 764, 45 => 800, 50 => 910, 60 => 960 },
         lager: { d: 5, tiefe: 13, vorn: 69 },
-        lager_schraube: { d: 3, tiefe: 10, vorn: 37, seitlich: 16 },
+        lager_schraube: { d: 3, d_durch: 5, tiefe: 10, vorn: 37, seitlich: 16 },
         profil: { d: 5, tiefe: 13, vorn: 52, unten: 28, raster: 64, anzahl: 8 },
         tiefe_min: 500, strebe_min: 60
       }.freeze
@@ -619,7 +620,7 @@ module JTools
                           nil, nil, 'Lager LeMans')
           [-1, 1].each do |sg|
             w.ops << Op.new(:bohrung, :zmin, punkt(k => sx + sg * ls[:seitlich], t => vorne + dir * ls[:vorn], 2 => z), nil,
-                            ls[:d], tief.(ls[:tiefe]), nil, nil, 'Lager LeMans Schraube')
+                            art == :durch ? ls[:d_durch] : ls[:d], tief.(ls[:tiefe]), nil, nil, 'Lager LeMans Schraube')
           end
         end
 

@@ -75,7 +75,10 @@ module JTools
       # Fräserradius in den Abfall versetzt, abzüglich Anleimer (die Kante ist im Endmaß gezeichnet).
       # Ein- und Auslauf tangential, so weit, dass der Fräser außerhalb der Platte startet und
       # endet (Jürgen: Fräsbahnen außerhalb beginnen und ins Material fahren). Bögen wie in
-      # bogen.tcn als W#2125 mit Radius und Winkel (positiv gegen den Uhrzeigersinn, EW2 automatisch).
+      # bogen.tcn als W#2125 mit Radius und Winkel (EW2 automatisch). Das Vorzeichen gilt wie in der
+      # TPA-Ansicht von Fläche 1 (y nach unten): negativ = im Uhrzeigersinn auf dem Bildschirm.
+      # Gerechnet wird mit y nach oben, deshalb wird der Winkel negiert (wie bei der Arbeitsplatte,
+      # Jürgen 2026-11-02: sonst läuft der Bogen falsch herum).
       def kontur(ws, lage, op)
         k = Regeln::KONTUR
         r = k[:d] / 2.0
@@ -124,7 +127,7 @@ module JTools
           if seg[0] == :linie
             out << gerade.(seg[1], seg[2])
           else
-            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n(seg[4])} #8048=1 #8046=#{n(seg[5] * 180 / Math::PI)} #42=0 #49=0 }W"
+            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n(seg[4])} #8048=1 #8046=#{n(-seg[5] * 180 / Math::PI)} #42=0 #49=0 }W"
           end
           pos = seg[2]
         end

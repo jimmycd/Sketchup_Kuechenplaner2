@@ -562,7 +562,10 @@ module RegalAbschluss
       def onTransactionCommit(model)
         return if @laeuft
         @laeuft = true
-        UI.start_timer(0, false) do
+        # Timer sofort anhalten: sonst feuert er erneut, solange eine Meldung
+        # (UI.messagebox beim Neuaufbau) offen ist
+        id = UI.start_timer(0, false) do
+          UI.stop_timer(id)
           begin
             RegalAbschluss.pruefen(model)
           ensure

@@ -52,7 +52,7 @@ Dübel, Lochreihen, Rückwand und Sockelfüße wie bei den anderen Schränken; a
 * Der Umriss steht im Wörterbuch `JT_Kontur` an der Definition des Bodens (`umriss`, `kante`).
 * Die Kante fräst der Konturfräser **1004** (Ø 20) ganz durch (Stärke + 1 mm), um den Fräserradius in den Abfall und um den Anleimer (2 mm) in die Platte versetzt.
 * Die Bahn beginnt und endet tangential außerhalb der Platte (Fräser samt Radius 10 mm frei) und fährt ins Material.
-* Bögen als echte Kreisbögen `W#2125` mit Radius und Winkel wie in `bogen.tcn` (EW2 automatisch: positiv gegen den Uhrzeigersinn).
+* Bögen als echte Kreisbögen `W#2125` mit Radius und Winkel wie in `bogen.tcn` (EW2 automatisch; Vorzeichen wie in der TPA-Ansicht mit y nach unten: negativ = im Uhrzeigersinn auf dem Bildschirm, wie bei der Arbeitsplatte).
 * Sockelfüße, die bei einer Schräge oder einem Bogen über die Kante ragen würden, rücken auf kürzestem Weg nach innen (mindestens 20 mm vom Rand).
 
 Die Arbeitsplatte über dem Regal bleibt rechteckig; die Schräge schneidest du von Hand.
