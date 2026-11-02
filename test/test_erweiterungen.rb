@@ -93,7 +93,7 @@ gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }

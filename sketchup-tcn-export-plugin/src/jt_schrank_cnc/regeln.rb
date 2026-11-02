@@ -221,10 +221,11 @@ module JTools
       end
 
       # Nennlänge der Schiene aus der lichten Tiefe der Seite (bis zur Rückwand, sonst bis Hinterkante)
-      def self.nennlaenge(s, teile)
+      # versatz: Kasten beginnt so weit hinter der Vorderkante der Seite (Innenschubkasten hinter Innenfront)
+      def self.nennlaenge(s, teile, versatz = 0)
         t = 1 - s.dicke_achse
         hinten = teile.select { |w| w.rolle == 'Rueckwand' && w.lo[t] > s.lo[t] }.map { |w| w.lo[t] }.min || s.hi[t]
-        lt = [hinten, s.hi[t]].min - s.lo[t]
+        lt = [hinten, s.hi[t]].min - s.lo[t] - versatz
         SCHIENE[:hinten].keys.select { |nl| nl + SCHIENE[:abstand_nl] <= lt + TOL }.max
       end
 
@@ -260,13 +261,16 @@ module JTools
             seite, flaeche = flaeche_innen(s, k, nach_max)
             # NL am Schrank (z. B. kürzer wegen Installationsraum), aber nie länger als die
             # gezeichnete lichte Tiefe zulässt (z. B. nach einer Tiefenänderung)
-            nl = [nennlaenge_schrank(schrank), nennlaenge(s, teile)].compact.min
-            if nl.nil? || nennlaenge(s, teile).nil?
+            # Innenschubkasten (Hochschrank Vorrat): Kasten und Schiene sitzen hinter der Innenfront
+            versatz = lo[t] - s.lo[t]
+            versatz = 0 if versatz < TOL
+            nl = [nennlaenge_schrank(schrank), nennlaenge(s, teile, versatz)].compact.min
+            if nl.nil? || nennlaenge(s, teile, versatz).nil?
               meldungen << "#{s.name}: zu wenig Tiefe für eine LEGRABOX-Schiene (NL 350 braucht 353 mm)"
               next
             end
             (SCHIENE[:vorn] + SCHIENE[:hinten][nl].map { |a| SCHIENE[:vorn][0] + a }).each do |d|
-              y = s.lo[t] + d
+              y = s.lo[t] + versatz + d
               p = punkt(k => flaeche, t => y, 2 => z)
               s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{kasten.first.teil.jt('bereich')}")
             end
@@ -283,10 +287,11 @@ module JTools
       end
 
       # Front der Schublade: gleicher Schrank und Bereich wie der Kasten; hängen mehrere Kästen an
-      # einer Front (Apothekerschrank), steht deren Bereich im Attribut front des Kastens
+      # einer Front (Apothekerschrank), steht deren Bereich im Attribut front des Kastens.
+      # Innenschubkästen hinter einer Tür (Hochschrank Vorrat) haben eine Innenfront.
       def self.front_zu(kasten, teile)
         b = kasten.first.teil.jt('front') || kasten.first.teil.jt('bereich')
-        teile.find { |w| w.rolle == 'Front' && w.teil.jt('bereich') == b }
+        teile.find { |w| %w[Front Innenfront].include?(w.rolle) && w.teil.jt('bereich') == b }
       end
 
       def self.frontbefestigung(kasten, teile)
