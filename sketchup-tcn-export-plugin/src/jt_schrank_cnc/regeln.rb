@@ -6,7 +6,8 @@
 # bekommt A eine Dübelreihe in die Stirnseite und B die passende Reihe in die
 # Fläche. Dazu (Schritt 6): Nut für eine Rückwand, die in Seiten und Boden
 # steckt (Oberschrank), Schrauben Deckel–Rückwand, Lochreihen für Einlegeböden
-# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks;
+# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks und der
+# Rohrausschnitt im Oberschrank Dunstabzug;
 # Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
 # der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II.
 # Die Bearbeitungen entstehen zuerst in
@@ -20,8 +21,9 @@ module JTools
 
       # Bearbeitung auf einer Weltseite: :reihe (p0 -> p1, Raster, verteilt), :bohrung (p0),
       # :nut (Mittellinie p0 -> p1 auf der Oberfläche, d = Nutbreite) oder
-      # :tasche (Rechteck mit den Ecken p0 und p1 auf der Oberfläche)
-      Op = Struct.new(:art, :seite, :p0, :p1, :d, :tiefe, :raster, :verteilt, :titel)
+      # :tasche (Rechteck mit den Ecken p0 und p1 auf der Oberfläche) oder :kontur (Schräg-/Bogenkante,
+      # ganz durch; Umriss und Kantenstücke in daten, immer auf Fläche 1)
+      Op = Struct.new(:art, :seite, :p0, :p1, :d, :tiefe, :raster, :verteilt, :titel, :daten)
 
       # Dübelreihen je Rolle von A (Abstand vom Rand, Raster; verteilt = #8508/#8509 1/1).
       # Böden und Deckel (Jürgen 2026-10-28): erster und letzter Dübel 30 mm von der fertigen Kante
@@ -95,7 +97,9 @@ module JTools
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
+          teile.each { |w| ausschnitt(w) unless w.rolle == 'Rueckwand' } # Rohrausschnitt Dunstabzug
           teile.each { |w| ecke(w) }
+          teile.each { |w| kontur(w) }
         end
         meldungen
       end
@@ -138,14 +142,20 @@ module JTools
       # Fräser innen an der Kante entlang (Ecken mit Fräserradius).
       AUSSCHNITT = { durch: 1 }.freeze # 1 mm tiefer als die Stärke, wie Durchgangsbohrungen
 
+      # Liegende Platten (Oberschrank Dunstabzug: Rohrausschnitt in Haubenboden, Deckel und
+      # Einlegeboden) haben statt _Z/_H die Attribute Ausschnitt_Y/_T (Lage ab vorne links);
+      # gefräst wird von oben.
       def self.ausschnitt(a)
         inst = a.teil.inst
-        x, z, b, h = %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h].map { |k| Schraenke.dc(inst, k).to_f }
-        return if b <= NUT[:d_werkzeug] || h <= NUT[:d_werkzeug]
+        liegend = !Schraenke.dc(inst, 'ausschnitt_y').nil?
+        x, v, b, h = (liegend ? %w[ausschnitt_x ausschnitt_y ausschnitt_b ausschnitt_t] : %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h])
+                     .map { |k| Schraenke.dc(inst, k).to_f }
+        return if [b, h].min * Geometrie::MM <= NUT[:d_werkzeug] # Attribute in Zoll
         m = Geometrie.welt(a.teil.pfad)
-        p0 = Geometrie.punkt(m, [x, 0, z]).map { |v| v * Geometrie::MM }
-        p1 = Geometrie.punkt(m, [x + b, 0, z + h]).map { |v| v * Geometrie::MM }
-        seite = Geometrie.seite(Geometrie.richtung(m, [0, -1, 0]))
+        lokal = ->(px, pv) { liegend ? [px, pv, 0] : [px, 0, pv] }
+        p0 = Geometrie.punkt(m, lokal.(x, v)).map { |w| w * Geometrie::MM }
+        p1 = Geometrie.punkt(m, lokal.(x + b, v + h)).map { |w| w * Geometrie::MM }
+        seite = Geometrie.seite(Geometrie.richtung(m, liegend ? [0, 0, 1] : [0, -1, 0]))
         k = a.dicke_achse
         p0[k] = p1[k] = Geometrie.max?(seite) ? a.hi[k] : a.lo[k]
         a.ops << Op.new(:ausschnitt, seite, p0, p1, NUT[:d_werkzeug], a.mass(k) + AUSSCHNITT[:durch], nil, nil, 'Ausschnitt')
@@ -422,6 +432,65 @@ module JTools
         w.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, w.mass(k) + DURCH, nil, nil, 'Kanalausschnitt')
       end
 
+      # --- Schräg- und Bogenkanten (Abschlussregal) ------------------------------------
+      # Die Platte wird als Rechteck zugeschnitten; die Schräge bzw. den Bogen fräst der
+      # Konturfräser 1004 (Ø 20, wie bei der Arbeitsplatte) ganz durch, um den Anleimer
+      # zurückversetzt. Umriss und Kante stehen im Wörterbuch JT_Kontur an der Definition
+      # (Zoll, lokal in der Unterseite der Platte, siehe Komponenten/regal_abschluss).
+      KONTUR_DICT = 'JT_Kontur'.freeze
+      KONTUR = { werkzeug: 1004, d: 20.0, ueberlauf: 10.0 }.freeze
+
+      # { umriss: [Weltpunkte mm], segmente: [[:linie, a, b] | [:bogen, a, b, mitte]] } oder nil
+      def self.kontur_daten(w)
+        d = Schraenke.definition(w.teil.inst)
+        kante = d.get_attribute(KONTUR_DICT, 'kante')
+        umriss = d.get_attribute(KONTUR_DICT, 'umriss')
+        return if kante.nil? || umriss.nil? || kante.empty?
+        m = Geometrie.welt(w.teil.pfad)
+        welt = ->(x, y) { Geometrie.punkt(m, [x.to_f, y.to_f, 0.0]).map { |v| v * Geometrie::MM } }
+        segmente = kante.each_slice(8).map do |art, x0, y0, x1, y1, cx, cy, _|
+          art.to_f.round == 1 ? [:bogen, welt.(x0, y0), welt.(x1, y1), welt.(cx, cy)] : [:linie, welt.(x0, y0), welt.(x1, y1)]
+        end
+        { umriss: umriss.each_slice(2).map { |x, y| welt.(x, y) }, segmente: segmente }
+      end
+
+      # Anleimerstärke auf der Kontur (0 ohne Anleimer)
+      def self.kontur_anleimer(w)
+        f = Schraenke.definition(w.teil.inst).entities.grep(Sketchup::Face).find do |x|
+          x.material && x.material.get_attribute(Geometrie::OCL_DICT, 'type').to_i == 4 && x.normal.to_a.map(&:abs).max < 0.9999
+        end
+        f ? Geometrie.kantenstaerke(f.material) : 0.0
+      end
+
+      def self.kontur(w)
+        kd = kontur_daten(w) or return
+        w.ops << Op.new(:kontur, nil, nil, nil, KONTUR[:d], w.mass(w.dicke_achse) + DURCH, nil, nil, 'Kontur',
+                        kd.merge(anleimer: kontur_anleimer(w)))
+      end
+
+      # Punkt im Vieleck (2D)
+      def self.innen?(q, poly)
+        drin = false
+        poly.each_with_index do |a, i|
+          b = poly[i - 1]
+          next unless (a[1] > q[1]) != (b[1] > q[1])
+          x = a[0] + (q[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
+          drin = !drin if q[0] < x
+        end
+        drin
+      end
+
+      # Abstand eines Punkts zum Rand des Vielecks (2D)
+      def self.randabstand(q, poly)
+        poly.each_with_index.map do |a, i|
+          b = poly[i - 1]
+          dx, dy = b[0] - a[0], b[1] - a[1]
+          l2 = dx * dx + dy * dy
+          t = l2 < 1e-12 ? 0.0 : (((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2).clamp(0.0, 1.0)
+          Math.hypot(q[0] - a[0] - t * dx, q[1] - a[1] - t * dy)
+        end.min
+      end
+
       # --- Eckschrank ---------------------------------------------------------------------
       ECKSCHRANK = 'Eckschrank'.freeze
       # Innenecke einer L-Platte: die Kanten bekommen Anleimer (OCL erkennt ihn dort nicht),
@@ -598,12 +667,29 @@ module JTools
           m = (lo[ay] + hi[ay]) / 2.0
           ys = [m - f[:raster] / 2.0, m + f[:raster] / 2.0]
         end
+        kd = kontur_daten(w)
+        poly = kd && kd[:umriss].map { |p| [p[ax], p[ay]] }
         xs.each do |x0, x1|
           ys.each do |y|
+            x0, x1, y = fuss_in_platte(poly, x0, x1, y, f[:rand_x]) if poly
+            next unless x0
             w.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", punkt(k => w.lo[k], ax => x0, ay => y),
                             punkt(k => w.lo[k], ax => x1, ay => y), f[:d], f[:tiefe], f[:raster], false, 'Sockelfuss')
           end
         end
+      end
+
+      # Boden mit Schräge oder Bogen (Abschlussregal): ein Fuß, dessen Bohrungen nicht mindestens
+      # rand mm innerhalb des Umrisses liegen, rückt auf kürzestem Weg (in x oder y) nach innen
+      def self.fuss_in_platte(poly, x0, x1, y, rand)
+        ok = ->(a, b, c) { [[a, c], [b, c]].all? { |q| innen?(q, poly) && randabstand(q, poly) >= rand - TOL } }
+        return [x0, x1, y] if ok.(x0, x1, y)
+        (1..2000).each do |s|
+          [[s, 0], [-s, 0], [0, s], [0, -s]].each do |dx, dy|
+            return [x0 + dx, x1 + dx, y + dy] if ok.(x0 + dx, x1 + dx, y + dy)
+          end
+        end
+        nil
       end
 
       # Schritt für eine Reihe über die Länge l mit höchstens max Abstand: n = ceil(l / max) + 1 Dübel,

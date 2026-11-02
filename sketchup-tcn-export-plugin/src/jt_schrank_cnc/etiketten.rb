@@ -113,6 +113,8 @@ module JTools
         o << "<div>#{h(z.material.empty? ? '(ohne Material)' : z.material)} #{zahl(z.ds)} mm</div>"
         o << "<div class=\"roh\">Roh #{zahl(z.roh[0])} × #{zahl(z.roh[1])}</div>"
         o << "<div>Fertig #{zahl(z.fertig[0])} × #{zahl(z.fertig[1])}</div>"
+        # Schräg- oder Bogenkante (Abschlussregal): fräst die CNC, Anleimer danach von Hand
+        o << "<div>Kontur mit Anleimer (CNC)</div>" if z.respond_to?(:kontur) && z.kontur && !z.kontur.empty?
         o << "<div class=\"datei\">#{h(z.datei)}</div>"
         o << '</div><div class="bild">'
         o << kantenbild(z, bild_b, hoch * 0.35)

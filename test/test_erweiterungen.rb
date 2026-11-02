@@ -90,10 +90,10 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank mit Klappe…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
+  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -130,9 +130,9 @@ module UI
 end
 unterschraenke = kp.find { |e| e.is_a?(UI::Menu) && e.titel == 'Unterschränke' }.eintraege
 schrank_eintraege = %w[Unterschränke Oberschränke Hochschränke].flat_map do |g|
-  kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }.eintraege.grep(Array)
+  kp.find { |e| e.is_a?(UI::Menu) && e.titel == g }.eintraege.grep(Array).map { |t, b| [t, b, g] }
 end
-schrank_eintraege.each do |titel, blk|
+schrank_eintraege.each do |titel, blk, gruppe|
   next if titel == 'Unterschrank mit Tür…' # lädt Unterschrank.skp, eigener Test in Komponenten/unterschrank_tuer
   m = Sketchup.active_model = Sketchup::Model.new
   UI::HtmlDialog.alle = []
@@ -142,7 +142,7 @@ schrank_eintraege.each do |titel, blk|
   next unless d
   felder = EingabeHelfer.felder(d.html)
   tiefe = felder.assoc('Tiefe Korpus')
-  soll = titel.start_with?('Oberschrank') ? '400' : titel.start_with?('Eck-Oberschrank') ? '350' : '520'
+  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : '520'
   check(tiefe && tiefe[1] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{felder.inspect})")
   check(d.html.include?('<span class="unit">mm</span>'), "#{titel}: Einheit mm neben dem Feld")
   check(titel == 'Eckschrank L-Form…' || felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
@@ -168,7 +168,7 @@ SRC.each do |src|
     check(!File.read(f, encoding: 'UTF-8').include?('UI.inputbox'), "#{f}: UI.inputbox statt Kuechenplaner::Eingabe.abfragen")
   end
 end
-check(unterschraenke.size == 11, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 12, 'alle Unterschränke geprüft')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
