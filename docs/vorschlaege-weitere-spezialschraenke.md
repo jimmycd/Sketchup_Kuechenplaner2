@@ -12,7 +12,7 @@ Schränke, die in einem vollständigen Küchenplaner noch fehlen, nach Wichtigke
 5. **Unterschrank für Backofen unter dem Kochfeld**: Klassischer Herdumbauschrank mit Schublade darunter, falls der Ofen nicht in den Hochschrank kommt.
 6. **Abfall-/Mülltrennungsauszug**: Eigener schmaler Unterschrank mit Auszug für Behälter, wenn er nicht in den Spülenschrank kommt.
 7. **Hochschrank Vorrat mit Innenschubkästen**: Tür außen, dahinter Legrabox-Innenauszüge. Eine Alternative zum Apothekerschrank.
-8. **Offenes Regal / Abschlussregal**: Am Ende einer Zeile, gerade oder mit Schräge.
+8. **Offenes Regal / Abschlussregal**: Am Ende einer Zeile, gerade oder mit Schräge. Umgesetzt: [`Komponenten/regal_abschluss/`](../Komponenten/regal_abschluss/) (gerade, schräg, rund).
 9. **Unterbau-Kühlschrank / Weinkühler**: Unterschrank-Nische für Gerät mit 820 mm Höhe.
 10. **Passblenden, Wangen und Sockelblenden**: Keine Schränke, aber nötig, um Restmaße und sichtbare Seiten sauber zu schließen (inklusive OCL-Anleimer).
 11. **Inselschrank / Theke**: Unterschrank mit sichtbarer Rückseite oder Rückwandverkleidung und überstehender Platte.

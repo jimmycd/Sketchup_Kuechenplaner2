@@ -59,8 +59,9 @@ module JTools
       end
 
       # Werkstück: Teil, Quader lo/hi (mm, Welt), Anleimer je Weltseite (mm),
-      # Name des Anleimer-Materials je Weltseite (für Stückliste und Etiketten)
-      Werkstueck = Struct.new(:teil, :lo, :hi, :kanten, :ops, :kanten_mat) do
+      # Name des Anleimer-Materials je Weltseite (für Stückliste und Etiketten),
+      # Anleimer auf nicht achsparallelen Kanten (Schräge, Bogen: Material => Länge in mm)
+      Werkstueck = Struct.new(:teil, :lo, :hi, :kanten, :ops, :kanten_mat, :kontur_kanten) do
         def name
           teil.name
         end
@@ -98,14 +99,23 @@ module JTools
         hi = (0..2).map { |a| pts.map { |p| p[a] }.max * MM }
         kanten = {}
         kanten_mat = {}
+        kontur = Hash.new(0.0)
+        dicke = (0..2).map { |a| hi[a] - lo[a] }.min
         d.entities.grep(Sketchup::Face).each do |f|
           mat = f.material
           next unless mat && mat.get_attribute(OCL_DICT, 'type').to_i == 4
-          s = seite(richtung(m, f.normal.to_a))
+          v = richtung(m, f.normal.to_a)
+          if v.map(&:abs).max < 0.9999
+            # Schräg- oder Bogenkante (Abschlussregal): nicht am Quader abziehen, die Kontur
+            # fräst der TCN-Export; Länge = Fläche / Plattenstärke
+            kontur[mat.name.to_s] += f.area.to_f * MM * MM / dicke if dicke > 0 && f.respond_to?(:area)
+            next
+          end
+          s = seite(v)
           kanten[s] = kantenstaerke(mat)
           kanten_mat[s] = mat.name.to_s
         end
-        Werkstueck.new(teil, lo, hi, kanten, [], kanten_mat)
+        Werkstueck.new(teil, lo, hi, kanten, [], kanten_mat, kontur)
       end
 
       # Lage auf der Maschine: Achse und Richtung (+1/-1) je Werkstückachse x, y, z.

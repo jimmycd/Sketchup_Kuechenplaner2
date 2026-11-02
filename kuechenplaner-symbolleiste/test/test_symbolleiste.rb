@@ -95,10 +95,10 @@ tb.befehle.each { |c| check(c.validation.call == MF_ENABLED, "#{c.titel}: mit al
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
 soll = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+  'Unterschränke' => ['Abschlussregal…', 'Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Hochschrank…']
+  'Oberschränke' => ['Abschlussregal…', 'Eck-Oberschrank L-Form…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Oberschrank…'],
+  'Hochschränke' => ['Abschlussregal…', 'Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Hochschrank…']
 }
 check(gruppen == soll, "Schränke für die Auswahl: #{gruppen.inspect}")
 
