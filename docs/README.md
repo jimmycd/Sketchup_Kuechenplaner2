@@ -17,8 +17,10 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Spülenschrank | [`Komponenten/unterschrank_spuele/`](../Komponenten/unterschrank_spuele/) | USP | [Plan](plaene/unterschrank-spuele.md) |
 | Schmaler Unterschrank mit Hochauszug (Handtuch) | [`Komponenten/unterschrank_handtuch/`](../Komponenten/unterschrank_handtuch/) | USH | [Plan](plaene/unterschrank-handtuch.md) |
 | Unterschrank Mülltrennung (Müllauszug, wahlweise Schublade oben) | [`Komponenten/unterschrank_abfall/`](../Komponenten/unterschrank_abfall/) | USM | – |
+| Inselschrank (verkleidete Rückseite, Wangen, erhöhte Theke) | [`Komponenten/unterschrank_insel/`](../Komponenten/unterschrank_insel/) | USI | – |
 | Hochschrank | [`Komponenten/hochschrank/`](../Komponenten/hochschrank/) | HS | – |
 | Hochschrank für zwei Geräte | [`Komponenten/hochschrank_geraete/`](../Komponenten/hochschrank_geraete/) | HG | [Plan](plaene/hochschrank-geraete.md) |
+| Hochschrank Kühlschrank (Einbau-Kühl-/Gefriergerät, Schlepp-/Festtür, Lüftungsschacht) | [`Komponenten/hochschrank_kuehlschrank/`](../Komponenten/hochschrank_kuehlschrank/) | HK | [Plan](plaene/hochschrank-kuehlschrank.md) |
 | Hochschrank Vorrat (Innenschubkästen) | [`Komponenten/hochschrank_vorrat/`](../Komponenten/hochschrank_vorrat/) | HV | – |
 | Apothekerschrank | [`Komponenten/apothekerschrank/`](../Komponenten/apothekerschrank/) | AP | [Plan](plaene/apothekerschrank.md) |
 | Eck-Unterschrank (Blindeck mit 1 oder 2 Türen oder LeMans II, L-Eck mit Falttür) | [`Komponenten/eckschrank/`](../Komponenten/eckschrank/) | UES | [Plan](plaene/eckschrank.md) |

@@ -5,6 +5,7 @@
 # Teile mit JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“, ohne Griffe),
 # für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
 # oder nur auf die Innenfronten der Innenschubkästen (Hochschrank Vorrat),
+# Verkleidung und Wangen des Inselschranks (Teil#sichtteil?) bekommen das Frontmaterial mit, aber keinen Griff,
 # auf Wunsch nur für die ausgewählten Schränke. Die Anleimer der Fronten
 # bekommen den passenden Anleimer. Korpus und Schubkästen bleiben unverändert.
 # Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front im Wörterbuch
@@ -95,7 +96,10 @@ module JTools
       end
 
       def self.front_inst?(i)
-        %w[Front Tuer Innenfront].include?(i.get_attribute(JT_DICT, 'rolle')) || i.get_attribute(JT_DICT, 'frontfarbe') ? true : false
+        rolle = i.get_attribute(JT_DICT, 'rolle')
+        %w[Front Tuer Innenfront Verkleidung].include?(rolle) ||
+          (rolle == 'Wange' && i.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Insel') ||
+          (i.get_attribute(JT_DICT, 'frontfarbe') ? true : false)
       end
 
       # Material und Anleimer auf die Fronten setzen; griff = { lochmass:, lage:, hoehe: } (mm),
@@ -117,7 +121,7 @@ module JTools
             end
           end
           if griff && (f.jt('teil') == 'Blende' || !f.front?)
-            next # feste Blende (Unterschrank Kochfeld), Innenfronten und Regalteile bekommen keinen Griff
+            next # feste Blende (Unterschrank Kochfeld), Innenfronten, Regalteile, Verkleidung und Wangen bekommen keinen Griff
           elsif griff
             f.inst.set_attribute(JT_DICT, 'griff_lochmass', griff[:lochmass].to_f)
             f.inst.set_attribute(JT_DICT, 'griff_lage', griff[:lage])

@@ -22,6 +22,8 @@ Wer vorher die Version 0.1 installiert hatte: Das alte Untermenü *Schrank-CNC* 
 | Bereich | alle Schränke, nur Oberschränke, nur Unterschränke oder nur Hochschränke (`kategorie` in `JT_Schrank`) |
 | Nur ausgewählte Schränke | Ja: nur Schränke, die gerade ausgewählt sind |
 | Griffe | unverändert lassen, setzen oder entfernen |
+
+Das Frontmaterial kommt auf Fronten und Türen (`rolle` Front, Tuer) und auf die Sichtteile ohne Griff: Verkleidung der Inselrückseite (`Verkleidung`) und Abschlusswangen (`Wange`, Inselschrank und Geschirrspüler). Griffe bekommen nur Fronten und Türen.
 | Griff: Lochmaß, Lage, Höhe | Lochmaß in mm (z. B. 160), Lage seitlich links / Mitte / rechts, Höhe in mm ab Unterkante der Front |
 
 Vor dem Ändern fragt das Plugin nach, z. B. „5 Fronten in 3 Schränken bekommen „Front Eiche 19mm“. Übernehmen?“ (gezählt werden sichtbare Fronten). Ein Schritt *Rückgängig* macht alles zurück.
@@ -153,7 +155,7 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
 * `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Besäumen eingehalten, Maserung, zu große Teile, Druckseite, Dialog
 * `test/test_etiketten.rb` – Etiketten: Bogen-Lage, Startposition, Endlos, Kantenbild, QR-Code, Format-Dialog
-* `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank und Hochschrank Geräte, Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form), Eck-Oberschrank (Nut im L-Boden, Deckelschrauben, Innenecke)
+* `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank, Hochschrank Geräte und Hochschrank Kühlschrank (Lüftungsschacht: gekürzte Böden, Nut der Rückwand), Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form), Eck-Oberschrank (Nut im L-Boden, Deckelschrauben, Innenecke)
 
 ## Grundidee
 1. Teile einsammeln (sichtbare Instanzen mit Tag nach dem Schema `<Kürzel>_<Bereich>_<Teil>`).

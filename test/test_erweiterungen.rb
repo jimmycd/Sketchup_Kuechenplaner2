@@ -90,10 +90,10 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum', :
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -107,7 +107,8 @@ end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
 # Neue Schränke: jeder Menüeintrag öffnet ein Eingabefenster (HtmlDialog im Treppenplaner-Stil, kein
-# UI.inputbox) mit der Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm), und der Schrank wird nach „Einfügen“
+# UI.inputbox) mit der Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm,
+# Hochschrank Kühlschrank 560 mm, weil Einbau-Kühlgeräte 550 mm Nischentiefe brauchen), und der Schrank wird nach „Einfügen“
 # mit der eingegebenen Tiefe gebaut
 require_relative 'eingabe_helfer'
 module UI
@@ -142,7 +143,7 @@ schrank_eintraege.each do |titel, blk, gruppe|
   next unless d
   felder = EingabeHelfer.felder(d.html)
   tiefe = felder.assoc('Tiefe Korpus')
-  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : '520'
+  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : titel == 'Hochschrank Kühlschrank…' ? '560' : '520'
   check(tiefe && tiefe[1] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{felder.inspect})")
   check(d.html.include?('<span class="unit">mm</span>'), "#{titel}: Einheit mm neben dem Feld")
   check(titel == 'Eckschrank L-Form…' || felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
@@ -168,7 +169,7 @@ SRC.each do |src|
     check(!File.read(f, encoding: 'UTF-8').include?('UI.inputbox'), "#{f}: UI.inputbox statt Kuechenplaner::Eingabe.abfragen")
   end
 end
-check(unterschraenke.size == 12, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

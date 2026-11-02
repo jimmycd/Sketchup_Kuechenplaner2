@@ -21,7 +21,7 @@
 #   gehrung         45° vom inneren zum äußeren Eckpunkt
 #
 # Platte (Hash): nr, zeile, punkte (Umriss gegen den Uhrzeigersinn), kanten (Art
-# jeder Kante punkte[i] -> punkte[i+1]: :vorne, :wand, :frei, :hochschrank, :stoss),
+# jeder Kante punkte[i] -> punkte[i+1]: :vorne, :wand, :frei, :hochschrank, :stoss, :theke),
 # z (Unterkante), staerke, laenge, breite, format [Länge, Breite].
 # Stoß (Hash): nr, art, ecke, platten [durchlaufend/links, anstoßend/rechts],
 # pfad [[:linie, p0, p1] | [:bogen, p0, p1, mitte, r]] vom inneren Eckpunkt zur Wand.
@@ -70,8 +70,17 @@ module Arbeitsplatte
       z[:front_linie] + vz(z) * o[:ueberstand_vorn]
     end
 
+    # Insel: kein Wandabstand, die Platte steht um den Sitzüberstand über die Rückseite
+    # (bei erhöhter Theke ist sitzueberstand 0, die Platte endet an der Thekenwand)
     def self.q_wand(z, o)
+      return z[:wand] - vz(z) * z[:sitzueberstand].to_f if z[:insel]
       z[:wand] + vz(z) * o[:wandabstand]
+    end
+
+    # Art der Hinterkante: Wand, frei (Insel, mit Anleimer) oder Thekenwand (ohne Anleimer)
+    def self.hinterkante(z)
+      return :wand unless z[:insel]
+      z[:theke] ? :theke : :frei
     end
 
     def self.einheit(v)
@@ -254,7 +263,7 @@ module Arbeitsplatte
       e = endkette(zs, :ende, o, ecken)
       a = endkette(zs, :start, o, ecken)
       punkte = e.map(&:first) + a.map(&:first).reverse
-      kanten = e[0..-2].map(&:last) + [:wand] + a[0..-2].map(&:last).reverse + [:vorne]
+      kanten = e[0..-2].map(&:last) + [hinterkante(z)] + a[0..-2].map(&:last).reverse + [:vorne]
       bereinigen(punkte, kanten)
     end
 

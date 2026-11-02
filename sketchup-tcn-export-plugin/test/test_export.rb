@@ -18,9 +18,11 @@ load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspue
 load File.join(komp, 'unterschrank_kuehlschrank/src/unterschrank_kuehlschrank/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
+load File.join(komp, 'unterschrank_insel/src/unterschrank_insel/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.join(komp, 'eck_oberschrank/src/eck_oberschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
+load File.join(komp, 'hochschrank_kuehlschrank/src/hochschrank_kuehlschrank/main.rb')
 load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -355,6 +357,28 @@ dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
 
+# --- Hochschrank Kühlschrank: Lüftungsschacht (Böden kürzer, Rückwand oben in Nut), keine Lochreihe in der Nische ---
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({})
+dk, mk_ = S::Export.erzeugen(km)
+check(mk_.empty?, "Hochschrank Kühlschrank: keine Meldungen #{mk_}")
+check(dk.map(&:name).sort == %w[HK1_Boden HK1_Deckel HK1_N_Tuer HK1_O_Tuer HK1_RueckwandOben HK1_SeiteL HK1_SeiteR HK1_ZwischenbodenOben],
+      "Hochschrank Kühlschrank: Teile ohne Platzhalter und ausgeblendete: #{dk.map(&:name).sort}")
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+# Dübel 30 mm von der Hinterkante der gekürzten Böden: 30 + Schacht 40 + Rückwand 8 = 78
+dueb = zk.select { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') }
+check(dueb.size == 3 && dueb.all? { |x| x.include?('#8510=78 #8511=y-28') }, "Hochschrank Kühlschrank: Dübel Boden/Zwischenboden/Deckel: #{dueb}")
+lr = zk.select { |x| x.include?('fittingx.tmcr') }
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=x-242 #8511=x-50') } && lr.any? { |x| x.include?('#8518=83 ') },
+      "Hochschrank Kühlschrank: Lochreihe nur oben, hinten 35 mm vor der Rückwand: #{lr}")
+check(zk.count { |x| x.include?('#205=2200') } == 1, 'Hochschrank Kühlschrank: Nut für die Rückwand oben')
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({ 'Lueftung' => 0.0 })
+dk, = S::Export.erzeugen(km)
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+check(dk.any? { |x| x.name == 'HK1_Rueckwand' } && zk.none? { |x| x.include?('#205=2200') } &&
+      zk.select { |x| x.include?('#8522=8 ') }.all? { |x| x.include?('#8510=30 ') }, 'Hochschrank Kühlschrank Frontlüftung: Rückwand durchgehend, Böden volle Tiefe')
+
 # --- Hochschrank Geräte: drei Zwischenböden, keine Lochreihen in den Nischen, Platzhalter nicht exportiert ---
 hm = Sketchup.active_model = Sketchup::Model.new
 HochschrankGeraete.erstellen({})
@@ -495,6 +519,35 @@ schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') &&
   end
   check(dam['USM1_Boden'].text.include?('#8522=3 '), "Mülltrennung #{fv}: Sockelfüße")
   check(S::Frontfarbe.fronten(am, kategorie: 'Unterschrank').count(&:sichtbar?) == bereiche.size, "Mülltrennung #{fv}: Frontfarbe findet die Fronten")
+end
+# --- Inselschrank: Korpus und Schubladen wie bisher, Verkleidung, Wangen und Theke nur formatieren ---
+[[{ 'Art_Wange' => 3.0 }, %w[A B C], %w[Verkleidung WangeL WangeR]],
+ [{ 'Frontart' => 0.0, 'Theke' => 1.0 }, [], %w[Verkleidung Theke TuerL TuerR Einlegeboden1]]].each do |e, bereiche, extra|
+  im = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankInsel.erstellen(e.merge('Tiefe' => 52.0))
+  di_, mi = S::Export.erzeugen(im)
+  check(mi.empty?, "Insel #{e}: keine Meldungen #{mi}")
+  dim = di_.to_h { |x| [x.name, x] }
+  soll = %w[Boden Rueckwand SeiteL SeiteR StrebeHinten StrebeVorn].map { |t| "USI1_#{t}" } + extra.map { |t| "USI1_#{t}" } +
+         bereiche.flat_map { |b| %w[Front KastenBoden KastenRueckwand].map { |t| "USI1_#{b}_#{t}" } }
+  check(dim.keys.sort == soll.sort, "Insel #{e}: Dateien #{dim.keys.sort}")
+  (extra - %w[TuerL TuerR Einlegeboden1]).each do |t|
+    z = bearbeitungen(dim["USI1_#{t}"].text, 1)
+    check(z.size == 1 && z.first.include?('squad.tmcr'), "Insel #{t}: nur Formatieren #{z}")
+  end
+  %w[USI1_SeiteL USI1_SeiteR].each do |sn|
+    check(schiene_bohr.(dim[sn].text) == 4 * bereiche.size, "Insel #{e} #{sn}: Schienenbohrungen (#{schiene_bohr.(dim[sn].text)})")
+  end
+  lr = bearbeitungen(dim['USI1_SeiteL'].text, 1).count { |x| x.include?('#8522=5 ') }
+  check(bereiche.empty? ? lr == 2 : lr.zero?, "Insel #{e}: Lochreihen nur bei Türen (#{lr})")
+  check(dim['USI1_Boden'].text.include?('#8522=3 '), "Insel #{e}: Sockelfüße")
+  ff = S::Frontfarbe.fronten(im, kategorie: 'Unterschrank').select(&:sichtbar?)
+  check(ff.map { |t| t.jt('teil') }.sort == (bereiche.map { 'Front' } + extra - %w[Theke Einlegeboden1]).sort,
+        "Insel #{e}: Frontfarbe findet Fronten, Verkleidung und Wangen #{ff.map { |t| t.jt('teil') }}")
+  S::Frontfarbe.anwenden(im, ff, im.materials.add('Front Eiche 19mm'), griff: { lochmass: 160, lage: 'Mitte', hoehe: 40 })
+  neu = S::Frontfarbe.fronten(im, kategorie: 'Unterschrank').select(&:sichtbar?)
+  check(neu.all? { |t| t.inst.material.name == 'Front Eiche 19mm' }, "Insel #{e}: Frontmaterial auf allen Sichtteilen")
+  check(neu.all? { |t| t.front? == !t.jt('griff_lochmass').nil? }, "Insel #{e}: Griff nur an Fronten und Türen")
 end
 # --- Unterschrank Backofen (Herdumbau): Einbauboden wie Zwischenboden, keine Lochreihe, unten Blende oder Schublade ---
 [[70.0, false], [76.0, true]].each do |hoehe, schublade|
