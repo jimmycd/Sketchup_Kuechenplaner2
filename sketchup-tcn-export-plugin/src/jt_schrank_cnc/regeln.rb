@@ -6,7 +6,8 @@
 # bekommt A eine Dübelreihe in die Stirnseite und B die passende Reihe in die
 # Fläche. Dazu (Schritt 6): Nut für eine Rückwand, die in Seiten und Boden
 # steckt (Oberschrank), Schrauben Deckel–Rückwand, Lochreihen für Einlegeböden
-# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks;
+# und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks und der
+# Rohrausschnitt im Oberschrank Dunstabzug;
 # Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
 # der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II.
 # Die Bearbeitungen entstehen zuerst in
@@ -96,6 +97,7 @@ module JTools
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
+          teile.each { |w| ausschnitt(w) unless w.rolle == 'Rueckwand' } # Rohrausschnitt Dunstabzug
           teile.each { |w| ecke(w) }
           teile.each { |w| kontur(w) }
         end
@@ -140,14 +142,20 @@ module JTools
       # Fräser innen an der Kante entlang (Ecken mit Fräserradius).
       AUSSCHNITT = { durch: 1 }.freeze # 1 mm tiefer als die Stärke, wie Durchgangsbohrungen
 
+      # Liegende Platten (Oberschrank Dunstabzug: Rohrausschnitt in Haubenboden, Deckel und
+      # Einlegeboden) haben statt _Z/_H die Attribute Ausschnitt_Y/_T (Lage ab vorne links);
+      # gefräst wird von oben.
       def self.ausschnitt(a)
         inst = a.teil.inst
-        x, z, b, h = %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h].map { |k| Schraenke.dc(inst, k).to_f }
-        return if b <= NUT[:d_werkzeug] || h <= NUT[:d_werkzeug]
+        liegend = !Schraenke.dc(inst, 'ausschnitt_y').nil?
+        x, v, b, h = (liegend ? %w[ausschnitt_x ausschnitt_y ausschnitt_b ausschnitt_t] : %w[ausschnitt_x ausschnitt_z ausschnitt_b ausschnitt_h])
+                     .map { |k| Schraenke.dc(inst, k).to_f }
+        return if [b, h].min * Geometrie::MM <= NUT[:d_werkzeug] # Attribute in Zoll
         m = Geometrie.welt(a.teil.pfad)
-        p0 = Geometrie.punkt(m, [x, 0, z]).map { |v| v * Geometrie::MM }
-        p1 = Geometrie.punkt(m, [x + b, 0, z + h]).map { |v| v * Geometrie::MM }
-        seite = Geometrie.seite(Geometrie.richtung(m, [0, -1, 0]))
+        lokal = ->(px, pv) { liegend ? [px, pv, 0] : [px, 0, pv] }
+        p0 = Geometrie.punkt(m, lokal.(x, v)).map { |w| w * Geometrie::MM }
+        p1 = Geometrie.punkt(m, lokal.(x + b, v + h)).map { |w| w * Geometrie::MM }
+        seite = Geometrie.seite(Geometrie.richtung(m, liegend ? [0, 0, 1] : [0, -1, 0]))
         k = a.dicke_achse
         p0[k] = p1[k] = Geometrie.max?(seite) ? a.hi[k] : a.lo[k]
         a.ops << Op.new(:ausschnitt, seite, p0, p1, NUT[:d_werkzeug], a.mass(k) + AUSSCHNITT[:durch], nil, nil, 'Ausschnitt')
@@ -519,16 +527,19 @@ module JTools
       def self.ecke(w)
         e = ecke_rechteck(w) or return
         k = w.dicke_achse
+        # Durchbruch von der Seite mit den übrigen Bearbeitungen (Fläche 1): unten beim Unterschrank
+        # (Sockelfüße), oben beim Eck-Oberschrank (Rückwandnut im Boden)
+        mn, mx = :"#{Geometrie::ACHSEN[k]}min", :"#{Geometrie::ACHSEN[k]}max"
+        seite = w.ops.count { |o| o.seite == mx } > w.ops.count { |o| o.seite == mn } ? mx : mn
         p0 = [0.0, 0.0, 0.0]
         p1 = [0.0, 0.0, 0.0]
-        p0[k] = p1[k] = w.lo[k]
+        p0[k] = p1[k] = seite == mx ? w.hi[k] : w.lo[k]
         e[:aussen].each do |a, ende|
           if ende == :lo then p0[a], p1[a] = w.lo[a] - ECKE[:ueberlauf], e[:innen][a]
           else p0[a], p1[a] = e[:innen][a], w.hi[a] + ECKE[:ueberlauf]
           end
         end
-        w.ops << Op.new(:ausschnitt, :"#{Geometrie::ACHSEN[k]}min", p0, p1, NUT[:d_werkzeug], w.mass(k) + DURCH, nil, nil,
-                        'Ausschnitt Innenecke')
+        w.ops << Op.new(:ausschnitt, seite, p0, p1, NUT[:d_werkzeug], w.mass(k) + DURCH, nil, nil, 'Ausschnitt Innenecke')
       end
 
       # L-Form: in der Ecke stößt eine Strebe mit dem Ende an die Längskante der anderen (Dübel)

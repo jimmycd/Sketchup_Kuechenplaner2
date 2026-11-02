@@ -59,6 +59,7 @@ module Eckschrank
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
+    'Auflageleiste' => 'Leiste',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
     'Platte' => 'Arbeitsplatte'
@@ -727,7 +728,10 @@ module Eckschrank
       def onTransactionCommit(model)
         return if @laeuft
         @laeuft = true
-        UI.start_timer(0, false) do
+        # Timer sofort anhalten: sonst feuert er erneut, solange eine Meldung
+        # (UI.messagebox in l_pruefen) offen ist
+        id = UI.start_timer(0, false) do
+          UI.stop_timer(id)
           begin
             Eckschrank.l_pruefen(model)
           ensure
