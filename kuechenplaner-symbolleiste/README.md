@@ -10,6 +10,9 @@ Erweiterung `kuechenplaner_symbolleiste.rbz` (steckt auch in `Kuechenplaner_alle
 | ![](src/kuechenplaner_symbolleiste/icons/raum.svg) | Raum | Auswahl der Raum-Befehle: Raum anlegen, Wände aus Linien, Fenster/Tür einsetzen, Öffnung bearbeiten, Raum bearbeiten (Erweiterung [`Komponenten/raum/`](../Komponenten/raum/)). |
 | ![](src/kuechenplaner_symbolleiste/icons/frontfarbe.svg) | Frontfarbe und Griffe | Dialog für Frontfarbe und Griffe. |
 | ![](src/kuechenplaner_symbolleiste/icons/tcn.svg) | TCN exportieren | TCN-Export für TpaCAD. |
+| ![](src/kuechenplaner_symbolleiste/icons/stueckliste.svg) | Stückliste | Stückliste aller Teile (Fertig-, Fräs- und Rohmaß, Material, Kanten) als CSV/HTML. |
+| ![](src/kuechenplaner_symbolleiste/icons/etiketten.svg) | Etiketten | Etiketten für die Teile drucken, Bogen A4 oder Endlos. |
+| ![](src/kuechenplaner_symbolleiste/icons/zuschnitt.svg) | Zuschnittplan | Druckbarer Zuschnittplan je Platte für die Formatsäge. |
 
 Seltene Befehle (Geräte in Schränke setzen, Szenen anlegen, Plugins aktualisieren) stehen nur im Menü *Erweiterungen › Küchenplaner*. Fehlt die Erweiterung zu einem Icon, ist es ausgegraut.
 

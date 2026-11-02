@@ -63,7 +63,13 @@ module KuechenplanerSymbolleiste
     ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'TCN exportieren', 'CNC-Programme (TCN) für die Schränke exportieren',
-     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }]
+     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }],
+    ['stueckliste', 'Stückliste', 'Stückliste der Teile mit Maßen, Material und Kanten (CSV/HTML)',
+     -> { defined?(JTools::SchrankCnc::Stueckliste) }, -> { JTools::SchrankCnc::Stueckliste.dialog }],
+    ['etiketten', 'Etiketten', 'Etiketten für die Teile drucken (Bogen oder Endlos)',
+     -> { defined?(JTools::SchrankCnc::Etiketten) }, -> { JTools::SchrankCnc::Etiketten.dialog }],
+    ['zuschnitt', 'Zuschnittplan', 'Zuschnittplan je Platte für die Formatsäge',
+     -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }]
   ].freeze
 
   class << self
