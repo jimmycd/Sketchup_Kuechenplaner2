@@ -66,9 +66,9 @@ schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
 soll = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
-                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
+                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank…']
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Hochschrank…']
 }
 check(gruppen == soll, "Schränke für die Auswahl: #{gruppen.inspect}")
 

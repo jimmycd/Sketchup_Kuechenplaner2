@@ -33,6 +33,7 @@ module Arbeitsplatte
     'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
     'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
+    'Innenfront' => 'Innenfront',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
     'Platte' => 'Arbeitsplatte'
