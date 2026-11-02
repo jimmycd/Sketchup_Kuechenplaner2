@@ -67,7 +67,7 @@ gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.
 soll = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Oberschrank mit Klappe…', 'Oberschrank…'],
+  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank mit Klappe…', 'Oberschrank…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Hochschrank…']
 }
 check(gruppen == soll, "Schränke für die Auswahl: #{gruppen.inspect}")
