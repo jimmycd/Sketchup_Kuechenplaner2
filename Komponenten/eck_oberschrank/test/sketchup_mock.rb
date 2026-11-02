@@ -151,3 +151,47 @@ module Sketchup
     attr_accessor :active_model
   end
 end
+
+# --- Größe und Skalierung: Neuaufbau trägt die neue Größe (lenx/leny/lenz) für die DC ein
+# und nimmt eine Skalierung der Instanz zurück ---
+module Geom
+  class Transformation
+    def initialize(m = nil)
+      return unless m
+      @m = m.map(&:to_f)
+      @origin = @m[12, 3]
+    end
+
+    def to_a = @m ? @m.dup : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, *@origin, 1].map(&:to_f)
+  end
+
+  class BoundingBox
+    attr_reader :min, :max
+    def initialize(min, max) = (@min, @max = min, max)
+    def width = @max[0] - @min[0]
+    def height = @max[1] - @min[1]
+    def depth = @max[2] - @min[2]
+  end
+end
+
+module Sketchup
+  class ComponentInstance
+    attr_writer :transformation
+  end
+
+  class ComponentDefinition
+    # Hülle aller Teile (Zoll, lokal), Skalierung der Teile bleibt unberücksichtigt
+    def bounds
+      lo, hi = [Float::INFINITY] * 3, [-Float::INFINITY] * 3
+      dazu = ->(a, b) { 3.times { |i| lo[i] = [lo[i], a[i]].min; hi[i] = [hi[i], b[i]].max } }
+      dazu.([0.0, 0.0, 0.0], box.map(&:to_f)) if box
+      entities.instances.each do |c|
+        bb = c.definition.bounds
+        next unless bb
+        o = c.transformation.origin
+        dazu.(3.times.map { |i| o[i] + bb.min[i] }, 3.times.map { |i| o[i] + bb.max[i] })
+      end
+      lo[0].finite? ? Geom::BoundingBox.new(lo, hi) : nil
+    end
+  end
+end

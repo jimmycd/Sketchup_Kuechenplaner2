@@ -326,5 +326,21 @@ i0 = E.erstellen({})
 bez = TiefeHelfer.bezuege_auf_eigene_formeln(Knoten.new(i0, i0.definition, nil))
 check(bez.empty?, "Formeln auf Formeln desselben Bauteils: #{bez}")
 
+# Echte DC: Neuzeichnen skaliert auf die gemerkte Größe (lenx/leny/lenz). Nach dem Neuaufbau
+# muss der Schrank trotzdem die neuen Maße haben (Fehler 2026-11-02 beim Abschlussregal)
+require_relative '../../../test/dc_groesse_helfer'
+DcGroesseHelfer.mit_dc(E::DICT) do
+  m = Sketchup.active_model = Sketchup::Model.new
+  inst = E.erstellen({ 'Hoehe' => 78.0 })
+  neu_p = { 'Schenkel_A' => 100.0, 'Schenkel_B' => 80.0, 'Tiefe' => 40.0 }
+  neu_p.each { |k, v| inst.set_attribute(E::DICT, k.downcase, v / 2.54) }
+  E.l_pruefen(m)
+  $dc_observers.redraw_with_undo(inst)
+  Sketchup.active_model = Sketchup::Model.new
+  frisch = E.erstellen({ 'Hoehe' => 78.0 }.merge(neu_p))
+  ist, soll = DcGroesseHelfer.groesse(inst), DcGroesseHelfer.groesse(frisch)
+  check(ist.zip(soll).all? { |a, b| (a - b).abs < 1e-4 }, "DC: Größe nach Neuaufbau #{ist.map { |v| v.round(1) }} statt #{soll.map { |v| v.round(1) }}")
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

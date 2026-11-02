@@ -418,5 +418,21 @@ TiefeHelfer.pruefen(Knoten, E::DICT, ->(e) { E.erstellen(e) },
   check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
 end
 
+# Echte DC: Neuzeichnen skaliert auf die gemerkte Größe (lenx/leny/lenz). Nach dem Neuaufbau
+# muss der Schrank trotzdem die neuen Maße haben (Fehler 2026-11-02 beim Abschlussregal)
+require_relative '../../../test/dc_groesse_helfer'
+DcGroesseHelfer.mit_dc(E::DICT) do
+  m = Sketchup.active_model = Sketchup::Model.new
+  inst = E.erstellen({ 'Hoehe' => 78.0 }, l_form: true)
+  neu_p = { 'Schenkel_A' => 120.0, 'Schenkel_B' => 80.0, 'Tiefe' => 60.0 }
+  neu_p.each { |k, v| inst.set_attribute(E::DICT, k.downcase, v / 2.54) }
+  E.l_pruefen(m)
+  $dc_observers.redraw_with_undo(inst)
+  Sketchup.active_model = Sketchup::Model.new
+  frisch = E.erstellen({ 'Hoehe' => 78.0 }.merge(neu_p), l_form: true)
+  ist, soll = DcGroesseHelfer.groesse(inst), DcGroesseHelfer.groesse(frisch)
+  check(ist.zip(soll).all? { |a, b| (a - b).abs < 1e-4 }, "DC: Größe nach Neuaufbau #{ist.map { |v| v.round(1) }} statt #{soll.map { |v| v.round(1) }}")
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
