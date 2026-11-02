@@ -43,7 +43,11 @@ check(G.berechne('geraet' => 'frei', 'breite' => 562.0, 'hoehe' => 300.0).nil?, 
   next unless r
   check(r[:teile].all? { |t| t[3].all?(&:positive?) }, "#{k}: alle Teile haben positive Maße #{r[:teile].reject { |t| t[3].all?(&:positive?) }}")
   check(r[:teile].all? { |t| G::MATERIALIEN.key?(t[1]) }, "#{k}: bekannte Materialien")
-  check(r[:plan][3..].all?(&:positive?), "#{k}: Planblock")
+  if k == 'Spuele'
+    check(r[:plan].nil? && r[:text_pos], "#{k}: kein Planblock (kein Kasten um die Spüle), Beschriftung am Modell")
+  else
+    check(r[:plan][3..].all?(&:positive?), "#{k}: Planblock")
+  end
 end
 
 # --- Mit den echten Schränken ---
@@ -133,7 +137,12 @@ erwartet.each_key do |s|
     check(kinder.map { |k| k.layer&.name }.sort == [G::TAG_PLAN, G::TAG_RENDER], "#{g.definition.name}: Tags #{kinder.map { |k| k.layer&.name }}")
     check(g.layer.nil?, "#{g.definition.name}: Gerät selbst ohne Tag")
     plan = kinder.find { |k| k.name == 'Plan' }
-    check(plan.material.alpha < 1, "#{g.definition.name}: Planblock halbtransparent")
+    if g.definition.get_attribute(G::GERAET_DICT, 'geraet') == 'Spuele'
+      check(plan.definition.entities.grep(Sketchup::ComponentInstance).map { |k| k.definition.name } == ['Geraet Spuele Render'] &&
+            plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Spülenmodell, keinen Kasten")
+    else
+      check(plan.material.alpha < 1, "#{g.definition.name}: Planblock halbtransparent")
+    end
     check(plan.definition.entities.texte.first&.first&.include?('Nische'), "#{g.definition.name}: Beschriftung")
   end
   platzhalter = s.definition.entities.grep(Sketchup::ComponentInstance).reject { |i| G.geraet?(i) }

@@ -50,7 +50,7 @@ Nach Häfele „Dimensions for CNC“ (Maße ab Oberkante Boden bzw. Vorderkante
 * Keine Lochreihen. Der schmale Boden bekommt nur einen Sockelfuß je Ende, mittig.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `unterschrank_handtuch.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_handtuch/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_unterschrank_handtuch.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Korpus, Front, Einbauraum M150/M200), Formeln nach Umkonfigurieren, OCL-Material und -Typ des Beschlags, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft die Schienen- und Frontbohrungen (links und rechts, M150 und M200), die Hinweise bei zu kleinem Einbauraum und die Sockelfüße.

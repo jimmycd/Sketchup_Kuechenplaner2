@@ -17,15 +17,6 @@ module UnterschrankTuer
   KUERZEL = 'UST'.freeze
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_tuer'.freeze
   HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden, OpenCutList-fähig'.freeze
-  HILFE = [
-    'Breite, Höhe, Tiefe (Korpus ohne Front/Rückwand), Tür ja/nein und Anzahl Einlegeböden (0–3) hier ändern.',
-    'Korpus 19 mm, Rückwand 8 mm, Streben 100 mm, Fugen 2 mm.',
-    'Material „Melamin weiss“; OpenCutList erstellt daraus die Zuschnittliste.',
-    'Anleimer vorne an Boden, Einlegeböden und vorderer Strebe, hintere Strebe ohne; gezeichnet ist das Endmaß, den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UST1_SeiteL, UST1_Tuer.',
-    'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
   # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
@@ -61,16 +52,14 @@ module UnterschrankTuer
     'Boden#1' => 'Einlegeboden1', 'Boden#2' => 'Einlegeboden2', 'Boden#3' => 'Einlegeboden3'
   }.freeze
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d)
-    d.description = HILFE_KURZ
-    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
-    end
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end

@@ -50,7 +50,7 @@ Zusätzlich steht an jedem Teil das Attribut-Wörterbuch `JT_Schrank` mit `schra
 Weitere feste Maße (Materialstärken, Abstände) stehen als Attribute im Fenster *Komponentenattribute*.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steckt in der Komponente selbst: Sie steht oben im Fenster *Komponentenoptionen* (Summary und Description, nur lesbar) und als Beschreibung in *Entitätsinformationen* bzw. im Komponenten-Browser. Am Ende steht der Link auf diese Seite. Der Text steht als `HILFE` in `hochschrank.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_hochschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, OCL-Material, Anleimer, Tags und die Kurzhilfe.

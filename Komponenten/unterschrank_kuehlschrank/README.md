@@ -38,7 +38,7 @@ Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, Anleime
 Tags `UKS1_Front`, `UKS1_WangeL`, `UKS1_WangeR` (Kürzel `UKS1`, `UKS2` … je Schrank). An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Unterschrank_Kuehlschrank), `kategorie` (Unterschrank), `bereich`, `teil` und `rolle` (Front bzw. Wange; die Wange wird im TCN-Export nur formatiert).
 
 ## Hilfe in SketchUp
-Eine Kurzfassung steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite (`HILFE` in `main.rb`).
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kuehlschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_kuehlschrank.rb` – prüft ohne SketchUp alle drei Geräte, 300/450/600, Wangen, Platzhalter, Formeln nach Umkonfigurieren (auch Gerät umstellen), Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische`, Kurzhilfe und Tiefe nachträglich. Dazu prüfen der Plugin-Test (TCN-Export, Frontfarbe, Stückliste) und der Geräte-Test (Kühlgeräte, Umstellen in den Komponentenoptionen) die Komponente mit.

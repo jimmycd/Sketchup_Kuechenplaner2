@@ -283,8 +283,7 @@ check(n['abluft'] == 1 && n['rohr_breite'] == 170.0 && n['rohr_x'] == 346.0 && n
 # --- Kurzhilfe in der Komponente ------------------------------------------
 check(hd.description == H::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
 check(hd.get_attribute(H::DICT, 'summary') == H::HILFE_KURZ, 'Hilfe: summary')
-check(hd.get_attribute(H::DICT, 'description') == H::HILFE, 'Hilfe: description')
-check(H::HILFE.include?(H::DOKU_URL), 'Hilfe: Link zur Doku')
+check(hd.get_attribute(H::DICT, 'description').nil?, 'Hilfe: description')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 
