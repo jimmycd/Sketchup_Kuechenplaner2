@@ -102,7 +102,11 @@ check(sb.map { |pts, _| pts[0][1] }.sort.map { |y| y.round(3) } == [78, 82, 415.
 # Kontur: durch, um 10 in den Abfall versetzt
 ka = bahnen(a.text, S::Arbeitsplatten::KONTUR[:werkzeug])
 kb = bahnen(b.text, S::Arbeitsplatten::KONTUR[:werkzeug])
-check(ka.size == 1 && kb.size == 1 && ka[0][1] == -39 && kb[0][1] == -39, "je eine Kontur, 39 tief: #{ka.size} #{kb.size}")
+# Durchfräsung 39 tief nie in einem Zug: zwei Zustellungen 19,5 / 39 auf derselben Bahn (max. 20 je Schritt)
+check(ka.size == 2 && kb.size == 2 && ka.map(&:last) == [-19.5, -39] && kb.map(&:last) == [-19.5, -39] &&
+      ka[0][0] == ka[1][0] && kb[0][0] == kb[1][0], "je eine Kontur in 2 Zustellungen bis 39: #{ka.map(&:last)} #{kb.map(&:last)}")
+check(a.text.scan(/#205=1004 /).size == 2 && a.text.scan(/ WS=(\d+) /).flatten.uniq.size == a.text.scan(/ WS=(\d+) /).size,
+      'jede Zustellung eigene Bearbeitung (eigene WS-Nummer)')
 pa = ka[0][0]
 # A: weiblich, Ende an der Wand (x = 0), dann die Stoßkante 30 hinter der Vorderkante
 # (y = 805, Abfall davor), Bogen, Gehrung bis über die Vorderkante (y = 835)
@@ -115,10 +119,10 @@ check(pb.all? { |x, _| x <= 30 + 10 + 0.01 }, "Kontur B nur am Gehrungsansatz: #
 
 # Bogen des Gehrungsansatzes als echter Bogen (W#2125) statt kurzer Geraden:
 # R 30 um den Fräserradius versetzt, A innen (R 20), B außen (R 40), je 45°
-check(a.text.scan('W#2125').size == 1 && b.text.scan('W#2125').size == 1, 'je ein Bogen W#2125')
+check(a.text.scan('W#2125').size == 2 && b.text.scan('W#2125').size == 2, 'je ein Bogen W#2125 pro Zustellung')
 # #8046 wie in der TPA-Ansicht (y nach unten): A biegt von der Stoßkante (nach rechts) zur
 # Vorderkante (y größer) ab, auf dem Bildschirm also nach unten = im Uhrzeigersinn = negativ
-check($boegen.map { |r, w| [r.round(2), w.round(2)] }.sort == [[20.0, -45.0], [40.0, 45.0]], "Bögen: #{$boegen}")
+check($boegen.map { |r, w| [r.round(2), w.round(2)] }.uniq.sort == [[20.0, -45.0], [40.0, 45.0]], "Bögen: #{$boegen}")
 # Bahn bleibt stetig: nach dem Bogen geht die Gehrung von dessen Endpunkt aus weiter Richtung Vorderkante
 ia = pa.index { |x, y| nahe(y, 815) && x > 780 }
 check(ia && pa[ia + 1][1] > 815 && pa[ia + 1][0] > pa[ia][0], "Kontur A: Bogen biegt zur Vorderkante ab: #{pa}")
@@ -126,7 +130,7 @@ check(ia && pa[ia + 1][1] > 815 && pa[ia + 1][0] > pa[ia][0], "Kontur A: Bogen b
 muster = ->(l) { l.sub(/#8017=\S+/, '#8017=R').sub(/#8046=\S+/, '#8046=W') }
 vorlage = File.read(File.join(haupt, 'sketchup-tcn-export-plugin/beispiele/bogen.tcn'))[/^W#2125\{.*\}W/]
 check(vorlage && (a.text + b.text).scan(/^W#2125\{.*\}W/).all? { |l| muster.(l) == muster.(vorlage) }, 'Bogenzeile wie im Beispiel (EW2 automatisch)')
-check(a.text.split("\r\n").count { |l| l.start_with?('W#2201') } < 10, 'keine kurzen Geraden mehr im Bogen')
+check(a.text.split("\r\n").count { |l| l.start_with?('W#2201') } < 20, 'keine kurzen Geraden mehr im Bogen')
 
 # Teileliste mit den Arbeitsplatten
 tl = S::Export.teileliste(dateien)
@@ -144,7 +148,7 @@ k = bahnen(d2[0].text, S::Arbeitsplatten::KONTUR[:werkzeug])
 # Spüle 800 × 490 mittig über 600..1500, 60 von der Vorderkante, Fräser 10 nach innen
 xs = k[0][0].map(&:first)
 ys = k[0][0].map(&:last)
-check(k.size == 1 && k[0][0].first == k[0][0].last && nahe(xs.min, 660) && nahe(xs.max, 1440) &&
+check(k.size == 2 && k.map(&:last) == [-19.5, -39] && k[0][0] == k[1][0] && k[0][0].first == k[0][0].last && nahe(xs.min, 660) && nahe(xs.max, 1440) &&
       nahe(ys.min, 835 - 60 - 490 + 10) && nahe(ys.max, 835 - 60 - 10), "Ausschnitt: #{k}")
 check(bohrungen(d2[0].text).empty?, 'ohne Stoß keine Verbinder')
 

@@ -883,6 +883,20 @@ check(rt.select { |t| t.jt('schrank') == 'RA2' }.all? { |t| t.inst.material.name
 kb = rt.find { |t| t.name == 'RA1_Boden' }.inst.definition.entities.grep(Sketchup::Face).select(&:material)
 check(!kb.empty? && kb.all? { |x| x.material.name == 'Anleimer Eiche' }, 'Frontfarbe: Anleimer an der Schräge passend')
 
+# --- Zustellung: Fräsungen nie tiefer als 20 mm in einem Schritt (gilt für alle TCN) ---
+t = S::Tcn
+check(t.stufen(9) == [9] && t.stufen(20) == [20] && t.stufen(39) == [19.5, 39] && t.stufen(45) == [15, 30, 45],
+      "Zustellschritte: #{t.stufen(39)} #{t.stufen(45)}")
+bahn = ['W#89{ ::WTs WS=@  #8015=0 #1=0 #2=0 #3=-39 #201=1 #205=1004 }W',
+        'W#2201{ ::WTl  #8015=1 #1=100 #2=0 }W', 'W#2125{ ::WTa  #8015=0 #8017=30 #8046=-45 }W',
+        'W#81{ ::WTp WS=@  #8015=0 #1=5 #2=5 #3=-25 #1002=8 }W',
+        'W#89{ ::WTs WS=@  #8015=0 #1=0 #2=0 #3=-9 #201=1 #205=2200 }W', 'W#2201{ ::WTl  #8015=1 #1=50 #2=0 }W',
+        'W#1022{ ::WT2 WS=@  #8098=rect.tmcr #8514=-30 #8515=100 }W']
+z = t.zustellen(bahn)
+check(z.size == 11 && z[0].include?(' #3=-19.5 ') && z[3].include?(' #3=-39 ') && z[1, 2] == bahn[1, 2] && z[4, 2] == bahn[1, 2],
+      "Bahn 39 tief: 2 Durchgänge mit allen Bahnzeilen: #{z}")
+check(z[6] == bahn[3] && z[7] == bahn[4] && z[8] == bahn[5], 'Bohrung und flache Nut unverändert')
+check(z[9].include?(' #8514=-15 ') && z[10].include?(' #8514=-30 '), "Tasche 30 tief in 2 Schritten: #{z.last(2)}")
 # --- Eck-Oberschrank L-Form: Rückwandnut in Seiten und L-Boden, Deckel an beide Rückwände geschraubt,
 # Innenecke von oben (Fläche 1 des Bodens = Nutseite), keine Sockelfüße ---
 eo = Sketchup.active_model = Sketchup::Model.new
