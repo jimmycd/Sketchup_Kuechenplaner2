@@ -18,6 +18,7 @@ load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
+load File.join(komp, 'hochschrank_kuehlschrank/src/hochschrank_kuehlschrank/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -350,6 +351,28 @@ b.ws.teil.inst.layer = a.ws.teil.inst.layer
 dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
+
+# --- Hochschrank Kühlschrank: Lüftungsschacht (Böden kürzer, Rückwand oben in Nut), keine Lochreihe in der Nische ---
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({})
+dk, mk_ = S::Export.erzeugen(km)
+check(mk_.empty?, "Hochschrank Kühlschrank: keine Meldungen #{mk_}")
+check(dk.map(&:name).sort == %w[HK1_Boden HK1_Deckel HK1_N_Tuer HK1_O_Tuer HK1_RueckwandOben HK1_SeiteL HK1_SeiteR HK1_ZwischenbodenOben],
+      "Hochschrank Kühlschrank: Teile ohne Platzhalter und ausgeblendete: #{dk.map(&:name).sort}")
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+# Dübel 30 mm von der Hinterkante der gekürzten Böden: 30 + Schacht 40 + Rückwand 8 = 78
+dueb = zk.select { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') }
+check(dueb.size == 3 && dueb.all? { |x| x.include?('#8510=78 #8511=y-28') }, "Hochschrank Kühlschrank: Dübel Boden/Zwischenboden/Deckel: #{dueb}")
+lr = zk.select { |x| x.include?('fittingx.tmcr') }
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=x-242 #8511=x-50') } && lr.any? { |x| x.include?('#8518=83 ') },
+      "Hochschrank Kühlschrank: Lochreihe nur oben, hinten 35 mm vor der Rückwand: #{lr}")
+check(zk.count { |x| x.include?('#205=2200') } == 1, 'Hochschrank Kühlschrank: Nut für die Rückwand oben')
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({ 'Lueftung' => 0.0 })
+dk, = S::Export.erzeugen(km)
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+check(dk.any? { |x| x.name == 'HK1_Rueckwand' } && zk.none? { |x| x.include?('#205=2200') } &&
+      zk.select { |x| x.include?('#8522=8 ') }.all? { |x| x.include?('#8510=30 ') }, 'Hochschrank Kühlschrank Frontlüftung: Rückwand durchgehend, Böden volle Tiefe')
 
 # --- Hochschrank Geräte: drei Zwischenböden, keine Lochreihen in den Nischen, Platzhalter nicht exportiert ---
 hm = Sketchup.active_model = Sketchup::Model.new

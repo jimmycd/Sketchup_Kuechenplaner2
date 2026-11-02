@@ -93,7 +93,7 @@ gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Unterschrank Mülltrennung…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…', 'Oberschrank mit Klappe…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -106,7 +106,8 @@ gruppen.each do |g, eintraege|
 end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
-# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm),
+# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm,
+# Hochschrank Kühlschrank 560 mm, weil Einbau-Kühlgeräte 550 mm Nischentiefe brauchen),
 # und der Schrank wird mit der eingegebenen Tiefe gebaut
 module UI
   class << self
@@ -128,7 +129,7 @@ schrank_eintraege.each do |titel, blk|
   blk.call
   frage = UI.abfragen.first
   i = frage && frage[0].index('Tiefe Korpus (mm)')
-  soll = titel.start_with?('Oberschrank') ? '400' : '520'
+  soll = titel.start_with?('Oberschrank') ? '400' : titel == 'Hochschrank Kühlschrank…' ? '560' : '520'
   check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
   check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
