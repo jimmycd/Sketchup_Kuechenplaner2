@@ -15,6 +15,7 @@ load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspue
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
+load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 S = JTools::SchrankCnc
@@ -261,6 +262,32 @@ Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_
 dap, = S::Export.erzeugen(model_ap)
 fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
 check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
+# --- Hochschrank Vorrat: Innenschubkästen hinter der Tür, Schienen hinter der Innenfront ---
+model_hv = Sketchup.active_model = Sketchup::Model.new
+HochschrankVorrat.erstellen({ 'Tiefe' => 52.0 })
+dhv, mhv = S::Export.erzeugen(model_hv)
+check(mhv.empty?, "Hochschrank Vorrat: keine Meldungen #{mhv}")
+hv = dhv.to_h { |x| [x.name, x] }
+check((1..4).all? { |j| %w[Innenfront KastenBoden KastenRueckwand].all? { |t| hv["HV1_U#{j}_#{t}"] } } && hv['HV1_U_Tuer'] &&
+      !hv['HV1_U5_Innenfront'] && !hv['HV1_O_Tuer'], "Hochschrank Vorrat: Dateien #{hv.keys.sort}")
+z = bearbeitungen(hv['HV1_SeiteL'].text, 1)
+sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+check(sch.size == 16, "Hochschrank Vorrat: 4 Schienenbohrungen je Kasten (#{sch.size})")
+# Kasten 17 mm hinter der Korpusvorderkante (3 Rücksprung + 12 Innenfront + 2 Fuge): 37 + 17 - 2 Anleimer = 52
+tiefen = sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort
+check(tiefen.include?('y-52') && tiefen.include?('y-84'), "Hochschrank Vorrat: Schienen ab Innenfront versetzt (#{tiefen})")
+check(z.count { |x| x.include?('#8522=5 ') } == 2, 'Hochschrank Vorrat: Lochreihen nur im Fach oben')
+fbi = bearbeitungen(hv['HV1_U1_Innenfront'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
+check(fbi >= 4 && fbi.even?, "Hochschrank Vorrat: Frontbefestigung in der Innenfront (#{fbi})")
+check(S::Frontfarbe.fronten(model_hv, kategorie: 'Hochschrank').count(&:sichtbar?) == 1, 'Hochschrank Vorrat: Frontfarbe Hochschränke nur die Tür')
+inn = S::Frontfarbe.fronten(model_hv, kategorie: S::Frontfarbe::INNEN)
+check(inn.count(&:sichtbar?) == 4, "Hochschrank Vorrat: Frontfarbe findet 4 Innenfronten (#{inn.count(&:sichtbar?)})")
+fm = model_hv.materials.add('Front Eiche 12mm')
+fm.set_attribute('ladb_opencutlist', 'type', 2)
+S::Frontfarbe.anwenden(model_hv, inn, fm, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+neu = S::Frontfarbe.fronten(model_hv, kategorie: S::Frontfarbe::INNEN)
+check(neu.all? { |f| f.inst.material == fm && !f.jt('griff_lochmass') }, 'Hochschrank Vorrat: Innenfronten umgefärbt, ohne Griff')
+check(S::Frontfarbe.fronten(model_hv, kategorie: 'Hochschrank').none? { |f| f.inst.material == fm }, 'Hochschrank Vorrat: Tür bleibt')
 Sketchup.active_model = model
 
 # --- Schreiben: TCN + Teileliste + Fräsliste ---

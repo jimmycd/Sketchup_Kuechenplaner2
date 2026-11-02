@@ -68,7 +68,7 @@ soll = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Spülenschrank…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Oberschrank…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank…']
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Hochschrank…']
 }
 check(gruppen == soll, "Schränke für die Auswahl: #{gruppen.inspect}")
 
