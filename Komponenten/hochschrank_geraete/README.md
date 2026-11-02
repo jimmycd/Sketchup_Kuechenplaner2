@@ -61,7 +61,7 @@ Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `HG1_SeiteL
 An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (`Hochschrank_Geraete`), `kategorie` (`Hochschrank`), `bereich`, `teil` und `rolle`. Die Zwischenböden unter den Geräten tragen zusätzlich `nische` (N1/N2): Das TCN-Plugin bohrt in den Nischen keine Lochreihen. Frontfarbe (Auswahl Hochschränke) und Sockelfüße funktionieren wie beim Hochschrank.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* und als Beschreibung in *Entitätsinformationen*, mit Link auf diese Seite (`HILFE` in `hochschrank_geraete.rb`).
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank_geraete/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_hochschrank_geraete.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Nischenmaße je Gerät, Zwischenböden, Fronten und Fugen, Schubladen im Lochraster, Platzhalter, `JT_Nische`, OCL-Material, Anleimer, Tags und die Kurzhilfe, jeweils auch nach dem Umstellen in den Komponentenoptionen. Der TCN-Export des Schranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.

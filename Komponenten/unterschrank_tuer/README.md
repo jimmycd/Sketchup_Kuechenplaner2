@@ -41,7 +41,7 @@ Die sichtbaren Einlegeböden teilen den Innenraum zwischen Boden und Streben in 
 ## Einrichten (Hilfe, Tags, Einlegeböden, Anleimer)
 Weil es für diese Komponente keinen Generator gibt, setzt `src/unterschrank_tuer/main.rb` Kurzhilfe, Tags und die Formeln der Einlegeböden beim Einfügen über das Menü. Ein Unterschrank, der schon vorher im Modell war, lässt sich nachträglich einrichten: auswählen und in der Ruby-Konsole `UnterschrankTuer.einrichten` eingeben.
 
-Danach steht die Hilfe oben im Fenster *Komponentenoptionen*, mit Link auf diese Seite. Teile, die nicht erkannt werden, bleiben ohne Tag (sie stehen in der Ruby-Konsole bzw. in der Meldung).
+Danach steht die Kurzhilfe (ein Satz) oben im Fenster *Komponentenoptionen*; eine alte lange Description wird dabei entfernt. Teile, die nicht erkannt werden, bleiben ohne Tag (sie stehen in der Ruby-Konsole bzw. in der Meldung).
 
 ## Tests
 `ruby test/test_einrichten.rb` – prüft Kurzhilfe, Tags, Anleimer, `JT_Schrank` und die Einlegeboden-Formeln (Sichtbarkeit und gleich hohe Fächer für 0–3 Böden) mit der Mock-API, außerdem das Einfügen über das Menü (eigene Definition und eigenes Kürzel je Schrank).

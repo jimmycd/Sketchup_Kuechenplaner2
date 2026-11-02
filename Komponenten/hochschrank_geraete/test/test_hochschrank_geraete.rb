@@ -329,9 +329,8 @@ Sketchup.active_model = Sketchup::Model.new
 hd = H.erstellen({}).definition
 check(hd.description == H::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
 check(hd.get_attribute(H::DICT, 'summary') == H::HILFE_KURZ, 'Hilfe: summary')
-check(hd.get_attribute(H::DICT, 'description') == H::HILFE, 'Hilfe: description')
-check(%w[summary description].all? { |k| hd.get_attribute(H::DICT, "_#{k}_access") == 'VIEW' }, 'Hilfe: nur anzeigen')
-check(H::HILFE.include?(H::DOKU_URL), 'Hilfe: Link zur Doku')
+check(hd.get_attribute(H::DICT, 'description').nil?, 'Hilfe: description')
+check(%w[summary description].none? { |k| hd.get_attribute(H::DICT, "_#{k}_access") }, 'Hilfe: keine eigenen Zeilen in den Optionen')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 

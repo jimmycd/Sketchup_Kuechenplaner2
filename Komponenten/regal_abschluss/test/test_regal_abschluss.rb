@@ -251,7 +251,7 @@ check(m.entities.instances.empty?, 'Dialog: zu kleine Tiefe baut nichts')
 # --- Kurzhilfe ---
 neu_model
 d = R.erstellen.definition
-check(d.get_attribute(R::DICT, 'summary') == R::HILFE_KURZ && d.get_attribute(R::DICT, 'description').include?(R::DOKU_URL), 'Kurzhilfe')
+check(d.get_attribute(R::DICT, 'summary') == R::HILFE_KURZ && d.get_attribute(R::DICT, 'description').nil?, 'Kurzhilfe')
 %w[breite hoehe tiefe form zeilenende tiefe_aussen radius anz_einlegeboeden boeden_art farbe].each do |k|
   check(%w[TEXTBOX LIST].include?(d.get_attribute(R::DICT, "_#{k}_access")), "Komponentenoption #{k}")
 end

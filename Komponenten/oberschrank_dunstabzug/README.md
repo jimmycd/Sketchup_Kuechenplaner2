@@ -56,7 +56,7 @@ Am Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (OberschrankDuns
 Am Schrank steht `JT_Nische` (`nische` DA, `geraet` z. B. `Flachschirmhaube60`, lichte Breite, Haubenraum als Höhe, Tiefe, Einfügepunkt vorne links an der Korpusvorderkante auf der Unterkante, dazu `abluft`, `rohr_x`, `rohr_y`, `rohr_breite`, `rohr_tiefe`, `schrank_hoehe`). Die Geräte-Erweiterung liest Breite, Haubenraum, Abluft und Rohr aus den aktuellen Komponentenoptionen.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* mit Link auf diese Seite (`HILFE` in `main.rb`).
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank_dunstabzug/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_oberschrank_dunstabzug.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (kein Boden unten, Haubenboden, Rückwand in der Nut, Strebe, Türen mit freier Höhe unten, Einlegeboden), Rohrausschnitt und Umriss in allen Platten, Umluft, Formeln nach Umkonfigurieren, Tiefe nachträglich ändern, Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische`, ungültige Maße und die Kurzhilfe. Den TCN-Export prüft `sketchup-tcn-export-plugin/test/test_export.rb`, die Haube `Komponenten/geraete/test/test_geraete.rb`.
