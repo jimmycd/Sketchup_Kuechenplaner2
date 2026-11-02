@@ -50,6 +50,7 @@ module Geraete
     'Geschirrspueler' => ['Geschirrspüler', 'Geraet Plan Wasser'],
     'KochfeldAbzug'   => ['Kochfeld mit Abzug', 'Geraet Plan Kochen'],
     'Spuele'          => ['Spüle', 'Geraet Plan Wasser'],
+    'Flachschirmhaube' => ['Flachschirmhaube', 'Geraet Plan Kochen'],
     'Backofen'        => ['Backofen', 'Geraet Plan Kochen', 595.0],
     'Kompakt'         => ['Kompaktgerät', 'Geraet Plan Kochen', 455.0],
     'Mikrowelle'      => ['Mikrowelle', 'Geraet Plan'],
@@ -224,6 +225,25 @@ module Geraete
               teil('Kanal', 'Geraet Gehaeuse', [kanal_x, t - it + 20, -korpus], [kab, 90, korpus - hb + 20])] }
   end
 
+  # Flachschirmhaube im Oberschrank Dunstabzug: unten bündig mit der Schrankunterkante,
+  # Wrasenschirm vorn, Filterwanne, Lüfterbaustein darüber; bei Abluft das Rohr durch
+  # Haubenboden und Deckel. Einfügepunkt: vorne links an der Korpusvorderkante auf der Unterkante,
+  # Haubenraum = hoehe; Rohrausschnitt (rohr_x/_y ab Einfügepunkt, rohr_breite/_tiefe) und schrank_hoehe.
+  def self.berechne_flachschirmhaube(n, _)
+    b, h, t = zahl(n, 'breite'), zahl(n, 'hoehe', 380.0), zahl(n, 'tiefe', 400.0)
+    wt = [t - 50, 300.0].min # Tiefe der Filterwanne
+    teile = [teil('Wrasenschirm', 'Geraet Edelstahl', [0, 0, 0], [b, 20, 40]),
+             teil('Filter', 'Geraet Edelstahl', [5, 20, 0], [b - 10, wt, 40]),
+             teil('Luefter', 'Geraet Gehaeuse', [10, 30, 40], [b - 20, [wt - 20, 50.0].max, [h - 50, 50.0].max])]
+    sh = zahl(n, 'schrank_hoehe', 0.0)
+    if zahl(n, 'abluft', 0.0) >= 1 && sh > h
+      rb, rt = zahl(n, 'rohr_breite', 170.0), zahl(n, 'rohr_tiefe', 170.0)
+      teile << teil('Rohr', 'Geraet Gehaeuse', [zahl(n, 'rohr_x', (b - rb) / 2) + 10, zahl(n, 'rohr_y', 0.0) + 10, h - 10],
+                    [rb - 20, rt - 20, sh - h + 10])
+    end
+    { plan: [0, 0, 0, b, wt + 20, h], teile: teile }
+  end
+
   # Spüle (Edelstahl, ein Becken) mit Armatur, auf der Arbeitsplatte
   def self.berechne_spuele(n, _)
     b = zahl(n, 'breite')
@@ -263,6 +283,7 @@ module Geraete
                          .map { |d| d.to_h.transform_keys(&:to_s) } : []
     liste << spuelen_nische(defn, inst) if liste.empty? && defn.get_attribute(JT_DICT, 'typ') == 'Spuelenschrank'
     liste.map! { |n| kuehl_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Kuehlschrank'
+    liste.map! { |n| hauben_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'OberschrankDunstabzug'
     t = dc_mm(defn, inst, 'tiefe')
     liste.each { |n| n['tiefe'] = t.round(1) } if t
     liste
@@ -273,6 +294,23 @@ module Geraete
     v = inst && inst.get_attribute(DICT, k)
     v = defn.get_attribute(DICT, k) if v.nil?
     v.nil? ? nil : v.to_f * 25.4
+  end
+
+  # Oberschrank Dunstabzug: Breite, Höhe, Haubenraum, Abluft und Rohrausschnitt kann man in den
+  # Komponentenoptionen ändern, deshalb Nische aus den aktuellen DC-Werten (wie der Schrank rechnet)
+  def self.hauben_nische(n, defn, inst)
+    b = dc_mm(defn, inst, 'breite') or return n
+    mm = ->(k, std) { dc_mm(defn, inst, k) || std }
+    abluft = inst && inst.get_attribute(DICT, 'abluft')
+    abluft = defn.get_attribute(DICT, 'abluft') if abluft.nil?
+    mk = mm.('materialstaerke_korpus', 19.0)
+    rb, rt = mm.('rohr_breite', 170.0), mm.('rohr_tiefe', 170.0)
+    t_innen = mm.('tiefe', 400.0) - mm.('rueckwand_versatz', 25.0) - mm.('materialstarke_rueckwand', 8.0)
+    n.merge('geraet' => "Flachschirmhaube#{(b / 10).round}", 'breite' => (b - 2 * mk).round(1),
+            'hoehe' => mm.('haube_hoehe', 380.0).round(1), 'x' => mk.round(1), 'y' => mk.round(1), 'z' => 0.0,
+            'abluft' => abluft.to_i, 'rohr_x' => ((b - 2 * mk - rb) / 2).round(1),
+            'rohr_y' => [t_innen - mm.('rohr_abstand_hinten', 20.0) - rt, 0.0].max.round(1),
+            'rohr_breite' => rb.round(1), 'rohr_tiefe' => rt.round(1), 'schrank_hoehe' => mm.('hoehe', 700.0).round(1))
   end
 
   # Kühlschrank-Unterschrank: Gerät, Breite, Wange und Sockel kann man in den Komponentenoptionen
