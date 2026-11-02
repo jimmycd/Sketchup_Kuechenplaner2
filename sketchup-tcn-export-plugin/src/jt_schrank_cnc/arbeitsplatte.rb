@@ -277,9 +277,13 @@ module JTools
       # das gibt einen sauberen Übergang; breiter als der Fräser in Bahnen nebeneinander
       # Bahn aus Stücken in Maschinenkoordinaten: Geraden relativ (W#2201), Bögen wie in
       # Jürgens bogen.tcn als tangentialer Bogen mit Radius und Winkel (W#2125,
-      # #8046 Winkel in Grad, positiv gegen den Uhrzeigersinn). Die übrigen Werte genau
-      # wie im Beispiel lassen: dort steht EW2 (Drehrichtung) auf Automatisch, nur dann
-      # gilt das Vorzeichen des Winkels als Drehrichtung (Jürgen 2026-11-01)
+      # #8046 Winkel in Grad). Die übrigen Werte genau wie im Beispiel lassen: dort
+      # steht EW2 (Drehrichtung) auf Automatisch, nur dann gilt das Vorzeichen des
+      # Winkels als Drehrichtung (Jürgen 2026-11-01).
+      # Vorzeichen: TPA zeigt Fläche 1 mit y nach unten, "negativ = im Uhrzeigersinn"
+      # gilt für diese Ansicht. In den Maschinenkoordinaten (x rechts, y hoch gerechnet)
+      # ist das genau umgekehrt, deshalb wird der gerechnete Winkel negiert
+      # (sonst läuft der Bogen falsch herum, Jürgen 2026-11-02)
       def self.bahn_stuecke(ws, st, tiefe, werkzeug)
         n = ->(v) { Tcn.n(v) }
         out = bahn(ws, [st[0][1]], tiefe, werkzeug)
@@ -292,7 +296,7 @@ module JTools
             w = Math.atan2(b[1] - c[1], b[0] - c[0]) - Math.atan2(a[1] - c[1], a[0] - c[0])
             w -= 2 * Math::PI while w > Math::PI
             w += 2 * Math::PI while w <= -Math::PI
-            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n.(r)} #8048=1 #8046=#{n.(w * 180 / Math::PI)} #42=0 #49=0 }W"
+            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n.(r)} #8048=1 #8046=#{n.(-w * 180 / Math::PI)} #42=0 #49=0 }W"
           end
         end
         out
