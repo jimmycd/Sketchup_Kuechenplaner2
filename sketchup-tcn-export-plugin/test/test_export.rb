@@ -12,6 +12,7 @@ load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.r
 load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
+load File.join(komp, 'unterschrank_kuehlschrank/src/unterschrank_kuehlschrank/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
@@ -394,6 +395,22 @@ end
 fr = dg.find { |x| x.name == 'USG1_Front' }
 check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
 check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
+# --- Kühlschrank-Nische: wie Geschirrspüler; Weinkühler/unterbaufähig ohne Möbelfront ---
+km = Sketchup.active_model = Sketchup::Model.new
+UnterschrankKuehlschrank.erstellen({ 'Art_Wange' => 3.0 })
+UnterschrankKuehlschrank.erstellen({ 'Geraet_Art' => 1.0, 'Breite' => 30.0, 'Art_Wange' => 2.0 })
+dk, = S::Export.erzeugen(km)
+check(dk.map(&:name).sort == %w[UKS1_Front UKS1_WangeL UKS1_WangeR UKS2_WangeR], "Kühlschrank: Dateien #{dk.map(&:name)}")
+dk.each do |x|
+  z = bearbeitungen(x.text, 1)
+  check(z.size == 1 && z.first.include?('squad.tmcr'), "Kühlschrank #{x.name}: nur Formatieren #{z}")
+end
+fk = dk.find { |x| x.name == 'UKS1_Front' }
+check(fk && [fk.lage.dl, fk.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Kühlschrank Front Fräsmaß: #{fk && [fk.lage.dl, fk.lage.dh]}")
+ff = S::Frontfarbe.fronten(km, kategorie: 'Unterschrank')
+check(ff.size == 2 && ff.count(&:sichtbar?) == 1, 'Kühlschrank: Frontfarbe färbt auch die ausgeblendete Front mit, sichtbar ist eine')
+zk, = S::Stueckliste.erzeugen(km)
+check(zk.map(&:tag).sort == %w[UKS1_Front UKS1_WangeL UKS1_WangeR UKS2_WangeR], "Kühlschrank: Stückliste #{zk.map(&:tag)}")
 Sketchup.active_model = model
 
 # --- Dialog ---
