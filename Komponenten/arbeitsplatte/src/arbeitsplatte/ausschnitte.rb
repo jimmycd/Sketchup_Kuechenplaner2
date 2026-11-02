@@ -4,7 +4,7 @@
 #
 # Reine Rechnung ohne SketchUp (mm, Weltkoordinaten). Den Ausschnitt geben die
 # Schränke vor: über dem Spülenschrank (typ Spuelenschrank) die Spüle, über dem
-# Herdschrank (typ Unterschrank_Kochfeld) das Kochfeld, beide mittig über dem
+# Herdschrank (typ Unterschrank_Kochfeld) und dem Herdumbauschrank (Unterschrank_Backofen) das Kochfeld, beide mittig über dem
 # Schrank. Größe nach Richtwerten, alles je Schrank über o[:ausschnitte] änderbar:
 #   { 'USP1' => { breite:, tiefe:, abstand_vorn:, radius: } }  andere Maße
 #   { 'USP1' => false }                                        kein Ausschnitt
@@ -13,7 +13,7 @@
 
 module Arbeitsplatte
   module Ausschnitte
-    ARTEN = { 'Spuelenschrank' => :spuele, 'Unterschrank_Kochfeld' => :kochfeld }.freeze
+    ARTEN = { 'Spuelenschrank' => :spuele, 'Unterschrank_Kochfeld' => :kochfeld, 'Unterschrank_Backofen' => :kochfeld }.freeze
     NAMEN = { spuele: 'Spüle', kochfeld: 'Kochfeld' }.freeze
     # Kochfeld-Ausschnitt nach Schrankbreite (Richtwerte)
     KOCHFELD = { 600 => [560.0, 490.0], 800 => [750.0, 490.0], 900 => [880.0, 490.0] }.freeze
