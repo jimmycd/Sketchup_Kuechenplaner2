@@ -19,6 +19,7 @@ load File.join(komp, 'unterschrank_kuehlschrank/src/unterschrank_kuehlschrank/ma
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
+load File.join(komp, 'eck_oberschrank/src/eck_oberschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -744,6 +745,31 @@ check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [3
 zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
 check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
 check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
+
+# --- Eck-Oberschrank L-Form: Rückwandnut in Seiten und L-Boden, Deckel an beide Rückwände geschraubt,
+# Innenecke von oben (Fläche 1 des Bodens = Nutseite), keine Sockelfüße ---
+eo = Sketchup.active_model = Sketchup::Model.new
+EckOberschrank.erstellen({})
+deo, meo = S::Export.erzeugen(eo)
+o = deo.to_h { |x| [x.name, x] }
+check(meo.empty?, "Eck-Oberschrank: keine Meldungen: #{meo}")
+check(o.keys.sort == %w[OES1_Auflageleiste1 OES1_Boden OES1_Deckel OES1_Einlegeboden1 OES1_Rueckwand1 OES1_Rueckwand2
+                        OES1_SeiteL OES1_SeiteR OES1_TuerL OES1_TuerR], "Eck-Oberschrank: Dateien #{o.keys}")
+ob = o['OES1_Boden']
+check(ob.lage.dl == 631 && ob.lage.dh == 631 && ob.lage.flaeche1 == :zmax, "Eck-Oberschrank Boden: 631 x 631, Fläche 1 oben: #{ob.lage.to_a.drop(1)}")
+b1 = bearbeitungen(ob.text, 1)
+check(b1.count { |x| x.include?('W#89') && x.include?('#3=-9 ') } == 2, "Eck-Oberschrank Boden: Nut für beide Rückwände: #{b1}")
+check(b1.any? { |x| x.include?('W#89') && x.include?('#1=352.015 ') && x.include?('#3=-20 ') }, "Eck-Oberschrank Boden: Innenecke von oben ausgefräst: #{b1}")
+check(deo.none? { |x| x.text.include?('#8522=3 ') && x.text.include?('#8513=-3 ') }, 'Eck-Oberschrank: keine Sockelfüße')
+%w[OES1_SeiteL OES1_SeiteR].each do |n|
+  check(bearbeitungen(o[n].text, 1).any? { |x| x.include?('W#89') } && o[n].text.include?('#8522=5 '), "#{n}: Rückwandnut und Lochreihen")
+end
+od = o['OES1_Deckel']
+schr = [3, 4, 5, 6].flat_map { |sd| bearbeitungen(od.text, sd) }.select { |x| x.include?('#8513=-15 ') }
+check(schr.size == 2, "Eck-Oberschrank Deckel: an beide Rückwände geschraubt: #{schr}")
+check(bearbeitungen(od.text, 1).any? { |x| x.include?('W#89') && x.include?('#3=-20 ') }, 'Eck-Oberschrank Deckel: Innenecke ausgefräst')
+check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
+check(S::Frontfarbe.fronten(eo).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'Eck-Oberschrank: Frontfarbe findet beide Türen')
 
 if $fehler.zero?
   puts 'test_export: alles OK'

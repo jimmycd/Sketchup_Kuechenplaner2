@@ -466,16 +466,19 @@ module JTools
       def self.ecke(w)
         e = ecke_rechteck(w) or return
         k = w.dicke_achse
+        # Durchbruch von der Seite mit den übrigen Bearbeitungen (Fläche 1): unten beim Unterschrank
+        # (Sockelfüße), oben beim Eck-Oberschrank (Rückwandnut im Boden)
+        mn, mx = :"#{Geometrie::ACHSEN[k]}min", :"#{Geometrie::ACHSEN[k]}max"
+        seite = w.ops.count { |o| o.seite == mx } > w.ops.count { |o| o.seite == mn } ? mx : mn
         p0 = [0.0, 0.0, 0.0]
         p1 = [0.0, 0.0, 0.0]
-        p0[k] = p1[k] = w.lo[k]
+        p0[k] = p1[k] = seite == mx ? w.hi[k] : w.lo[k]
         e[:aussen].each do |a, ende|
           if ende == :lo then p0[a], p1[a] = w.lo[a] - ECKE[:ueberlauf], e[:innen][a]
           else p0[a], p1[a] = e[:innen][a], w.hi[a] + ECKE[:ueberlauf]
           end
         end
-        w.ops << Op.new(:ausschnitt, :"#{Geometrie::ACHSEN[k]}min", p0, p1, NUT[:d_werkzeug], w.mass(k) + DURCH, nil, nil,
-                        'Ausschnitt Innenecke')
+        w.ops << Op.new(:ausschnitt, seite, p0, p1, NUT[:d_werkzeug], w.mass(k) + DURCH, nil, nil, 'Ausschnitt Innenecke')
       end
 
       # L-Form: in der Ecke stößt eine Strebe mit dem Ende an die Längskante der anderen (Dübel)
