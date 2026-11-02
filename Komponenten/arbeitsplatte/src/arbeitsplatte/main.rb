@@ -18,6 +18,7 @@
 #   ausgabe.rb    Platten zeichnen (OCL-Material, Anleimer, Tags, JT_Arbeitsplatte)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require 'json'
 
 module Arbeitsplatte
@@ -49,14 +50,18 @@ module Arbeitsplatte
     ["Arbeitsplatte #{kz}", '', Erkennung.zusammenfassung(erg), '', Layout.zusammenfassung(lay)].join("\n")
   end
 
-  # optionen: Layout-Optionen; nil = Dialog
+  # optionen: Layout-Optionen; nil = Eingabefenster (dann wird nach „Erzeugen“ gebaut)
   def self.erzeugen(model = Sketchup.active_model, optionen: nil)
     erg = Modell.erkenne(model)
     if erg[:zeilen].empty?
       UI.messagebox('Keine Unterschränke gefunden. Unterschränke markieren oder nichts markieren (dann alle im Modell).')
       return nil
     end
-    optionen ||= Dialog.abfragen(erg) or return nil
+    return bauen(model, erg, optionen) if optionen
+    Dialog.abfragen(erg) { |o| bauen(model, erg, o) }
+  end
+
+  def self.bauen(model, erg, optionen)
     lay = Layout.berechne(erg, optionen)
     model.start_operation('Arbeitsplatte erzeugen', true)
     inst = Ausgabe.bauen(model, erg, lay)

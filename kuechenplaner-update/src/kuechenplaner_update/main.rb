@@ -9,6 +9,7 @@
 # Jede Datei wird gegen ihre Git-Prüfsumme (Blob-SHA aus dem Repo) geprüft; erst
 # wenn alle Downloads stimmen, wird geschrieben.
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require 'json'
 require 'digest/sha1'
 require 'fileutils'
@@ -171,6 +172,9 @@ module KuechenplanerUpdate
       # diese Erweiterung selbst zuletzt, sie wird dabei ersetzt
       ordner = ordner.partition { |o| o != 'kuechenplaner_update' }.flatten
       geladen = []
+      # gemeinsames Eingabefenster zuerst (main.rb lädt es nur einmal je Sitzung)
+      gemeinsam = File.join(plugins_ordner, 'kuechenplaner_gemeinsam', 'eingabe.rb')
+      load gemeinsam if ziele.include?('kuechenplaner_gemeinsam/eingabe.rb') && File.file?(gemeinsam)
       # neue Erweiterungen registrieren (lädt sie auch)
       lader_neu.sort.each do |l|
         load File.join(plugins_ordner, l)

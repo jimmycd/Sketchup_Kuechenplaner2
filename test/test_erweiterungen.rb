@@ -106,17 +106,28 @@ gruppen.each do |g, eintraege|
 end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
-# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm,
-# Hochschrank Kühlschrank 560 mm, weil Einbau-Kühlgeräte 550 mm Nischentiefe brauchen),
-# und der Schrank wird mit der eingegebenen Tiefe gebaut
+# Neue Schränke: jeder Menüeintrag öffnet ein Eingabefenster (HtmlDialog im Treppenplaner-Stil, kein
+# UI.inputbox) mit der Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm,
+# Hochschrank Kühlschrank 560 mm, weil Einbau-Kühlgeräte 550 mm Nischentiefe brauchen), und der Schrank wird nach „Einfügen“
+# mit der eingegebenen Tiefe gebaut
+require_relative 'eingabe_helfer'
 module UI
-  class << self
-    attr_accessor :abfragen
+  class HtmlDialog
+    STYLE_DIALOG = 0
+    class << self
+      attr_accessor :alle
+    end
+    attr_reader :html, :callbacks, :optionen, :skripte
+    def initialize(opt) = (@optionen, @callbacks, @skripte = opt, {}, []).tap { (HtmlDialog.alle ||= []) << self }
+    def set_html(h) = @html = h
+    def add_action_callback(n, &blk) = @callbacks[n] = blk
+    def center = nil
+    def show = @offen = true
+    def visible? = @offen
+    def close = @offen = false
+    def execute_script(js) = @skripte << js
   end
-  def self.inputbox(prompts, defaults, *_rest)
-    (@abfragen ||= []) << [prompts, defaults]
-    defaults.each_with_index.map { |d, i| prompts[i] == 'Tiefe Korpus (mm)' ? '610' : prompts[i].start_with?('Schenkel') ? '1300' : d }
-  end
+  def self.inputbox(*) = raise('UI.inputbox benutzt – bitte Kuechenplaner::Eingabe.abfragen')
 end
 unterschraenke = kp.find { |e| e.is_a?(UI::Menu) && e.titel == 'Unterschränke' }.eintraege
 schrank_eintraege = %w[Unterschränke Oberschränke Hochschränke].flat_map do |g|
@@ -125,16 +136,38 @@ end
 schrank_eintraege.each do |titel, blk, gruppe|
   next if titel == 'Unterschrank mit Tür…' # lädt Unterschrank.skp, eigener Test in Komponenten/unterschrank_tuer
   m = Sketchup.active_model = Sketchup::Model.new
-  UI.abfragen = []
+  UI::HtmlDialog.alle = []
   blk.call
-  frage = UI.abfragen.first
-  i = frage && frage[0].index('Tiefe Korpus (mm)')
+  d = UI::HtmlDialog.alle.last
+  check(d && d.visible?, "#{titel}: öffnet ein Eingabefenster")
+  next unless d
+  felder = EingabeHelfer.felder(d.html)
+  tiefe = felder.assoc('Tiefe Korpus')
   soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : titel == 'Hochschrank Kühlschrank…' ? '560' : '520'
-  check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
-  check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
+  check(tiefe && tiefe[1] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{felder.inspect})")
+  check(d.html.include?('<span class="unit">mm</span>'), "#{titel}: Einheit mm neben dem Feld")
+  check(titel == 'Eckschrank L-Form…' || felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
+  check(d.html.include?('#f4f2ee') && d.html.include?('Einfügen</button>') && d.html.include?('Neuer Schrank'),
+        "#{titel}: Fenster im Treppenplaner-Stil mit Knopf Einfügen")
+  EingabeHelfer.ok(d, 'Tiefe Korpus' => '610', 'Schenkel A, hinten' => '1300', 'Schenkel B, links' => '1300')
+  check(!d.visible? && d.skripte.empty?, "#{titel}: Fenster schließt nach dem Einfügen (#{d.skripte.inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
+end
+
+# Eingabefenster: in jeder Erweiterung die gleiche Datei aus gemeinsam/eingabe.rb, geladen von main.rb;
+# kein UI.inputbox mehr im Quelltext
+vorlage = File.read(File.join(haupt, 'gemeinsam/eingabe.rb'), encoding: 'UTF-8')
+SRC.each do |src|
+  kopie = File.join(src, 'kuechenplaner_gemeinsam/eingabe.rb')
+  check(File.exist?(kopie) && File.read(kopie, encoding: 'UTF-8') == vorlage, "#{kopie}: fehlt oder veraltet (./build_rbz.sh ausführen)")
+  name = File.basename(Dir[File.join(src, '*.rb')].first, '.rb')
+  main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
+  check(main.include?("require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe')"), "#{name}: lädt das Eingabefenster")
+  Dir[File.join(src, '**/*.rb')].reject { |f| f.include?('kuechenplaner_gemeinsam') }.each do |f|
+    check(!File.read(f, encoding: 'UTF-8').include?('UI.inputbox'), "#{f}: UI.inputbox statt Kuechenplaner::Eingabe.abfragen")
+  end
 end
 check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
 

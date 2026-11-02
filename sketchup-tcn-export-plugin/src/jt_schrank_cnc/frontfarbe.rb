@@ -156,26 +156,30 @@ module JTools
         defaults = [mats.first.name, BEREICHE.keys.first, auswahl_da ? 'Ja' : 'Nein', griff_opt.first, '160', 'Mitte', '35']
         lists = [mats.map(&:name).join('|'), BEREICHE.keys.join('|'), 'Ja|Nein', griff_opt.join('|'), '',
                  LAGEN.join('|'), '']
-        res = UI.inputbox(prompts, defaults, lists, 'Frontfarbe und Griffe ändern')
-        return unless res
+        Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Frontfarbe und Griffe ändern', ok: 'Übernehmen') do |res|
+          material = model.materials[res[0]]
+          auswahl = res[2] == 'Ja' ? model.selection.to_a : nil
+          f = fronten(model, kategorie: BEREICHE[res[1]], auswahl: auswahl)
+          if f.empty?
+            UI.messagebox('Im gewählten Bereich gibt es keine Fronten (Teile mit JT_Schrank-Rolle Front oder Tür).')
+            next
+          end
+          griff = case res[3]
+                  when 'setzen' then { lochmass: zahl(res[4]), lage: res[5], hoehe: zahl(res[6]) }
+                  when 'entfernen' then false
+                  end
+          frage = "#{vorschau(f)} bekommen „#{material.name}“#{griff ? ' und Griffbohrungen' : ''}. Übernehmen?"
+          next unless UI.messagebox(frage, MB_OKCANCEL) == IDOK
 
-        material = model.materials[res[0]]
-        auswahl = res[2] == 'Ja' ? model.selection.to_a : nil
-        f = fronten(model, kategorie: BEREICHE[res[1]], auswahl: auswahl)
-        if f.empty?
-          UI.messagebox('Im gewählten Bereich gibt es keine Fronten (Teile mit JT_Schrank-Rolle Front oder Tür).')
-          return
+          begin
+            model.start_operation('Frontfarbe ändern', true)
+            anwenden(model, f, material, griff: griff)
+            model.commit_operation
+          rescue StandardError
+            model.abort_operation
+            raise
+          end
         end
-        griff = case res[3]
-                when 'setzen' then { lochmass: zahl(res[4]), lage: res[5], hoehe: zahl(res[6]) }
-                when 'entfernen' then false
-                end
-        frage = "#{vorschau(f)} bekommen „#{material.name}“#{griff ? ' und Griffbohrungen' : ''}. Übernehmen?"
-        return unless UI.messagebox(frage, MB_OKCANCEL) == IDOK
-
-        model.start_operation('Frontfarbe ändern', true)
-        anwenden(model, f, material, griff: griff)
-        model.commit_operation
       rescue ArgumentError => e
         UI.messagebox("Ungültige Eingabe: #{e.message}")
       rescue StandardError => e
