@@ -63,7 +63,13 @@ module KuechenplanerSymbolleiste
     ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'TCN exportieren', 'CNC-Programme (TCN) für die Schränke exportieren',
-     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }]
+     -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }],
+    ['stueckliste', 'Stückliste', 'Stückliste der Teile mit Maßen, Material und Kanten (CSV/HTML)',
+     -> { defined?(JTools::SchrankCnc::Stueckliste) }, -> { JTools::SchrankCnc::Stueckliste.dialog }],
+    ['etiketten', 'Etiketten', 'Etiketten für die Teile drucken (Bogen oder Endlos)',
+     -> { defined?(JTools::SchrankCnc::Etiketten) }, -> { JTools::SchrankCnc::Etiketten.dialog }],
+    ['zuschnitt', 'Zuschnittplan', 'Zuschnittplan je Platte für die Formatsäge',
+     -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }]
   ].freeze
 
   class << self
@@ -132,7 +138,18 @@ module KuechenplanerSymbolleiste
     def waehlen(i)
       aktion = (@aktionen || [])[i] or return
       @dialog.close if @dialog
-      UI.start_timer(0, false) { aktion.call }
+      einmal_spaeter { aktion.call }
+    end
+
+    # SketchUp-Eigenheit: öffnet ein Timer-Block ein modales Fenster (UI.inputbox,
+    # UI.messagebox), feuert auch ein einmaliger Timer immer wieder, solange das Fenster
+    # offen ist – jedes OK legte dann noch einen Schrank/Raum an. Deshalb den Timer
+    # als Erstes im Block anhalten.
+    def einmal_spaeter(&blk)
+      id = UI.start_timer(0, false) do
+        UI.stop_timer(id)
+        blk.call
+      end
     end
 
     def html(gruppen)
