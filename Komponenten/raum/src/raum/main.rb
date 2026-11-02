@@ -27,6 +27,7 @@
 # "Zuschnitt" wählen (Geräte › Szenen anlegen blendet die Raum-Tags dort aus).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require 'json'
 
 module Raum
@@ -614,19 +615,34 @@ module Raum
     nil
   end
 
+  # Eingabefenster (Kuechenplaner::Eingabe, Stil wie Treppenplaner). Fehler im Block bleiben im
+  # Fenster stehen; ohne HtmlDialog (Tests) läuft der Block sofort und Fehler kommen per Meldung.
+  def self.fenster(prompts, vorgaben, *rest, &blk)
+    Kuechenplaner::Eingabe.abfragen(prompts, vorgaben, *rest, &blk)
+  end
+
+  # Änderung als eine Operation; bei Fehler zurücknehmen
+  def self.operation(model, titel)
+    model.start_operation(titel, true)
+    erg = yield
+    model.commit_operation
+    erg
+  rescue StandardError
+    model.abort_operation
+    raise
+  end
+
   def self.raum_anlegen_dialog(model = Sketchup.active_model)
     s = RAUM_STD
-    r = UI.inputbox(['Breite innen (mm)', 'Tiefe innen (mm)', 'Raumhöhe (mm)', 'Wanddicke (mm)', SOCKEL_TEXT],
-                    [s['breite'], s['tiefe'], s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s }, 'Raum anlegen')
-    return nil unless r
-    b, t, h, d, so = zahlen(r)
-    model.start_operation('Raum anlegen', true)
-    g = anlegen(model, Rechnung.rechteck(b, t), true, h, d, [0, 0, 0], so)
-    model.commit_operation
-    auswaehlen(model, g)
-    g
+    fenster(['Breite innen (mm)', 'Tiefe innen (mm)', 'Raumhöhe (mm)', 'Wanddicke (mm)', SOCKEL_TEXT],
+            [s['breite'], s['tiefe'], s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s }, 'Raum anlegen',
+            ok: 'Anlegen') do |r|
+      b, t, h, d, so = zahlen(r)
+      g = operation(model, 'Raum anlegen') { anlegen(model, Rechnung.rechteck(b, t), true, h, d, [0, 0, 0], so) }
+      auswaehlen(model, g)
+      g
+    end
   rescue Fehler => e
-    model.abort_operation
     melden(e)
   end
 
@@ -650,17 +666,14 @@ module Raum
     auge = model.active_view.camera.eye
     punkte = Rechnung.orientieren(punkte, geschlossen, [mm(auge.x), mm(auge.y)])
     s = RAUM_STD
-    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT], [s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s },
-                    'Wände aus Linien')
-    return nil unless r
-    h, d, so = zahlen(r)
-    model.start_operation('Wände aus Linien', true)
-    g = anlegen(model, punkte, geschlossen, h, d, [0, 0, mm(zs.min)], so)
-    model.commit_operation
-    auswaehlen(model, g)
-    g
+    fenster(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT], [s['hoehe'], s['dicke'], s['sockel']].map { |v| v.round.to_s },
+            'Wände aus Linien', untertitel: geschlossen ? 'geschlossener Raum' : 'Wandreihe', ok: 'Anlegen') do |r|
+      h, d, so = zahlen(r)
+      g = operation(model, 'Wände aus Linien') { anlegen(model, punkte, geschlossen, h, d, [0, 0, mm(zs.min)], so) }
+      auswaehlen(model, g)
+      g
+    end
   rescue Fehler => e
-    model.abort_operation
     melden(e)
   end
 
@@ -675,33 +688,34 @@ module Raum
   }.freeze
 
   # Eingabe einer Öffnung; extra = zusätzliche Felder [[Beschriftung, Vorgabe, Liste]]
-  # Liefert [öffnung, zusätzliche Werte] oder nil
-  def self.oeffnung_dialog(art, werte, titel, extra = [])
+  # Ruft den Block mit [öffnung, zusätzliche Werte] auf (nicht bei Abbruch)
+  def self.oeffnung_dialog(art, werte, titel, extra = [], ok: 'OK')
     felder = FELDER.fetch(art)
     prompts = felder.map { |f| f[1] } + extra.map(&:first)
     vorgaben = felder.map { |k, _, l| l ? werte[k].to_s : werte[k].to_f.round.to_s } + extra.map { |e| e[1] }
     listen = felder.map { |f| f[2].to_s } + extra.map { |e| e[2].to_s }
-    r = UI.inputbox(prompts, vorgaben, listen, titel)
-    return nil unless r
-    o = { 'typ' => art }
-    felder.each_with_index do |(k, _, l), i|
-      o[k] = l ? r[i].to_s : zahlen([r[i]]).first
+    fenster(prompts, vorgaben, listen, titel, untertitel: art, gruppe: art, ok: ok) do |r|
+      o = { 'typ' => art }
+      felder.each_with_index do |(k, _, l), i|
+        o[k] = l ? r[i].to_s : zahlen([r[i]]).first
+      end
+      yield o, r[felder.size..-1]
     end
-    [o, r[felder.size..-1]]
   end
 
   def self.einsetzen_dialog(model = Sketchup.active_model)
     @letzte_art ||= 'Fenster'
-    r = UI.inputbox(['Art'], [@letzte_art], [ARTEN.join('|')], 'Fenster/Tür einsetzen')
-    return nil unless r
-    art = r[0]
-    @letzte ||= {}
-    werte = @letzte[art] || OEFFNUNG_STD.fetch(art)
-    o, = oeffnung_dialog(art, werte, "#{art} einsetzen")
-    return nil unless o
-    @letzte_art = art
-    @letzte[art] = o
-    model.select_tool(Einsetzen.new(o))
+    fenster(['Art'], [@letzte_art], [ARTEN.join('|')], 'Fenster/Tür einsetzen', ok: 'Weiter') do |r|
+      art = r[0]
+      @letzte ||= {}
+      werte = @letzte[art] || OEFFNUNG_STD.fetch(art)
+      # zweites Fenster ersetzt das erste
+      oeffnung_dialog(art, werte, "#{art} einsetzen", ok: 'Einsetzen') do |o, _|
+        @letzte_art = art
+        @letzte[art] = o
+        model.select_tool(Einsetzen.new(o))
+      end
+    end
   rescue Fehler => e
     melden(e)
   end
@@ -720,27 +734,31 @@ module Raum
       UI.messagebox('Hier gibt es keine Öffnung. Neue Öffnungen mit „Fenster/Tür einsetzen…“.')
       return nil
     end
-    o, idx = liste.first
-    if liste.size > 1
-      namen = liste.map { |x, i| "#{i + 1}) #{Rechnung.beschreibung(x)}" }
-      r = UI.inputbox(['Öffnung'], [namen.first], [namen.join('|')], 'Öffnung bearbeiten')
-      return nil unless r
-      o, idx = liste[namen.index(r[0])]
+    return oeffnung_bearbeiten(raum, *liste.first) if liste.size == 1
+    namen = liste.map { |x, i| "#{i + 1}) #{Rechnung.beschreibung(x)}" }
+    fenster(['Öffnung'], [namen.first], [namen.join('|')], 'Öffnung bearbeiten', ok: 'Weiter') do |r|
+      oeffnung_bearbeiten(raum, *liste[namen.index(r[0])])
     end
-    neu, extra = oeffnung_dialog(o['typ'], o, 'Öffnung bearbeiten',
-                                 [['Abstand von links (mm)', Rechnung.links(o).round.to_s, nil], ['Aktion', 'ändern', 'ändern|löschen']])
-    return nil unless neu
-    f = aendern(raum, extra[1] == 'löschen' ? 'Öffnung löschen' : 'Öffnung ändern') do |dd|
-      if extra[1] == 'löschen'
-        dd['oeffnungen'].delete_at(idx)
-      else
-        neu['wand'] = o['wand']
-        neu['abstand'] = zahlen([extra[0]]).first
-        dd['oeffnungen'][idx] = neu
+  rescue Fehler => e
+    melden(e)
+  end
+
+  def self.oeffnung_bearbeiten(raum, o, idx)
+    oeffnung_dialog(o['typ'], o, 'Öffnung bearbeiten',
+                    [['Abstand von links (mm)', Rechnung.links(o).round.to_s, nil], ['Aktion', 'ändern', 'ändern|löschen']],
+                    ok: 'Übernehmen') do |neu, extra|
+      f = aendern(raum, extra[1] == 'löschen' ? 'Öffnung löschen' : 'Öffnung ändern') do |dd|
+        if extra[1] == 'löschen'
+          dd['oeffnungen'].delete_at(idx)
+        else
+          neu['wand'] = o['wand']
+          neu['abstand'] = zahlen([extra[0]]).first
+          dd['oeffnungen'][idx] = neu
+        end
       end
+      raise Fehler, f if f
+      true
     end
-    UI.messagebox(f) if f
-    f.nil?
   rescue Fehler => e
     melden(e)
   end
@@ -752,18 +770,18 @@ module Raum
       return nil
     end
     d = daten(raum)
-    r = UI.inputbox(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT],
-                    [d['hoehe'], d['dicke'], Rechnung.sockel(d)].map { |v| v.to_f.round.to_s },
-                    'Raum bearbeiten')
-    return nil unless r
-    h, di, so = zahlen(r)
-    f = aendern(raum, 'Raum bearbeiten') do |dd|
-      dd['hoehe'] = h
-      dd['dicke'] = di
-      dd['sockel'] = so
+    fenster(['Raumhöhe (mm)', 'Wanddicke nach außen (mm)', SOCKEL_TEXT],
+            [d['hoehe'], d['dicke'], Rechnung.sockel(d)].map { |v| v.to_f.round.to_s },
+            'Raum bearbeiten', ok: 'Übernehmen') do |r|
+      h, di, so = zahlen(r)
+      f = aendern(raum, 'Raum bearbeiten') do |dd|
+        dd['hoehe'] = h
+        dd['dicke'] = di
+        dd['sockel'] = so
+      end
+      raise Fehler, f if f
+      true
     end
-    UI.messagebox(f) if f
-    f.nil?
   rescue Fehler => e
     melden(e)
   end

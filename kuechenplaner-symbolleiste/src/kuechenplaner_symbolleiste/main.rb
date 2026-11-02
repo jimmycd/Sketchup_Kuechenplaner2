@@ -8,6 +8,7 @@
 # Die übrigen Icons rufen die Befehle der anderen Erweiterungen auf; fehlt eine
 # Erweiterung, ist ihr Icon ausgegraut.
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -118,8 +119,8 @@ module KuechenplanerSymbolleiste
       @dialog.close if @dialog && @dialog.visible?
       @aktionen = []
       d = UI::HtmlDialog.new(dialog_title: titel, preferences_key: "Kuechenplaner_Auswahl_#{titel}",
-                             width: 560, height: 420, resizable: true, style: UI::HtmlDialog::STYLE_DIALOG)
-      d.set_html(html(gruppen))
+                             width: 560, height: 460, resizable: true, style: UI::HtmlDialog::STYLE_DIALOG)
+      d.set_html(html(titel, gruppen))
       d.add_action_callback('waehlen') { |_ctx, i| waehlen(i.to_i) }
       d.add_action_callback('schliessen') { |_ctx| d.close }
       d.center
@@ -135,26 +136,28 @@ module KuechenplanerSymbolleiste
       UI.start_timer(0, false) { aktion.call }
     end
 
-    def html(gruppen)
+    # Gleiches Aussehen wie die Eingabefenster (Kuechenplaner::Eingabe, Stil Treppenplaner)
+    def html(titel, gruppen)
       teile = gruppen.map do |gruppe, bild, eintraege|
         next if eintraege.empty?
         svg = File.read(File.join(ICONS, "#{bild}.svg"), encoding: 'UTF-8').strip
-        knoepfe = eintraege.map do |titel, aktion|
+        knoepfe = eintraege.map do |t, aktion|
           @aktionen << aktion
-          %(<button onclick="sketchup.waehlen(#{@aktionen.size - 1})">#{svg}<span>#{h(titel)}</span></button>)
+          %(<button class="kachel" onclick="sketchup.waehlen(#{@aktionen.size - 1})">#{svg}<span>#{h(t)}</span></button>)
         end
-        %(<section><h2>#{h(gruppe)}</h2><div class="raster">#{knoepfe.join}</div></section>)
+        %(<fieldset><legend>#{h(gruppe)}</legend><div class="raster">#{knoepfe.join}</div></fieldset>)
       end
       <<~HTML
-        <!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><style>
-        body{font:13px "Segoe UI",Helvetica,Arial,sans-serif;margin:12px;background:#fafafa;color:#222}
-        h2{font-size:13px;margin:10px 0 6px;color:#555;text-transform:uppercase;letter-spacing:.04em}
-        .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
-        button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #ccc;
-          border-radius:6px;background:#fff;cursor:pointer;font:inherit;color:inherit}
-        button:hover,button:focus{border-color:#2e7d32;background:#eef6ee;outline:none}
-        button svg{width:40px;height:40px}
-        </style></head><body>#{teile.compact.join}
+        <!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><style>#{Kuechenplaner::Eingabe::CSS}
+        .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:4px 0 2px}
+        button.kachel{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid var(--line);
+          border-radius:6px;background:#fff;color:inherit}
+        button.kachel:hover,button.kachel:focus{border-color:var(--accent);background:#eef3f9;outline:none}
+        button.kachel svg{width:40px;height:40px}
+        </style></head><body>
+        <header><h1>#{h(titel)}</h1><span class="sub">anklicken zum Einfügen</span></header>
+        <main>#{teile.compact.join}</main>
+        <footer><span id="status"></span><span class="spacer"></span><button onclick="sketchup.schliessen()">Schließen</button></footer>
         <script>document.addEventListener('keydown',function(e){if(e.key==='Escape')sketchup.schliessen()})</script>
         </body></html>
       HTML

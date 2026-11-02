@@ -9,6 +9,7 @@
 # Jede Datei wird gegen ihre Git-Prüfsumme (Blob-SHA aus dem Repo) geprüft; erst
 # wenn alle Downloads stimmen, wird geschrieben.
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require 'json'
 require 'digest/sha1'
 require 'fileutils'

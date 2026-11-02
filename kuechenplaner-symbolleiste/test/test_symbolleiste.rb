@@ -31,6 +31,7 @@ module UI
     def show = @geschlossen = false
     def visible? = !@geschlossen
     def close = @geschlossen = true
+    def execute_script(js) = (@skripte ||= []) << js
   end
 end
 Sketchup.active_model = Sketchup::Model.new
@@ -77,7 +78,7 @@ tb.befehle[0].aktion.call
 d = UI::HtmlDialog.letzter
 check(d && !d.geschlossen, 'Schrank einfügen öffnet die Auswahl')
 html = d.html
-pos = %w[Unterschränke Oberschränke Hochschränke].map { |g| html.index("<h2>#{g}</h2>") }
+pos = %w[Unterschränke Oberschränke Hochschränke].map { |g| html.index("<legend>#{g}</legend>") }
 check(pos.all? && pos == pos.sort, "Gruppen in der Reihenfolge Unter, Ober, Hoch: #{pos.inspect}")
 knopf = ->(h, titel) { h[%r{sketchup\.waehlen\((\d+)\)"><svg(?:(?!<button).)*</svg><span>#{Regexp.escape(titel)}</span>}m, 1] }
 schraenke.each { |_, t, _| check(knopf.(html, t.sub(/…\z/, '')), "Auswahl enthält #{t}") }
@@ -93,14 +94,16 @@ check(aufgerufen, 'Auswahl ruft die Aktion des Schranks')
 Kuechenplaner.schraenke.pop
 
 # Echter Ablauf über die Auswahl: Unterschrank mit Schubladen wird erzeugt
-module UI
-  def self.inputbox(_p, defaults, *_r) = defaults
-end
+require_relative '../../test/eingabe_helfer'
 m = Sketchup.active_model = Sketchup::Model.new
 tb.befehle[0].aktion.call
 d = UI::HtmlDialog.letzter
 d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Unterschrank mit Schubladen'))
 UI.timer_ablaufen
+e = UI::HtmlDialog.letzter
+check(e != d && e.html.include?('<h1>Unterschrank mit Schubladen</h1>'), 'Auswahl öffnet das Eingabefenster des Schranks')
+EingabeHelfer.ok(e)
+check(e.geschlossen, 'Eingabefenster schließt nach dem Einfügen')
 check(m.entities.grep(Sketchup::ComponentInstance).size == 1, 'Schrank aus der Auswahl eingefügt')
 
 # Raum: Auswahl mit den Befehlen der Raum-Erweiterung

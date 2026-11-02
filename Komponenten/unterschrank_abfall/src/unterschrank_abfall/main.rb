@@ -20,6 +20,7 @@
 #   UnterschrankAbfall.erstellen({ 'Kuerzel' => 'USM2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module UnterschrankAbfall
 
@@ -514,17 +515,17 @@ module UnterschrankAbfall
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s],
-                      'Unterschrank Mülltrennung')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    if eingabe['Tiefe'] < 35.3 - 0.000001
-      raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht mindestens 353 mm)"
+                      'Unterschrank Mülltrennung', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      if eingabe['Tiefe'] < 35.3 - 0.000001
+        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht mindestens 353 mm)"
+      end
+      erstellen(eingabe)
     end
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

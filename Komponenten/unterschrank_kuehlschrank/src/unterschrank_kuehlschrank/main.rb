@@ -23,6 +23,7 @@
 # Anderes Kürzel: UnterschrankKuehlschrank.erstellen({ 'Kuerzel' => 'UKS2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module UnterschrankKuehlschrank
 
@@ -385,20 +386,20 @@ module UnterschrankKuehlschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Gerät', 'Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Gerät', 'Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
                       [GERAET_TEXTE[0], (DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s],
-                      [GERAET_TEXTE.join('|'), '300|450|600', '', ''], 'Unterschrank Kühlschrank')
-    return unless res
-    art = GERAET_TEXTE.index(res[0]) || 0
-    w = res[1..].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+                      [GERAET_TEXTE.join('|'), '300|450|600', '', ''], 'Unterschrank Kühlschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      art = GERAET_TEXTE.index(res[0]) || 0
+      w = res[1..].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      eingabe['Geraet_Art'] = art.to_f
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    eingabe['Geraet_Art'] = art.to_f
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

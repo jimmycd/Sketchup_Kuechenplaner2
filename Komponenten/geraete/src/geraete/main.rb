@@ -23,6 +23,7 @@
 # wählen (beide Geräte-Tags aus).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Geraete
 

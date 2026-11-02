@@ -9,6 +9,7 @@
 # bekommt ein eigenes Kürzel (UST1, UST2 …).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module UnterschrankTuer
 
@@ -229,14 +230,14 @@ module UnterschrankTuer
   TIEFE_MIN = 20.0
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür')
-    return unless res
-    masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
-    t = masse['Tiefe']
-    raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
-    einfuegen(Sketchup.active_model, SKP, masse: masse)
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
+      t = masse['Tiefe']
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
+      einfuegen(Sketchup.active_model, SKP, masse: masse)
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

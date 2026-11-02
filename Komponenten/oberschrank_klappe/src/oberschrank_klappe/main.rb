@@ -19,6 +19,7 @@
 # Anderes Kürzel: OberschrankKlappe.erstellen({ 'Kuerzel' => 'OK2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module OberschrankKlappe
 
@@ -429,21 +430,21 @@ module OberschrankKlappe
 
   def self.dialog
     arten = ARTEN.values.map { |a| a[:name] }
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Klappe'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Klappe'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s,
                        (TIEFE_NEU * 10).round.to_s, arten.first],
-                      ['', '', '', arten.join('|')], TITEL)
-    return unless res
-    w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2],
-                'Art_Klappe' => (ARTEN.key(ARTEN.values.find { |a| a[:name] == res[3] }) || 1).to_f }
-    if eingabe['Tiefe'] < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
+                      ['', '', '', arten.join('|')], TITEL, untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2],
+                  'Art_Klappe' => (ARTEN.key(ARTEN.values.find { |a| a[:name] == res[3] }) || 1).to_f }
+      if eingabe['Tiefe'] < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if w.any? { |v| v <= 0 }
+      text = hinweis(eingabe['Art_Klappe'], eingabe['Hoehe'])
+      UI.messagebox("Hinweis: #{text}") if text
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if w.any? { |v| v <= 0 }
-    text = hinweis(eingabe['Art_Klappe'], eingabe['Hoehe'])
-    UI.messagebox("Hinweis: #{text}") if text
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
