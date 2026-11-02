@@ -147,6 +147,14 @@ ocl = (quellen + doku).flat_map do |f|
 end
 check(ocl.empty?, "OpenCutList/OCL erwähnt (#{ocl.size}×): #{ocl.first(10)}")
 
+# Eingabefenster im Treppenplaner-Stil (Kuechenplaner::Eingabe), kein natives UI.inputbox mehr
+quellen.grep(/\.rb\z/).reject { |f| f.include?('/kuechenplaner_gemeinsam/') }.each do |f|
+  t = File.read(f, encoding: 'UTF-8')
+  check(!t.match?(/UI\.inputbox\(/), "#{f.delete_prefix("#{haupt}/")}: UI.inputbox statt Kuechenplaner::Eingabe")
+  # eigene HtmlDialoge übernehmen das Aussehen der Eingabefenster
+  check(!t.include?('HtmlDialog.new') || t.include?('Eingabe.css'), "#{f.delete_prefix("#{haupt}/")}: HtmlDialog ohne Kuechenplaner::Eingabe.css")
+end
+
 # Timer: öffnet der Block womöglich ein Fenster (alles außer dem Menüaufbau), hält er sich zuerst an
 quellen.grep(/\.rb\z/).each do |f|
   z = File.readlines(f, encoding: 'UTF-8')
