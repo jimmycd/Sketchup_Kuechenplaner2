@@ -93,7 +93,7 @@ gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Szenen Planung/Kunde/Zuschnitt anlegen'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
 }
@@ -106,7 +106,8 @@ gruppen.each do |g, eintraege|
 end
 check(alle_eintraege.all? { |_, blk| blk }, 'jeder Eintrag hat eine Aktion')
 
-# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm),
+# Neue Schränke: jeder Menüeintrag fragt die Maße ab, darunter die Tiefe (Vorschlag 520 mm, Oberschrank 400 mm, Eck-Oberschrank 350 mm,
+# Hochschrank Kühlschrank 560 mm, weil Einbau-Kühlgeräte 550 mm Nischentiefe brauchen),
 # und der Schrank wird mit der eingegebenen Tiefe gebaut
 module UI
   class << self
@@ -128,7 +129,7 @@ schrank_eintraege.each do |titel, blk, gruppe|
   blk.call
   frage = UI.abfragen.first
   i = frage && frage[0].index('Tiefe Korpus (mm)')
-  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : '520'
+  soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : titel == 'Hochschrank Kühlschrank…' ? '560' : '520'
   check(i && frage[1][i] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{frage.inspect})")
   check(titel == 'Eckschrank L-Form…' || frage[0].include?('Höhe (mm)'), "#{titel}: Dialog fragt auch die Höhe ab (#{frage[0].inspect})")
   inst = m.entities.grep(Sketchup::ComponentInstance).last
