@@ -14,13 +14,14 @@
 # 2 mm Fugen). Ausgeblendete Teile werden im Korpus geparkt, damit sie den
 # Auswahlrahmen nicht vergrößern.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Bereich>_<Teil> (z. B. HS1_SeiteL, HS1_U1_Front) und das Wörterbuch
 # "JT_Schrank" für den TCN-Export. Anderes Kürzel: Hochschrank.erstellen({ 'Kuerzel' => 'HS2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Hochschrank
 
@@ -45,8 +46,9 @@ module Hochschrank
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -96,7 +98,7 @@ module Hochschrank
     'Oben: offenes Fach oder Tür, 0–3 Einlegeböden; die Höhe ergibt sich aus dem Rest.',
     'Anteile: 1/1/2 = unterste doppelt so hoch, Schublade 1 = oben; mm-Werte werden auf die Bereichshöhe skaliert.',
     'Mit „Interagieren“ fahren Schubladen heraus, die Tür öffnet sich.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HS1_SeiteL, HS1_U1_Front, HS1_O_Tuer.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -246,7 +248,7 @@ module Hochschrank
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -270,7 +272,7 @@ module Hochschrank
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
   # Freies Kürzel für die Tags, z. B. HS1, HS2 …
@@ -292,7 +294,7 @@ module Hochschrank
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -576,17 +578,17 @@ module Hochschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Hochschrank')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Hochschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

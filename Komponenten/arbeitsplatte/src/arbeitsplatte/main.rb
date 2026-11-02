@@ -15,9 +15,10 @@
 #   layout.rb     Platten zuschneiden: Überstände, Ecken, Stoßarten, Teilung, Format
 #   modell.rb     Schränke aus dem Modell lesen (JT_Schrank)
 #   dialog.rb     Einstellungen abfragen
-#   ausgabe.rb    Platten zeichnen (OCL-Material, Anleimer, Tags, JT_Arbeitsplatte)
+#   ausgabe.rb    Platten zeichnen (Material, Anleimer, Tags, JT_Arbeitsplatte)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require 'json'
 
 module Arbeitsplatte
@@ -30,8 +31,9 @@ module Arbeitsplatte
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -48,14 +50,18 @@ module Arbeitsplatte
     ["Arbeitsplatte #{kz}", '', Erkennung.zusammenfassung(erg), '', Layout.zusammenfassung(lay)].join("\n")
   end
 
-  # optionen: Layout-Optionen; nil = Dialog
+  # optionen: Layout-Optionen; nil = Eingabefenster (dann wird nach „Erzeugen“ gebaut)
   def self.erzeugen(model = Sketchup.active_model, optionen: nil)
     erg = Modell.erkenne(model)
     if erg[:zeilen].empty?
       UI.messagebox('Keine Unterschränke gefunden. Unterschränke markieren oder nichts markieren (dann alle im Modell).')
       return nil
     end
-    optionen ||= Dialog.abfragen(erg) or return nil
+    return bauen(model, erg, optionen) if optionen
+    Dialog.abfragen(erg) { |o| bauen(model, erg, o) }
+  end
+
+  def self.bauen(model, erg, optionen)
     lay = Layout.berechne(erg, optionen)
     model.start_operation('Arbeitsplatte erzeugen', true)
     inst = Ausgabe.bauen(model, erg, lay)

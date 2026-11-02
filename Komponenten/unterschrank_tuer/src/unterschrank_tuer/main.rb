@@ -4,23 +4,24 @@
 # Erweiterung) über Erweiterungen > Küchenplaner > Unterschränke > Unterschrank mit Tür ins Modell
 # ein und richtet sie ein: Kurzhilfe, ein eigener Tag je Teil (<Kürzel>_<Teil>,
 # z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer), das Wörterbuch "JT_Schrank"
-# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (OpenCutList)
+# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (Kantenmaterial)
 # an Boden, Einlegeböden und Streben. Jeder eingefügte Schrank
 # bekommt ein eigenes Kürzel (UST1, UST2 …).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module UnterschrankTuer
 
   DICT = 'dynamic_attributes'.freeze
   KUERZEL = 'UST'.freeze
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_tuer'.freeze
-  HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden'.freeze
   HILFE = [
     'Breite, Höhe, Tiefe (Korpus ohne Front/Rückwand), Tür ja/nein und Anzahl Einlegeböden (0–3) hier ändern.',
     'Korpus 19 mm, Rückwand 8 mm, Streben 100 mm, Fugen 2 mm.',
-    'Material „Melamin weiss“; OpenCutList erstellt daraus die Zuschnittliste.',
-    'Anleimer vorne an Boden, Einlegeböden und vorderer Strebe, hintere Strebe ohne; gezeichnet ist das Endmaß, den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Material „Melamin weiss“; Stückliste und Zuschnittplan im Küchenplaner-Menü.',
+    'Anleimer vorne an Boden, Einlegeböden und vorderer Strebe, hintere Strebe ohne; gezeichnet ist das Endmaß, den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UST1_SeiteL, UST1_Tuer.',
     'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -36,8 +37,9 @@ module UnterschrankTuer
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -133,7 +135,7 @@ module UnterschrankTuer
     inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
   end
 
-  # Anleimer (Kanten für OpenCutList), wie bei den anderen Unterschränken: nur die
+  # Anleimer (Kantenmaterial), wie bei den anderen Unterschränken: nur die
   # Vorderkante. In der von Hand gebauten Unterschrank.skp fehlte sie am Boden, die
   # vordere Strebe hatte auch hinten eine Kante und die hintere Strebe Kanten.
   # Seiten, Tür und Rückwand sind dort richtig und werden nicht angefasst.
@@ -231,14 +233,14 @@ module UnterschrankTuer
   TIEFE_MIN = 20.0
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür')
-    return unless res
-    masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
-    t = masse['Tiefe']
-    raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
-    einfuegen(Sketchup.active_model, SKP, masse: masse)
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      MASSE_NEU.values.map { |v| (v * 10).round.to_s }, 'Unterschrank mit Tür', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      masse = MASSE_NEU.keys.zip(res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }).to_h
+      t = masse['Tiefe']
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(TIEFE_MIN * 10).round} mm)" if t < TIEFE_MIN
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if masse.values.any? { |v| v <= 0 }
+      einfuegen(Sketchup.active_model, SKP, masse: masse)
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

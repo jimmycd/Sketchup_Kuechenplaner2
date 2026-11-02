@@ -17,13 +17,14 @@
 # Kästen. Über jedem Kasten bleibt dafür Freiraum_Scharnier frei; die Scharnierhöhen stehen als
 # Scharnier_1..6 am Schrank (0 = keins).
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
-# "Anleimer Melamin weiss" (Kante, 2 mm, nur in OCL abgezogen; gezeichnet wird das Endmaß).
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
+# "Anleimer Melamin weiss" (Kante, 2 mm, erst in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß).
 # Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil> (z. B. HV1_SeiteL, HV1_U2_Innenfront)
 # und das Wörterbuch "JT_Schrank" für den TCN-Export.
 # Anderes Kürzel: HochschrankVorrat.erstellen({ 'Kuerzel' => 'HV2' })
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module HochschrankVorrat
 
@@ -48,8 +49,9 @@ module HochschrankVorrat
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -102,7 +104,7 @@ module HochschrankVorrat
     'Oben: 0–6 Einlegeböden. Tür: ganz oder geteilt (unten/oben), ein Flügel (Anschlag links/rechts) oder zwei.',
     'Die Scharniere sitzen in Lücken über den Kästen (Freiraum_Scharnier, Standard 60 mm); ihre Höhen stehen unten in den Optionen.',
     'Innenfront 12 mm, Farbe über Frontfarbe und Griffe › Nur Innenfronten.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HV1_SeiteL, HV1_U2_Innenfront, HV1_O_Tuer.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -635,18 +637,18 @@ module HochschrankVorrat
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s],
-                      'Hochschrank Vorrat')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 hinter der Innenfront, mindestens #{(tiefe_min * 10).round} mm)"
+                      'Hochschrank Vorrat', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 hinter der Innenfront, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

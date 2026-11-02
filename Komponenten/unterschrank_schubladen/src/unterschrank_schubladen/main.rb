@@ -14,6 +14,7 @@
 # werden dann passend auf die Höhe skaliert.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -67,8 +68,9 @@ module UnterschrankSchubladen
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -79,8 +81,8 @@ module UnterschrankSchubladen
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
-  # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
+  # Material-Einstellungen (Typ, Stärke, Format), falls die Materialien im Modell noch fehlen
+  # (Werte wie in Unterschrank.skp). Vorhandene Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
     MATERIAL => {
       'type' => 2, # Plattenmaterial
@@ -98,9 +100,9 @@ module UnterschrankSchubladen
     }
   }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # Richtungen im Schrank: ymin = vorne, zmax = oben, xmin/xmax = links/rechts.
-  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnet nur OCL.
+  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnen Stückliste und Zuschnitt.
   KANTEN = {
     'Seite'        => %i[ymin],                  # Vorderkante
     'Boden'        => %i[ymin],
@@ -153,13 +155,13 @@ module UnterschrankSchubladen
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_schubladen'.freeze
-  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen (Blum LEGRABOX), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen (Blum LEGRABOX)'.freeze
   HILFE = [
     'Breite, Höhe, Tiefe, Anzahl Schubladen und Anteile (Schublade 1 = oben) hier ändern.',
     'Anteile: 1/1/2 = unterste doppelt so hoch; mm-Werte werden auf die Höhe skaliert.',
     'Schubkästen: Blum LEGRABOX free, Schienen-Nennlänge NL aus der Tiefe (NL + 3 mm ≤ Tiefe), Holzteile Boden LW−35 × NL−10 und Rückwand LW−38 × 148.',
     'Mit „Interagieren“ auf eine Schublade klicken: sie fährt heraus.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. USS1_SeiteL, USS1_S2_Front.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -303,7 +305,7 @@ module UnterschrankSchubladen
     n.z > 0 ? :zmax : :zmin
   end
 
-  # Kantenflächen mit dem Anleimer-Material belegen (so erkennt OCL die Kanten)
+  # Kantenflächen mit dem Anleimer-Material belegen (so erkennen Stückliste und TCN-Export die Kanten)
   def self.anleimer_setzen(defn, kanten, anleimer)
     defn.entities.grep(Sketchup::Face).each do |f|
       f.material = anleimer if kanten.include?(seite_von(f))
@@ -545,27 +547,26 @@ module UnterschrankSchubladen
                'Kürzel für Tags (eindeutig je Schrank)']
     defaults = ['600', '700', '520', '3', '1;1;1', freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '']
-    res = UI.inputbox(prompts, defaults, lists, 'Unterschrank mit Schubladen')
-    return unless res
-
-    anz = res[3].to_i
-    eingabe = {
-      'Breite' => res[0].tr(',', '.').to_f / 10.0,
-      'Hoehe'  => res[1].tr(',', '.').to_f / 10.0,
-      'Tiefe'  => res[2].tr(',', '.').to_f / 10.0,
-      'Anz_Schubladen' => anz,
-      'Kuerzel' => res[5].strip
-    }
-    raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
-    if eingabe['Tiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
-      raise ArgumentError, 'Tiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Unterschrank mit Schubladen', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      anz = res[3].to_i
+      eingabe = {
+        'Breite' => res[0].tr(',', '.').to_f / 10.0,
+        'Hoehe'  => res[1].tr(',', '.').to_f / 10.0,
+        'Tiefe'  => res[2].tr(',', '.').to_f / 10.0,
+        'Anz_Schubladen' => anz,
+        'Kuerzel' => res[5].strip
+      }
+      raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+      if eingabe['Tiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+        raise ArgumentError, 'Tiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+      end
+      if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
+        raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+      end
+      parse_aufteilung(res[4], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
+      (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
+      erstellen(eingabe)
     end
-    if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
-      raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
-    end
-    parse_aufteilung(res[4], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
-    (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

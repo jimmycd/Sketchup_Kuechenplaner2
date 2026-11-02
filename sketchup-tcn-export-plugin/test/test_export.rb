@@ -22,6 +22,7 @@ load File.join(komp, 'unterschrank_insel/src/unterschrank_insel/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.join(komp, 'eck_oberschrank/src/eck_oberschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
+load File.join(komp, 'hochschrank_kuehlschrank/src/hochschrank_kuehlschrank/main.rb')
 load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -308,9 +309,9 @@ Dir.mktmpdir do |dir|
   check(dateien.all? { |x| File.exist?(File.join(dir, "#{x.name}.tcn")) }, 'alle TCN geschrieben')
   csv = File.binread(File.join(dir, 'Teileliste.csv'))
   zeilen = csv.split("\r\n")
-  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;OCL-Teil' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
+  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
   check(zeilen.include?('HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden'), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
-  check(zeilen.first.end_with?(';OCL-Teil'), 'Teileliste: Spalte OCL-Teil')
+  check(zeilen.first.end_with?(';Teilname'), 'Teileliste: Spalte Teilname')
 
   # Fräsliste .xmlst für das TpaCAD-Board
   liste = File.join(dir, S::Fraesliste.name(dir))
@@ -354,6 +355,28 @@ b.ws.teil.inst.layer = a.ws.teil.inst.layer
 dateien3, = S::Export.erzeugen(model)
 check(dateien3.any? { |x| x.name == "#{S::Export.dateiname(a.name)}_2" }, 'gleicher Tag, andere TCN: Endung _2')
 b.ws.teil.inst.layer = alt
+
+# --- Hochschrank Kühlschrank: Lüftungsschacht (Böden kürzer, Rückwand oben in Nut), keine Lochreihe in der Nische ---
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({})
+dk, mk_ = S::Export.erzeugen(km)
+check(mk_.empty?, "Hochschrank Kühlschrank: keine Meldungen #{mk_}")
+check(dk.map(&:name).sort == %w[HK1_Boden HK1_Deckel HK1_N_Tuer HK1_O_Tuer HK1_RueckwandOben HK1_SeiteL HK1_SeiteR HK1_ZwischenbodenOben],
+      "Hochschrank Kühlschrank: Teile ohne Platzhalter und ausgeblendete: #{dk.map(&:name).sort}")
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+# Dübel 30 mm von der Hinterkante der gekürzten Böden: 30 + Schacht 40 + Rückwand 8 = 78
+dueb = zk.select { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') }
+check(dueb.size == 3 && dueb.all? { |x| x.include?('#8510=78 #8511=y-28') }, "Hochschrank Kühlschrank: Dübel Boden/Zwischenboden/Deckel: #{dueb}")
+lr = zk.select { |x| x.include?('fittingx.tmcr') }
+check(lr.size == 2 && lr.all? { |x| x.include?('#8510=x-242 #8511=x-50') } && lr.any? { |x| x.include?('#8518=83 ') },
+      "Hochschrank Kühlschrank: Lochreihe nur oben, hinten 35 mm vor der Rückwand: #{lr}")
+check(zk.count { |x| x.include?('#205=2200') } == 1, 'Hochschrank Kühlschrank: Nut für die Rückwand oben')
+km = Sketchup.active_model = Sketchup::Model.new
+HochschrankKuehlschrank.erstellen({ 'Lueftung' => 0.0 })
+dk, = S::Export.erzeugen(km)
+zk = bearbeitungen(dk.find { |x| x.name == 'HK1_SeiteL' }.text, 1)
+check(dk.any? { |x| x.name == 'HK1_Rueckwand' } && zk.none? { |x| x.include?('#205=2200') } &&
+      zk.select { |x| x.include?('#8522=8 ') }.all? { |x| x.include?('#8510=30 ') }, 'Hochschrank Kühlschrank Frontlüftung: Rückwand durchgehend, Böden volle Tiefe')
 
 # --- Hochschrank Geräte: drei Zwischenböden, keine Lochreihen in den Nischen, Platzhalter nicht exportiert ---
 hm = Sketchup.active_model = Sketchup::Model.new
@@ -769,13 +792,34 @@ check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sor
 model = Sketchup.active_model = Sketchup::Model.new
 OberschrankKlappe.erstellen({})
 OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 })
-dk, = S::Export.erzeugen(model)
+dk, km = S::Export.erzeugen(model)
 d = dk.to_h { |x| [x.name, x] }
+check(km.size == 1 && km.first.start_with?('OK2: AVENTOS HF'), "Klappe: nur HF meldet fehlende Bohrungen: #{km}")
 check(d['OK1_Klappe'] && !d['OK1_KlappeO'] && d['OK2_KlappeO'] && d['OK2_KlappeU'] && !d['OK2_Klappe'],
       "Klappe: nur sichtbare Klappenteile exportiert: #{d.keys.grep(/Klappe/)}")
 check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [394, 894], "HK-top-Klappe 898 x 398 Endmaß, im TCN ohne Anleimer 894 x 394 (#{d['OK1_Klappe'].lage.dl} x #{d['OK1_Klappe'].lage.dh})")
 zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
 check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
+# AVENTOS HK-top (Standard 900 x 400): Kraftspeicher 4 × Ø5 in einer Reihe, 37/69/101/133 ab Vorderkante,
+# 36 unter der Oberkante; Frontbeschlag je Seite Ø5 12,5 ab Innenseite der Seite, 62/94 unter der Oberkante
+ks = ->(w) { bearbeitungen(w.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-12 ') && !x.include?('#8522') } }
+%w[OK1_SeiteL OK1_SeiteR].each do |n|
+  w = d[n]
+  pk = ks.(w).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
+  check(pk.size == 4 && pk.map(&:first).uniq.size == 1, "#{n}: Kraftspeicher 4 Löcher in einer Reihe: #{pk}")
+  vorn = pk.map(&:last).map { |y| [y, w.lage.dh - y].min }.sort
+  check(vorn == [37, 69, 101, 133].map { |v| v - 2.0 }, "#{n}: Kraftspeicher ab Vorderkante (Fräsmaß, 2 mm Anleimer vorn): #{vorn}")
+  hoch = pk.first && [pk.first.first, w.lage.dl - pk.first.first].min
+  check(hoch && (hoch - 34.0).abs < 1e-6, "#{n}: Kraftspeicher 36 unter der Oberkante (Fräsmaß 34): #{hoch}")
+end
+fk = d['OK1_Klappe']
+fb = ks.(fk).map { |x| [lage_mm(x[/#1=(\S+)/, 1], fk.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fk.lage.dh)] }.sort
+# Klappe 898 x 398, rundum Anleimer (Fräsmaß 894 x 394); Innenseite der Seite 18 vom Klappenrand -> 30,5 (28,5 im Fräsmaß),
+# Oberkante Klappe 1 unter Korpusoberkante -> 61 / 93 (59 / 91 im Fräsmaß)
+xs = fb.map { |p| [p[0], fk.lage.dl - p[0]].min }.uniq.sort
+ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
+check(fb.size == 4 && xs == [28.5] && ys == [59.0, 91.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
+check(ks.(d['OK2_KlappeO']).empty? && ks.(d['OK2_SeiteL']).empty?, 'HF: noch keine AVENTOS-Bohrungen')
 check(bearbeitungen(d['OK1_Rueckwand'].text, 1).any? { |x| x.include?('#8522=5 ') && x.include?('#8513=-9 ') }, 'Rückwand für die Deckelschrauben gebohrt')
 check([3, 4, 5, 6].flat_map { |sd| bearbeitungen(d['OK1_Deckel'].text, sd) }.none? { |x| x.include?('#8522=3 ') }, 'Deckel: Kante nicht vorgebohrt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
@@ -883,6 +927,20 @@ check(rt.select { |t| t.jt('schrank') == 'RA2' }.all? { |t| t.inst.material.name
 kb = rt.find { |t| t.name == 'RA1_Boden' }.inst.definition.entities.grep(Sketchup::Face).select(&:material)
 check(!kb.empty? && kb.all? { |x| x.material.name == 'Anleimer Eiche' }, 'Frontfarbe: Anleimer an der Schräge passend')
 
+# --- Zustellung: Fräsungen nie tiefer als 20 mm in einem Schritt (gilt für alle TCN) ---
+t = S::Tcn
+check(t.stufen(9) == [9] && t.stufen(20) == [20] && t.stufen(39) == [19.5, 39] && t.stufen(45) == [15, 30, 45],
+      "Zustellschritte: #{t.stufen(39)} #{t.stufen(45)}")
+bahn = ['W#89{ ::WTs WS=@  #8015=0 #1=0 #2=0 #3=-39 #201=1 #205=1004 }W',
+        'W#2201{ ::WTl  #8015=1 #1=100 #2=0 }W', 'W#2125{ ::WTa  #8015=0 #8017=30 #8046=-45 }W',
+        'W#81{ ::WTp WS=@  #8015=0 #1=5 #2=5 #3=-25 #1002=8 }W',
+        'W#89{ ::WTs WS=@  #8015=0 #1=0 #2=0 #3=-9 #201=1 #205=2200 }W', 'W#2201{ ::WTl  #8015=1 #1=50 #2=0 }W',
+        'W#1022{ ::WT2 WS=@  #8098=rect.tmcr #8514=-30 #8515=100 }W']
+z = t.zustellen(bahn)
+check(z.size == 11 && z[0].include?(' #3=-19.5 ') && z[3].include?(' #3=-39 ') && z[1, 2] == bahn[1, 2] && z[4, 2] == bahn[1, 2],
+      "Bahn 39 tief: 2 Durchgänge mit allen Bahnzeilen: #{z}")
+check(z[6] == bahn[3] && z[7] == bahn[4] && z[8] == bahn[5], 'Bohrung und flache Nut unverändert')
+check(z[9].include?(' #8514=-15 ') && z[10].include?(' #8514=-30 '), "Tasche 30 tief in 2 Schritten: #{z.last(2)}")
 # --- Eck-Oberschrank L-Form: Rückwandnut in Seiten und L-Boden, Deckel an beide Rückwände geschraubt,
 # Innenecke von oben (Fläche 1 des Bodens = Nutseite), keine Sockelfüße ---
 eo = Sketchup.active_model = Sketchup::Model.new

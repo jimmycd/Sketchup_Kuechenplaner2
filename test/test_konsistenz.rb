@@ -114,7 +114,7 @@ check(falsch[:waagrecht].empty?, "waagrecht nur Ø8 (T71/T61): #{falsch[:waagrec
 # Werkzeugnummern auch im Quelltext (z. B. Arbeitsplatte, die hier nicht exportiert wird)
 plugin = Dir[File.join(haupt, 'sketchup-tcn-export-plugin/src/jt_schrank_cnc/*.rb')]
 plugin.each do |f|
-  File.read(f, encoding: 'UTF-8').scan(/werkzeug: *(\d+)/).flatten.map(&:to_i).each do |w|
+  File.read(f, encoding: 'UTF-8').scan(/(?<!\w)werkzeug: *(\d+)/).flatten.map(&:to_i).each do |w|
     check(FRAESER.include?(w), "#{File.basename(f)}: Fräser #{w} nicht in der Werkzeugliste")
   end
 end
@@ -141,7 +141,7 @@ doku = Dir[File.join(haupt, '{Komponenten/*,sketchup-tcn-export-plugin,kuechenpl
 # Kein OpenCutList mehr: erlaubt ist nur der Name des Material-Wörterbuchs (Datenformat, bleibt)
 ocl = (quellen + doku).flat_map do |f|
   File.readlines(f, encoding: 'UTF-8').each_with_index.filter_map do |z, i|
-    next if z.include?('ladb_opencutlist')
+    next if z.include?('ladb_opencutlist') || z.include?('GPL') # Wörterbuch-Name und Lizenzhinweis (BinPacking2D) bleiben
     "#{f.delete_prefix("#{haupt}/")}:#{i + 1}" if z =~ /opencutlist|\bOCL\b/i
   end
 end

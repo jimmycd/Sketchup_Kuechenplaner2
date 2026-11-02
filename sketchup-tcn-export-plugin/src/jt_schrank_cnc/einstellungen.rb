@@ -5,8 +5,7 @@
 # Übermaß: Rohmaß (Zuschnitt an der Formatsäge) = Fräsmaß + Übermaß, damit die CNC
 # das Teil rundum formatieren kann (squad). Angabe gesamt je Richtung in mm, also
 # 10 mm = 5 mm je Kante. Länge = längere, Breite = kürzere Seite des Teils.
-# Früher kam das Übermaß aus OpenCutList (length_increase/width_increase am
-# Material); nach Jürgen (2026-11-01) ist es eine allgemeine Einstellung.
+# Das Übermaß stand früher am Material (length_increase/width_increase); nach Jürgen (2026-11-01) ist es eine allgemeine Einstellung.
 # Zuschnitt: Schnittbreite des Sägeblatts (Jürgen: 3 mm) und Besäumen ringsum.
 
 module JTools
@@ -56,18 +55,21 @@ module JTools
         a >= b ? [uebermass_laenge, uebermass_breite] : [uebermass_breite, uebermass_laenge]
       end
 
+      # true = gespeichert, false = abgebrochen oder ungültig
       def dialog
         keys = WERTE.keys
         alt = keys.map { |k| Tcn.n(wert(k)) }
-        neu = UI.inputbox(keys.map { |k| WERTE[k][0] }, alt, 'Küchenplaner – Einstellungen')
-        return false unless neu
-        zahlen = neu.map { |s| s.to_s.strip.tr(',', '.') }
-        if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
-          UI.messagebox('Bitte nur Zahlen ≥ 0 eingeben (mm).')
-          return false
+        erg = Kuechenplaner::Eingabe.abfragen(keys.map { |k| WERTE[k][0] }, alt, 'Küchenplaner – Einstellungen',
+                                              untertitel: 'gilt für alle Modelle', ok: 'Speichern') do |neu|
+          zahlen = neu.map { |s| s.to_s.strip.tr(',', '.') }
+          raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
+          keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
+          true
         end
-        keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
-        true
+        erg ? true : false
+      rescue ArgumentError => e
+        UI.messagebox(e.message)
+        false
       end
     end
   end

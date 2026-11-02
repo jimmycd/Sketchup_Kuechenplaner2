@@ -2,7 +2,7 @@
 
 Setzt Geräte in die Nischen der Spezialschränke: **Geschirrspüler**, **Kühlschrank/Weinkühler**, **Kochfeld mit Abzug**, **Kochfeld** (ohne Abzug), **Spüle mit Armatur**, **Backofen**, **Kompaktgerät**, **Mikrowelle**, **Wärmeschublade** und **Flachschirmhaube**. Die Geräte werden selbst erzeugt (keine Herstellermodelle) und sind schlicht gehalten, damit das Modell leicht bleibt.
 
-Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, keine Teil-Tags. Der TCN-Export übergeht sie. Für OpenCutList die Szene **Zuschnitt** wählen (oder die Tags `Geraete_Plan` und `Geraete_Render` ausblenden), sonst listet OCL die Geräteteile mit.
+Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, keine Teil-Tags. Der TCN-Export übergeht sie. Für Stückliste und Etiketten die Szene **Zuschnitt** wählen (oder die Tags `Geraete_Plan` und `Geraete_Render` ausblenden), sonst listet die Stückliste die Geräteteile mit.
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `geraete.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner).
@@ -15,7 +15,7 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 |---|---|---|---|
 | Planung | an | aus | farbige, halbtransparente Blöcke mit Beschriftung (Gerät und Nischenmaß) |
 | Kunde | aus | an | Rendering: Schwarzglas, Edelstahl, Gehäuse |
-| Zuschnitt | aus | aus | OpenCutList, keine Geräte |
+| Zuschnitt | aus | aus | Stückliste/Etiketten, keine Geräte |
 
 Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld, Haube), türkis = Wasser (Spüler, Spüle), blau = sonstige (Mikrowelle, Wärmeschublade).
 
@@ -29,6 +29,7 @@ Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld, Haube), türk
 | Spülenschrank | aus den Schrankmaßen (kein `JT_Nische`) | Edelstahlspüle mit einem Becken (höchstens 860 × 500 mm) und Armatur, Arbeitsplatte 40 mm |
 | Oberschrank Dunstabzug | `JT_Nische` (DA), Breite, Haubenraum, Abluft und Rohr aus den aktuellen Komponentenoptionen | Flachschirmhaube 60/90 unten bündig im Haubenraum: Wrasenschirm, Filterwanne, Lüfterbaustein; bei Abluft das Rohr durch den Ausschnitt bis zur Oberkante des Schranks |
 | Hochschrank Geräte | `JT_Nische_N1`, `JT_Nische_N2` | Backofen 60 (Front 595 × 595), Kompaktgerät 45 (595 × 455), Mikrowelle 38 (595 × 382), Wärmeschublade 14 (595 × 140); „frei“ bleibt leer |
+| Hochschrank Kühlschrank | `JT_Nische_N1` | Einbau-Kühlgerät (`Kuehlgeraet178` usw.): Gehäuse und Gerätetür hinter der Möbeltür des Schranks, Höhe = Nischenhöhe |
 
 Einbaugeräte haben eine 595 mm breite Front, mittig über der Nische und bündig mit den Möbelfronten (2 mm vor der Korpusvorderkante); das Gehäuse steckt in der Nische.
 
@@ -46,6 +47,6 @@ Ein Schrank mit Gerätenische legt an seiner Definition ein Wörterbuch `JT_Nisc
 Die Werte sind der Stand beim Erzeugen des Schranks. Jedes Gerät trägt das Wörterbuch `JT_Geraet` (`geraet`, `nische`, `schrank`, `text`).
 
 ## Tests
-`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte, Herdumbauschrank und Oberschrank Dunstabzug, setzt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder OCL-Material trägt und dass der TCN-Export die Geräte übergeht.
+`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte, Herdumbauschrank und Oberschrank Dunstabzug, setzt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder Material trägt und dass der TCN-Export die Geräte übergeht.
 
 **Noch nicht in echtem SketchUp geprüft.**

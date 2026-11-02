@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Etiketten (ersetzt die Etiketten aus OpenCutList).
+# Schrank-CNC – Etiketten.
 #
 # Ein Etikett je Stück (Anzahl 3 = drei Etiketten "1/3", "2/3", "3/3"), in der
 # Reihenfolge der Stückliste (gleiche Nummern). Ausgabe als HTML-Seite, die im
@@ -179,36 +179,33 @@ module JTools
       end
 
       # Format abfragen (vorbelegt mit dem gespeicherten), dazu die Startposition.
-      # Gibt [Format, Start] oder nil zurück.
+      # Ruft den Block mit Format und Start auf (nicht bei Abbruch); ungültige Werte -> ArgumentError.
       def abfragen
         f = format_lesen
         keys = FORMAT.keys
         labels = keys.map { |k| FORMAT[k][0] } + ['Bogen: erstes freies Etikett (1 = oben links)']
         werte = keys.map { |k| f[k].is_a?(String) ? f[k] : Tcn.n(f[k]) } + ['1']
         listen = keys.map { |k| { 'etikett_art' => ARTEN.join('|'), 'etikett_qr' => 'nein|ja' }[k] || '' } + ['']
-        antwort = UI.inputbox(labels, werte, listen, 'Etiketten – Format')
-        return nil unless antwort
-        neu = {}
-        zahlen_ok = true
-        keys.each_with_index do |k, i|
-          std = FORMAT[k][1]
-          s = antwort[i].to_s.strip
-          if std.is_a?(String)
-            neu[k] = s
-          else
-            zahlen_ok &&= s.tr(',', '.') =~ /\A\d+(\.\d+)?\z/
-            neu[k] = std.is_a?(Integer) ? s.to_i : s.tr(',', '.').to_f
+        Kuechenplaner::Eingabe.abfragen(labels, werte, listen, 'Etiketten – Format', gruppe: 'Etikett', ok: 'Weiter') do |antwort|
+          neu = {}
+          zahlen_ok = true
+          keys.each_with_index do |k, i|
+            std = FORMAT[k][1]
+            s = antwort[i].to_s.strip
+            if std.is_a?(String)
+              neu[k] = s
+            else
+              zahlen_ok &&= s.tr(',', '.') =~ /\A\d+(\.\d+)?\z/
+              neu[k] = std.is_a?(Integer) ? s.to_i : s.tr(',', '.').to_f
+            end
           end
+          start = antwort[keys.size].to_s.strip
+          zahlen_ok &&= start =~ /\A\d+\z/
+          fehler = zahlen_ok ? pruefen(neu) : ['Bitte bei Maßen und Anzahlen nur Zahlen ≥ 0 eingeben']
+          raise ArgumentError, fehler.join("\n") unless fehler.empty?
+          format_speichern(neu)
+          yield neu, start.to_i
         end
-        start = antwort[keys.size].to_s.strip
-        zahlen_ok &&= start =~ /\A\d+\z/
-        fehler = zahlen_ok ? pruefen(neu) : ['Bitte bei Maßen und Anzahlen nur Zahlen ≥ 0 eingeben']
-        unless fehler.empty?
-          UI.messagebox(fehler.join("\n"))
-          return nil
-        end
-        format_speichern(neu)
-        [neu, start.to_i]
       end
 
       def dialog(model = Sketchup.active_model)
@@ -218,15 +215,17 @@ module JTools
           UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
           return
         end
-        f, start = abfragen
-        return unless f
-        ordner = UI.select_directory(title: 'Ordner für die Etiketten')
-        return unless ordner
-        p = schreiben(ordner, zs, f, start: start)
-        UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-        text = "#{stuecke(zs).size} Etiketten#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nIm Browser drucken: Größe 100 % (nicht „an Seite anpassen“), Ränder keine."
-        text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
-        UI.messagebox(text)
+        abfragen do |f, start|
+          ordner = UI.select_directory(title: 'Ordner für die Etiketten')
+          next unless ordner
+          p = schreiben(ordner, zs, f, start: start)
+          UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
+          text = "#{stuecke(zs).size} Etiketten#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nIm Browser drucken: Größe 100 % (nicht „an Seite anpassen“), Ränder keine."
+          text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
+          UI.messagebox(text)
+        end
+      rescue ArgumentError => e
+        UI.messagebox(e.message)
       end
     end
   end

@@ -19,10 +19,11 @@
 #   Tag "Geraete_Plan":   halbtransparenter Block mit Beschriftung (Planung)
 #   Tag "Geraete_Render": Modell aus Schwarzglas, Edelstahl und Gehäuse (Kunde)
 # Geräte sind keine Schrankteile: kein Plattenmaterial, kein JT_Schrank, keine
-# Teil-Tags. Der TCN-Export übergeht sie; vor OpenCutList die Szene "Zuschnitt"
+# Teil-Tags. Der TCN-Export übergeht sie; für Stückliste/Etiketten die Szene "Zuschnitt"
 # wählen (beide Geräte-Tags aus).
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Geraete
 
@@ -33,7 +34,7 @@ module Geraete
   TAG_PLAN    = 'Geraete_Plan'.freeze
   TAG_RENDER  = 'Geraete_Render'.freeze
 
-  # Materialien ohne OpenCutList-Einstellungen: [Farbe, Deckkraft]
+  # Materialien ohne Plattenwerkstoff-Einstellungen: [Farbe, Deckkraft]
   MATERIALIEN = {
     'Geraet Schwarzglas' => [[20, 20, 22], 1.0],
     'Geraet Edelstahl'   => [[190, 192, 195], 1.0],
@@ -58,6 +59,7 @@ module Geraete
     'Waermeschublade' => ['Wärmeschublade', 'Geraet Plan', 140.0],
     'Kuehlschrank'    => ['Kühlschrank integriert', 'Geraet Plan'],
     'KuehlschrankFrei' => ['Kühlschrank unterbaufähig', 'Geraet Plan'],
+    'Kuehlgeraet'     => ['Einbau-Kühlgerät', 'Geraet Plan'], # Hochschrank Kühlschrank, Zahl = Nischenhöhe cm
     'Weinkuehler'     => ['Weinkühler', 'Geraet Plan']
   }.freeze
   KUEHL_ARTEN = %w[Kuehlschrank Weinkuehler KuehlschrankFrei].freeze # Geraet_Art 0/1/2 des Kühlschrank-Unterschranks
@@ -67,7 +69,7 @@ module Geraete
   ARBEITSPLATTE = 40.0  # wenn die Nische keine Stärke angibt
 
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/geraete'.freeze
-  HILFE_KURZ = 'Geräte-Platzhalter für Planung und Rendering, für OpenCutList und TCN-Export unsichtbar'.freeze
+  HILFE_KURZ = 'Geräte-Platzhalter für Planung und Rendering, für Stückliste und TCN-Export unsichtbar'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp). Alles in mm, relativ zum Einfügepunkt der
@@ -130,6 +132,16 @@ module Geraete
     k = kuehl(n)
     { plan: [0, 0, 0, k[:b], k[:t], k[:h]],
       teile: [k[:gehaeuse], k[:fuesse], teil('Geraetetuer', 'Geraet Gehaeuse', [0, 0, k[:so]], [k[:b], 20, k[:h] - k[:so]])] }
+  end
+
+  # Einbau-Kühlgerät im Hochschrank Kühlschrank: Gehäuse und Gerätetür hinter der Möbeltür
+  # (die Möbeltür gehört zum Schrank), steht auf dem Boden der Nische
+  def self.berechne_kuehlgeraet(n, _)
+    b, h = zahl(n, 'breite'), zahl(n, 'hoehe')
+    t = [545.0, zahl(n, 'tiefe', 560.0)].min
+    { plan: [0, 0, 0, b, t, h],
+      teile: [teil('Gehaeuse', 'Geraet Gehaeuse', [2, 20, 0], [b - 4, t - 20, h - 2]),
+              teil('Geraetetuer', 'Geraet Gehaeuse', [2, 0, 0], [b - 4, 20, h - 2])] }
   end
 
   def self.berechne_kuehlschrankfrei(n, _)
@@ -467,7 +479,7 @@ module Geraete
   def self.in_schraenke_setzen(model = Sketchup.active_model)
     liste = schraenke(model)
     if liste.empty?
-      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte).')
+      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte, Hochschrank Kühlschrank).')
       return 0
     end
     model.start_operation('Geräte in Schränke setzen', true)
@@ -481,7 +493,7 @@ module Geraete
     raise
   end
 
-  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum, für OCL)
+  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum)
   SZENEN = { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.freeze
   RAUM_TAGS = 'Raum-'.freeze # Tags der Erweiterung Raum (Wände, Fenster, Türen, Boden)
 

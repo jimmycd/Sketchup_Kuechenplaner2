@@ -2,7 +2,7 @@
 
 Baut den Küchenraum maßstäblich als Planungshilfe: **Wände**, **Fenster**, **Türen** und **Durchgänge**. Die Schränke docken mit dem Andock-Werkzeug an die Wände an und rasten in den Ecken und an den Türlaibungen ein.
 
-Der Raum ist **kein Fertigungsteil**: kein Plattenmaterial, kein `JT_Schrank`, eigene Tags `Raum-Wand`, `Raum-Boden`, `Raum-Fenster`, `Raum-Tuer`, `Raum-Aufschlag`. Der TCN-Export übergeht ihn. Für OpenCutList die Szene **Zuschnitt** wählen (*Geräte › Szenen Planung/Kunde/Zuschnitt anlegen* blendet dort auch die Raum-Tags aus).
+Der Raum ist **kein Fertigungsteil**: kein Plattenmaterial, kein `JT_Schrank`, eigene Tags `Raum-Wand`, `Raum-Boden`, `Raum-Fenster`, `Raum-Tuer`, `Raum-Aufschlag`. Der TCN-Export übergeht ihn. Für Stückliste und Etiketten die Szene **Zuschnitt** wählen (*Geräte › Szenen Planung/Kunde/Zuschnitt anlegen* blendet dort auch die Raum-Tags aus).
 
 ## Installieren
 SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `raum.rbz` (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner). Danach *Erweiterungen → Küchenplaner → Raum*.

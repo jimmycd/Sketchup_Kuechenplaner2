@@ -10,7 +10,7 @@
 # Komponentenoptionen: eine Tür, zwei Türen oder Le Mans (Kesseböhmer LeMans II,
 # Montageanleitung MA 406954 0000). Die Blindseite (links/rechts) ist umschaltbar.
 # Der Le-Mans-Beschlag ist als Platzhalter gezeichnet (Material "Kesseböhmer
-# LeMans II", OpenCutList-Typ Beschlag, kein JT_Schrank); die Bohrungen für
+# LeMans II", Material-Typ Beschlag, kein JT_Schrank); die Bohrungen für
 # Säulenlager und Seitenprofil setzt der TCN-Export.
 #
 # L-Form: L-förmiger Korpus mit zwei Schenkeln und Falttür. Boden und Einlegeböden
@@ -19,16 +19,17 @@
 # Schenkellängen und Tiefe beim Erzeugen festgelegt (Dialog); Höhe und Einlegeböden
 # bleiben Komponentenoptionen.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Die Kanten der Innenecke einer
-# L-Platte kann OCL nicht als Anleimer erkennen (OCL sieht nur die Außenseiten);
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Die Kanten der Innenecke einer
+# L-Platte erkennt die Stückliste nicht als Anleimer (sie sieht nur die Außenseiten);
 # der TCN-Export fräst sie 2 mm zurück. Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. UES1_SeiteL, UES1_Blende) und das Wörterbuch "JT_Schrank"
 # für den TCN-Export. Anderes Kürzel:
 #   Eckschrank.erstellen({ 'Kuerzel' => 'UES2' })
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Eckschrank
 
@@ -54,8 +55,9 @@ module Eckschrank
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -111,26 +113,26 @@ module Eckschrank
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/eckschrank'.freeze
-  HILFE_KURZ = 'Eck-Unterschrank Blindeck: eine Tür, zwei Türen oder Le Mans (Kesseböhmer), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Eck-Unterschrank Blindeck: eine Tür, zwei Türen oder Le Mans (Kesseböhmer)'.freeze
   HILFE = [
     'Variante, Blindseite, Breite, Türbreite, LeMans-Größe, Höhe, Tiefe und Einlegeböden hier ändern.',
     'Der Blindteil steckt hinter der Nachbarzeile und ist mit einer festen Blende zu.',
     '„Abstand zur Wand“ zeigt, wie weit die Blindseite von der Seitenwand wegbleiben muss, damit neben der Tür die Passleiste frei bleibt (aus Tiefe des Nachbarn und Passleiste).',
     'Le Mans (Kesseböhmer LeMans II): Türbreite = LeMans-Größe (40/45/50/60 cm), Korpus mindestens 764/800/910/960 mm breit und 500 mm tief; Einlegeböden entfallen.',
-    'Der Beschlag ist als Platzhalter gezeichnet; OpenCutList führt ihn als Beschlag. Bohrungen setzt der TCN-Export.',
+    'Der Beschlag ist als Platzhalter gezeichnet; Stückliste und TCN-Export übergehen ihn. Bohrungen setzt der TCN-Export.',
     'Mit „Interagieren“ öffnen sich die Türen.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UES1_SeiteL, UES1_Blende.',
     'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
-  HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür, OpenCutList-fähig'.freeze
+  HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür'.freeze
   HILFE_L = [
     'L-förmiger Korpus, Falttür (zwei Türen mit Blum-Scharnier verbunden).',
     'Schenkel A, Schenkel B, Tiefe, Höhe und Anzahl Einlegeböden hier ändern.',
     'Nach einer Änderung von Schenkel oder Tiefe baut die Erweiterung den Schrank neu auf (eine L-Platte lässt sich nicht per Formel umformen); Frontmaterial und Griffe bleiben erhalten.',
-    'Boden und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export aus. OpenCutList rechnet mit dem Rechteck; die Anleimer der Innenecke erkennt OCL nicht.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Boden und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export aus. Stückliste und Zuschnitt rechnen mit dem Rechteck.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UES1_Boden, UES1_TuerL.',
     "Doku: #{DOKU_URL}"
   ].join(' ').freeze
@@ -210,7 +212,7 @@ module Eckschrank
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -234,10 +236,10 @@ module Eckschrank
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Kaufteil: OCL-Typ 5 = Beschlag (erscheint in OCL als Beschlag, nicht als Platte)
+  # Kaufteil: Material-Typ 5 = Beschlag (kein Plattenteil)
   def self.beschlag_material(model)
     ocl_material(model, BESCHLAG, [150, 150, 155], 'type' => 5, 'description' => 'Kesseböhmer LeMans II, 2 Tablare')
   end
@@ -263,7 +265,7 @@ module Eckschrank
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer (wie Unterschrank mit Tür).
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer (wie Unterschrank mit Tür).
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   # In der L-Form zeigt die Vorderkante des linken Schenkels nach +x (…B).
   KANTEN = {
@@ -282,7 +284,7 @@ module Eckschrank
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -311,7 +313,7 @@ module Eckschrank
 
   # L-förmige Platte (L-Form: Boden, Einlegeböden): Rechteck lx x ly ohne die Ecke
   # vorne rechts (x >= ex, y <= ey). Die Kanten der Innenecke bleiben ohne Material,
-  # OCL erkennt dort keinen Anleimer. Die Ecke steht als ecke_x/ecke_y (Zoll, lokal)
+  # die Stückliste erkennt dort keinen Anleimer. Die Ecke steht als ecke_x/ecke_y (Zoll, lokal)
   # an der Definition, daraus fräst der TCN-Export den Ausschnitt.
   def self.l_platte(model, defname, dc_name, lx, ly, lz, ex, ey)
     d = model.definitions.add(defname)
@@ -525,7 +527,7 @@ module Eckschrank
 
   # Platzhalter Kesseböhmer LeMans II: Einbauraum von der Innenseite der Seite an der
   # Tür bis zum Säulenlager (X), Tiefe bis 500 mm, Boden bis unter die Streben.
-  # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL.
+  # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung.
   def self.lemans_platzhalter(model, e, p, r, kz)
     u = NAME
     mk, h, t = p['Materialstaerke_Korpus'], p['Hoehe'], p['Tiefe']
@@ -771,17 +773,17 @@ module Eckschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
@@ -814,12 +816,12 @@ module Eckschrank
   # L-Form: Schenkel und Tiefe vor dem Erzeugen abfragen (mm)
   def self.dialog_l
     d = DEFAULTS_L
-    werte = UI.inputbox(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
                         [d['Schenkel_A'], d['Schenkel_B'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
-                        'Eckschrank L-Form')
-    return unless werte
-    a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
-    erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Tiefe' => t }, l_form: true)
+                        'Eckschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
+      a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
+      erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Tiefe' => t }, l_form: true)
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

@@ -26,8 +26,8 @@ Mit *Interagieren* fährt der Auszug heraus.
 * Häfele verlangt lichte Höhe ≥ 565 mm (also Höhe ≥ 603 mm) und Tiefe ≥ 485 mm. Die Komponente prüft das nicht; der TCN-Export meldet einen zu kleinen Einbauraum.
 * Der Korpus beginnt wie bei den anderen Schränken bei y = 19 mm, die Front liegt davor.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -35,7 +35,7 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: K
 | Strebe hinten, Rückwand | keine |
 | Front | alle vier |
 
-Der Platzhalter hat das Material „Häfele HU Slim Base“ mit OCL-Typ *Beschlag*; OCL führt ihn damit als Kaufteil und nicht als Platte.
+Der Platzhalter hat das Material „Häfele HU Slim Base“ mit Typ *Beschlag* und kein `JT_Schrank`; Stückliste und TCN-Export übergehen ihn.
 
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Teil>`: `USH1_SeiteL`, `USH1_SeiteR`, `USH1_Boden`, `USH1_StrebeVorn`, `USH1_StrebeHinten`, `USH1_Rueckwand`, `USH1_Front`, dazu `USH1_Beschlag` (Platzhalter) und `USH1_Auszug` (Gruppe aus Front und Beschlag). Das Kürzel ist `USH1`, oder `USH2` usw., wenn es im Modell schon vergeben ist.
@@ -53,4 +53,4 @@ Nach Häfele „Dimensions for CNC“ (Maße ab Oberkante Boden bzw. Vorderkante
 Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `unterschrank_handtuch.rb`.
 
 ## Tests
-`ruby test/test_unterschrank_handtuch.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Korpus, Front, Einbauraum M150/M200), Formeln nach Umkonfigurieren, OCL-Material und -Typ des Beschlags, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft die Schienen- und Frontbohrungen (links und rechts, M150 und M200), die Hinweise bei zu kleinem Einbauraum und die Sockelfüße.
+`ruby test/test_unterschrank_handtuch.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Korpus, Front, Einbauraum M150/M200), Formeln nach Umkonfigurieren, Material und Typ des Beschlags, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft die Schienen- und Frontbohrungen (links und rechts, M150 und M200), die Hinweise bei zu kleinem Einbauraum und die Sockelfüße.

@@ -11,13 +11,14 @@
 # einer 9 mm tiefen Nut in Seiten und Boden und wird von oben eingeschoben.
 # Der Deckel endet vor der Rückwand und wird mit ihr verschraubt.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. OS1_SeiteL, OS1_TuerR) und das Wörterbuch "JT_Schrank"
 # für den TCN-Export. Anderes Kürzel: Oberschrank.erstellen({ 'Kuerzel' => 'OS2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module Oberschrank
 
@@ -39,8 +40,9 @@ module Oberschrank
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -69,12 +71,12 @@ module Oberschrank
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/oberschrank'.freeze
-  HILFE_KURZ = 'Oberschrank offen, mit einer oder zwei Türen, 0–3 Einlegeböden, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Oberschrank offen, mit einer oder zwei Türen, 0–3 Einlegeböden'.freeze
   HILFE = [
     'Breite, Höhe, Tiefe (Korpus ohne Front), Türen (keine, eine mit Anschlag links, zwei) und Anzahl Einlegeböden hier ändern.',
     'Rückwand 8 mm, 25 mm vor der Hinterkante in einer 9 mm tiefen Nut in Seiten und Boden, von oben eingeschoben; der Deckel endet vor der Rückwand.',
     'Mit „Interagieren“ öffnen sich die Türen.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. OS1_SeiteL, OS1_TuerR.',
     'Feste Maße (Materialstärken, Versatz, Nut, Spalt): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -151,7 +153,7 @@ module Oberschrank
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -175,7 +177,7 @@ module Oberschrank
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
   # Freies Kürzel für die Tags, z. B. OS1, OS2 …
@@ -196,7 +198,7 @@ module Oberschrank
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   KANTEN = {
     'Seite'        => %i[ymin zmin zmax], # Oberschrank: Unter- und Oberkante sichtbar
@@ -208,7 +210,7 @@ module Oberschrank
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -406,17 +408,17 @@ module Oberschrank
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Oberschrank')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Oberschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

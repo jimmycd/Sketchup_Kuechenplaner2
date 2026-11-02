@@ -20,11 +20,12 @@
 #
 # Materialien und Anleimer: Platten "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
 # "Anleimer Melamin weiss" (2 mm). Die Angaben stehen im Wörterbuch "ladb_opencutlist" am
-# Material (Format von OpenCutList; Stückliste, Zuschnitt, Etiketten und TCN-Export des eigenen
+# Material (Stückliste, Zuschnitt, Etiketten und TCN-Export des eigenen
 # Plugins lesen es). Gezeichnet wird das Endmaß. Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. RA1_SeiteL, RA1_Einlegeboden2) und das Wörterbuch "JT_Schrank".
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module RegalAbschluss
 
@@ -45,8 +46,9 @@ module RegalAbschluss
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -599,17 +601,17 @@ module RegalAbschluss
   # Danach bleiben alle Werte im Fenster Komponentenoptionen änderbar.
   def self.dialog(typ = 'Unterschrank')
     v = TYPEN.fetch(typ)
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Form', 'Zeilenende (Seite außen)'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Form', 'Zeilenende (Seite außen)'],
                       [mm(DEFAULTS['Breite']).to_s, mm(v[:hoehe]).to_s, mm(v[:tiefe]).to_s, FORMEN[0], ZEILENENDE[0]],
-                      ['', '', '', FORMEN.join('|'), ZEILENENDE.join('|')], "Abschlussregal (#{typ})")
-    return unless res
-    w = res[0, 3].map { |x| Float(x.to_s.tr(',', '.')) / 10.0 }
-    eingabe = { 'Typ' => typ, 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2],
-                'Form' => (FORMEN.index(res[3].to_s) || 0).to_f, 'Zeilenende' => (ZEILENENDE.index(res[4].to_s) || 0).to_f,
-                'Anz_Einlegeboeden' => v[:eb].to_f }
-    eingabe['Tiefe_Aussen'] = [DEFAULTS['Tiefe_Aussen'], w[2] - 2.0].min
-    berechne(DEFAULTS.merge(eingabe)) # prüft die Maße
-    erstellen(eingabe)
+                      ['', '', '', FORMEN.join('|'), ZEILENENDE.join('|')], "Abschlussregal (#{typ})", untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res[0, 3].map { |x| Float(x.to_s.tr(',', '.')) / 10.0 }
+      eingabe = { 'Typ' => typ, 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2],
+                  'Form' => (FORMEN.index(res[3].to_s) || 0).to_f, 'Zeilenende' => (ZEILENENDE.index(res[4].to_s) || 0).to_f,
+                  'Anz_Einlegeboeden' => v[:eb].to_f }
+      eingabe['Tiefe_Aussen'] = [DEFAULTS['Tiefe_Aussen'], w[2] - 2.0].min
+      berechne(DEFAULTS.merge(eingabe)) # prüft die Maße
+      erstellen(eingabe)
+    end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

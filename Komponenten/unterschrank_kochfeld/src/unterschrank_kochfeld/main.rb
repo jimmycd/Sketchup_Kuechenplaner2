@@ -14,6 +14,7 @@
 # Anzahl, Aufteilung und alle Maße bleiben über "Komponentenoptionen" änderbar.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -67,8 +68,9 @@ module UnterschrankKochfeld
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -84,8 +86,8 @@ module UnterschrankKochfeld
   LUEFTUNG = %w[Umluft Abluft].freeze
   KANAL_LAGE = %w[links mittig rechts].freeze
 
-  # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
-  # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
+  # Material-Einstellungen (Typ, Stärke, Format), falls die Materialien im Modell noch fehlen
+  # (Werte wie in Unterschrank.skp). Vorhandene Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
     MATERIAL => {
       'type' => 2, # Plattenmaterial
@@ -103,9 +105,9 @@ module UnterschrankKochfeld
     }
   }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # Richtungen im Schrank: ymin = vorne, zmax = oben, xmin/xmax = links/rechts.
-  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnet nur OCL.
+  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnen Stückliste und Zuschnitt.
   KANTEN = {
     'Seite'        => %i[ymin],                  # Vorderkante
     'Boden'        => %i[ymin],
@@ -171,14 +173,14 @@ module UnterschrankKochfeld
   # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
   # "summary" und "description" oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_kochfeld'.freeze
-  HILFE_KURZ = 'Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen (Blum LEGRABOX), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen (Blum LEGRABOX)'.freeze
   HILFE = [
     'Für Kochfelder mit integriertem Abzug: oben feste Blende (Einbauraum Kochfeld + Lüfter), darunter 1–3 Schubladen.',
     'Höhe Blende, Installationstiefe (hinten frei für den Kanal), Kanalausschnitt im Boden (Breite, Lage) und Umluft/Abluft hier ändern.',
     'Maße sind Richtwerte – mit der Einbauanleitung des Geräts prüfen.',
     'Schubkästen: Blum LEGRABOX free, Nennlänge NL aus Tiefe minus Installationstiefe.',
     'Der Bodenausschnitt ist nur in den CNC-Daten (TCN), in SketchUp ist der Boden voll gezeichnet.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. USK1_Blende, USK1_S2_Front.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
     "Doku: #{DOKU_URL}"
@@ -345,7 +347,7 @@ module UnterschrankKochfeld
     n.z > 0 ? :zmax : :zmin
   end
 
-  # Kantenflächen mit dem Anleimer-Material belegen (so erkennt OCL die Kanten)
+  # Kantenflächen mit dem Anleimer-Material belegen (so erkennen Stückliste und TCN-Export die Kanten)
   def self.anleimer_setzen(defn, kanten, anleimer)
     defn.entities.grep(Sketchup::Face).each do |f|
       f.material = anleimer if kanten.include?(seite_von(f))
@@ -641,29 +643,28 @@ module UnterschrankKochfeld
     defaults = ['800', '700', '520', '200', '2', '1;1', '150', LUEFTUNG.first, KANAL_LAGE[1],
                 freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '', LUEFTUNG.join('|'), KANAL_LAGE.join('|'), '']
-    res = UI.inputbox(prompts, defaults, lists, 'Unterschrank Kochfeld mit Abzug')
-    return unless res
-
-    anz = res[4].to_i
-    eingabe = {
-      'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]),
-      'Hoehe_Blende' => mm(res[3]), 'Anz_Schubladen' => anz, 'Installationstiefe' => mm(res[6]),
-      'Lueftung' => LUEFTUNG.index(res[7]).to_f, 'Kanal_Lage' => KANAL_LAGE.index(res[8]).to_f,
-      'Kuerzel' => res[9].strip
-    }
-    raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
-    if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
-      raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Unterschrank Kochfeld mit Abzug', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      anz = res[4].to_i
+      eingabe = {
+        'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]),
+        'Hoehe_Blende' => mm(res[3]), 'Anz_Schubladen' => anz, 'Installationstiefe' => mm(res[6]),
+        'Lueftung' => LUEFTUNG.index(res[7]).to_f, 'Kanal_Lage' => KANAL_LAGE.index(res[8]).to_f,
+        'Kuerzel' => res[9].strip
+      }
+      raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+      if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
+        raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+      end
+      if eingabe['Installationstiefe'] < 2 * DEFAULTS['Kanal_Steg'] + 1
+        raise ArgumentError, 'Installationstiefe zu klein für den Kanalausschnitt'
+      end
+      if eingabe['Tiefe'] - eingabe['Installationstiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+        raise ArgumentError, 'Tiefe minus Installationstiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+      end
+      parse_aufteilung(res[5], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
+      (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
+      erstellen(eingabe)
     end
-    if eingabe['Installationstiefe'] < 2 * DEFAULTS['Kanal_Steg'] + 1
-      raise ArgumentError, 'Installationstiefe zu klein für den Kanalausschnitt'
-    end
-    if eingabe['Tiefe'] - eingabe['Installationstiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
-      raise ArgumentError, 'Tiefe minus Installationstiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
-    end
-    parse_aufteilung(res[5], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
-    (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

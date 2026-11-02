@@ -2,6 +2,7 @@
 # Schrank-CNC – Hauptmodul: lädt die Untermodule und legt das Menü an.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit

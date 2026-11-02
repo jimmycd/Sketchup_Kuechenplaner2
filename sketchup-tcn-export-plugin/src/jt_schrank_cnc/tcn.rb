@@ -201,10 +201,41 @@ module JTools
         end
       end
 
+      # Fräsungen nie in voller Tiefe auf einmal (Materialschonung, Jürgen 2026-11-02,
+      # gilt für alle TCN): tiefer als ZUSTELLUNG wird die Bahn in gleich großen
+      # Schritten von höchstens ZUSTELLUNG wiederholt, jede Stufe als eigene Bearbeitung
+      ZUSTELLUNG = 20.0
+
+      def stufen(tiefe)
+        tiefe = tiefe.to_f
+        k = (tiefe / ZUSTELLUNG - 1e-6).ceil
+        k <= 1 ? [tiefe] : (1..k).map { |i| tiefe * i / k }
+      end
+
+      # Zeilen -> Zeilen mit Zustellschritten: Fräsbahn = W#89 + folgende Bahnzeilen
+      # (W#2201 Gerade, W#2125 Bogen …), Tasche = W#1022 (rect.tmcr, Tiefe #8514)
+      def zustellen(zeilen)
+        bloecke = []
+        zeilen.each do |l|
+          if bloecke.last && bloecke.last[0].start_with?('W#89{') && l =~ /\AW#2\d{3}\{ ::WT[la]/
+            bloecke.last << l
+          else
+            bloecke << [l]
+          end
+        end
+        bloecke.flat_map do |b|
+          feld = b[0].start_with?('W#89{') ? '#3' : (b[0].start_with?('W#1022{') ? '#8514' : nil)
+          t = feld && b[0][/ #{feld}=(-[\d.]+) /, 1].to_f.abs
+          next b unless t && t > ZUSTELLUNG + 1e-6
+          stufen(t).flat_map { |s| [b[0].sub(/ #{feld}=-[\d.]+ /, " #{feld}=#{n(-s)} ")] + b[1..] }
+        end
+      end
+
       # Zeilen einer Seite, nach Inhalt sortiert (gespiegelte Teile ergeben dieselbe TCN),
       # dann fortlaufend nummeriert ab ws + 1
       def zeilen(lage, side, ops, ws)
-        ops.map { |op| op_zeilen(lage, side, op) }.sort_by { |z| z.join("\n") }.flatten.map do |l|
+        z = ops.map { |op| op_zeilen(lage, side, op) }.sort_by { |x| x.join("\n") }.flatten
+        zustellen(z).map do |l|
           l.include?('WS=@') ? l.sub('WS=@', "WS=#{ws += 1}") : l
         end
       end

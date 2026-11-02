@@ -17,9 +17,9 @@
 # obere Fach ab). Die Rückwand geht durch. Korpus und Schubladen wie beim
 # Hochschrank (19 mm Korpus, 8 mm Rückwand, 2 mm Fugen, Blum LEGRABOX).
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Bereich>_<Teil> (z. B. HG1_SeiteL, HG1_U1_Front) und das Wörterbuch
 # "JT_Schrank" für den TCN-Export. Die Geräte-Platzhalter liegen auf dem Tag
 # "Geraete_Plan", haben kein Plattenmaterial und kein JT_Schrank. Jede Nische
@@ -27,6 +27,7 @@
 # Geräte-Komponenten). Anderes Kürzel: HochschrankGeraete.erstellen({ 'Kuerzel' => 'HG2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module HochschrankGeraete
 
@@ -53,8 +54,9 @@ module HochschrankGeraete
     'StrebeVorn' => 'Strebe', 'StrebeHinten' => 'Strebe',
     'ZwischenbodenUnten' => 'Zwischenboden', 'ZwischenbodenMitte' => 'Zwischenboden', 'ZwischenbodenOben' => 'Zwischenboden',
     'Mittelboden' => 'Zwischenboden',
-    'Rueckwand' => 'Rueckwand', 'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
-    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer',
+    'Rueckwand' => 'Rueckwand', 'RueckwandOben' => 'Rueckwand', 'RueckwandUnten' => 'Rueckwand',
+    'Einlegeboden' => 'Einlegeboden', 'Front' => 'Front',
+    'Tuer' => 'Tuer', 'TuerL' => 'Tuer', 'TuerR' => 'Tuer', 'TuerUnten' => 'Tuer', 'TuerOben' => 'Tuer',
     'Klappe' => 'Front', 'KlappeO' => 'Front', 'KlappeU' => 'Front',
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Innenfront' => 'Innenfront',
@@ -117,7 +119,7 @@ module HochschrankGeraete
     'Nische 1 und 2: Gerät wählen, das setzt die lichte Höhe (Backofen 590, Kompaktgerät 450, Mikrowelle 380,',
     'Wärmeschublade 140 mm) oder „frei“ mit eigener Höhe; Nische 2 auch „keine“. Lichte Breite mind. 560 mm.',
     'Oben: offenes Fach oder Tür, 0–3 Einlegeböden; die Höhe ergibt sich aus dem Rest.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
+    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
     'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HG1_SeiteL, HG1_U1_Front, HG1_O_Tuer.',
     'Die Geräte-Platzhalter liegen auf dem Tag „Geraete_Plan“.',
     'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
@@ -289,7 +291,7 @@ module HochschrankGeraete
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -313,10 +315,10 @@ module HochschrankGeraete
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Halbtransparentes Material für die Geräte-Platzhalter (kein OCL-Typ)
+  # Halbtransparentes Material für die Geräte-Platzhalter (kein Plattenwerkstoff)
   def self.geraet_material(model)
     m = model.materials[GERAET_MATERIAL]
     return m if m
@@ -345,7 +347,7 @@ module HochschrankGeraete
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -663,17 +665,17 @@ module HochschrankGeraete
   end
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Hochschrank Geräte')
-    return unless res
-    w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    t = eingabe['Tiefe']
-    if t < tiefe_min - 0.000001
-      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Hochschrank Geräte', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      t = eingabe['Tiefe']
+      if t < tiefe_min - 0.000001
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+      end
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      erstellen(eingabe)
     end
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
