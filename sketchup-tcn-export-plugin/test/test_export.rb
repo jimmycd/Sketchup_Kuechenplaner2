@@ -6,6 +6,7 @@ require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
 load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
+load File.join(komp, 'oberschrank_klappe/src/oberschrank_klappe/main.rb')
 load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
 load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
@@ -630,6 +631,20 @@ check(kante.size == 1 && ende == [1, 1], "L-Form: Strebe vorn in der Ecke verdü
 check(a.lage.dl == 873 && f['UES1_StrebeHinten'] && !f['UES1_StrebeHinten2'],
       "L-Form: Strebe vorn A 873 lang bis an die Rückwand B, eine Strebe hinten (#{a.lage.dl}, #{f.keys.grep(/Strebe/)})")
 check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'L-Form: Frontfarbe findet beide Türen')
+
+
+# --- Oberschrank mit Klappe: Korpus wie Oberschrank, Klappenteile als Front (HK-top eine, HF zwei) ---
+model = Sketchup.active_model = Sketchup::Model.new
+OberschrankKlappe.erstellen({})
+OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 })
+dk, = S::Export.erzeugen(model)
+d = dk.to_h { |x| [x.name, x] }
+check(d['OK1_Klappe'] && !d['OK1_KlappeO'] && d['OK2_KlappeO'] && d['OK2_KlappeU'] && !d['OK2_Klappe'],
+      "Klappe: nur sichtbare Klappenteile exportiert: #{d.keys.grep(/Klappe/)}")
+check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [394, 894], "HK-top-Klappe 898 x 398 Endmaß, im TCN ohne Anleimer 894 x 394 (#{d['OK1_Klappe'].lage.dl} x #{d['OK1_Klappe'].lage.dh})")
+zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
+check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
+check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
 
 if $fehler.zero?
   puts 'test_export: alles OK'
