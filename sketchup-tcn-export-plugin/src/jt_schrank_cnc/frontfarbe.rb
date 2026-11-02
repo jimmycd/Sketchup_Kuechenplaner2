@@ -1,8 +1,9 @@
 # encoding: UTF-8
 # Schrank-CNC – Frontfarbe und Griffe ändern.
 #
-# Setzt ein Frontmaterial aus OpenCutList auf alle Fronten und Türen (rolle
-# Front oder Tuer), für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
+# Setzt ein Frontmaterial auf alle Fronten und Türen (rolle Front oder Tuer) und auf
+# Teile mit JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“, ohne Griffe),
+# für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
 # oder nur auf die Innenfronten der Innenschubkästen (Hochschrank Vorrat),
 # auf Wunsch nur für die ausgewählten Schränke. Die Anleimer der Fronten
 # bekommen den passenden Anleimer. Korpus und Schubkästen bleiben unverändert.
@@ -54,7 +55,7 @@ module JTools
       # mindestens eine im Pfad der Front liegen muss (nil = ohne Einschränkung)
       def self.fronten(model, kategorie: nil, auswahl: nil)
         Schraenke.teile(model).select do |t|
-          (kategorie == INNEN ? t.rolle == 'Innenfront' : t.front? && (kategorie.nil? || Schraenke.kategorie(t) == kategorie)) &&
+          (kategorie == INNEN ? t.rolle == 'Innenfront' : t.frontfarbe? && (kategorie.nil? || Schraenke.kategorie(t) == kategorie)) &&
             (auswahl.nil? || t.pfad.any? { |i| auswahl.include?(i) })
         end
       end
@@ -94,7 +95,7 @@ module JTools
       end
 
       def self.front_inst?(i)
-        %w[Front Tuer Innenfront].include?(i.get_attribute(JT_DICT, 'rolle'))
+        %w[Front Tuer Innenfront].include?(i.get_attribute(JT_DICT, 'rolle')) || i.get_attribute(JT_DICT, 'frontfarbe') ? true : false
       end
 
       # Material und Anleimer auf die Fronten setzen; griff = { lochmass:, lage:, hoehe: } (mm),
@@ -105,7 +106,7 @@ module JTools
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
-        neu = Schraenke.teile(model).select { |t| (t.front? || t.rolle == 'Innenfront') && ids.include?(t.pfad.first) &&
+        neu = Schraenke.teile(model).select { |t| (t.frontfarbe? || t.rolle == 'Innenfront') && ids.include?(t.pfad.first) &&
                                                fronten.any? { |f| f.name == t.name } }
         neu.each do |f|
           if material
@@ -115,8 +116,8 @@ module JTools
               fl.material = kante if fl.material && fl.material.get_attribute(OCL_DICT, 'type').to_i == 4
             end
           end
-          if griff && %w[Blende Innenfront].include?(f.jt('teil'))
-            next # feste Blende (Unterschrank Kochfeld) und Innenfronten bekommen keinen Griff
+          if griff && (f.jt('teil') == 'Blende' || !f.front?)
+            next # feste Blende (Unterschrank Kochfeld), Innenfronten und Regalteile bekommen keinen Griff
           elsif griff
             f.inst.set_attribute(JT_DICT, 'griff_lochmass', griff[:lochmass].to_f)
             f.inst.set_attribute(JT_DICT, 'griff_lage', griff[:lage])

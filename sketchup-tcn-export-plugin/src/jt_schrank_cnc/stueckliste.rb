@@ -8,6 +8,8 @@
 #   Rohmaß    = Fräsmaß plus Übermaß aus den Einstellungen (Zuschnitt an der Formatsäge)
 # Länge (L) ist die längere, Breite (B) die kürzere Seite. Kanten: L1/L2 sind die
 # beiden Längskanten, B1/B2 die beiden Querkanten; im Feld steht das Anleimer-Material.
+# Schräg- und Bogenkanten (Abschlussregal) stehen unter "Kante Kontur" mit ihrer Länge;
+# Roh-, Fräs- und Fertigmaß sind dort das umschließende Rechteck (Kontur fräst die CNC).
 # Ausgabe: Stueckliste.csv (Semikolon, Dezimalkomma, für Excel) und
 # Stueckliste.html (Druckseite, je Material und Stärke eine Tabelle mit Summen).
 
@@ -18,10 +20,10 @@ module JTools
 
       OCL_DICT = 'ladb_opencutlist'.freeze
       KOPF = %w[Nr Tag TCN-Datei Anzahl Schrank Teil Rolle Material Stärke Roh\ L Roh\ B
-                Fräs\ L Fräs\ B Fertig\ L Fertig\ B Kante\ L1 Kante\ L2 Kante\ B1 Kante\ B2 Maserung].freeze
+                Fräs\ L Fräs\ B Fertig\ L Fertig\ B Kante\ L1 Kante\ L2 Kante\ B1 Kante\ B2 Maserung Kante\ Kontur].freeze
 
       Zeile = Struct.new(:nr, :tag, :datei, :anzahl, :schrank, :teil, :rolle, :material, :ds,
-                         :fertig, :fraes, :roh, :kanten, :maserung, :hinweis) do
+                         :fertig, :fraes, :roh, :kanten, :maserung, :hinweis, :kontur) do
         # Kantenlänge je Kante (Fertigmaß), L1/L2 entlang der Länge
         def kantenlaenge(k)
           k.to_s.start_with?('l') ? fertig[0] : fertig[1]
@@ -39,6 +41,7 @@ module JTools
         z = Zeile.new(nil, t.name, "#{d.name}.tcn", d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle,
                       mat ? mat.name.to_s : '', d.lage.ds.round(1))
         z.maserung = mat_attr(mat, 'grained') ? true : false
+        z.kontur = ws.respond_to?(:kontur_kanten) && ws.kontur_kanten ? ws.kontur_kanten.to_h : {}
         if ws.respond_to?(:kanten)
           ax = Geometrie::ACHSEN
           la, ba = ws.flaechen_achsen.sort_by { |a| [-(ws.hi_f(a) - ws.lo_f(a)).round(3), a] }
@@ -84,6 +87,7 @@ module JTools
         zs.group_by { |z| [z.material, z.ds] }.map do |(mat, ds), g|
           lfm = Hash.new(0.0)
           g.each { |z| z.kanten.each { |k, m| lfm[m] += z.kantenlaenge(k) * z.anzahl / 1000.0 if m } }
+          g.each { |z| z.kontur.each { |m, l| lfm[m] += l * z.anzahl / 1000.0 } }
           { material: mat, ds: ds, zeilen: g, stueck: g.sum(&:anzahl),
             flaeche: g.sum { |z| z.roh[0] * z.roh[1] * z.anzahl } / 1e6, kanten_lfm: lfm }
         end
@@ -98,10 +102,15 @@ module JTools
         zs.each do |z|
           out << [z.nr, z.tag, z.datei, z.anzahl, z.schrank, z.teil, z.rolle, z.material, zahl(z.ds),
                   *z.roh.map { |v| zahl(v) }, *z.fraes.map { |v| zahl(v) }, *z.fertig.map { |v| zahl(v) },
-                  *%i[l1 l2 b1 b2].map { |k| z.kanten[k].to_s }, z.maserung ? 'ja' : 'nein']
+                  *%i[l1 l2 b1 b2].map { |k| z.kanten[k].to_s }, z.maserung ? 'ja' : 'nein', kontur_text(z)]
                  .map { |v| v.to_s.tr(';', ',') }.join(';')
         end
         out.join("\r\n") + "\r\n"
+      end
+
+      # "Anleimer Melamin weiss 412 mm" je Material der Schräg-/Bogenkante
+      def kontur_text(z, kz = nil)
+        z.kontur.sort.map { |m, l| "#{kz ? kz[m] : m} #{zahl(l.round(1))} mm" }.join(', ')
       end
 
       def h(s)
@@ -114,7 +123,7 @@ module JTools
 
       def html(zs, titel: 'Stückliste', meldungen: [])
         # Anleimer-Materialien als Kürzel A, B, C … mit Legende
-        kantenmat = zs.flat_map { |z| z.kanten.values }.compact.uniq.sort
+        kantenmat = zs.flat_map { |z| z.kanten.values + z.kontur.keys }.compact.uniq.sort
         kz = kantenmat.each_with_index.to_h { |m, i| [m, ('A'.ord + i).chr] }
         o = +"<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"utf-8\"><title>#{h(titel)}</title>\n<style>\n"
         o << "@page{size:A4 landscape;margin:10mm}body{font:11px/1.35 Arial,sans-serif;color:#000;margin:0 4mm}\n"
@@ -133,7 +142,7 @@ module JTools
           o << '<table><tr><th>Nr</th><th>Tag</th><th>Schrank</th><th>Teil</th><th>Anz.</th>'
           o << '<th>Rohmaß L × B</th><th>Fräsmaß</th><th>Fertigmaß</th><th>L1</th><th>L2</th><th>B1</th><th>B2</th><th>TCN-Datei</th></tr>' + "\n"
           g[:zeilen].each do |z|
-            o << "<tr><td class=\"z\">#{z.nr}</td><td>#{h(z.tag)}</td><td>#{h(z.schrank)}</td><td>#{h(z.teil)}#{z.hinweis ? " (#{h(z.hinweis)})" : ''}</td>"
+            o << "<tr><td class=\"z\">#{z.nr}</td><td>#{h(z.tag)}</td><td>#{h(z.schrank)}</td><td>#{h(z.teil)}#{z.hinweis ? " (#{h(z.hinweis)})" : ''}#{z.kontur.empty? ? '' : " (Kontur: #{h(kontur_text(z, kz))})"}</td>"
             o << "<td class=\"z\">#{z.anzahl}</td><td class=\"z roh\">#{mass(z.roh)}</td><td class=\"z\">#{mass(z.fraes)}</td><td class=\"z\">#{mass(z.fertig)}</td>"
             %i[l1 l2 b1 b2].each { |k| o << "<td class=\"k\">#{kz[z.kanten[k]]}</td>" }
             o << "<td>#{h(z.datei)}</td></tr>\n"
