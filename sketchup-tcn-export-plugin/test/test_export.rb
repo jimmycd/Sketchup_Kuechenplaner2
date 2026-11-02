@@ -6,15 +6,19 @@ require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
 load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
+load File.join(komp, 'oberschrank_klappe/src/oberschrank_klappe/main.rb')
 load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
 load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
+load File.join(komp, 'unterschrank_backofen/src/unterschrank_backofen/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
+load File.join(komp, 'unterschrank_kuehlschrank/src/unterschrank_kuehlschrank/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
+load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
 load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -262,6 +266,32 @@ Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_
 dap, = S::Export.erzeugen(model_ap)
 fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
 check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
+# --- Hochschrank Vorrat: Innenschubkästen hinter der Tür, Schienen hinter der Innenfront ---
+model_hv = Sketchup.active_model = Sketchup::Model.new
+HochschrankVorrat.erstellen({ 'Tiefe' => 52.0 })
+dhv, mhv = S::Export.erzeugen(model_hv)
+check(mhv.empty?, "Hochschrank Vorrat: keine Meldungen #{mhv}")
+hv = dhv.to_h { |x| [x.name, x] }
+check((1..4).all? { |j| %w[Innenfront KastenBoden KastenRueckwand].all? { |t| hv["HV1_U#{j}_#{t}"] } } && hv['HV1_U_Tuer'] &&
+      !hv['HV1_U5_Innenfront'] && !hv['HV1_O_Tuer'], "Hochschrank Vorrat: Dateien #{hv.keys.sort}")
+z = bearbeitungen(hv['HV1_SeiteL'].text, 1)
+sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
+check(sch.size == 16, "Hochschrank Vorrat: 4 Schienenbohrungen je Kasten (#{sch.size})")
+# Kasten 17 mm hinter der Korpusvorderkante (3 Rücksprung + 12 Innenfront + 2 Fuge): 37 + 17 - 2 Anleimer = 52
+tiefen = sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort
+check(tiefen.include?('y-52') && tiefen.include?('y-84'), "Hochschrank Vorrat: Schienen ab Innenfront versetzt (#{tiefen})")
+check(z.count { |x| x.include?('#8522=5 ') } == 2, 'Hochschrank Vorrat: Lochreihen nur im Fach oben')
+fbi = bearbeitungen(hv['HV1_U1_Innenfront'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
+check(fbi >= 4 && fbi.even?, "Hochschrank Vorrat: Frontbefestigung in der Innenfront (#{fbi})")
+check(S::Frontfarbe.fronten(model_hv, kategorie: 'Hochschrank').count(&:sichtbar?) == 1, 'Hochschrank Vorrat: Frontfarbe Hochschränke nur die Tür')
+inn = S::Frontfarbe.fronten(model_hv, kategorie: S::Frontfarbe::INNEN)
+check(inn.count(&:sichtbar?) == 4, "Hochschrank Vorrat: Frontfarbe findet 4 Innenfronten (#{inn.count(&:sichtbar?)})")
+fm = model_hv.materials.add('Front Eiche 12mm')
+fm.set_attribute('ladb_opencutlist', 'type', 2)
+S::Frontfarbe.anwenden(model_hv, inn, fm, griff: { lochmass: 160, lage: 'Mitte', hoehe: 35 })
+neu = S::Frontfarbe.fronten(model_hv, kategorie: S::Frontfarbe::INNEN)
+check(neu.all? { |f| f.inst.material == fm && !f.jt('griff_lochmass') }, 'Hochschrank Vorrat: Innenfronten umgefärbt, ohne Griff')
+check(S::Frontfarbe.fronten(model_hv, kategorie: 'Hochschrank').none? { |f| f.inst.material == fm }, 'Hochschrank Vorrat: Tür bleibt')
 Sketchup.active_model = model
 
 # --- Schreiben: TCN + Teileliste + Fräsliste ---
@@ -396,6 +426,22 @@ end
 fr = dg.find { |x| x.name == 'USG1_Front' }
 check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
 check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
+# --- Kühlschrank-Nische: wie Geschirrspüler; Weinkühler/unterbaufähig ohne Möbelfront ---
+km = Sketchup.active_model = Sketchup::Model.new
+UnterschrankKuehlschrank.erstellen({ 'Art_Wange' => 3.0 })
+UnterschrankKuehlschrank.erstellen({ 'Geraet_Art' => 1.0, 'Breite' => 30.0, 'Art_Wange' => 2.0 })
+dk, = S::Export.erzeugen(km)
+check(dk.map(&:name).sort == %w[UKS1_Front UKS1_WangeL UKS1_WangeR UKS2_WangeR], "Kühlschrank: Dateien #{dk.map(&:name)}")
+dk.each do |x|
+  z = bearbeitungen(x.text, 1)
+  check(z.size == 1 && z.first.include?('squad.tmcr'), "Kühlschrank #{x.name}: nur Formatieren #{z}")
+end
+fk = dk.find { |x| x.name == 'UKS1_Front' }
+check(fk && [fk.lage.dl, fk.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Kühlschrank Front Fräsmaß: #{fk && [fk.lage.dl, fk.lage.dh]}")
+ff = S::Frontfarbe.fronten(km, kategorie: 'Unterschrank')
+check(ff.size == 2 && ff.count(&:sichtbar?) == 1, 'Kühlschrank: Frontfarbe färbt auch die ausgeblendete Front mit, sichtbar ist eine')
+zk, = S::Stueckliste.erzeugen(km)
+check(zk.map(&:tag).sort == %w[UKS1_Front UKS1_WangeL UKS1_WangeR UKS2_WangeR], "Kühlschrank: Stückliste #{zk.map(&:tag)}")
 # --- Unterschrank Mülltrennung: LEGRABOX-Auszug(e) wie Schubladen, Behälter werden nicht exportiert ---
 schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } }
 [[0.0, 4, %w[A]], [1.0, 8, %w[A B]]].each do |fv, n_schiene, bereiche|
@@ -417,6 +463,29 @@ schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') &&
   end
   check(dam['USM1_Boden'].text.include?('#8522=3 '), "Mülltrennung #{fv}: Sockelfüße")
   check(S::Frontfarbe.fronten(am, kategorie: 'Unterschrank').count(&:sichtbar?) == bereiche.size, "Mülltrennung #{fv}: Frontfarbe findet die Fronten")
+end
+# --- Unterschrank Backofen (Herdumbau): Einbauboden wie Zwischenboden, keine Lochreihe, unten Blende oder Schublade ---
+[[70.0, false], [76.0, true]].each do |hoehe, schublade|
+  bm = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankBackofen.erstellen({ 'Tiefe' => 52.0, 'Hoehe' => hoehe })
+  db_, mb_ = S::Export.erzeugen(bm)
+  check(mb_.empty?, "Herdumbau #{hoehe}: keine Meldungen #{mb_}")
+  dbm = db_.to_h { |x| [x.name, x] }
+  soll = %w[USB1_Boden USB1_Rueckwand USB1_SeiteL USB1_SeiteR USB1_ZwischenbodenUnten] +
+         (schublade ? %w[USB1_S1_Front USB1_S1_KastenBoden USB1_S1_KastenRueckwand] : %w[USB1_Blende])
+  check(dbm.keys.sort == soll.sort, "Herdumbau #{hoehe}: Dateien #{dbm.keys.sort}")
+  eb = dbm['USB1_ZwischenbodenUnten']
+  check((eb.lage.dh - 468).abs < 1e-6 && eb.text.lines.count { |x| x.include?('#8513=-22 ') } == 2,
+        "Herdumbau #{hoehe}: Einbauboden 518 - 50 tief, Dübel in beiden Stirnseiten (#{eb.lage.dh})")
+  %w[USB1_SeiteL USB1_SeiteR].each do |sn|
+    z = bearbeitungen(dbm[sn].text, 1)
+    duebel_eb = z.count { |x| x.include?('#8513=-14 ') && x.include?("#8518=#{(hoehe * 10 - 600 - 9.5).round(1)} ") }
+    check(duebel_eb == 1, "Herdumbau #{hoehe} #{sn}: Dübelreihe Einbauboden (#{duebel_eb})")
+    check(z.none? { |x| x.include?('#8522=5 ') }, "Herdumbau #{hoehe} #{sn}: keine Lochreihe")
+    check(schiene_bohr.(dbm[sn].text) == (schublade ? 4 : 0), "Herdumbau #{hoehe} #{sn}: Schienenbohrungen #{schiene_bohr.(dbm[sn].text)}")
+  end
+  check(dbm['USB1_Boden'].text.include?('#8522=3 '), "Herdumbau #{hoehe}: Sockelfüße")
+  check(S::Frontfarbe.fronten(bm, kategorie: 'Unterschrank').count(&:sichtbar?) == 1, "Herdumbau #{hoehe}: eine sichtbare Front")
 end
 Sketchup.active_model = model
 
@@ -632,6 +701,19 @@ check(a.lage.dl == 873 && f['UES1_StrebeHinten'] && !f['UES1_StrebeHinten2'],
       "L-Form: Strebe vorn A 873 lang bis an die Rückwand B, eine Strebe hinten (#{a.lage.dl}, #{f.keys.grep(/Strebe/)})")
 check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'L-Form: Frontfarbe findet beide Türen')
 
+
+# --- Oberschrank mit Klappe: Korpus wie Oberschrank, Klappenteile als Front (HK-top eine, HF zwei) ---
+model = Sketchup.active_model = Sketchup::Model.new
+OberschrankKlappe.erstellen({})
+OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 })
+dk, = S::Export.erzeugen(model)
+d = dk.to_h { |x| [x.name, x] }
+check(d['OK1_Klappe'] && !d['OK1_KlappeO'] && d['OK2_KlappeO'] && d['OK2_KlappeU'] && !d['OK2_Klappe'],
+      "Klappe: nur sichtbare Klappenteile exportiert: #{d.keys.grep(/Klappe/)}")
+check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [394, 894], "HK-top-Klappe 898 x 398 Endmaß, im TCN ohne Anleimer 894 x 394 (#{d['OK1_Klappe'].lage.dl} x #{d['OK1_Klappe'].lage.dh})")
+zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
+check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
+check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
 # Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach
 # (520 - 150, 262) im Werkstück (x = Tiefe), Bahn 10 - 2 mm (Radius - Anleimer) in den Abfall versetzt

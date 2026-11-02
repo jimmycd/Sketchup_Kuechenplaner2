@@ -76,7 +76,7 @@ je Schrank änderbar oder abschaltbar; ein Kochfeld lässt sich über jedem Schr
 | Schrank | Ausschnitt | von der Vorderkante | Radius |
 |---|---|---|---|
 | Spülenschrank (USP) | Schrankbreite − 100 (höchstens 860) × 490 | 60 mm | 10 mm |
-| Herdschrank (USK) 600 / 800 / 900 | 560 / 750 / 880 × 490, sonst Breite − 50 | 50 mm | 0 |
+| Herdschrank (USK) und Herdumbauschrank (USB) 600 / 800 / 900 | 560 / 750 / 880 × 490, sonst Breite − 50 | 50 mm | 0 |
 
 Warnungen: Ausschnitt näher als 150 mm an einem Stoß, näher als 50 mm an der Vorderkante,
 breiter als der Schrank, ragt aus der Platte; Kochfeld näher als 300 mm am Hochschrank.

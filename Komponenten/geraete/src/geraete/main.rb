@@ -49,12 +49,17 @@ module Geraete
   ARTEN = {
     'Geschirrspueler' => ['Geschirrspüler', 'Geraet Plan Wasser'],
     'KochfeldAbzug'   => ['Kochfeld mit Abzug', 'Geraet Plan Kochen'],
+    'Kochfeld'        => ['Kochfeld', 'Geraet Plan Kochen'],
     'Spuele'          => ['Spüle', 'Geraet Plan Wasser'],
     'Backofen'        => ['Backofen', 'Geraet Plan Kochen', 595.0],
     'Kompakt'         => ['Kompaktgerät', 'Geraet Plan Kochen', 455.0],
     'Mikrowelle'      => ['Mikrowelle', 'Geraet Plan'],
-    'Waermeschublade' => ['Wärmeschublade', 'Geraet Plan', 140.0]
+    'Waermeschublade' => ['Wärmeschublade', 'Geraet Plan', 140.0],
+    'Kuehlschrank'    => ['Kühlschrank integriert', 'Geraet Plan'],
+    'KuehlschrankFrei' => ['Kühlschrank unterbaufähig', 'Geraet Plan'],
+    'Weinkuehler'     => ['Weinkühler', 'Geraet Plan']
   }.freeze
+  KUEHL_ARTEN = %w[Kuehlschrank Weinkuehler KuehlschrankFrei].freeze # Geraet_Art 0/1/2 des Kühlschrank-Unterschranks
 
   SPALT        = 2.0    # Fuge vor dem Korpus (wie Spaltbreite der Schränke)
   FRONT_MAX    = 595.0  # Frontbreite der Einbaugeräte
@@ -104,6 +109,45 @@ module Geraete
       teile: [teil('Gehaeuse', 'Geraet Edelstahl', [0, 20, sockel], [b, t - 20, h - sockel - 20]),
               teil('Bedienleiste', 'Geraet Gehaeuse', [0, 0, h - 20 - 30], [b, 20, 30]),
               teil('Sockel', 'Geraet Gehaeuse', [20, 50, 0], [b - 40, t - 50, sockel])] }
+  end
+
+  # Unterbau-Kühlgeräte: Einfügepunkt auf dem Fußboden an der Korpusvorderkante,
+  # Gerät steht auf eigenen Füßen in der Sockelzone. Integriert: nur Gehäuse und
+  # Gerätetür, die Möbelfront gehört zum Schrank. Unterbaufähig und Weinkühler:
+  # eigene Tür bündig mit den Möbelfronten.
+  def self.kuehl(n)
+    b, h = zahl(n, 'breite'), zahl(n, 'hoehe')
+    t = [550.0, zahl(n, 'tiefe', 550.0)].min
+    so = zahl(n, 'sockel', 100.0)
+    fy = -(zahl(n, 'y', 19.0) + SPALT) # Vorderseite der Möbelfronten
+    { b: b, h: h, t: t, so: so, fy: fy,
+      gehaeuse: teil('Gehaeuse', 'Geraet Gehaeuse', [0, 20, so], [b, t - 20, h - so]),
+      fuesse: teil('Fuesse', 'Geraet Gehaeuse', [20, 60, 0], [b - 40, t - 80, so]) }
+  end
+
+  def self.berechne_kuehlschrank(n, _)
+    k = kuehl(n)
+    { plan: [0, 0, 0, k[:b], k[:t], k[:h]],
+      teile: [k[:gehaeuse], k[:fuesse], teil('Geraetetuer', 'Geraet Gehaeuse', [0, 0, k[:so]], [k[:b], 20, k[:h] - k[:so]])] }
+  end
+
+  def self.berechne_kuehlschrankfrei(n, _)
+    k = kuehl(n)
+    th = k[:h] - k[:so]
+    { plan: [0, k[:fy], 0, k[:b], k[:t] - k[:fy], k[:h]],
+      teile: [k[:gehaeuse], k[:fuesse],
+              teil('Tuer', 'Geraet Edelstahl', [0, k[:fy], k[:so]], [k[:b], 20 - k[:fy], th]),
+              teil('Griff', 'Geraet Edelstahl', [40, k[:fy] - 25, k[:h] - 60], [k[:b] - 80, 25, 20])] }
+  end
+
+  def self.berechne_weinkuehler(n, _)
+    k = kuehl(n)
+    th = k[:h] - k[:so]
+    { plan: [0, k[:fy], 0, k[:b], k[:t] - k[:fy], k[:h]],
+      teile: [k[:gehaeuse], k[:fuesse],
+              teil('Rahmen', 'Geraet Schwarzglas', [0, k[:fy], k[:so]], [k[:b], 20 - k[:fy], th]),
+              teil('Glas', 'Geraet Glas', [30, k[:fy] - 4, k[:so] + 30], [k[:b] - 60, 4, th - 60]),
+              teil('Griff', 'Geraet Edelstahl', [k[:b] - 45, k[:fy] - 29, k[:so] + 100], [20, 25, th - 200])] }
   end
 
   # Backofen, Kompaktgerät, Mikrowelle, Wärmeschublade: Gehäuse in der Nische,
@@ -181,6 +225,23 @@ module Geraete
               teil('Kanal', 'Geraet Gehaeuse', [kanal_x, t - it + 20, -korpus], [kab, 90, korpus - hb + 20])] }
   end
 
+  # Kochfeld ohne Abzug (Herdumbauschrank): Glaskeramik auf der Arbeitsplatte, darunter die
+  # Gerätewanne (ca. 50 mm unter der Glasoberkante). Einfügepunkt: Korpusoberkante vorne links.
+  def self.berechne_kochfeld(n, groesse)
+    b = zahl(n, 'breite')
+    mk = zahl(n, 'x', 19.0)
+    ap = zahl(n, 'arbeitsplatte', ARBEITSPLATTE)
+    kb = [(groesse || 60) * 10.0 - 10, b + 2 * mk].min
+    kt = 520.0
+    kx = (b - kb) / 2.0
+    ky = 50.0 - zahl(n, 'y', 19.0) - SPALT # 50 mm hinter der Frontebene
+    wanne = 50.0
+    { plan: [kx, ky, ap + 6 - wanne, kb, kt, wanne],
+      teile: [teil('Kochfeld', 'Geraet Schwarzglas', [kx, ky, ap], [kb, kt, 6]),
+              teil('Wanne', 'Geraet Gehaeuse', [kx + 20, ky + 20, ap + 6 - wanne], [kb - 40, kt - 40, wanne - 6]),
+              teil('Bedienfeld', 'Geraet Edelstahl', [kx + kb / 2 - 100, ky + 10, ap + 6], [200, 40, 1])] }
+  end
+
   # Spüle (Edelstahl, ein Becken) mit Armatur, auf der Arbeitsplatte
   def self.berechne_spuele(n, _)
     b = zahl(n, 'breite')
@@ -219,6 +280,7 @@ module Geraete
     liste = dicts ? dicts.select { |d| d.name.start_with?(NISCHE_DICT) }.sort_by(&:name)
                          .map { |d| d.to_h.transform_keys(&:to_s) } : []
     liste << spuelen_nische(defn, inst) if liste.empty? && defn.get_attribute(JT_DICT, 'typ') == 'Spuelenschrank'
+    liste.map! { |n| kuehl_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Kuehlschrank'
     t = dc_mm(defn, inst, 'tiefe')
     liste.each { |n| n['tiefe'] = t.round(1) } if t
     liste
@@ -229,6 +291,23 @@ module Geraete
     v = inst && inst.get_attribute(DICT, k)
     v = defn.get_attribute(DICT, k) if v.nil?
     v.nil? ? nil : v.to_f * 25.4
+  end
+
+  # Kühlschrank-Unterschrank: Gerät, Breite, Wange und Sockel kann man in den Komponentenoptionen
+  # ändern, deshalb Nische aus den aktuellen DC-Werten (JT_Nische ist der Stand beim Erzeugen)
+  def self.kuehl_nische(n, defn, inst)
+    art = inst && inst.get_attribute(DICT, 'geraet_art')
+    art = defn.get_attribute(DICT, 'geraet_art') if art.nil?
+    wange = inst && inst.get_attribute(DICT, 'art_wange')
+    wange = defn.get_attribute(DICT, 'art_wange') if wange.nil?
+    b = dc_mm(defn, inst, 'breite')
+    return n if art.nil? || b.nil?
+    mm = ->(k, std) { dc_mm(defn, inst, k) || std }
+    so = mm.('sockelhoehe', zahl(n, 'sockel', 100.0))
+    mk = mm.('materialstaerke_korpus', 19.0)
+    n.merge('geraet' => "#{KUEHL_ARTEN[art.to_i] || KUEHL_ARTEN[0]}#{(b / 10).round}",
+            'breite' => (b - mm.('geraet_luft', 4.0)).round(1), 'hoehe' => (mm.('hoehe', 700.0) + so).round(1),
+            'x' => [1, 3].include?(wange.to_i) ? mk : 0.0, 'z' => -so.round(1), 'sockel' => so.round(1))
   end
 
   # Spülenschrank: Nische aus den Schrankmaßen (DC-Attribute in Zoll)
@@ -350,7 +429,7 @@ module Geraete
   def self.in_schraenke_setzen(model = Sketchup.active_model)
     liste = schraenke(model)
     if liste.empty?
-      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kochfeld, Spüle, Hochschrank Geräte).')
+      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte).')
       return 0
     end
     model.start_operation('Geräte in Schränke setzen', true)
