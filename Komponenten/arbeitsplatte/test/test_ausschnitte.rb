@@ -37,6 +37,10 @@ check(nah(L.flaeche(sp[:punkte]), 800 * 490 - (4 - Math::PI) * 100, 5.0), "Spül
 # Kochfeld 800 -> 750 × 490, 50 hinter der Vorderkante, ohne Radius
 check(kf[:rechteck] == [2125.0, 30.0, 2875.0, 520.0] && kf[:punkte].size == 4, "Kochfeld: #{kf[:rechteck]}")
 check(lay[:warnungen].empty?, "keine Warnungen: #{lay[:warnungen]}")
+# Herdumbauschrank (Backofen unter dem Kochfeld) bekommt ebenfalls den Kochfeldausschnitt: 600 -> 560 × 490
+hu = L.berechne(E.erkenne([hinten('USB1', 0, 600, typ: 'Unterschrank_Backofen'), hinten('USS3', 600, 1200)]), {})
+ka = hu[:platten].first[:ausschnitte]
+check(ka.size == 1 && ka[0][:art] == :kochfeld && ka[0][:rechteck] == [20.0, 30.0, 580.0, 520.0], "Herdumbau: Kochfeld #{ka.map { |a| a[:rechteck] }}")
 check(L.zusammenfassung(lay).include?('Ausschnitt Spüle 800 × 490, Kochfeld 750 × 490'), L.zusammenfassung(lay))
 # Schrank mit Front +x (linke Wand): Ausschnitt quer gedreht
 lay = layout([links('USP2', -1500, -600, typ: 'Spuelenschrank')])

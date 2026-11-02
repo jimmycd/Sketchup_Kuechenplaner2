@@ -42,16 +42,17 @@ def bahnen(text, werkzeug)
     pts = [[x, y]]
     text.split("\r\n")[(i + 1)..].take_while { |l| l =~ /\AW#2(201|125)/ }.each do |l|
       if l.start_with?('W#2125')
-        # tangentialer Bogen: Radius #8017, Winkel #8046 (positiv gegen den Uhrzeigersinn)
+        # tangentialer Bogen: Radius #8017, Winkel #8046 (TPA-Ansicht mit y nach unten:
+        # positiv = in Maschinenkoordinaten im Uhrzeigersinn, daher negiert)
         r = l[/#8017=(\S+)/, 1].to_f
-        w = l[/#8046=(\S+)/, 1].to_f * Math::PI / 180
+        w = -l[/#8046=(\S+)/, 1].to_f * Math::PI / 180
         a, b = pts[-2], pts[-1]
         l0 = Math.hypot(b[0] - a[0], b[1] - a[1])
         e = [(b[0] - a[0]) / l0, (b[1] - a[1]) / l0]
         sg = w.positive? ? 1 : -1
         c = [b[0] - sg * e[1] * r, b[1] + sg * e[0] * r]
         a0 = Math.atan2(b[1] - c[1], b[0] - c[0])
-        $boegen << [r, w * 180 / Math::PI]
+        $boegen << [r, l[/#8046=(\S+)/, 1].to_f]
         pts << [(c[0] + r * Math.cos(a0 + w)).round(4), (c[1] + r * Math.sin(a0 + w)).round(4)]
       else
         dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
@@ -115,7 +116,12 @@ check(pb.all? { |x, _| x <= 30 + 10 + 0.01 }, "Kontur B nur am Gehrungsansatz: #
 # Bogen des Gehrungsansatzes als echter Bogen (W#2125) statt kurzer Geraden:
 # R 30 um den Fräserradius versetzt, A innen (R 20), B außen (R 40), je 45°
 check(a.text.scan('W#2125').size == 1 && b.text.scan('W#2125').size == 1, 'je ein Bogen W#2125')
-check($boegen.map { |r, w| [r.round(2), w.round(2)] }.sort == [[20.0, 45.0], [40.0, -45.0]], "Bögen: #{$boegen}")
+# #8046 wie in der TPA-Ansicht (y nach unten): A biegt von der Stoßkante (nach rechts) zur
+# Vorderkante (y größer) ab, auf dem Bildschirm also nach unten = im Uhrzeigersinn = negativ
+check($boegen.map { |r, w| [r.round(2), w.round(2)] }.sort == [[20.0, -45.0], [40.0, 45.0]], "Bögen: #{$boegen}")
+# Bahn bleibt stetig: nach dem Bogen geht die Gehrung von dessen Endpunkt aus weiter Richtung Vorderkante
+ia = pa.index { |x, y| nahe(y, 815) && x > 780 }
+check(ia && pa[ia + 1][1] > 815 && pa[ia + 1][0] > pa[ia][0], "Kontur A: Bogen biegt zur Vorderkante ab: #{pa}")
 # Bogenzeile wie in beispiele/bogen.tcn (EW2 Drehrichtung = Automatisch), nur Radius und Winkel anders
 muster = ->(l) { l.sub(/#8017=\S+/, '#8017=R').sub(/#8046=\S+/, '#8046=W') }
 vorlage = File.read(File.join(haupt, 'sketchup-tcn-export-plugin/beispiele/bogen.tcn'))[/^W#2125\{.*\}W/]
