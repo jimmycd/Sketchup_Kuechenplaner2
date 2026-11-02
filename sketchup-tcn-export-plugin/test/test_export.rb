@@ -7,6 +7,7 @@ komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
 load File.join(komp, 'oberschrank/src/oberschrank/main.rb')
 load File.join(komp, 'oberschrank_klappe/src/oberschrank_klappe/main.rb')
+load File.join(komp, 'oberschrank_dunstabzug/src/oberschrank_dunstabzug/main.rb')
 load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
 load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
@@ -376,6 +377,36 @@ dh, = S::Export.erzeugen(hm)
 check(dh.none? { |x| x.name == 'HG1_ZwischenbodenMitte' }, 'nur ein Gerät: kein Zwischenboden Mitte')
 zh = bearbeitungen(dh.find { |x| x.name == 'HG1_SeiteL' }.text, 1)
 check(zh.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 4, 'nur ein Gerät: 4 Dübelreihen')
+# --- Oberschrank Dunstabzug: Rohrausschnitt in Haubenboden, Deckel und Einlegeboden, Rückwand in der Haubenboden-Nut ---
+om = Sketchup.active_model = Sketchup::Model.new
+OberschrankDunstabzug.erstellen({ 'Anz_Einlegeboeden' => 1.0 })
+dd, mo = S::Export.erzeugen(om)
+check(mo.empty?, "Dunstabzug: keine Meldungen #{mo}")
+ddz = dd.to_h { |x| [x.name, x] }
+check(ddz.keys.sort == %w[OSD1_Boden OSD1_Deckel OSD1_Einlegeboden1 OSD1_Rueckwand OSD1_SeiteL OSD1_SeiteR OSD1_StrebeHinten
+                          OSD1_TuerL OSD1_TuerR], "Dunstabzug: Dateien #{ddz.keys}")
+# 170 x 170, mittig (562 breit: 196 vom Rand), 177 hinter der Korpusvorderkante = 175 im Fräsmaß (Anleimer vorn);
+# Einlegeboden 10 mm zurückgesetzt: 165; durch 19 + 1 mm, Fräser Ø8,03 innen
+{ 'OSD1_Boden' => 179.015, 'OSD1_Deckel' => 179.015, 'OSD1_Einlegeboden1' => 169.015 }.each do |n, y|
+  k = bearbeitungen(ddz[n].text, 1).select { |x| x.start_with?('W#89', 'W#2201') }.last(5)
+  check(ddz[n].lage.flaeche1 == :zmax && k[0].include?("#1=200.015 #2=#{y} #3=-20 ") && k[0].include?('#205=2200') &&
+        k.drop(1) == ['W#2201{ ::WTl  #8015=1 #1=161.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=161.97 }W',
+                      'W#2201{ ::WTl  #8015=1 #1=-161.97 #2=0 }W', 'W#2201{ ::WTl  #8015=1 #1=0 #2=-161.97 }W'],
+        "Dunstabzug #{n}: Rohrausschnitt von oben, durch: #{k}")
+end
+check(bearbeitungen(ddz['OSD1_Boden'].text, 1).count { |x| x.start_with?('W#89') } == 2, 'Haubenboden: Nut für die Rückwand und Ausschnitt')
+check(!ddz['OSD1_Boden'].text.include?('#8522=3 '), 'Haubenboden: keine Sockelfüße')
+check(ddz['OSD1_Deckel'].text.include?('#8522=3 '), 'Deckel: Schrauben zur Rückwand')
+lr = bearbeitungen(ddz['OSD1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
+check(lr.size == 4 && lr.all? { |x| x.include?('#8510=116 #8511=345') || x.include?('#8510=x-261 #8511=x-50') },
+      "Dunstabzug Seite: Lochreihen nur im Fach über dem Haubenboden: #{lr}")
+# Umluft: kein Ausschnitt
+om = Sketchup.active_model = Sketchup::Model.new
+OberschrankDunstabzug.erstellen({ 'Abluft' => 0.0 })
+dd, = S::Export.erzeugen(om)
+check(dd.find { |x| x.name == 'OSD1_Deckel' }.text.split("\r\n").none? { |x| x.start_with?('W#89') }, 'Umluft: Deckel ohne Ausschnitt')
+check(dd.find { |x| x.name == 'OSD1_Boden' }.text.split("\r\n").count { |x| x.start_with?('W#89') } == 1, 'Umluft: Haubenboden nur Nut')
+
 # --- Spülenschrank: Rückwand-Ausschnitt, Installationsebene (Rückwand in der Seitennut, auf dem Boden) ---
 sm = Sketchup.active_model = Sketchup::Model.new
 Spuelenschrank.erstellen({})
