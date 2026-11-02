@@ -14,6 +14,7 @@
 # Anzahl, Aufteilung und alle Maße bleiben über "Komponentenoptionen" änderbar.
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -642,29 +643,28 @@ module UnterschrankKochfeld
     defaults = ['800', '700', '520', '200', '2', '1;1', '150', LUEFTUNG.first, KANAL_LAGE[1],
                 freies_kuerzel(Sketchup.active_model)]
     lists = ['', '', '', '', (1..MAX_SCHUBLADEN).to_a.join('|'), '', '', LUEFTUNG.join('|'), KANAL_LAGE.join('|'), '']
-    res = UI.inputbox(prompts, defaults, lists, 'Unterschrank Kochfeld mit Abzug')
-    return unless res
-
-    anz = res[4].to_i
-    eingabe = {
-      'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]),
-      'Hoehe_Blende' => mm(res[3]), 'Anz_Schubladen' => anz, 'Installationstiefe' => mm(res[6]),
-      'Lueftung' => LUEFTUNG.index(res[7]).to_f, 'Kanal_Lage' => KANAL_LAGE.index(res[8]).to_f,
-      'Kuerzel' => res[9].strip
-    }
-    raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
-    if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
-      raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Unterschrank Kochfeld mit Abzug', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      anz = res[4].to_i
+      eingabe = {
+        'Breite' => mm(res[0]), 'Hoehe' => mm(res[1]), 'Tiefe' => mm(res[2]),
+        'Hoehe_Blende' => mm(res[3]), 'Anz_Schubladen' => anz, 'Installationstiefe' => mm(res[6]),
+        'Lueftung' => LUEFTUNG.index(res[7]).to_f, 'Kanal_Lage' => KANAL_LAGE.index(res[8]).to_f,
+        'Kuerzel' => res[9].strip
+      }
+      raise ArgumentError, 'Kürzel darf nicht leer sein' if eingabe['Kuerzel'].empty?
+      if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
+        raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
+      end
+      if eingabe['Installationstiefe'] < 2 * DEFAULTS['Kanal_Steg'] + 1
+        raise ArgumentError, 'Installationstiefe zu klein für den Kanalausschnitt'
+      end
+      if eingabe['Tiefe'] - eingabe['Installationstiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
+        raise ArgumentError, 'Tiefe minus Installationstiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
+      end
+      parse_aufteilung(res[5], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
+      (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
+      erstellen(eingabe)
     end
-    if eingabe['Installationstiefe'] < 2 * DEFAULTS['Kanal_Steg'] + 1
-      raise ArgumentError, 'Installationstiefe zu klein für den Kanalausschnitt'
-    end
-    if eingabe['Tiefe'] - eingabe['Installationstiefe'] < NENNLAENGEN.first + 0.3 - 0.000001
-      raise ArgumentError, 'Tiefe minus Installationstiefe zu klein für LEGRABOX (NL 350 braucht 353 mm)'
-    end
-    parse_aufteilung(res[5], anz).each_with_index { |w, idx| eingabe["Anteil_#{idx + 1}"] = w }
-    (anz + 1..MAX_SCHUBLADEN).each { |i| eingabe["Anteil_#{i}"] = 1.0 }
-    erstellen(eingabe)
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

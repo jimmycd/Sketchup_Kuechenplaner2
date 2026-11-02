@@ -1,10 +1,10 @@
 # encoding: UTF-8
 #
-# Arbeitsplatte – Einstellungen abfragen (UI.inputbox)
+# Arbeitsplatte – Einstellungen abfragen (Kuechenplaner::Eingabe, Stil wie Treppenplaner)
 #
 # felder liefert Beschriftungen, Vorgaben und Auswahllisten, optionen wandelt die
-# Antworten in Layout-Optionen. Beides ohne SketchUp testbar; nur abfragen ruft
-# UI.inputbox auf.
+# Antworten in Layout-Optionen. Beides ohne SketchUp testbar; nur abfragen öffnet
+# das Eingabefenster.
 
 module Arbeitsplatte
   module Dialog
@@ -117,11 +117,13 @@ module Arbeitsplatte
       o
     end
 
-    # nil bei Abbruch
+    # Ruft den Block mit den Layout-Optionen auf (nicht bei Abbruch)
     def self.abfragen(erg, o = {}, titel = 'Arbeitsplatte')
       beschriftung, vorgabe, listen = felder(erg, o)
-      werte = UI.inputbox(beschriftung, vorgabe, listen, titel)
-      werte ? optionen(erg, werte, o) : nil
+      Kuechenplaner::Eingabe.abfragen(beschriftung, vorgabe, listen, titel, untertitel: "#{erg[:zeilen].size} Zeile(n)",
+                                      gruppe: 'Platte', ok: 'Erzeugen') do |werte|
+        yield optionen(erg, werte, o)
+      end
     end
   end
 end

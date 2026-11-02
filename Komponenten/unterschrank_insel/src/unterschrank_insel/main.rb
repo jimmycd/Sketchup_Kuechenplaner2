@@ -22,6 +22,7 @@
 #   UnterschrankInsel.erstellen({ 'Kuerzel' => 'USI2' }, ziel)
 
 require 'sketchup.rb'
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 
 module UnterschrankInsel
 
@@ -631,20 +632,20 @@ module UnterschrankInsel
                   'Ohne Verkleidung' => [0.0, 0.0] }.freeze
 
   def self.dialog
-    res = UI.inputbox(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Front', 'Rückseite'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Front', 'Rückseite'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s,
                        FRONTEN.keys.first, RUECKSEITEN.keys.first],
-                      ['', '', '', FRONTEN.keys.join('|'), RUECKSEITEN.keys.join('|')], 'Inselschrank')
-    return unless res
-    w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-    front = FRONTEN.fetch(res[3]) { 1.0 }
-    if front == 1.0 && eingabe['Tiefe'] < 35.3 - 0.000001
-      raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein für Schubladen (LEGRABOX NL 350 braucht mindestens 353 mm)"
+                      ['', '', '', FRONTEN.keys.join('|'), RUECKSEITEN.keys.join('|')], 'Inselschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+      front = FRONTEN.fetch(res[3]) { 1.0 }
+      if front == 1.0 && eingabe['Tiefe'] < 35.3 - 0.000001
+        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein für Schubladen (LEGRABOX NL 350 braucht mindestens 353 mm)"
+      end
+      verkleidung, theke = RUECKSEITEN.fetch(res[4]) { RUECKSEITEN.values.first }
+      erstellen(eingabe.merge('Frontart' => front, 'Verkleidung' => verkleidung, 'Theke' => theke))
     end
-    verkleidung, theke = RUECKSEITEN.fetch(res[4]) { RUECKSEITEN.values.first }
-    erstellen(eingabe.merge('Frontart' => front, 'Verkleidung' => verkleidung, 'Theke' => theke))
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end

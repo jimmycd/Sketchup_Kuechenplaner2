@@ -52,6 +52,15 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 * **Tiefe verstellbar:** Jeder Schrank fragt beim Anlegen seine Maße ab (Breite, Höhe, Tiefe; Vorschlag Tiefe 520 mm, Oberschrank 400 mm). Danach lässt sie sich im Fenster *Komponentenoptionen* ändern; alle abhängigen Teile (Seiten, Böden, Streben, Rückwand, Einlegeböden, Schubkästen) folgen per Formel. Die LEGRABOX-Schiene gibt es nur in festen Nennlängen (350–650 mm): genommen wird die größte mit NL + 3 mm ≤ lichte Tiefe. Der TCN-Export und *Geräte in Schränke setzen* lesen die geänderten Werte an der Instanz (nicht den Stand beim Erzeugen) und bohren die Schienen nie länger als die gezeichnete lichte Tiefe zulässt. Der gemeinsame Test `test/tiefe_helfer.rb` prüft je Komponente: Tiefe nachträglich ändern ergibt genau denselben Schrank wie gleich mit dieser Tiefe erzeugt. Er prüft auch, dass keine Formel auf ein anderes Formel-Attribut desselben Bauteils verweist: SketchUp rechnet die Formeln eines Bauteils nur einmal der Reihe nach, ein solcher Wert bliebe nach einer Änderung alt (so blieb beim Spülenschrank der Auszug nach einer Tiefenänderung gleich lang).
 * **Kurzhilfe in der Komponente:** Summary/Description der Dynamic Component (oben im Fenster *Komponentenoptionen*) mit Link auf die README der Komponente.
 
+## Eingabefenster
+
+Alle Fenster zum Eingeben (Maße neuer Schränke, Raum, Arbeitsplatte, Frontfarbe, Etiketten,
+Einstellungen) sehen aus wie die Dialoge im Treppenplaner. Sie kommen aus einer Datei,
+`gemeinsam/eingabe.rb` (`Kuechenplaner::Eingabe.abfragen`, Argumente wie `UI.inputbox`, Ergebnis
+im Block). `./build_rbz.sh` kopiert sie in jede Erweiterung nach `src/kuechenplaner_gemeinsam/`.
+Ungültige Eingaben bleiben im Fenster stehen, ein Doppelklick auf „Einfügen“ fügt nur einmal ein.
+Neue Komponenten benutzen kein `UI.inputbox` (der Test prüft das).
+
 ## Tests
 Alle Tests (Komponenten, Plugin und `test/test_erweiterungen.rb` für Menü und `.rbz`) laufen ohne SketchUp (Mock-API und DC-Formel-Auswerter), Ruby ≥ 3.1:
 
