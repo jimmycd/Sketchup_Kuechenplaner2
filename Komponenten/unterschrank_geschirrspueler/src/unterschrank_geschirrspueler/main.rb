@@ -48,7 +48,8 @@ module UnterschrankGeschirrspueler
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Nische für die Geräte-Komponenten (Thread "Geräte in Schränken darstellen")

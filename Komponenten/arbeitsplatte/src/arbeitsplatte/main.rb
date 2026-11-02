@@ -35,7 +35,8 @@ module Arbeitsplatte
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   %w[erkennung ausschnitte layout modell dialog ausgabe].each { |f| load File.join(PATH, "#{f}.rb") }

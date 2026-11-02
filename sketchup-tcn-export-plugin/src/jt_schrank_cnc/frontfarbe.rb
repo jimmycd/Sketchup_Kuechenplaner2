@@ -2,7 +2,7 @@
 # Schrank-CNC – Frontfarbe und Griffe ändern.
 #
 # Setzt ein Frontmaterial aus OpenCutList auf alle Fronten und Türen (rolle
-# Front oder Tuer), für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
+# Front oder Tuer) und auf Verkleidungen und Abschlusswangen (rolle Verkleidung, Wange; ohne Griff), für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
 # auf Wunsch nur für die ausgewählten Schränke. Die Anleimer der Fronten
 # bekommen den passenden Anleimer. Korpus und Schubkästen bleiben unverändert.
 # Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front im Wörterbuch
@@ -51,7 +51,7 @@ module JTools
       # mindestens eine im Pfad der Front liegen muss (nil = ohne Einschränkung)
       def self.fronten(model, kategorie: nil, auswahl: nil)
         Schraenke.teile(model).select do |t|
-          t.front? &&
+          (t.front? || t.sichtteil?) &&
             (kategorie.nil? || Schraenke.kategorie(t) == kategorie) &&
             (auswahl.nil? || t.pfad.any? { |i| auswahl.include?(i) })
         end
@@ -92,7 +92,7 @@ module JTools
       end
 
       def self.front_inst?(i)
-        %w[Front Tuer].include?(i.get_attribute(JT_DICT, 'rolle'))
+        %w[Front Tuer Verkleidung Wange].include?(i.get_attribute(JT_DICT, 'rolle'))
       end
 
       # Material und Anleimer auf die Fronten setzen; griff = { lochmass:, lage:, hoehe: } (mm),
@@ -103,7 +103,7 @@ module JTools
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
-        neu = Schraenke.teile(model).select { |t| t.front? && ids.include?(t.pfad.first) &&
+        neu = Schraenke.teile(model).select { |t| (t.front? || t.sichtteil?) && ids.include?(t.pfad.first) &&
                                                fronten.any? { |f| f.name == t.name } }
         neu.each do |f|
           if material
@@ -113,8 +113,8 @@ module JTools
               fl.material = kante if fl.material && fl.material.get_attribute(OCL_DICT, 'type').to_i == 4
             end
           end
-          if griff && f.jt('teil') == 'Blende'
-            next # feste Blende (Unterschrank Kochfeld) bekommt keinen Griff
+          if griff && (f.jt('teil') == 'Blende' || f.sichtteil?)
+            next # feste Blende (Unterschrank Kochfeld), Verkleidung und Wangen bekommen keinen Griff
           elsif griff
             f.inst.set_attribute(JT_DICT, 'griff_lochmass', griff[:lochmass].to_f)
             f.inst.set_attribute(JT_DICT, 'griff_lage', griff[:lage])

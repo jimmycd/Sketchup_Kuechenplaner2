@@ -50,7 +50,8 @@ module UnterschrankHandtuch
     'KastenBoden' => 'KastenBoden', 'KastenRueckwand' => 'KastenRueckwand',
     'Blende' => 'Front',
     'WangeL' => 'Wange', 'WangeR' => 'Wange',
-    'Platte' => 'Arbeitsplatte'
+    'Platte' => 'Arbeitsplatte',
+    'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
   # Häfele-Modelle: Schrankbreite in cm (lichte Weite = Breite - 2 x 19 mm = 112 bzw. 162 mm)

@@ -14,6 +14,7 @@ load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
 load File.join(komp, 'unterschrank_handtuch/src/unterschrank_handtuch/main.rb')
 load File.join(komp, 'unterschrank_abfall/src/unterschrank_abfall/main.rb')
+load File.join(komp, 'unterschrank_insel/src/unterschrank_insel/main.rb')
 load File.join(komp, 'eckschrank/src/eckschrank/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
@@ -394,7 +395,7 @@ dg.each do |x|
 end
 fr = dg.find { |x| x.name == 'USG1_Front' }
 check(fr && [fr.lage.dl, fr.lage.dh].sort.zip([594, 696]).all? { |a, b| (a - b).abs < 1e-6 }, "Geschirrspüler Front Fräsmaß: #{fr && [fr.lage.dl, fr.lage.dh, fr.lage.ds]}")
-check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').size == 1, 'Geschirrspüler: Frontfarbe findet die Front')
+check(S::Frontfarbe.fronten(gm, kategorie: 'Unterschrank').map { |t| t.jt('teil') }.sort == %w[Front WangeL WangeR], 'Geschirrspüler: Frontfarbe findet Front und Wangen')
 # --- Unterschrank Mülltrennung: LEGRABOX-Auszug(e) wie Schubladen, Behälter werden nicht exportiert ---
 schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } }
 [[0.0, 4, %w[A]], [1.0, 8, %w[A B]]].each do |fv, n_schiene, bereiche|
@@ -416,6 +417,35 @@ schiene_bohr = ->(t) { bearbeitungen(t, 1).count { |x| x.include?('#1002=5 ') &&
   end
   check(dam['USM1_Boden'].text.include?('#8522=3 '), "Mülltrennung #{fv}: Sockelfüße")
   check(S::Frontfarbe.fronten(am, kategorie: 'Unterschrank').count(&:sichtbar?) == bereiche.size, "Mülltrennung #{fv}: Frontfarbe findet die Fronten")
+end
+# --- Inselschrank: Korpus und Schubladen wie bisher, Verkleidung, Wangen und Theke nur formatieren ---
+[[{ 'Art_Wange' => 3.0 }, %w[A B C], %w[Verkleidung WangeL WangeR]],
+ [{ 'Frontart' => 0.0, 'Theke' => 1.0 }, [], %w[Verkleidung Theke TuerL TuerR Einlegeboden1]]].each do |e, bereiche, extra|
+  im = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankInsel.erstellen(e.merge('Tiefe' => 52.0))
+  di_, mi = S::Export.erzeugen(im)
+  check(mi.empty?, "Insel #{e}: keine Meldungen #{mi}")
+  dim = di_.to_h { |x| [x.name, x] }
+  soll = %w[Boden Rueckwand SeiteL SeiteR StrebeHinten StrebeVorn].map { |t| "USI1_#{t}" } + extra.map { |t| "USI1_#{t}" } +
+         bereiche.flat_map { |b| %w[Front KastenBoden KastenRueckwand].map { |t| "USI1_#{b}_#{t}" } }
+  check(dim.keys.sort == soll.sort, "Insel #{e}: Dateien #{dim.keys.sort}")
+  (extra - %w[TuerL TuerR Einlegeboden1]).each do |t|
+    z = bearbeitungen(dim["USI1_#{t}"].text, 1)
+    check(z.size == 1 && z.first.include?('squad.tmcr'), "Insel #{t}: nur Formatieren #{z}")
+  end
+  %w[USI1_SeiteL USI1_SeiteR].each do |sn|
+    check(schiene_bohr.(dim[sn].text) == 4 * bereiche.size, "Insel #{e} #{sn}: Schienenbohrungen (#{schiene_bohr.(dim[sn].text)})")
+  end
+  lr = bearbeitungen(dim['USI1_SeiteL'].text, 1).count { |x| x.include?('#8522=5 ') }
+  check(bereiche.empty? ? lr == 2 : lr.zero?, "Insel #{e}: Lochreihen nur bei Türen (#{lr})")
+  check(dim['USI1_Boden'].text.include?('#8522=3 '), "Insel #{e}: Sockelfüße")
+  ff = S::Frontfarbe.fronten(im, kategorie: 'Unterschrank').select(&:sichtbar?)
+  check(ff.map { |t| t.jt('teil') }.sort == (bereiche.map { 'Front' } + extra - %w[Theke Einlegeboden1]).sort,
+        "Insel #{e}: Frontfarbe findet Fronten, Verkleidung und Wangen #{ff.map { |t| t.jt('teil') }}")
+  S::Frontfarbe.anwenden(im, ff, im.materials.add('Front Eiche 19mm'), griff: { lochmass: 160, lage: 'Mitte', hoehe: 40 })
+  neu = S::Frontfarbe.fronten(im, kategorie: 'Unterschrank').select(&:sichtbar?)
+  check(neu.all? { |t| t.inst.material.name == 'Front Eiche 19mm' }, "Insel #{e}: Frontmaterial auf allen Sichtteilen")
+  check(neu.all? { |t| t.front? == !t.jt('griff_lochmass').nil? }, "Insel #{e}: Griff nur an Fronten und Türen")
 end
 Sketchup.active_model = model
 
