@@ -324,3 +324,34 @@ module UI
     def restore = nil
   end
 end
+
+# --- Platten mit beliebigem Umriss (Abschlussregal: Schräge, Bogen): je Umrisskante eine
+# Seitenfläche mit Normale und Fläche (area, Zoll²), Rechtecke wie bisher ---
+module Sketchup
+  class Face
+    attr_writer :area
+    def area = (@area || 0.0)
+    alias_method :pushpull_rechteck, :pushpull
+    def pushpull(d)
+      pts = @pts.map { |q| q.to_a.map(&:to_f) }
+      rechteck = pts.size == 4 && pts[0][0].abs < 1e-9 && pts[0][1].abs < 1e-9 &&
+                 (pts[1][1]).abs < 1e-9 && (pts[2][0] - pts[1][0]).abs < 1e-9 && pts[3][0].abs < 1e-9
+      return pushpull_rechteck(d) if rechteck
+      raise 'pushpull falsche Richtung' unless @normal.z > 0 && d > 0
+      @ents.definition.box = [pts.map { |q| q[0] }.max, pts.map { |q| q[1] }.max, d]
+      @ents.faces.clear
+      [[0, 0, -1], [0, 0, 1]].each { |n| @ents.faces << Face.new(@ents, @pts, n) }
+      # gegen den Uhrzeigersinn: außen liegt rechts der Kante
+      flaeche = pts.each_cons(2).sum { |a, b| a[0] * b[1] - b[0] * a[1] } + pts[-1][0] * pts[0][1] - pts[0][0] * pts[-1][1]
+      s = flaeche > 0 ? 1 : -1
+      (pts + [pts[0]]).each_cons(2) do |a, b|
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        l = Math.hypot(dx, dy)
+        next if l < 1e-9
+        f = Face.new(@ents, [a, b], [s * dy / l, -s * dx / l, 0.0])
+        f.area = l * d
+        @ents.faces << f
+      end
+    end
+  end
+end

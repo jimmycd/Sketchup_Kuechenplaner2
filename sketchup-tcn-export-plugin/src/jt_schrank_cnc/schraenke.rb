@@ -30,6 +30,11 @@ module JTools
       def front?
         %w[Front Tuer].include?(rolle)
       end
+      # bekommt bei „Frontfarbe ändern“ das Frontmaterial: Fronten, Türen und Teile mit
+      # JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“)
+      def frontfarbe?
+        front? || (jt('frontfarbe') ? true : false)
+      end
       # sichtbar nur, wenn weder das Teil noch eine Ebene darüber ausgeblendet ist
       def sichtbar?
         pfad.none? { |i| i.hidden? }
