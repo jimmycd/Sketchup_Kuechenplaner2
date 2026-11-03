@@ -341,6 +341,18 @@ B.dialog_sockelblende
 B.dialog_passblende
 check(m.entities.length == n, 'zu lange Sockelblende / Breite 0 abgewiesen')
 
+# Sockelhöhe aus den Küchen-Einstellungen (hier 150 mm statt Standard 100 mm)
+Kuechenplaner::Einstellungen.define_singleton_method(:sockelhoehe) { |_m = nil| 150.0 }
+m = neu
+UI.fragen = []
+B.dialog_wange
+m.selection.clear
+B.dialog_sockelblende
+check(UI.fragen.map { |f| f[1][-2] } == %w[150 520] && UI.fragen[0][1][5] == '150', "Sockelhöhe aus Einstellungen im Dialog: #{UI.fragen.map { |f| f[1] }.inspect}")
+q = sichtbar(knoten(m.entities.instances.last))['Sockelblende1']
+check(q && nahe(q[4], -15.0 + 0.3), "Sockelblende mit Sockelhöhe aus Einstellungen: #{q.inspect}")
+Kuechenplaner::Einstellungen.define_singleton_method(:sockelhoehe) { |_m = nil| 100.0 }
+
 eintraege = Kuechenplaner.schraenke.select { |g, _, _| g == 'Blenden & Wangen' }.map { |_, t, _| t }
 check(eintraege == ['Passblende…', 'Wange…', 'Sockelblende…'], "Menü Blenden & Wangen: #{eintraege.inspect}")
 check(Kuechenplaner::GRUPPEN.include?('Blenden & Wangen'), 'Gruppe Blenden & Wangen')

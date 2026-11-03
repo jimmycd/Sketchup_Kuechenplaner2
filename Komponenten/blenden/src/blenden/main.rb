@@ -18,6 +18,7 @@
 
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'einstellungen') # Sockelhöhe und Abstände der Küche
 
 module Blenden
 
@@ -322,6 +323,11 @@ module Blenden
       mat: mat, kante: kante || kanten_material(model), front: art != :sockelblende }
   end
 
+  # Sockelhöhe der Küche (Küchenplaner › Einstellungen, Standard 100 mm) in cm
+  def self.sockel_standard(model)
+    Kuechenplaner::Einstellungen.sockelhoehe(model) / 10.0
+  end
+
   def self.kategorie_von(p)
     k = p['Kategorie'].to_s
     KATEGORIEN.include?(k) ? k : 'Unterschrank'
@@ -356,7 +362,7 @@ module Blenden
   end
 
   def self.erzeuge_wange(model, eingabe = {}, front_mat = nil)
-    p = ARTEN[:wange][:defaults].merge(eingabe)
+    p = ARTEN[:wange][:defaults].merge('Sockelhoehe' => sockel_standard(model)).merge(eingabe)
     kat = kategorie_von(p)
     p = p.merge('Sockelhoehe' => 0.0) if kat == 'Oberschrank'
     ctx = kontext(model, :wange, p, kat, front_mat)
@@ -386,7 +392,7 @@ module Blenden
   end
 
   def self.erzeuge_sockelblende(model, eingabe = {})
-    p = ARTEN[:sockelblende][:defaults].merge(eingabe)
+    p = ARTEN[:sockelblende][:defaults].merge('Sockelhoehe' => sockel_standard(model)).merge(eingabe)
     ctx = kontext(model, :sockelblende, p, SOCKEL_KATEGORIE, nil)
     u = 'Sockelblende'
     d = haupt(model, :sockelblende, ctx)
@@ -413,9 +419,10 @@ module Blenden
     q0 = m['Sockelblende1']
     MAX_STUECKE.times do |i|
       name = "Sockelblende#{i + 1}"
-      q = m[name] || [q0[0] + i * (q0[1] - q0[0]), q0[0] + (i + 1) * (q0[1] - q0[0])] + q0[2..5]
+      # ausgeblendete Stücke liegen auf dem ersten, damit sie nicht über die Komponente hinausragen
+      q = m[name] || q0
       teil(model, d, ctx, name, 'Sockelblende', q,
-           ["#{u}!Staerke*#{li.("#{u}!")}+#{i}*#{l_st}", y0, z0, l_st, "#{u}!Staerke", hz],
+           ["#{u}!Staerke*#{li.("#{u}!")}+IF(#{u}!N>=#{i + 1},#{i},0)*#{l_st}", y0, z0, l_st, "#{u}!Staerke", hz],
            sichtbar: !m[name].nil?, hidden_formel: "IF(#{u}!N>=#{i + 1},0,1)")
     end
     l, r = sockel_seiten(p)
@@ -610,7 +617,7 @@ module Blenden
     Kuechenplaner::Eingabe.abfragen(['Schranktyp', 'Seite am Schrank', 'Stärke (mm)', 'Höhe Korpus (mm, leer = wie Schrank)',
                                      'Tiefe Korpus (mm, leer = wie Schrank)', 'Sockelhöhe (mm)', 'Überstand vorne (mm)'],
                                     [v['Kategorie'] || 'Unterschrank', 'rechts', '19', mm(v['Hoehe']), mm(v['Tiefe']),
-                                     mm(v['Sockelhoehe'] || 10.0), '0'],
+                                     mm(v['Sockelhoehe'] || sockel_standard(model)), '0'],
                                     [KATEGORIEN.join('|'), 'rechts|links', '19|25|38', '', '', '', ''], 'Wange',
                                     untertitel: n ? 'Neue Wange am gewählten Schrank' : 'Neue Wange', ok: 'Einfügen') do |res|
       kat = res[0]
@@ -632,7 +639,7 @@ module Blenden
     z = zeile(model)
     UI.messagebox("#{z[:uebergangen]} Schränke stehen quer zur Zeile und werden übergangen.") if z && z[:uebergangen] > 0
     Kuechenplaner::Eingabe.abfragen(['Länge (mm)', 'Sockelhöhe (mm)', 'Tiefe Korpus (mm)', 'Seitenstücke'],
-                                    [mm(z ? z[:laenge] : 60.0), mm((z && z[:sockel]) || 10.0), mm((z && z[:tiefe]) || 52.0), 'keine'],
+                                    [mm(z ? z[:laenge] : 60.0), mm(sockel_standard(model)), mm((z && z[:tiefe]) || 52.0), 'keine'],
                                     ['', '', '', 'keine|links|rechts|beide'], 'Sockelblende',
                                     untertitel: z ? 'Neue Sockelblende unter den gewählten Schränken' : 'Neue Sockelblende',
                                     ok: 'Einfügen') do |res|

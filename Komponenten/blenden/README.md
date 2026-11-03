@@ -9,7 +9,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 
 **Mit Auswahl geht es schneller:**
 * *Passblende* und *Wange*: Genau einen Schrank auswählen. Der Dialog schlägt dessen Typ, Höhe, Tiefe und Sockelhöhe vor. Das Teil wird links oder rechts direkt an den Schrank gesetzt und bekommt dessen Frontmaterial. Ohne Auswahl startet das Andock-Werkzeug.
-* *Sockelblende*: Alle Unter- und Hochschränke einer Zeile auswählen (gern samt Wangen und Passblenden). Die Blende läuft von der linken bis zur rechten Außenkante. Tiefe und Sockelhöhe kommen von den Schränken. Quer stehende Schränke werden übergangen (Meldung), Oberschränke ignoriert.
+* *Sockelblende*: Alle Unter- und Hochschränke einer Zeile auswählen (gern samt Wangen und Passblenden). Die Blende läuft von der linken bis zur rechten Außenkante. Die Tiefe kommt von den Schränken, die Sockelhöhe aus den Küchen-Einstellungen. Quer stehende Schränke werden übergangen (Meldung), Oberschränke ignoriert.
 
 ## Passblende (Kürzel PB)
 | Option | Standard |
@@ -28,7 +28,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 | Seite | links / rechts am Schrank (beim Anlegen) |
 | Stärke | **19** / 25 / 38 mm (wächst nach außen) |
 | Höhe / Tiefe Korpus | wie der Schrank |
-| Sockelhöhe | 100 mm (Unter- und Hochschrank: die Wange reicht bis zum Boden) |
+| Sockelhöhe | aus Küchenplaner › Einstellungen (Standard 100 mm); Unter- und Hochschrank: die Wange reicht bis zum Boden |
 | Überstand vorne | 0 mm |
 
 * Tiefe = Front + Korpus + Rückwand: Die Wange schließt **bündig mit der Front** ab und hinten mit der Rückwand. Beim Geschirrspüler-Unterschrank beginnen die Abschlusswangen dagegen an der Korpusvorderkante.
@@ -39,7 +39,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 | Option | Standard |
 |---|---|
 | Länge | aus der Auswahl, sonst 600 mm |
-| Sockelhöhe | 100 mm, die Blende ist 3 mm niedriger (Luft zum Boden) |
+| Sockelhöhe | aus Küchenplaner › Einstellungen (Standard 100 mm), die Blende ist 3 mm niedriger (Luft zum Boden) |
 | Tiefe Korpus | für die Seitenstücke |
 | Seitenstücke | keine / links / rechts / beide |
 | Stärke | **16** / 19 mm |

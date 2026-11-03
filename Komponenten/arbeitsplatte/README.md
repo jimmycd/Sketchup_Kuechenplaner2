@@ -65,7 +65,7 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 |---|---|
 | Plattenart | Schichtstoff mit Anleimer ab Werk (38 mm) oder Massivholz (40 mm) |
 | Überstand vorn / seitlich an freien Enden | 20 / 0 mm |
-| Wandabstand / Fuge zum Hochschrank | 5 / 2 mm |
+| Wandabstand / Fuge zum Hochschrank | 5 / 2 mm; stehen die Schränke mit Abstand zur Wand (*Küchenplaner › Einstellungen…*), reicht die Platte trotzdem bis 5 mm vor die Wand |
 | Stoß in der Ecke | Gehrungsansatz (Gehrungstiefe 30 mm, Bogen R 30 mm), Option stumpf oder Gehrung 45°, je Ecke |
 | Durchlaufende Platte | die längere Zeile, je Ecke umschaltbar |
 | Format | schmalstes aus 4100 × 600 / 650 / 900 / 1200, das die Tiefe abdeckt, oder fest |

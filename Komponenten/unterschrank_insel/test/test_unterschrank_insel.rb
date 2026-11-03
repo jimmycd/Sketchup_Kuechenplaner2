@@ -311,7 +311,7 @@ UI.antwort = nil
 
 # --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---
 require_relative '../../../test/tiefe_helfer'
-[{}, { 'Frontart' => 0.0 }, { 'Theke' => 1.0, 'Art_Wange' => 3.0 }].each do |e|
+[{}, { 'Frontart' => 0.0 }, { 'Theke' => 1.0, 'Art_Wange' => 3.0 }, { 'Verkleidung' => 0.0, 'Anz_Schubladen' => 2.0 }].each do |e|
   TiefeHelfer.pruefen(Knoten, H::DICT, ->(x) { H.erstellen(x) },
                       [[80.0, 52.0], [52.0, 40.0], [52.0, 65.0], [56.0, 47.3]], e).each do |was, abw|
     check(abw.empty?, "Tiefe #{was} #{e}: " + abw.first(8).join('; '))
