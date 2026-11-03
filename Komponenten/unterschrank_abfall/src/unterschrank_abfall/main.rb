@@ -479,9 +479,11 @@ module UnterschrankAbfall
       g = platte(model, "Abfallbehälter #{i}", "Behaelter#{i}", [r[:b_beh], r[:t_beh], r[:h_beh]],
                  ["#{s}!B_Beh", "#{s}!T_Beh", "#{s}!H_Beh"], art: 'Behaelter')
       sichtbarkeit(g, i <= r[:n], "IF(#{s}!Anz>=#{i},0,1)")
-      # kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL
-      gi = einsetzen(d.entities, g, "Behaelter#{i}", [mk + 1.75 + (i - 1) * (r[:b_beh] + ba), mk, r[:ab_a] + mb],
-                     ["#{s}!Mk+1.75+#{i - 1}*(#{s}!B_Beh+#{s}!Ba)", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"],
+      # kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL. Ausgeblendete Behälter
+      # stehen auf dem Platz des ersten, sonst ragen sie seitlich aus dem Schrank und vergrößern die
+      # Komponentengrenze (SketchUp zählt ausgeblendete Teile mit).
+      gi = einsetzen(d.entities, g, "Behaelter#{i}", [mk + 1.75 + (i <= r[:n] ? (i - 1) * (r[:b_beh] + ba) : 0), mk, r[:ab_a] + mb],
+                     ["#{s}!Mk+1.75+IF(#{s}!Anz>=#{i},#{i - 1}*(#{s}!B_Beh+#{s}!Ba),0)", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"],
                      mat: bm, layer: tag(model, "#{kz}_A_Behaelter#{i}"))
       gi.hidden = i > r[:n]
     end
