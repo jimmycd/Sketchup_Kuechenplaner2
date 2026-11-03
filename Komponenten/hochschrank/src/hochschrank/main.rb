@@ -89,20 +89,9 @@ module Hochschrank
   }.merge((1..MAX_U).to_h { |i| ["Anteil_U#{i}", 1.0] })
    .merge((1..MAX_M).to_h { |i| ["Anteil_M#{i}", 1.0] }).freeze
 
-  # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
-  # "summary" und "description" oben im Fenster "Komponentenoptionen".
+  # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/hochschrank'.freeze
   HILFE_KURZ = 'Hochschrank: unten Schubladen, Mitte offenes Fach oder Schubladen, oben offenes Fach oder Tür'.freeze
-  HILFE = [
-    'Unten: Höhe bis Oberkante Zwischenboden, 1–6 Schubladen. Mitte: offenes Fach (lichte Höhe, z. B. Backofen) oder 1–4 Schubladen.',
-    'Oben: offenes Fach oder Tür, 0–3 Einlegeböden; die Höhe ergibt sich aus dem Rest.',
-    'Anteile: 1/1/2 = unterste doppelt so hoch, Schublade 1 = oben; mm-Werte werden auf die Bereichshöhe skaliert.',
-    'Mit „Interagieren“ fahren Schubladen heraus, die Tür öffnet sich.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) ziehen Stückliste und Zuschnitt ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. HS1_SeiteL, HS1_U1_Front, HS1_O_Tuer.',
-    'Feste Maße (Materialstärken, Abstände): Fenster „Komponentenattribute“.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # Bereiche mit Schubladen: Präfix, Anzahl-Attribut, Max, Unterkante, Oberkante Fronten, Sichtbarkeit
   def self.bereiche
@@ -217,20 +206,33 @@ module Hochschrank
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d)
-    d.description = HILFE_KURZ
-    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
     end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end

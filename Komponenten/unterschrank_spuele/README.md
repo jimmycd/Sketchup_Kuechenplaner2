@@ -47,7 +47,7 @@ Jedes Teil hat den Tag `<Kürzel>_<Bereich>_<Teil>`: `USP1_SeiteL`, `USP1_SeiteR
 Wie beim Unterschrank: Dübel Boden und Streben an die Seiten, Sockelfüße im Boden, Schienen und Frontbefestigung für den Auszug, Falz im Kastenboden, Lochreihen nur bei Türen. Dazu die Nut für die Rückwand in den Seiten und der Ausschnitt in der Rückwand (Kontur mit dem Nutfräser, 1 mm tiefer als die Rückwand). Die Seiten des Spülenschranks unterscheiden sich damit durch die Nut von den Seiten der anderen Unterschränke.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) und als Beschreibung der Komponente, mit Link auf diese Seite. Der Text steht als `HILFE` in `spuelenschrank.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_spuele/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_spuelenschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) beide Frontvarianten, Umschalten über die Komponentenoptionen, Installationsebene, Ausschnitt, Siphon-Freiraum, LEGRABOX-Maße, Material, Anleimer, Tags und die Kurzhilfe. Den TCN-Export prüft `sketchup-tcn-export-plugin/test/test_export.rb`. In echtem SketchUp ist die Komponente noch nicht getestet.

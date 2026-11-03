@@ -92,7 +92,7 @@ module Geraete
     [name, mat, pos.map(&:to_f), groesse.map(&:to_f)]
   end
 
-  # Liefert { plan: [x,y,z,lx,ly,lz], teile: [...], text: "…" } oder nil
+  # Liefert { plan: [x,y,z,lx,ly,lz] (nil = kein Planblock, Modell + text_pos), teile: [...], text: "…" } oder nil
   def self.berechne(n)
     a = art(n['geraet']) or return nil
     send("berechne_#{a[0].downcase}", n, a[1]).merge(text: beschriftung(n, a))
@@ -286,7 +286,9 @@ module Geraete
     bw, bt = sw - 2 * rand, st - 2 * rand
     bx, by = sx + rand, sy + rand
     z0 = ap - tiefe
-    { plan: [sx, sy, z0, sw, st, tiefe + 330],
+    # Kein Planblock: ein Quader um Becken und Armatur verdeckt die Spüle (Jürgen, 2026-11-02).
+    # In der Planung steht stattdessen das Spülenmodell selbst mit Beschriftung.
+    { plan: nil, text_pos: [sx + sw / 2, sy, ap + 2],
       teile: [teil('RandVorn', 'Geraet Spuele', [sx, sy, ap], [sw, rand, 2]),
               teil('RandHinten', 'Geraet Spuele', [sx, sy + st - rand, ap], [sw, rand, 2]),
               teil('RandL', 'Geraet Spuele', [sx, by, ap], [rand, bt, 2]),
@@ -421,21 +423,30 @@ module Geraete
     { 'geraet' => nische['geraet'].to_s, 'nische' => nische['nische'].to_s, 'text' => r[:text] }
       .each { |k, v| d.set_attribute(GERAET_DICT, k, v) }
 
-    # Planung: Block in der Planfarbe mit Beschriftung
-    pd = model.definitions.add("Geraet #{nische['geraet']} Plan")
-    px, py, pz, *pg = r[:plan]
-    quader(pd.entities, *pg)
-    if pd.entities.respond_to?(:add_text)
-      pd.entities.add_text(r[:text], Geom::Point3d.new(inch(pg[0] / 2), 0, inch(pg[2] / 2)))
-    end
-    plan = d.entities.add_instance(pd, verschiebung([px, py, pz]))
-    plan.name = 'Plan'
-    plan.material = material(model, ARTEN[a[0]][1])
-    plan.layer = tag(model, TAG_PLAN)
-
     # Kunde: Modell aus Einzelteilen
     rd = model.definitions.add("Geraet #{nische['geraet']} Render")
     r[:teile].each { |name, mat, pos, groesse| box(model, rd.entities, name, mat, pos, groesse) }
+
+    # Planung: Block in der Planfarbe mit Beschriftung. Ohne Planblock (Spüle) zeigt die
+    # Planung das Modell selbst, ohne Kasten drumherum.
+    pd = model.definitions.add("Geraet #{nische['geraet']} Plan")
+    if r[:plan]
+      px, py, pz, *pg = r[:plan]
+      quader(pd.entities, *pg)
+      text_pos = [pg[0] / 2, 0, pg[2] / 2]
+    else
+      px = py = pz = 0
+      pd.entities.add_instance(rd, verschiebung([0, 0, 0]))
+      text_pos = r[:text_pos]
+    end
+    if pd.entities.respond_to?(:add_text)
+      pd.entities.add_text(r[:text], Geom::Point3d.new(*text_pos.map { |v| inch(v) }))
+    end
+    plan = d.entities.add_instance(pd, verschiebung([px, py, pz]))
+    plan.name = 'Plan'
+    plan.material = material(model, ARTEN[a[0]][1]) if r[:plan]
+    plan.layer = tag(model, TAG_PLAN)
+
     render = d.entities.add_instance(rd, verschiebung([0, 0, 0]))
     render.name = 'Render'
     render.layer = tag(model, TAG_RENDER)

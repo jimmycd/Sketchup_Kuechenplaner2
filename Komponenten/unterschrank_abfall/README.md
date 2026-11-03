@@ -47,7 +47,7 @@ An jedem Teil außer den Behältern steht das Wörterbuch `JT_Schrank` mit `schr
 Ohne Änderung am Plugin, wie beim Unterschrank mit Schubladen: Dübel der Böden und Streben, Rückwand, Sockelfüße im Boden, LEGRABOX-Schienenbohrungen je Kasten in beiden Seiten (Nennlänge aus `NL`), Frontbefestigung und Bodenfalz. Keine Lochreihen (Fach mit Auszug). Die Behälter haben kein `JT_Schrank` und werden übergangen.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_abfall/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_abfall/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_unterschrank_abfall.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Fronten, LEGRABOX-Kästen im Lochraster, Behälter (Anzahl, Breite, Höhe, unter der Schublade), Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, Materialien, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft Schienen- und Frontbohrungen beider Varianten.

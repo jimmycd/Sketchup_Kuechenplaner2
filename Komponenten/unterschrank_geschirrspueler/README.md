@@ -40,7 +40,7 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiese
 `USG1_Front`, `USG1_WangeL`, `USG1_WangeR`. Das Kürzel ist `USG1`, oder `USG2` usw., wenn es im Modell schon vergeben ist. An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Unterschrank_Geschirrspueler), `kategorie` (**Unterschrank**, damit „Frontfarbe → nur Unterschränke“ ihn mit erfasst), `bereich`, `teil` und `rolle` (Front bzw. **Wange**). Die Rolle *Wange* ist bewusst nicht *Seite*: Der TCN-Export formatiert die Wange nur und bohrt keine Lochreihen oder Dübel.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `geschirrspueler.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_geschirrspueler/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_geschirrspueler.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Front, Fugen, Wangen links/rechts/beide, Platzhalter, Formeln nach Umkonfigurieren (450/600, Fronthöhe, Sockel), Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische` und die Kurzhilfe. Der Plugin-Test prüft, dass der TCN-Export Front und Wangen nur formatiert und die Frontfarbe-Funktion die Front findet.

@@ -63,7 +63,7 @@ An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Hochschrank Vorrat), `kat
 * Topfbandbohrungen in Tür und Seite gibt es im Export noch nicht (kommt mit den Türen); die Höhen stehen schon in `Scharnier_1…6`.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/hochschrank_vorrat/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank_vorrat/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_hochschrank_vorrat.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Türen (ganz/geteilt, Flügel, Anschlag), Kästen im Lochraster, Innenfront, Scharnierhöhen (keine Kollision mit Kästen, Böden und Einlegeböden, Anzahl je Tür), Kollisionen, Formeln nach dem Umkonfigurieren, nachträgliche Tiefenänderung, Material, Anleimer, Tags und die Kurzhilfe. Der Export wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.

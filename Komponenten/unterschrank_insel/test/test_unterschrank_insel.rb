@@ -290,8 +290,7 @@ check(nahe(d.get_attribute(H::DICT, 'sitzueberstand') * 2.54, 30.0), 'Sitzübers
 
 # --- Kurzhilfe in der Komponente ------------------------------------------
 check(d.description == H::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
-check(d.get_attribute(H::DICT, 'summary') == H::HILFE_KURZ && d.get_attribute(H::DICT, 'description') == H::HILFE, 'Hilfe: summary/description')
-check(H::HILFE.include?(H::DOKU_URL), 'Hilfe: Link zur Doku')
+check(d.get_attribute(H::DICT, 'summary') == H::HILFE_KURZ && d.get_attribute(H::DICT, 'description').nil?, 'Hilfe: summary/description')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 # --- Dialog: Front und Rückseite wählbar ---

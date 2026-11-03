@@ -66,9 +66,8 @@ model.selection.add(inst)
 check(T.einrichten(model) == [inst], 'Auswahl wird bearbeitet')
 check(d.description == T::HILFE_KURZ, 'Beschreibung der Definition')
 check(d.get_attribute(T::DICT, 'summary') == T::HILFE_KURZ, 'summary')
-check(d.get_attribute(T::DICT, 'description') == T::HILFE, 'description')
-check(%w[summary description].all? { |k| d.get_attribute(T::DICT, "_#{k}_access") == 'VIEW' }, 'nur anzeigen')
-check(T::HILFE.include?(T::DOKU_URL), 'Link zur Doku')
+check(d.get_attribute(T::DICT, 'description').nil?, 'description')
+check(%w[summary description].none? { |k| d.get_attribute(T::DICT, "_#{k}_access") }, 'keine eigenen Zeilen in den Optionen')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 # Tags und JT_Schrank

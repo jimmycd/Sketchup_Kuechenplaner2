@@ -45,7 +45,7 @@ Zusätzlich steht an jedem Teil das Wörterbuch `JT_Schrank` mit `schrank`, `typ
 Die Schrankaufhänger kommen später dazu.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `oberschrank.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_oberschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Rückwand in der Nut, Deckel vor der Rückwand, Türen und Fugen, Einlegeböden), Formeln nach Umkonfigurieren, Material, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe.

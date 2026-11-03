@@ -54,7 +54,7 @@ Das Kürzel ist `AP1`, oder `AP2` usw., wenn es im Modell schon vergeben ist. Ei
 Am Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Apothekerschrank), `kategorie` (Hochschrank – damit greifen Frontfarbe und Sockelfüße), `bereich`, `teil` und `rolle`. Die Kastenteile haben zusätzlich `front` (A oder B): Daran findet das TCN-Plugin die Front, an der der Kasten befestigt wird, und bohrt die Frontbefestigung für jeden Kasten in die Hochfront.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) und als Beschreibung in *Entitätsinformationen*, mit Link auf diese Seite. Der Text steht als `HILFE` in `apothekerschrank.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/apothekerschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_apothekerschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, Lochraster, Kollisionen, Material, Anleimer, Tags und die Kurzhilfe, auch nach dem Umkonfigurieren. Der TCN-Export des Apothekerschranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.

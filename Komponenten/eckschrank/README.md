@@ -84,7 +84,7 @@ Das Kürzel ist `UES1`, oder `UES2` usw., wenn es im Modell schon vergeben ist. 
 * Topfbänder (auch das Scharnier der Falttür) kommen mit den Türen im TCN-Export.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) und als Beschreibung der Komponente, mit Link auf diese Seite. Die Texte stehen als `HILFE` und `HILFE_L` in `src/eckschrank/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/eckschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_eckschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) alle Blindeck-Varianten mit beiden Blindseiten und Umschalten über die Komponentenoptionen (Lage von Blende, Türen und Drehpunkten, Einlegeböden, Le-Mans-Platzhalter, Abstand zur Wand), die L-Form (Innenecke, Streben, Rückwände, Falttür, Einlegeböden, Höhe ändern), Material, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Den TCN-Export prüft `sketchup-tcn-export-plugin/test/test_export.rb`. In echtem SketchUp ist die Komponente noch nicht getestet.
