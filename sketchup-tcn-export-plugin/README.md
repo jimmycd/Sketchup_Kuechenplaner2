@@ -71,7 +71,7 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
 
 ## Etiketten
-*Erweiterungen › Küchenplaner › Etiketten…* ersetzt die Etiketten aus OpenCutList. Ein Etikett je Stück (Anzahl 3 = „1/3“, „2/3“, „3/3“), in der Reihenfolge und mit den Nummern der Stückliste. Inhalt: Tag, Nummer, Schrank · Teil, Material und Stärke, Rohmaß (fett), Fertigmaß, TCN-Dateiname und ein Kantenbild (Länge waagrecht, Anleimer als dicke Linie: L1 unten, L2 oben, B1 links, B2 rechts). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+*Erweiterungen › Küchenplaner › Etiketten…* ersetzt die Etiketten aus OpenCutList. Ein Etikett je Stück (Anzahl 3 = „1/3“, „2/3“, „3/3“), in der Reihenfolge und mit den Nummern der Stückliste. Inhalt: Tag, Nummer, Schrank · Teil, Material und Stärke, dann die Maße in der Reihenfolge **Rohmaß** (fett), **Fräsmaß**, **Fertigmaß**, dazu TCN-Dateiname und ein Kantenbild (Länge waagrecht, Anleimer als dicke Linie: L1 unten, L2 oben, B1 links, B2 rechts). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
 Vor dem Schreiben fragt ein Fenster das Format ab (vorbelegt mit dem zuletzt benutzten, gespeichert für alle Modelle):
 
@@ -82,20 +82,34 @@ Vor dem Schreiben fragt ein Fenster das Format ab (vorbelegt mit dem zuletzt ben
 | Spalten / Zeilen | 3 × 8 | nur Bogen |
 | Rand oben / links | 0,5 / 0 mm | nur Bogen, Abstand der ersten Etikettkante vom Blattrand |
 | Abstand waagrecht / senkrecht | 0 / 0 mm | nur Bogen, Lücke zwischen den Etiketten |
-| QR-Code | nein | ja: QR-Code mit dem TCN-Dateinamen (die QR-Bibliothek kommt beim Öffnen aus dem Internet) |
+| QR-Code | nein | ja: QR-Code mit dem TCN-Dateinamen (wird ins PDF gezeichnet, kein Internet nötig) |
 | erstes freies Etikett | 1 | angebrochener Bogen: Nummer des ersten freien Etiketts, zeilenweise von oben links |
 
-Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im Browser. Drucken mit Größe 100 % (nicht „an Seite anpassen“) und ohne Ränder; die Seitengröße steht in der Datei (`@page`), beim Endlos-Drucker also die Etikettengröße.
+Danach fragt es nach einem Ordner, schreibt **`Etiketten.pdf`** und öffnet sie im PDF-Leser. Drucken mit „Tatsächliche Größe“ (100 %, nicht „an Seite anpassen“); die Seitengröße steht im PDF (A4 bzw. beim Endlos-Drucker die Etikettengröße).
 
 ## Zuschnittplan
-*Erweiterungen › Küchenplaner › Zuschnittplan…* ersetzt den Zuschnitt aus OpenCutList, gedacht für die Formatsäge (alles von Hand, kein Zuschnittprogramm). Je Material und Stärke verteilt der Guillotine-Optimierer BinPacking2D (aus OpenCutList übernommen, siehe [THIRD_PARTY.md](THIRD_PARTY.md)) die **Rohmaße** der Stückliste auf Platten, nur mit durchgehenden Schnitten. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+*Erweiterungen › Küchenplaner › Zuschnittplan…* ersetzt den Zuschnitt aus OpenCutList, gedacht für die Formatsäge (alles von Hand, kein Zuschnittprogramm). Je Material und Stärke verteilt ein Guillotine-Optimierer (`guillotine.rb`, eigener Code) die **Rohmaße** der Stückliste auf Platten, nur mit durchgehenden Schnitten in Stufen. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke. Arbeitsplatten und Teile ohne Material bleiben draußen (Hinweis). Teile, die nicht auf die Platte passen, stehen in der Übersicht unter „passt nicht“.
 
-* Plattenformat aus dem Material (`std_sizes` im OCL-Wörterbuch, erstes Format), sonst 2800 × 2070 mm.
-* Schnittbreite und Besäumen aus den *Einstellungen* (Standard 3 mm und 10 mm je Plattenkante).
-* Maserung am Material (`grained`): dann wird nicht gedreht, die Teillänge L liegt längs der Platte.
-* Arbeitsplatten und Teile ohne Material bleiben draußen (Hinweis). Teile, die nicht auf die Platte passen, stehen in der Übersicht unter „passt nicht“.
+Ein Fenster fragt die Optionen ab (wie im Schnittplan von OpenCutList, [Beschreibung](https://docs.opencutlist.org/features/parts/parts-list/cutting-diagrams); gespeichert für alle Modelle):
 
-Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (Platten, Teile, Ausnutzung), dann je Platte eine Seite mit maßstäblicher Skizze (Teilnummern wie Stückliste und Etiketten, Reste schraffiert, Schnitte rot und nummeriert) und daneben die **Schnittliste in Reihenfolge**: zuerst Besäumen, dann die durchgehenden Schnitte, dann die Schnitte in den Streifen. Je Schnitt Richtung (längs/quer), Lage (`y =` bzw. `x =` ab der Plattenecke links oben) und Länge.
+| Option | Standard | Bedeutung |
+| --- | --- | --- |
+| Faserrichtung | wie Material | **wie Material**: Teile mit Maserung (`grained` am Material) werden nicht gedreht, L liegt längs der Platte. **beachten**: nie drehen. **ignorieren**: immer drehen erlaubt |
+| Abstand / Schnittbreite | 3 mm | Sägeblatt, Abstand zwischen den Teilen (gleich wie in *Einstellungen*) |
+| Randabfall | 10 mm | wird an jeder Plattenkante zuerst abgeschnitten (Besäumen) |
+| Erster Schnitt | beliebig | **horizontal**: Stufe 1 läuft längs der Platte (Streifen über die ganze Länge), **vertikal**: quer, **beliebig**: je Platte das bessere |
+| Schnitttyp | nicht exakt | **exakt**: genau so viele Stufen wie eingestellt, jedes Teil füllt seinen Streifen (2 Stufen) bzw. Abschnitt (3 Stufen) quer voll aus. **nicht exakt**: eine Stufe mehr, aber nur um Abfall vom Teil zu trennen. **homogen**: wie exakt, die letzte Ebene enthält nur gleiche Teile |
+| Anzahl Stufen | 3 | 2: Streifen → Teile; 3: Streifen → Abschnitte → Teile |
+| Reste behalten ab | 300 × 100 mm | Reste ab dieser Größe sind im Plan grün markiert und stehen in der Übersicht |
+| Gleiche Platten zusammenfassen | ja | gleiche Belegung nur einmal zeichnen („Platte 2–3, 2× gleich“) |
+| Schnitt- und Teileliste | keine | **eigene Seite je Platte**: Schnittliste in Reihenfolge (Stufe, Richtung, Lage, Länge) und Teileliste auf einer Seite nach der Grafik |
+| Schnittnummern in der Grafik | ja | rote Nummern am Anfang jedes Schnitts (Reihenfolge an der Säge) |
+| Teile einfärben | nein | ja: helle Farbe je Schrank |
+| Anleimer anzeigen | nein | ja: blaue Linie an Kanten mit Anleimer |
+
+Darunter je Material und Stärke **Plattenformat** (L x B) und **Plattenreste** (`1200 x 600 x 2; 800 x 400`, leer = keine). Beides wird je Stärke am Material gespeichert (Wörterbuch `JT_Zuschnitt`, z. B. `reste_19`); ohne Eintrag gilt `std_sizes` aus OpenCutList (Formate mit Anzahl = Reste), sonst 2800 × 2070 mm. Plattenreste werden zuerst belegt, dann Standardplatten.
+
+Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht platzierte Teile, Reste zum Behalten), dann je Platte eine Seite mit großer maßstäblicher Grafik. Auf jedem Teil stehen **Tag** (groß), Nummer und Rohmaß, bei hohen schmalen Teilen gedreht. Schnitte rot (Stufe 1 dick), Abfall schraffiert, Ursprung links oben, Länge waagrecht.
 
 ## Einstellungen
 *Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
@@ -104,8 +118,8 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 | --- | --- | --- |
 | Übermaß Länge gesamt (mm) | 10 | Rohmaß der längeren Seite, `OFFSET` der Fräsliste (halber Wert) |
 | Übermaß Breite gesamt (mm) | 10 | Rohmaß der kürzeren Seite, `OFFSET` der Fräsliste (halber Wert) |
-| Zuschnitt: Schnittbreite Sägeblatt (mm) | 3 | Abstand der Teile im Zuschnittplan |
-| Zuschnitt: Besäumen je Plattenkante (mm) | 10 | Rand der Rohplatte, der zuerst abgeschnitten wird |
+| Zuschnitt: Schnittbreite Sägeblatt (mm) | 3 | Abstand der Teile im Zuschnittplan (auch dort einstellbar) |
+| Zuschnitt: Besäumen je Plattenkante (mm) | 10 | Randabfall im Zuschnittplan (auch dort einstellbar) |
 
 ## TCN exportieren
 *Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = Tag, z. B. `USS1_Boden.tcn`) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS, OCL-Teil). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
@@ -149,13 +163,16 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
 * `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
 * `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
-* `src/jt_schrank_cnc/etiketten.rb` – Etiketten (Bogen oder Endlos, HTML zum Drucken)
-* `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan für die Formatsäge
-* `src/jt_schrank_cnc/bin_packing_2d/` – Guillotine-Optimierer aus OpenCutList (GPL-3.0, siehe `THIRD_PARTY.md`)
+* `src/jt_schrank_cnc/pdf.rb` – kleiner PDF-Schreiber (Text, Linien, Flächen, QR-Code), ohne fremde Bibliothek
+* `src/jt_schrank_cnc/rqrcode_core/` – QR-Code-Erzeuger rqrcode_core (MIT, siehe `THIRD_PARTY.md`)
+* `src/jt_schrank_cnc/etiketten.rb` – Etiketten als PDF (Bogen oder Endlos)
+* `src/jt_schrank_cnc/guillotine.rb` – Guillotine-Optimierer in 2 oder 3 Stufen (erster Schnitt, Schnitttyp, Reste)
+* `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan als PDF für die Formatsäge
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
-* `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Besäumen eingehalten, Maserung, zu große Teile, Druckseite, Dialog
-* `test/test_etiketten.rb` – Etiketten: Bogen-Lage, Startposition, Endlos, Kantenbild, QR-Code, Format-Dialog
+* `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Randabfall eingehalten, alle Kombinationen aus erstem Schnitt, Schnitttyp und Stufen (Schnitte wirklich durchgehend, Stufen eingehalten), Faserrichtung, Plattenreste, Reste behalten, gleiche Platten, PDF, Dialog
+* `test/test_etiketten.rb` – Etiketten-PDF: Bogen-Lage, Startposition, Endlos, Roh-/Fräs-/Fertigmaß, QR-Code, Format-Dialog
+* `test/test_pdf.rb` – PDF-Schreiber: gültiger Aufbau (xref), Umlaute, Textbreite, QR-Code
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank, Hochschrank Geräte und Hochschrank Kühlschrank (Lüftungsschacht: gekürzte Böden, Nut der Rückwand), Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form), Eck-Oberschrank (Nut im L-Boden, Deckelschrauben, Innenecke)
 
 ## Grundidee
@@ -176,4 +193,4 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 9. Dialog, Listen.
 
 ## Lizenz
-GPL-3.0 ([LICENSE](LICENSE)), weil der Zuschnitt-Optimierer aus OpenCutList stammt; Herkunft und Änderungen in [THIRD_PARTY.md](THIRD_PARTY.md).
+GPL-3.0 ([LICENSE](LICENSE)), von Jürgen am 01.11.2026 so festgelegt. Fremder Code: rqrcode_core (MIT), siehe [THIRD_PARTY.md](THIRD_PARTY.md).

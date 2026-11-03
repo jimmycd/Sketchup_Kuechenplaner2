@@ -40,7 +40,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen schraenke andocken frontfarbe geometrie regeln tcn arbeitsplatte fraesliste export stueckliste etiketten zuschnitt].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen schraenke andocken frontfarbe geometrie regeln tcn arbeitsplatte fraesliste export stueckliste pdf etiketten guillotine zuschnitt].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
