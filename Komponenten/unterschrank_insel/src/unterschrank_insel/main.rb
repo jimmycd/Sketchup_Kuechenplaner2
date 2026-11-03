@@ -114,7 +114,7 @@ module UnterschrankInsel
     y_hinten = p['Tiefe'] + mk + p['Materialstarke_Rueckwand']
     y_aussen = y_hinten + (verkleidet ? p['Materialstaerke_Verkleidung'] : 0.0)
     schub = (1..MAX_SCHUBLADEN).map do |i|
-      z = h - i * hf - (i - 1) * sp
+      z = i <= n ? h - i * hf - (i - 1) * sp : 0.0 # ausgeblendete Schubladen unten im Schrank (Komponentengrenze)
       ab = kasten_unten(p, z)
       { z: z, ab: ab, hrw: [[p['Hoehe_Kastenrueckwand'], z + hf - p['Kasten_Abstand_oben'] - ab - p['Materialstaerke_Kastenboden']].min, 2.0].max }
     end
@@ -168,8 +168,10 @@ module UnterschrankInsel
     "(#{u}!Hoehe-(#{f_anz}-1)*#{u}!Spaltbreite)/#{f_anz}"
   end
 
+  # Unterkante Front der Schublade i; ausgeblendete (i > Anzahl) liegen unten im Schrank, sonst ragen
+  # sie unter dem Korpus heraus und vergrößern die Komponentengrenze (SketchUp zählt sie mit)
   def self.f_z(i)
-    "#{NAME}!Hoehe-#{i}*(#{f_hf})-#{i - 1}*#{NAME}!Spaltbreite"
+    "IF(#{f_anz}>=#{i},#{NAME}!Hoehe-#{i}*(#{f_hf})-#{i - 1}*#{NAME}!Spaltbreite,0)"
   end
 
   # ---------------------------------------------------------------------------
@@ -594,30 +596,39 @@ module UnterschrankInsel
     b, h, sp, sh = p['Breite'], p['Hoehe'], p['Spaltbreite'], p['Sockelhoehe']
     mv = p['Materialstaerke_Verkleidung']
 
-    v = platte(model, 'Verkleidung', 'Verkleidung', [b, mv, r[:h_verkleidung]],
-               ["#{u}!Breite", "#{u}!Materialstaerke_Verkleidung", "#{u}!H_Verkleidung"])
-    sichtbarkeit(v, r[:verkleidet], "IF(OR(#{u}!Verkleidung=1,#{u}!Theke=1),0,1)")
-    vi = einsetzen(e, v, 'Verkleidung', [0, r[:y_hinten], -sh], [nil, "#{u}!Y_Hinten", "-#{u}!Sockelhoehe"],
+    # Ausgeblendete Teile liegen innerhalb des Korpus: SketchUp zählt sie zur Komponentengrenze
+    vk = r[:verkleidet]
+    f_vk = "OR(#{u}!Verkleidung=1,#{u}!Theke=1)"
+    v = platte(model, 'Verkleidung', 'Verkleidung', [b, mv, vk ? r[:h_verkleidung] : h],
+               ["#{u}!Breite", "#{u}!Materialstaerke_Verkleidung", "IF(#{f_vk},#{u}!H_Verkleidung,#{u}!Hoehe)"])
+    sichtbarkeit(v, vk, "IF(#{f_vk},0,1)")
+    vi = einsetzen(e, v, 'Verkleidung', [0, r[:y_hinten] - (vk ? 0 : mv), vk ? -sh : 0],
+                   [nil, "#{u}!Y_Hinten-IF(#{f_vk},0,#{u}!Materialstaerke_Verkleidung)", "IF(#{f_vk},-#{u}!Sockelhoehe,0)"],
                    mat: mat, kz: t_.('Verkleidung'))
     vi.hidden = !r[:verkleidet]
 
-    wangen = [['WangeL', r[:links], "IF(OR(#{u}!Art_Wange=1,#{u}!Art_Wange=3),0,1)", [-mv, "-#{u}!Materialstaerke_Verkleidung"]],
-              ['WangeR', r[:rechts], "IF(OR(#{u}!Art_Wange=2,#{u}!Art_Wange=3),0,1)", [b, "#{u}!Breite"]]]
-    wangen.each do |teil, sichtbar, formel, (x, fx)|
-      d = platte(model, teil, teil, [mv, r[:y_aussen] + sp, h + sh],
-                 ["#{u}!Materialstaerke_Verkleidung", "#{u}!Y_Aussen+#{u}!Spaltbreite", "#{u}!Hoehe+#{u}!Sockelhoehe"],
+    wangen = [['WangeL', r[:links], "OR(#{u}!Art_Wange=1,#{u}!Art_Wange=3)",
+               [-mv, 0, "-#{u}!Materialstaerke_Verkleidung", '0']],
+              ['WangeR', r[:rechts], "OR(#{u}!Art_Wange=2,#{u}!Art_Wange=3)",
+               [b, b - mv, "#{u}!Breite", "#{u}!Breite-#{u}!Materialstaerke_Verkleidung"]]]
+    wangen.each do |teil, sichtbar, bed, (x, x_aus, fx, fx_aus)|
+      d = platte(model, teil, teil, [mv, r[:y_aussen] + sp, sichtbar ? h + sh : h],
+                 ["#{u}!Materialstaerke_Verkleidung", "#{u}!Y_Aussen+#{u}!Spaltbreite",
+                  "#{u}!Hoehe+IF(#{bed},#{u}!Sockelhoehe,0)"],
                  art: 'Wange')
-      sichtbarkeit(d, sichtbar, formel)
-      inst = einsetzen(e, d, teil, [x, -sp, -sh], [fx, "-#{u}!Spaltbreite", "-#{u}!Sockelhoehe"], mat: mat, kz: t_.(teil))
+      sichtbarkeit(d, sichtbar, "IF(#{bed},0,1)")
+      inst = einsetzen(e, d, teil, [sichtbar ? x : x_aus, -sp, sichtbar ? -sh : 0],
+                       ["IF(#{bed},#{fx},#{fx_aus})", "-#{u}!Spaltbreite", "IF(#{bed},-#{u}!Sockelhoehe,0)"],
+                       mat: mat, kz: t_.(teil))
       inst.hidden = !sichtbar
     end
 
     tk = platte(model, 'Thekenplatte', 'Theke', [b, p['Tiefe_Theke'], p['Staerke_Theke']],
                 ["#{u}!Breite", "#{u}!Tiefe_Theke", "#{u}!Staerke_Theke"], kante: theke_kante(model))
     sichtbarkeit(tk, r[:theke], "IF(#{u}!Theke=1,0,1)")
-    ti = einsetzen(e, tk, 'Theke', [0, r[:y_theke], r[:z_theke]],
-                   [nil, "#{u}!Y_Aussen+#{u}!Ueberstand_Theke-#{u}!Tiefe_Theke",
-                    "#{u}!Hoehe_Theke-#{u}!Sockelhoehe-#{u}!Staerke_Theke"],
+    ti = einsetzen(e, tk, 'Theke', r[:theke] ? [0, r[:y_theke], r[:z_theke]] : [0, p['Materialstaerke_Korpus'], 0],
+                   [nil, "IF(#{u}!Theke=1,#{u}!Y_Aussen+#{u}!Ueberstand_Theke-#{u}!Tiefe_Theke,#{u}!Materialstaerke_Korpus)",
+                    "IF(#{u}!Theke=1,#{u}!Hoehe_Theke-#{u}!Sockelhoehe-#{u}!Staerke_Theke,0)"],
                    mat: theke_material(model), kz: t_.('Theke'))
     ti.hidden = !r[:theke]
   end
