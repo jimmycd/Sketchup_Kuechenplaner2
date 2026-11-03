@@ -32,8 +32,8 @@ Mit *Interagieren* fährt eine Front mit allen ihren Kästen heraus (Front und K
 
 **Bitte vor der Werkstatt prüfen:** Kopplung der Hochfront an mehrere LEGRABOX-Kästen und Frontstabilisierung sind nicht gegen Blum-Unterlagen geprüft (nur MD-015/4 lag vor) – mit dem Blum-Konfigurator gegenchecken.
 
-## OpenCutList (OCL)
-Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen (Material „Anleimer Melamin weiss“, OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an).
+## Material und Anleimer
+Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur als Material zugewiesen (Material „Anleimer Melamin weiss“, Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -44,7 +44,7 @@ Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zug
 | Kastenrückwand | oben |
 | Kastenboden | keine |
 
-Ausgeblendete Kästen, Front B und Mittelboden erscheinen nicht in der OCL-Liste.
+Ausgeblendete Kästen, Front B und Mittelboden erscheinen nicht in der Stückliste.
 
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `AP1_SeiteL`, `AP1_Mittelboden`, `AP1_A_Front`, `AP1_A3_KastenBoden`, `AP1_B1_KastenRueckwand` (A = untere bzw. einzige Front, B = obere Front, Kasten 1 = oben). Korpusteile haben keinen Bereich.
@@ -57,4 +57,4 @@ Am Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Apothekerschran
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/apothekerschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_apothekerschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, Lochraster, Kollisionen, OCL-Material, Anleimer, Tags und die Kurzhilfe, auch nach dem Umkonfigurieren. Der TCN-Export des Apothekerschranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.
+`ruby test/test_apothekerschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, Lochraster, Kollisionen, Material, Anleimer, Tags und die Kurzhilfe, auch nach dem Umkonfigurieren. Der TCN-Export des Apothekerschranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.

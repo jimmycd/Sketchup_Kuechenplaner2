@@ -1,6 +1,6 @@
 # Unterschrank Geschirrspüler (Dynamic Component)
 
-Nische für einen **vollintegrierten Geschirrspüler** (45 oder 60 cm) in der Unterschrankzeile. Der Spüler hat keinen eigenen Korpus: Die Komponente besteht aus der Möbelfront, optionalen Abschlusswangen und einem Platzhalter für das Gerät. Nach außen verhält sie sich wie die anderen Unterschränke (Tags, `JT_Schrank`, OCL, Frontfarbe, TCN-Export).
+Nische für einen **vollintegrierten Geschirrspüler** (45 oder 60 cm) in der Unterschrankzeile. Der Spüler hat keinen eigenen Korpus: Die Komponente besteht aus der Möbelfront, optionalen Abschlusswangen und einem Platzhalter für das Gerät. Nach außen verhält sie sich wie die anderen Unterschränke (Tags, `JT_Schrank`, Material, Frontfarbe, TCN-Export).
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_geschirrspueler.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
@@ -25,11 +25,11 @@ Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Kor
 * **Front** 19 mm wie die Fronten der Unterschränke: Nischenbreite − 2 mm (1 mm Fuge je Seite), 2 mm vor der Korpusvorderkante. Sie wird vor Ort mit der Schablone des Geräteherstellers auf die Gerätetür geschraubt, deshalb gibt es **keine CNC-Bohrungen** dafür. Mit *Interagieren* klappt sie um die Unterkante auf.
 * **Abschlusswangen** (optional) 19 mm außerhalb der Nische, wie die Seiten der Unterschränke ab der Korpusvorderkante, Tiefe = Korpustiefe + Rückwand, vom Boden (Sockelhöhe) bis Oberkante Korpus. Mit Wange links beginnt die Nische 19 mm weiter rechts; die Gesamtbreite ist Nische + Wangen.
 * **Kein Boden, keine Seiten, keine Streben, keine Rückwand.** Das Gerät wird an Arbeitsplatte und Nachbarseiten befestigt; den Dampfschutz liefert der Hersteller.
-* **Geräte-Platzhalter** 598 (448) × 550 mm, vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`. Er hat kein Plattenmaterial und kein `JT_Schrank`, der TCN-Export übergeht ihn. Vor dem OCL-Lauf den Tag `Geraete_Plan` ausblenden. Er wird später durch die Geräte-Komponenten ersetzt.
+* **Geräte-Platzhalter** 598 (448) × 550 mm, vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`. Er hat kein Plattenmaterial und kein `JT_Schrank`, der TCN-Export übergeht ihn. Für Stückliste und Etiketten den Tag `Geraete_Plan` ausblenden. Er wird später durch die Geräte-Komponenten ersetzt.
 * **Nische für die Geräte-Komponenten:** Wörterbuch `JT_Nische` am Schrank mit `nische` (N1), `geraet` (Geschirrspueler60/45), lichten Maßen `breite`/`hoehe`/`tiefe` und dem Einfügepunkt `x`/`y`/`z` (vorne links auf dem Fußboden an der Korpusvorderkante), alles in mm, Stand beim Erzeugen.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -43,7 +43,7 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: K
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_geschirrspueler/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_geschirrspueler.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Front, Fugen, Wangen links/rechts/beide, Platzhalter, Formeln nach Umkonfigurieren (450/600, Fronthöhe, Sockel), OCL-Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische` und die Kurzhilfe. Der Plugin-Test prüft, dass der TCN-Export Front und Wangen nur formatiert und die Frontfarbe-Funktion die Front findet.
+`ruby test/test_geschirrspueler.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Front, Fugen, Wangen links/rechts/beide, Platzhalter, Formeln nach Umkonfigurieren (450/600, Fronthöhe, Sockel), Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische` und die Kurzhilfe. Der Plugin-Test prüft, dass der TCN-Export Front und Wangen nur formatiert und die Frontfarbe-Funktion die Front findet.
 
 ## Komponentengrenze (virtueller Korpus)
 

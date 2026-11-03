@@ -23,10 +23,12 @@ module JTools
                    'Nur Innenfronten' => INNEN }.freeze
       LAGEN = %w[links Mitte rechts].freeze
 
-      # OCL-Plattenwerkstoffe (Typ 2), deren Name mit "Front" beginnt
+      # Plattenwerkstoffe (Typ 2 im Material-Wörterbuch), deren Name mit "Front" beginnt; ein in
+      # SketchUp neu angelegtes Material ohne Typ zählt auch und wird beim Anwenden zur Platte
       def self.frontmaterialien(model)
         model.materials.to_a.select do |m|
-          m.get_attribute(OCL_DICT, 'type').to_i == 2 && m.name.start_with?(PRAEFIX)
+          t = m.get_attribute(OCL_DICT, 'type')
+          (t.nil? || t.to_i == 2) && m.name.start_with?(PRAEFIX)
         end.sort_by(&:name)
       end
 
@@ -39,7 +41,7 @@ module JTools
         name.sub(/\A#{PRAEFIX}\s*/, '').sub(/\s*\d+([.,]\d+)?\s*mm\z/i, '').strip
       end
 
-      # Anleimer zum Frontmaterial: eine OCL-Kante mit dem Dekor im Namen, sonst neu "Anleimer <Dekor>"
+      # Anleimer zum Frontmaterial: eine Kante (Typ 4) mit dem Dekor im Namen, sonst neu "Anleimer <Dekor>"
       def self.anleimer(model, front)
         d = dekor(front.name)
         vorhanden = kanten(model).select { |k| !d.empty? && k.name.downcase.include?(d.downcase) }
@@ -107,6 +109,7 @@ module JTools
       def self.anwenden(model, fronten, material, griff: nil)
         return 0 if fronten.empty?
         kante = material && anleimer(model, material)
+        material.set_attribute(OCL_DICT, 'type', 2) if material && material.get_attribute(OCL_DICT, 'type').nil?
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
@@ -145,7 +148,7 @@ module JTools
       def self.dialog(model = Sketchup.active_model)
         mats = frontmaterialien(model)
         if mats.empty?
-          UI.messagebox("Im Modell gibt es kein Frontmaterial.\n\nLege in OpenCutList einen Plattenwerkstoff an, " \
+          UI.messagebox("Im Modell gibt es kein Frontmaterial.\n\nLege unter Fenster › Materialien ein Material an, " \
                         "dessen Name mit „#{PRAEFIX}“ beginnt (z. B. „Front Eiche 19mm“).")
           return
         end

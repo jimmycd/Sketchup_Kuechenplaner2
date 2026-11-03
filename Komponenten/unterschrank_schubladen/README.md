@@ -30,9 +30,9 @@ Mit *Interagieren* auf eine Schublade klicken → sie fährt heraus.
 
 Diese festen Maße stehen als Attribute am Unterschrank (Fenster *Komponentenattribute*) und können dort angepasst werden, z. B. `Materialstaerke_Kastenrueckwand`, `Hoehe_Kastenrueckwand`, `Kasten_Abstand_unten`.
 
-## OpenCutList (OCL)
-* **Material:** Jedes Teil hat „Melamin weiss“ (Plattenmaterial in OCL). Falls das Material im Modell fehlt, wird es mit den OCL-Einstellungen aus `Unterschrank.skp` angelegt; vorhandene OCL-Einstellungen bleiben unverändert.
-* **Anleimer:** Sichtbare Kanten haben das Material „Anleimer weiss“ (OCL-Typ Kante, 2 mm, „Abzug“ aktiv). In SketchUp sind alle Teile im **Endmaß** gezeichnet; den 2-mm-Abzug für das Fräsmaß rechnet nur OCL.
+## Material und Anleimer
+* **Material:** Jedes Teil hat „Melamin weiss“ (Plattenwerkstoff). Falls das Material im Modell fehlt, wird es mit den Material-Einstellungen aus `Unterschrank.skp` angelegt; vorhandene Einstellungen bleiben unverändert.
+* **Anleimer:** Sichtbare Kanten haben das Material „Anleimer weiss“ (Typ Kante, 2 mm, „Abzug“ aktiv). In SketchUp sind alle Teile im **Endmaß** gezeichnet; den 2-mm-Abzug für das Fräsmaß rechnen Stückliste, Zuschnitt und TCN-Export.
 
 | Teil | Anleimer |
 |---|---|
@@ -49,4 +49,4 @@ Die Tabelle steht als `KANTEN` am Anfang von `main.rb` und ist leicht anpassbar.
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_schubladen/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, OCL-Material, Anleimer, Tags und die Kurzhilfe. Prüft außerdem, ob die `.rbz` zum Quelltext passt; nach Änderungen an `src/` deshalb im Hauptordner `./build_rbz.sh` ausführen.
+`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, Material, Anleimer, Tags und die Kurzhilfe. Prüft außerdem, ob die `.rbz` zum Quelltext passt; nach Änderungen an `src/` deshalb im Hauptordner `./build_rbz.sh` ausführen.

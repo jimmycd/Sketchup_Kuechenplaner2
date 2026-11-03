@@ -6,7 +6,7 @@ Plan: [docs/plaene/arbeitsplatte.md](../../docs/plaene/arbeitsplatte.md).
 
 **Stand: alle 5 Schritte gebaut, noch nicht in SketchUp und an der Maschine
 erprobt.** Die Platten werden mit Eckverbindung und Ausschnitten für Spüle und
-Kochfeld gezeichnet, OpenCutList-fähig (Material, Anleimer, Tags). *TCN exportieren…*
+Kochfeld gezeichnet, mit Material, Anleimer und Tags. *TCN exportieren…*
 (Schrank-CNC-Plugin) schreibt je Stoßende eine TCN mit Stoßkontur, Hundeknochen
 für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 
@@ -29,11 +29,11 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 - Komponente `Arbeitsplatte APL1` mit `JT_Schrank` (schrank APL1, typ und kategorie
   Arbeitsplatte), darin je Platte eine Komponente mit Tag `APL1_Platte1`, `APL1_Platte2` …
   und `JT_Schrank` (teil Platte1 …, rolle Arbeitsplatte). Gezeichnet im Endmaß.
-- Material: Schichtstoff „Arbeitsplatte Schichtstoff“ (OCL Plattenwerkstoff, 38 mm) oder
-  „Arbeitsplatte Massivholz“ (OCL Massivholz, 40 mm).
+- Material: Schichtstoff „Arbeitsplatte Schichtstoff“ (Plattenwerkstoff, 38 mm) oder
+  „Arbeitsplatte Massivholz“ (Massivholz, 40 mm).
 - Anleimer (nur bei Schichtstoff): Vorderkante „Anleimer Arbeitsplatte ab Werk“ (wird in
-  OCL nicht abgezogen, die Platte kommt bekantet), freie Enden „Anleimer Arbeitsplatte“
-  (2 mm, wird in OCL abgezogen). Wand-, Stoß- und Hochschrankkanten ohne.
+  Stückliste/Zuschnitt nicht abgezogen, die Platte kommt bekantet), freie Enden „Anleimer Arbeitsplatte“
+  (2 mm, wird in Stückliste/Zuschnitt abgezogen). Wand-, Stoß- und Hochschrankkanten ohne.
 - Im Wörterbuch `JT_Arbeitsplatte`: an der Definition Einstellungen, Schränke und Stöße
   (mit Pfad, für den späteren TCN-Export), an jeder Platte Umriss, Kantenarten und Format.
 
@@ -132,7 +132,7 @@ Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`
 - `src/arbeitsplatte/ausgabe.rb`: Platten zeichnen
 - `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
-- `test/test_ausgabe.rb`: Zeichnen, OCL, Tags, Anleimer, Dialog, Neuberechnen, Schrank-Export übergeht die Platten
+- `test/test_ausgabe.rb`: Zeichnen, Material, Tags, Anleimer, Dialog, Neuberechnen, Schrank-Export übergeht die Platten
 - `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen) und einer Platte mit Spüle, Teileliste
 - `test/test_ausschnitte.rb`: Ausschnitte, Prüfungen, Längsstoß weicht aus, Dialog, Löcher
 - `test/test_layout.rb`: Layout: Überstände, Formate, Teilung, Stoßarten, Bogen, Flächen passen lückenlos

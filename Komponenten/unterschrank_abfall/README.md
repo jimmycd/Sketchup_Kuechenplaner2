@@ -26,8 +26,8 @@ Mit *Interagieren* fahren Auszug und Schublade heraus.
 * **Schublade oben** (Bereich `B`, nur bei Schublade oben): gleicher LEGRABOX-Kasten, Kasten ab ≥ 30 mm über Unterkante ihrer Front im Lochraster.
 * **Abfallbehälter** als Platzhalter: gleich breit über die Breite des Kastenbodens verteilt (10 mm Luft dazwischen), vom Kastenanfang bis 10 mm vor die Kastenrückwand, auf dem Kastenboden. Die Höhe endet mindestens 30 mm unter der Oberkante der Auszugsfront, so passen sie beim Herausfahren unter der Schublade bzw. der Strebe vorn durch. Die Behälter stehen für ein Abfallsystem nach Wahl (z. B. Einsätze aus dem Fachhandel); die echten Maße folgen, sobald das System feststeht.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -36,7 +36,7 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: K
 | Kastenrückwand | oben |
 | Fronten | alle vier |
 
-Die Behälter haben das Material „Abfallbehälter“ mit OCL-Typ *Beschlag*; OCL führt sie als Kaufteil, nicht als Platte.
+Die Behälter haben das Material „Abfallbehälter“ mit Typ *Beschlag* und kein `JT_Schrank`; Stückliste und TCN-Export übergehen sie.
 
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Bereich>_<Teil>`: `USM1_SeiteL`, `USM1_SeiteR`, `USM1_Boden`, `USM1_StrebeVorn`, `USM1_StrebeHinten`, `USM1_Rueckwand`, `USM1_A_Front`, `USM1_A_KastenBoden`, `USM1_A_KastenRueckwand`, `USM1_B_Front`, `USM1_B_KastenBoden`, `USM1_B_KastenRueckwand`, die Behälter `USM1_A_Behaelter1` … `4`, dazu die Gruppen `USM1_A_Auszug` und `USM1_B_Schublade`. Das Kürzel ist `USM1`, oder `USM2` usw., wenn es im Modell schon vergeben ist.
@@ -50,4 +50,4 @@ Ohne Änderung am Plugin, wie beim Unterschrank mit Schubladen: Dübel der Böde
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_abfall/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_unterschrank_abfall.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Fronten, LEGRABOX-Kästen im Lochraster, Behälter (Anzahl, Breite, Höhe, unter der Schublade), Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, OCL-Materialien, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft Schienen- und Frontbohrungen beider Varianten.
+`ruby test/test_unterschrank_abfall.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Fronten, LEGRABOX-Kästen im Lochraster, Behälter (Anzahl, Breite, Höhe, unter der Schublade), Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, Materialien, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft Schienen- und Frontbohrungen beider Varianten.

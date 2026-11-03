@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Etiketten (ersetzt die Etiketten aus OpenCutList).
+# Schrank-CNC – Etiketten.
 #
 # Ein Etikett je Stück (Anzahl 3 = drei Etiketten "1/3", "2/3", "3/3"), in der
 # Reihenfolge der Stückliste (gleiche Nummern). Ausgabe als HTML-Seite, die im

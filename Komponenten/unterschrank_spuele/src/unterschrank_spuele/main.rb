@@ -13,9 +13,9 @@
 # darunter ein Auszug Blum LEGRABOX für den Abfallsammler. Über dem Kasten
 # bleibt unter der Blende Platz für den Siphon (Siphon_Freiraum).
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Bereich>_<Teil> (z. B. USP1_SeiteL, USP1_A_Front) und das Wörterbuch
 # "JT_Schrank" für den TCN-Export. Anderes Kürzel:
 #   Spuelenschrank.erstellen({ 'Kuerzel' => 'USP2' }, ziel)
@@ -86,7 +86,7 @@ module Spuelenschrank
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_spuele'.freeze
-  HILFE_KURZ = 'Spülenschrank mit Türen oder Blende + Auszug (Abfallsammler), Installationsebene, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Spülenschrank mit Türen oder Blende + Auszug (Abfallsammler), Installationsebene'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -205,7 +205,7 @@ module Spuelenschrank
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -229,7 +229,7 @@ module Spuelenschrank
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
   # Freies Kürzel für die Tags, z. B. USP1, USP2 …
@@ -253,7 +253,7 @@ module Spuelenschrank
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   KANTEN = {
     'Seite'           => %i[ymin],
@@ -268,7 +268,7 @@ module Spuelenschrank
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -429,7 +429,7 @@ module Spuelenschrank
               ["#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe", "#{u}!Materialstaerke_Korpus+#{u}!T_Innen",
                "#{u}!Materialstaerke_Korpus"], mat: mat, kz: [model, kz, 'Rueckwand'])
 
-    # Umriss des Ausschnitts (nur Kanten, keine Fläche: kein Teil für OpenCutList)
+    # Umriss des Ausschnitts (nur Kanten, keine Fläche: kein Teil für die Stückliste)
     a = model.definitions.add('Rückwand Ausschnitt')
     stempel(a)
     a.set_attribute(DICT, '_name', 'Ausschnitt')
