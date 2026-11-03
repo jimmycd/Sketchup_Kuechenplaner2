@@ -36,15 +36,15 @@ Die Reihenfolge ist egal: Beide Nischen können jedes Gerät aufnehmen. Die meis
 * Die Gerätefronten decken die Nischen ab; die oberste Schubladenfront endet 2 mm unter Nische 1, die Tür beginnt an der Oberkante des oberen Zwischenbodens.
 * Schubladen wie beim Hochschrank: **Blum LEGRABOX free**, aus Holz nur Boden (LW − 35 × NL − 10, 16 mm) und Holzrückwand (LW − 38 × 148). Der Kasten sitzt im Lochraster der Seite (35 mm, dann alle 32 mm).
 * Einlegeböden oben 10 mm von vorne zurückgesetzt, gleichmäßig verteilt.
-* Material: alle Platten „Melamin weiss“, in OpenCutList als *Plattenwerkstoff*.
+* Material: alle Platten „Melamin weiss“ (*Plattenwerkstoff*).
 
 ## Geräte
-In jeder Nische steht ein halbtransparenter **Platzhalter** auf dem Tag `Geraete_Plan` (Material „Geraet Plan“, kein Plattenmaterial, kein `JT_Schrank`). Er wird nicht exportiert; vor dem OCL-Lauf den Tag ausblenden.
+In jeder Nische steht ein halbtransparenter **Platzhalter** auf dem Tag `Geraete_Plan` (Material „Geraet Plan“, kein Plattenmaterial, kein `JT_Schrank`). Er wird nicht exportiert; für Stückliste und Etiketten den Tag ausblenden.
 
 Für die Geräte-Komponenten steht jede Nische im Wörterbuch `JT_Nische_N1` bzw. `JT_Nische_N2` am Schrank: `nische`, `geraet` (Kennung oben), lichte `breite`, `hoehe`, `tiefe` und der Einfügepunkt `x`, `y`, `z` (vorne links auf der Oberkante des Zwischenbodens, an der Korpusvorderkante), alles in mm. Die Werte gelten für den Stand beim Erzeugen.
 
-## OpenCutList (OCL)
-Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen (Material „Anleimer Melamin weiss“, 2 mm, „Kantenstärke abziehen“ an).
+## Material und Anleimer
+Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur als Material zugewiesen (Material „Anleimer Melamin weiss“, 2 mm, „Kantenstärke abziehen“ an).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -64,4 +64,4 @@ An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (`Hochschr
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank_geraete/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_hochschrank_geraete.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Nischenmaße je Gerät, Zwischenböden, Fronten und Fugen, Schubladen im Lochraster, Platzhalter, `JT_Nische`, OCL-Material, Anleimer, Tags und die Kurzhilfe, jeweils auch nach dem Umstellen in den Komponentenoptionen. Der TCN-Export des Schranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.
+`ruby test/test_hochschrank_geraete.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Nischenmaße je Gerät, Zwischenböden, Fronten und Fugen, Schubladen im Lochraster, Platzhalter, `JT_Nische`, Material, Anleimer, Tags und die Kurzhilfe, jeweils auch nach dem Umstellen in den Komponentenoptionen. Der TCN-Export des Schranks wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.
