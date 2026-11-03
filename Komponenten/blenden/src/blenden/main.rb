@@ -325,6 +325,7 @@ module Blenden
 
   # Sockelhöhe der Küche (Küchenplaner › Einstellungen, Standard 100 mm) in cm
   def self.sockel_standard(model)
+    return 10.0 unless defined?(Kuechenplaner::Einstellungen)
     Kuechenplaner::Einstellungen.sockelhoehe(model) / 10.0
   end
 
