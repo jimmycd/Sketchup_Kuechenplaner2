@@ -78,20 +78,9 @@ module UnterschrankHandtuch
     'Auszug_Weg'               => 45.0   # Animation "Interagieren"
   }.freeze
 
-  # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
-  # "summary" und "description" oben im Fenster "Komponentenoptionen".
+  # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_handtuch'.freeze
   HILFE_KURZ = 'Schmaler Unterschrank 150/200 mm mit Hochauszug Häfele HU Slim Base, OpenCutList-fähig'.freeze
-  HILFE = [
-    'Modell (M150 = 150 mm, M200 = 200 mm breit), Seite der Schienen (links/rechts), Höhe und Tiefe hier ändern.',
-    'Beschlag Häfele UTENSIO Matrix HU Slim Base: zwei Schienen an einer Seite, Front über die volle Höhe; braucht lichte Höhe >= 565 mm und Tiefe >= 485 mm.',
-    'Der Beschlag ist als Platzhalter (Einbauraum) gezeichnet; OpenCutList führt ihn als Beschlag.',
-    'Mit „Interagieren“ fährt der Auszug heraus.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. USH1_SeiteL, USH1_Front.',
-    'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -129,20 +118,33 @@ module UnterschrankHandtuch
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d)
-    d.description = HILFE_KURZ
-    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
     end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end

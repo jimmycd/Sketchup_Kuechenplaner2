@@ -297,8 +297,7 @@ check(rollen.size >= 4 && rollen.uniq.size == 1, "ROLLEN-Tabelle in allen Kompon
 Sketchup.active_model = Sketchup::Model.new
 ad = A.erstellen({}).definition
 check(ad.description == A::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
-check(ad.get_attribute(A::DICT, 'summary') == A::HILFE_KURZ && ad.get_attribute(A::DICT, 'description') == A::HILFE, 'Hilfe: summary/description')
-check(A::HILFE.include?(A::DOKU_URL), 'Hilfe: Link zur Doku')
+check(ad.get_attribute(A::DICT, 'summary') == A::HILFE_KURZ && ad.get_attribute(A::DICT, 'description').nil?, 'Hilfe: summary/description')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 check((1..6).all? { |i| ad.get_attribute(A::DICT, "_scharnier_#{i}_access") == 'VIEW' }, 'Scharnierhöhen in den Optionen sichtbar')
 

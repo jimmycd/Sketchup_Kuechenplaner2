@@ -9,7 +9,8 @@
 # und Bohrungen für Sockelfüße; der Ausschnitt in der Rückwand des Spülenschranks und der
 # Rohrausschnitt im Oberschrank Dunstabzug;
 # Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
-# der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II.
+# der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II;
+# beim Oberschrank mit Klappe die Bohrungen für Blum AVENTOS HK-top (Kraftspeicher und Frontbeschlag).
 # Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
 # Werkstückkoordinaten (Fräsmaß) umgerechnet.
@@ -94,6 +95,7 @@ module JTools
           hu_slim_base(teile, meldungen) if hu
           lemans(teile, meldungen) if lm
           schienen(teile, meldungen)
+          aventos(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
@@ -360,6 +362,56 @@ module JTools
         front: { d: 3, tiefe: 5, innen: 14, hoehen: [103, 487] },
         bauraum: { weite: 112, tiefe: 485, hoehe: 565 } # Mindestmaße (S. 2)
       }.freeze
+
+      # Blum AVENTOS HK-top (Montageanleitung MD-039/2, S. 3–4; Maße abgeleitet, Jürgen 2026-11-02 "leite ab"):
+      # Kraftspeicher mit Systemschrauben: 4 Löcher Ø5 in einer waagrechten Reihe (System 32), 37 mm ab
+      # Vorderkante Seite, 36 mm unter der Korpusoberkante, mind. 11,5 tief.
+      # Frontbeschlag: je Seite 2 Löcher Ø5 übereinander, SFA + 12,5 vom Frontrand (= 12,5 ab Innenseite der
+      # Seite), 62 + FAo und 32 darunter ab Frontoberkante (= 62 / 94 unter der Korpusoberkante).
+      AVENTOS_HK = {
+        name: 'AVENTOS HK-top',
+        seite: { d: 5, tiefe: 12, vorn: [37, 69, 101, 133], unter_oben: 36 },
+        front: { d: 5, tiefe: 12, innen: 12.5, unter_oben: [62, 94] }
+      }.freeze
+
+      def self.aventos(teile, meldungen)
+        hf = teile.find { |w| %w[KlappeO KlappeU].include?(w.teil.jt('teil')) }
+        if hf
+          meldungen << "#{hf.teil.jt('schrank')}: AVENTOS HF – Bohrungen für Kraftspeicher, Frontbeschlag und Scharniere sind noch nicht hinterlegt"
+        end
+        kl = teile.find { |w| w.teil.jt('teil') == 'Klappe' } or return
+        seiten = teile.select { |w| w.rolle == 'Seite' }
+        return unless seiten.size == 2
+        k = seiten[0].dicke_achse
+        t = ([0, 1, 2] - [k, 2]).first
+        mitte = ->(w, i) { (w.lo[i] + w.hi[i]) / 2.0 }
+        oben = seiten.map { |w| w.hi[2] }.max
+        vorn_max = mitte.(kl, t) > mitte.(seiten[0], t)
+        c = AVENTOS_HK[:seite]
+        seiten.each do |s|
+          andere = (seiten - [s]).first
+          seite, flaeche = flaeche_innen(s, k, mitte.(andere, k) > mitte.(s, k))
+          vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
+          c[:vorn].each do |d|
+            s.ops << Op.new(:bohrung, seite, punkt(k => flaeche, t => vorne + dir * d, 2 => oben - c[:unter_oben]), nil,
+                            c[:d], c[:tiefe], nil, nil, 'Kraftspeicher AVENTOS HK-top')
+          end
+        end
+
+        # Frontbeschlag auf der Innenseite der Klappe
+        innen = [seiten.map { |w| w.hi[k] }.min, seiten.map { |w| w.lo[k] }.max]
+        da = kl.dicke_achse
+        hinten = mitte.(seiten[0], da) > mitte.(kl, da)
+        fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        fl = hinten ? kl.hi[da] : kl.lo[da]
+        fc = AVENTOS_HK[:front]
+        fc[:unter_oben].each do |dz|
+          [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
+            kl.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => oben - dz), nil, fc[:d], fc[:tiefe], nil, nil,
+                             'Frontbeschlag AVENTOS HK-top')
+          end
+        end
+      end
 
       def self.hu_slim_base?(teile)
         Schraenke.definition(teile.first.teil.schrank).get_attribute(JT_DICT, 'beschlag') == HU_SLIM_BASE[:name]

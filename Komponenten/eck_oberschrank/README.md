@@ -54,7 +54,7 @@ An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Eckschran
 * Auflageleisten und Türen nur formatieren; Topfbänder folgen mit den Türen.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) und als Beschreibung der Komponente, mit Link auf diese Seite. Der Text steht als `HILFE` in `src/eck_oberschrank/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/eck_oberschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_eck_oberschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Seiten, L-Boden, Deckel vor den Rückwänden, Rückwände in der Nut, Falttür, Einlegeböden mit Leisten, keine Kollisionen), Höhe und Einlegeböden umschalten, den Neuaufbau nach Schenkel- oder Tiefenänderung (gleich wie frisch gebaut, Frontmaterial und Griff bleiben, ungültige Maße abgelehnt), Material, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Den TCN-Export prüft `sketchup-tcn-export-plugin/test/test_export.rb`. In echtem SketchUp ist die Komponente noch nicht getestet.

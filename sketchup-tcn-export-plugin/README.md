@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Frontfarbe, Andocken)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base und Kesseböhmer LeMans II im Eckschrank kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
+**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe Blum AVENTOS HK-top kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`). Stückliste, Etiketten und Zuschnittplan ersetzen OpenCutList ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
 
@@ -98,7 +98,19 @@ Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im 
 Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (Platten, Teile, Ausnutzung), dann je Platte eine Seite mit maßstäblicher Skizze (Teilnummern wie Stückliste und Etiketten, Reste schraffiert, Schnitte rot und nummeriert) und daneben die **Schnittliste in Reihenfolge**: zuerst Besäumen, dann die durchgehenden Schnitte, dann die Schnitte in den Streifen. Je Schnitt Richtung (längs/quer), Lage (`y =` bzw. `x =` ab der Plattenecke links oben) und Länge.
 
 ## Einstellungen
-*Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
+*Erweiterungen › Küchenplaner › Einstellungen…* hat zwei Bereiche.
+
+**Küche – dieses Modell** (Sockel und Abstände, gespeichert im Modell, Wörterbuch `Kuechenplaner_Einstellungen`; ein neues Modell übernimmt die zuletzt eingegebenen Werte). Quelle ist `gemeinsam/einstellungen.rb`, die jede Erweiterung als `src/kuechenplaner_gemeinsam/einstellungen.rb` mitbringt; Lesen mit `Kuechenplaner::Einstellungen.sockelhoehe`, `.wandabstand`, `.abstand_oberschrank`, `.arbeitsplatte_staerke`, `.unterschrank_hoehe`, `.oberschrank_unterkante(model, boden)` (alles mm):
+
+| Einstellung | Standard | wirkt auf |
+| --- | --- | --- |
+| Sockelhöhe – Stellfüße (mm), 0–300 | 100 | Korpusunterkante von Unter- und Hochschränken über dem Fußboden. Der Sockel sind verstellbare Füße: keine Zuschnitt- oder Holzteile, nur die Sockelblende davor |
+| Abstand Schrankrückseite – Wand (mm) | 0 | Andocken an die Wand; die Arbeitsplatte reicht trotzdem bis an die Wand (minus ihren eigenen Wandabstand 5 mm) |
+| Lichter Abstand Arbeitsplatte – Oberschrank (mm) | 550 | Unterkante Oberschrank = Sockel + Korpushöhe + Arbeitsplatte + Abstand (Standard 1390 mm) |
+| Stärke Arbeitsplatte (mm) | 40 | Höhe der Oberschränke |
+| Korpushöhe Unterschrank (mm) | 700 | Höhe der Oberschränke |
+
+**CNC und Zuschnitt – alle Modelle** auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
 
 | Einstellung | Standard | wirkt auf |
 | --- | --- | --- |
@@ -120,6 +132,7 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 * **Kastenboden** (`Schubkastenboden.tcn`): Falz in der Unterseite an beiden Enden der Breite für die Zargen, Rechteck 38 mm breit über die ganze Tiefe + 20 mm und ein zweites 20 mm breit, beide 8 tief (W#1022 `rect.tmcr`). Die Ø3-Löcher aus der Vorlage fehlen, Blum sieht sie nicht vor. Die Kastenrückwand wird nur formatiert.
 * **Hochauszug Häfele HU Slim Base** (schmaler Unterschrank mit Handtuchauszug, Montageanleitung 4004110659MKT „Dimensions for CNC“): Schienen nur in der Seite aus dem Attribut `Seite_Beschlag` (links = LH, rechts = RH), je Schiene 3 Bohrungen bei 56, 280 und 330 mm ab Vorderkante der Seite, 52 und 436 mm über der Oberkante des Bodens. Front: 2 Halter mit je 2 Bohrungen, 14 mm von der Innenseite der Seiten (X = 84 bei M150, 134 bei M200), 103 und 487 mm über der Oberkante des Bodens. Alle Ø3 (mitgeliefert sind Schrauben Ø4 × 16), Seite 10 tief (Annahme), Front 5 tief. Keine Lochreihen in diesem Schrank. Ist der Einbauraum kleiner als von Häfele verlangt (lichte Weite 112, lichte Höhe 565, Tiefe 485 mm), kommt ein Hinweis.
 * **Kesseböhmer LeMans II** (Eckschrank Blindeck, Variante Le Mans; Montageanleitung MA 406954 0000, S. 3 und 11): Größe aus dem Attribut `LeMans` (40/45/50/60), Türseite aus `Blindseite`. Säulenlager in Boden und Strebe vorn bei X = 426/476/526/626 mm ab der Innenseite der Seite an der Tür: Ø5 für die Systemschraube Ø6,3 × 13, 69 mm ab Vorderkante, dazu 2 × Ø3 (Holzschrauben Ø4,5, vorgebohrt, Annahme) 16 mm daneben auf 37 mm. Im Boden durchgebohrt von unten (dort liegen auch die Sockelfüße), in der Strebe 13 bzw. 10 tief von unten. Seitenprofil 500 in der Seite an der Tür: 8 × Ø5, 13 tief, 52 mm ab Vorderkante, unterstes 28 mm über dem Boden, Raster 64. Keine Lochreihen in diesem Schrank. Hinweis, wenn Korpusbreite (764/800/910/960 mm), Tiefe (500 mm) oder Strebe vorn (60 mm) zu klein sind.
+* **Blum AVENTOS HK-top** (Oberschrank mit Klappe; Montageanleitung MD-039/2, S. 3–4, Maße abgeleitet und noch nicht an einem Probestück geprüft): Kraftspeicher in beiden Seiten mit 4 Bohrungen Ø5, 12 tief, in einer waagrechten Reihe 37/69/101/133 mm ab Vorderkante der Seite, 36 mm unter der Korpusoberkante. Frontbeschlag auf der Innenseite der Klappe je Seite 2 Bohrungen Ø5, 12 tief, 12,5 mm ab der Innenseite der Seite (Blum: SFA + 12,5 vom Frontrand), 62 und 94 mm unter der Korpusoberkante (Blum: 62 + FAo ab Frontoberkante, Raster 32). Maße in `Regeln::AVENTOS_HK`. Für die Faltklappe AVENTOS HF gibt es noch keine Bohrungen, der Export meldet das.
 * **Innenecke einer L-Platte** (Eckschrank L-Form: Boden und Einlegeböden; Eck-Oberschrank: Boden, Deckel und Einlegeböden): Die Ecke steht als `ecke_x`/`ecke_y` an der Definition der Platte. Geschlossene Kontur mit dem Nutfräser 2200 durch die Platte (Stärke + 1 mm) von der Seite mit den übrigen Bearbeitungen (Unterschrank: unten bei den Sockelfüßen; Eck-Oberschrank-Boden: oben bei der Rückwandnut), an den Innenkanten 2 mm zurück (Anleimer, den OCL dort nicht erkennt), nach außen 8 mm über die Platte hinaus. Sockelfüße je Schenkel, also auch an der Innenecke. In der Ecke stößt die Strebe von Schenkel B mit dem Ende an die Längskante der Strebe von A: Dübel wie Strebe–Seite, in die Kante 22 tief.
 * **Kanalausschnitt** (Unterschrank Kochfeld mit Abzug): durchgehende Rechtecktasche (rect.tmcr, Stärke + 1 mm) von unten im Boden; Lage und Größe aus den Attributen `Ausschnitt_Links`, `Ausschnitt_Breite`, `Ausschnitt_Hinten`, `Ausschnitt_Tiefe` am Schrank (ab der Kante bei `SeiteL` bzw. bei der Rückwand).
 * **Sockelfüße** (Unter- und Hochschränke): Bohrbild aus `Boden.tcn` in der Unterseite des Bodens, je Fuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64, 20 mm vom Rand in x und 60 mm in y; bei einem schmalen Boden (unter 248 mm, z. B. 112 mm im Handtuchschrank) nur ein Fuß je Ende, mittig. Der Boden liegt dafür mit der Unterseite nach oben.
@@ -147,7 +160,7 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
-* `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
+* `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß) und das Einstellungen-Fenster; Sockel und Abstände in `gemeinsam/einstellungen.rb`
 * `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
 * `src/jt_schrank_cnc/etiketten.rb` – Etiketten (Bogen oder Endlos, HTML zum Drucken)
 * `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan für die Formatsäge

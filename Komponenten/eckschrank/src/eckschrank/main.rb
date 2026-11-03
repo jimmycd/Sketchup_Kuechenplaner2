@@ -110,32 +110,10 @@ module Eckschrank
     'Anz_Einlegeboeden' => 1.0
   ).freeze
 
-  # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
-  # "summary" und "description" oben im Fenster "Komponentenoptionen".
+  # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/eckschrank'.freeze
   HILFE_KURZ = 'Eck-Unterschrank Blindeck: eine Tür, zwei Türen oder Le Mans (Kesseböhmer), OpenCutList-fähig'.freeze
-  HILFE = [
-    'Variante, Blindseite, Breite, Türbreite, LeMans-Größe, Höhe, Tiefe und Einlegeböden hier ändern.',
-    'Der Blindteil steckt hinter der Nachbarzeile und ist mit einer festen Blende zu.',
-    '„Abstand zur Wand“ zeigt, wie weit die Blindseite von der Seitenwand wegbleiben muss, damit neben der Tür die Passleiste frei bleibt (aus Tiefe des Nachbarn und Passleiste).',
-    'Le Mans (Kesseböhmer LeMans II): Türbreite = LeMans-Größe (40/45/50/60 cm), Korpus mindestens 764/800/910/960 mm breit und 500 mm tief; Einlegeböden entfallen.',
-    'Der Beschlag ist als Platzhalter gezeichnet; OpenCutList führt ihn als Beschlag. Bohrungen setzt der TCN-Export.',
-    'Mit „Interagieren“ öffnen sich die Türen.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UES1_SeiteL, UES1_Blende.',
-    'Feste Maße (Materialstärken, Streben, Spalt): Fenster „Komponentenattribute“.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
   HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür, OpenCutList-fähig'.freeze
-  HILFE_L = [
-    'L-förmiger Korpus, Falttür (zwei Türen mit Blum-Scharnier verbunden).',
-    'Schenkel A, Schenkel B, Tiefe, Höhe und Anzahl Einlegeböden hier ändern.',
-    'Nach einer Änderung von Schenkel oder Tiefe baut die Erweiterung den Schrank neu auf (eine L-Platte lässt sich nicht per Formel umformen); Frontmaterial und Griffe bleiben erhalten.',
-    'Boden und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export aus. OpenCutList rechnet mit dem Rechteck; die Anleimer der Innenecke erkennt OCL nicht.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>, z. B. UES1_Boden, UES1_TuerL.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -185,20 +163,33 @@ module Eckschrank
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d, kurz = HILFE_KURZ, lang = HILFE)
-    d.description = kurz
-    { 'summary' => ['Summary', kurz], 'description' => ['Description', lang] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
     end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end
@@ -356,11 +347,11 @@ module Eckschrank
     d.set_attribute(DICT, '_onclick_label', 'onClick')
   end
 
-  def self.hauptteil(model, defname, dc_name, kz, kurz, lang)
+  def self.hauptteil(model, defname, dc_name, kz, kurz)
     haupt = model.definitions.add(defname)
     stempel(haupt)
     haupt.set_attribute(DICT, '_name', dc_name)
-    hilfe(haupt, kurz, lang)
+    hilfe(haupt, kurz)
     { 'schrank' => kz, 'typ' => TYP, 'kategorie' => KATEGORIE }.each { |k, v| haupt.set_attribute(JT_DICT, k, v) }
     haupt
   end
@@ -378,7 +369,7 @@ module Eckschrank
     t_ = ->(teil) { [model, kz, teil] }
     variante = p['Variante'].to_i
 
-    haupt = hauptteil(model, 'Eckschrank Blindeck', u, kz, HILFE_KURZ, HILFE)
+    haupt = hauptteil(model, 'Eckschrank Blindeck', u, kz, HILFE_KURZ)
     haupt.set_attribute(JT_DICT, 'beschlag', BESCHLAG_NAME) # nur wirksam bei Variante Le Mans (Export prüft)
 
     # --- Parameter (Komponentenoptionen) ---
@@ -582,7 +573,7 @@ module Eckschrank
     yw, xk, ye = m[:yw], m[:xk], m[:ye]
     n = p['Anz_Einlegeboeden'].to_i
 
-    haupt = hauptteil(model, 'Eckschrank L-Form', u, kz, HILFE_KURZ_L, HILFE_L)
+    haupt = hauptteil(model, 'Eckschrank L-Form', u, kz, HILFE_KURZ_L)
     # Schenkel und Tiefe sind änderbar, aber eine L-Platte lässt sich nicht per Formel
     # umformen: nach einer Änderung baut l_pruefen den Schrank neu auf (L_GEBAUT merkt
     # sich die Maße, mit denen er gebaut ist)

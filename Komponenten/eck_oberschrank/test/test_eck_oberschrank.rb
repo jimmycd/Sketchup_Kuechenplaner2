@@ -298,10 +298,9 @@ check(Sketchup.active_model.layers['OES1_Boden'] && Sketchup.active_model.layers
 # --- Kurzhilfe in der Komponente ------------------------------------------
 hd = Sketchup.active_model.definitions['Eck-Oberschrank L-Form']
 check(hd.description == E::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
-check(hd.get_attribute(E::DICT, 'summary') == E::HILFE_KURZ && hd.get_attribute(E::DICT, 'description') == E::HILFE, 'Hilfe: summary/description')
-check(%w[summary description].all? { |k| hd.get_attribute(E::DICT, "_#{k}_access") == 'VIEW' }, 'Hilfe: nur anzeigen')
-check(E::HILFE.include?(E::DOKU_URL), 'Hilfe: Link zur Doku')
-check(!(E::HILFE + E::HILFE_KURZ).include?('OpenCutList'), 'Hilfe: kein OpenCutList mehr')
+check(hd.get_attribute(E::DICT, 'summary') == E::HILFE_KURZ && hd.get_attribute(E::DICT, 'description').nil?, 'Hilfe: summary/description')
+check(%w[summary description].none? { |k| hd.get_attribute(E::DICT, "_#{k}_access") }, 'Hilfe: keine eigenen Zeilen in den Optionen')
+check(!E::HILFE_KURZ.include?('OpenCutList'), 'Hilfe: kein OpenCutList mehr')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 # --- Tiefe nachträglich ändern = gleich mit dieser Tiefe erzeugt ---

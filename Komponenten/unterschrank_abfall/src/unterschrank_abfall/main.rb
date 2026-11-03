@@ -82,20 +82,9 @@ module UnterschrankAbfall
     'Auszug_Anteil'             => 0.8
   }.freeze
 
-  # Kurzhilfe in der Komponente (Kurzfassung der README.md). SketchUp zeigt
-  # "summary" und "description" oben im Fenster "Komponentenoptionen".
+  # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_abfall'.freeze
   HILFE_KURZ = 'Unterschrank Mülltrennung: Auszug mit 1–4 Abfallbehältern, wahlweise Schublade oben (Blum LEGRABOX), OpenCutList-fähig'.freeze
-  HILFE = [
-    'Breite, Höhe, Tiefe, Fronten (ein Auszug oder Schublade oben + Auszug), Höhe der oberen Front, Anzahl und Höhe der Abfallbehälter hier ändern.',
-    'Auszug und Schublade: Blum LEGRABOX free, Nennlänge aus der Tiefe (NL + 3 mm ≤ Tiefe), Holzteile Boden LW−35 × NL−10 und Rückwand LW−38 × höchstens 148.',
-    'Die Abfallbehälter sind Platzhalter auf dem Kastenboden, gleich breit verteilt; ihre Höhe wird unter der Oberkante der Front begrenzt. OpenCutList führt sie als Beschlag.',
-    'Mit „Interagieren“ fahren Auszug und Schublade heraus.',
-    'Gezeichnet ist das Endmaß; den Anleimer (2 mm) zieht nur OpenCutList ab.',
-    'Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil>, z. B. USM1_SeiteL, USM1_A_Front (Auszug), USM1_B_Front (Schublade oben).',
-    'Feste Maße (Materialstärken, Abstände, LEGRABOX): Fenster „Komponentenattribute“.',
-    "Doku: #{DOKU_URL}"
-  ].join(' ').freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -178,20 +167,33 @@ module UnterschrankAbfall
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
-  def self.hilfe(d)
-    d.description = HILFE_KURZ
-    { 'summary' => ['Summary', HILFE_KURZ], 'description' => ['Description', HILFE] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
     end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
+  def self.hilfe(d, kurz = HILFE_KURZ)
+    d.description = kurz
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end
