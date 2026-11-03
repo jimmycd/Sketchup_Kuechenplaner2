@@ -210,6 +210,26 @@ R.pruefen(m)
 check(teile(inst).values.all? { |x| x[:inst].material.name == 'Melamin weiss' && x[:inst].get_attribute('JT_Schrank', 'frontfarbe').nil? },
       'Korpusfarbe: wieder Melamin weiss')
 
+# Echte DC: Neuzeichnen skaliert auf die gemerkte Größe (lenx/leny/lenz). Nach dem Neuaufbau
+# muss das Regal trotzdem die neue Tiefe haben (Jürgen 2026-11-02: 400 mm eingestellt, 238 gezeichnet)
+require_relative '../../../test/dc_groesse_helfer'
+DcGroesseHelfer.mit_dc(R::DICT) do
+  [[{ 'Tiefe' => 23.0, 'Zeilenende' => 1.0 }, { 'Tiefe' => 40.0 }],
+   [{ 'Typ' => 'Oberschrank', 'Tiefe' => 40.0 }, { 'Tiefe' => 30.0, 'Breite' => 45.0, 'Hoehe' => 60.0 }],
+   [{}, { 'Form' => 2.0, 'Tiefe' => 35.0 }]].each do |vorher, aenderung|
+    m = neu_model
+    inst = R.erstellen(vorher)
+    aenderung.each { |k, v| inst.set_attribute(R::DICT, k.downcase, R::LAENGEN.include?(k) ? v / 2.54 : v) }
+    R.pruefen(m)
+    $dc_observers.redraw_with_undo(inst) # nächstes Neuzeichnen durch die DC
+    neu_model
+    frisch = R.erstellen(vorher.merge(aenderung))
+    ist, soll = DcGroesseHelfer.groesse(inst), DcGroesseHelfer.groesse(frisch)
+    check(ist.zip(soll).all? { |a, b| nah(a, b) }, "DC #{aenderung}: Größe #{ist.map { |v| v.round(1) }} statt #{soll.map { |v| v.round(1) }}")
+    check(nah(soll[1], 0.8 + vorher.merge(aenderung)['Tiefe']), "DC #{aenderung}: Tiefe mit Rückwand #{soll[1]}")
+  end
+end
+
 # --- zweites Regal bekommt RA2 ---
 m = neu_model
 R.erstellen
