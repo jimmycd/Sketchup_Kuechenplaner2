@@ -61,6 +61,14 @@ im Block). `./build_rbz.sh` kopiert sie in jede Erweiterung nach `src/kuechenpla
 Ungültige Eingaben bleiben im Fenster stehen, ein Doppelklick auf „Einfügen“ fügt nur einmal ein.
 Neue Komponenten benutzen kein `UI.inputbox` (der Test prüft das).
 
+## Generelle Einstellungen der Küche
+
+Sockelhöhe (Stellfüße), Abstand Schrankrückseite – Wand und lichter Abstand Arbeitsplatte –
+Oberschrank stehen unter *Küchenplaner › Einstellungen…* und gelten für die ganze Küche im Modell.
+Sie kommen aus `gemeinsam/einstellungen.rb` (`Kuechenplaner::Einstellungen`), die `./build_rbz.sh`
+wie das Eingabefenster in jede Erweiterung kopiert. Tabelle und Standardwerte siehe
+[Einstellungen](sketchup-tcn-export-plugin/README.md#einstellungen).
+
 ## Tests
 Alle Tests (Komponenten, Plugin und `test/test_erweiterungen.rb` für Menü und `.rbz`) laufen ohne SketchUp (Mock-API und DC-Formel-Auswerter), Ruby ≥ 3.1:
 

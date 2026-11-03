@@ -104,7 +104,19 @@ Danach fragt es nach einem Ordner, schreibt `Etiketten.html` und öffnet sie im 
 Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (Platten, Teile, Ausnutzung), dann je Platte eine Seite mit maßstäblicher Skizze (Teilnummern wie Stückliste und Etiketten, Reste schraffiert, Schnitte rot und nummeriert) und daneben die **Schnittliste in Reihenfolge**: zuerst Besäumen, dann die durchgehenden Schnitte, dann die Schnitte in den Streifen. Je Schnitt Richtung (längs/quer), Lage (`y =` bzw. `x =` ab der Plattenecke links oben) und Länge.
 
 ## Einstellungen
-*Erweiterungen › Küchenplaner › Einstellungen…* gilt für alle Modelle auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
+*Erweiterungen › Küchenplaner › Einstellungen…* hat zwei Bereiche.
+
+**Küche – dieses Modell** (Sockel und Abstände, gespeichert im Modell, Wörterbuch `Kuechenplaner_Einstellungen`; ein neues Modell übernimmt die zuletzt eingegebenen Werte). Quelle ist `gemeinsam/einstellungen.rb`, die jede Erweiterung als `src/kuechenplaner_gemeinsam/einstellungen.rb` mitbringt; Lesen mit `Kuechenplaner::Einstellungen.sockelhoehe`, `.wandabstand`, `.abstand_oberschrank`, `.arbeitsplatte_staerke`, `.unterschrank_hoehe`, `.oberschrank_unterkante(model, boden)` (alles mm):
+
+| Einstellung | Standard | wirkt auf |
+| --- | --- | --- |
+| Sockelhöhe – Stellfüße (mm), 0–300 | 100 | Korpusunterkante von Unter- und Hochschränken über dem Fußboden. Der Sockel sind verstellbare Füße: keine Zuschnitt- oder Holzteile, nur die Sockelblende davor |
+| Abstand Schrankrückseite – Wand (mm) | 0 | Andocken an die Wand; die Arbeitsplatte reicht trotzdem bis an die Wand (minus ihren eigenen Wandabstand 5 mm) |
+| Lichter Abstand Arbeitsplatte – Oberschrank (mm) | 550 | Unterkante Oberschrank = Sockel + Korpushöhe + Arbeitsplatte + Abstand (Standard 1390 mm) |
+| Stärke Arbeitsplatte (mm) | 40 | Höhe der Oberschränke |
+| Korpushöhe Unterschrank (mm) | 700 | Höhe der Oberschränke |
+
+**CNC und Zuschnitt – alle Modelle** auf diesem Rechner (`Sketchup.write_default`, Sektion `JT_SchrankCnc`):
 
 | Einstellung | Standard | wirkt auf |
 | --- | --- | --- |
@@ -154,7 +166,7 @@ Ausgabe `Zuschnitt.html` (A4 quer, im Browser drucken): Übersicht je Material (
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
-* `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß)
+* `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß) und das Einstellungen-Fenster; Sockel und Abstände in `gemeinsam/einstellungen.rb`
 * `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
 * `src/jt_schrank_cnc/etiketten.rb` – Etiketten (Bogen oder Endlos, HTML zum Drucken)
 * `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan für die Formatsäge

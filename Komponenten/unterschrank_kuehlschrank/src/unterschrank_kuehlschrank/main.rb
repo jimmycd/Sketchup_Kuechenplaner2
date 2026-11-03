@@ -224,7 +224,8 @@ module UnterschrankKuehlschrank
   KANTEN = {
     'Front'  => %i[xmin xmax zmin zmax], # rundum
     'Wange'  => %i[ymin zmax],           # vorne und oben, unten steht sie auf dem Boden
-    'Geraet' => []
+    'Geraet' => [],
+    'Korpus' => []
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
@@ -292,6 +293,30 @@ module UnterschrankKuehlschrank
       'z' => (-p['Sockelhoehe'] * 10).round(1), 'sockel' => (p['Sockelhoehe'] * 10).round(1) }.each { |k, v| d.set_attribute(NISCHE_DICT, k, v) }
   end
 
+  # Virtueller Korpus: Die Nische hat keinen Korpus, ihre Grenze soll aber wie bei den anderen
+  # Unterschränken sein (Breite der Nische plus sichtbare Wangen, Front bis Rückwand, Unterkante bis
+  # Oberkante Korpus). Front und Wangen allein sind dafür zu klein, der Geräte-Platzhalter reicht
+  # bis zum Fußboden und ist tiefer. Ein unsichtbarer Kasten (Kanten und Flächen ausgeblendet)
+  # gibt der Komponente ihre Grenze, das Andock-Werkzeug nimmt ihn als Kasten des Schranks
+  # (Wörterbuch JT_Korpus). Kein Schrankteil: kein Material, kein Tag, kein JT_Schrank.
+  KORPUS_DICT = 'JT_Korpus'.freeze
+
+  def self.korpus_masse(p)
+    mk = p['Materialstaerke_Korpus']
+    n_wangen = { 0 => 0, 1 => 1, 2 => 1, 3 => 2 }.fetch(p['Art_Wange'].to_i, 0)
+    [p['Breite'] + n_wangen * mk, p['Spaltbreite'] + mk + p['Tiefe'] + p['Materialstarke_Rueckwand'], p['Hoehe']]
+  end
+
+  def self.virtueller_korpus(model, e, p, _r, u)
+    d = platte(model, 'Virtueller Korpus', 'Korpus', korpus_masse(p),
+               ["#{u}!Breite+IF(#{u}!Art_Wange=0,0,IF(#{u}!Art_Wange=3,2,1))*#{u}!Materialstaerke_Korpus",
+                "#{u}!Spaltbreite+#{u}!Materialstaerke_Korpus+#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
+                "#{u}!Hoehe"], art: 'Korpus')
+    d.entities.to_a.each { |x| x.hidden = true if x.respond_to?(:hidden=) }
+    d.set_attribute(KORPUS_DICT, 'virtuell', true)
+    einsetzen(e, d, 'Korpus', [0, -p['Spaltbreite'], 0], [nil, "-#{u}!Spaltbreite", nil])
+  end
+
   # ---------------------------------------------------------------------------
   # Aufbau
   # ---------------------------------------------------------------------------
@@ -351,9 +376,12 @@ module UnterschrankKuehlschrank
     fi.hidden = !r[:front]
 
     # --- Abschlusswangen außerhalb der Nische, wie die Seiten der Unterschränke, bis zum Boden ---
+    # Ausgeblendet liegt die rechte Wange innerhalb der Nische: SketchUp zählt ausgeblendete Teile zur
+    # Komponentengrenze, sonst wäre der Schrank scheinbar um die Wange breiter.
     wangen = [['WangeL', r[:links], 'IF(OR(Art_Wange=1,Art_Wange=3),0,1)', [0, nil]],
               ['WangeR', r[:rechts], 'IF(OR(Art_Wange=2,Art_Wange=3),0,1)',
-               [r[:x_nische] + p['Breite'], "#{u}!X_Nische+#{u}!Breite"]]]
+               [r[:x_nische] + p['Breite'] - (r[:rechts] ? 0 : mk),
+                "#{u}!X_Nische+#{u}!Breite-IF(OR(#{u}!Art_Wange=2,#{u}!Art_Wange=3),0,#{u}!Materialstaerke_Korpus)"]]]
     wangen.each do |teil, sichtbar, formel, (x, fx)|
       d = platte(model, teil, teil, [mk, p['Tiefe'] + p['Materialstarke_Rueckwand'], r[:h_unten]],
                  ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
@@ -363,6 +391,8 @@ module UnterschrankKuehlschrank
                        mat: mat, kz: t_.(teil))
       inst.hidden = !sichtbar
     end
+
+    virtueller_korpus(model, e, p, r, u)
 
     # --- Geräte-Platzhalter (kein Schrankteil: kein Plattenmaterial, kein JT_Schrank) ---
     g = platte(model, 'Kuehlschrank Platzhalter', 'Geraet',

@@ -174,10 +174,12 @@ module JTools
         # virtuell: Kasten aus den Maßen (Schränke ohne eigene Seite), rest: alle sichtbaren Teile.
         # x und Höhe kommen von den Seiten (sonst virtuell), Wangen verbreitern nur in x und
         # verlängern nach hinten (sie reichen bis zum Fußboden und zählen in z nicht).
-        def bezug(seiten, wangen, virtuell, rest)
+        # hinten: Kästen der Rückwände, sie verlängern nur nach hinten (Rückseite an der Wand).
+        def bezug(seiten, wangen, virtuell, rest, hinten = [])
           b = seiten.empty? ? virtuell : vereinigen(seiten)
           return rest if b.nil?
           b = b.dup
+          hinten.each { |r| b[3] = [b[3], r[3]].max }
           wangen.each do |w|
             b[0] = [b[0], w[0]].min
             b[1] = [b[1], w[1]].max
@@ -323,11 +325,25 @@ module JTools
         Rechnung.vorgaben_zoll(VORGABEN.keys.map { |k| [k, vorgabe(k)] }.to_h)
       end
 
-      # Kasten aus den sichtbaren Teilen (ausgeblendete Schubladen, Wangen … zählen nicht)
+      KORPUS_DICT = 'JT_Korpus'.freeze
+
+      # Virtueller Korpus einer Komponente ohne eigenen Korpus (Geschirrspüler-, Kühlschrank-Nische):
+      # unsichtbarer Kasten, markiert mit JT_Korpus/virtuell an seiner Definition
+      def self.virtueller_korpus(d)
+        d.entities.find do |e|
+          e.respond_to?(:definition) && !(e.respond_to?(:hidden?) && e.hidden?) &&
+            e.definition.get_attribute(KORPUS_DICT, 'virtuell')
+        end
+      end
+
+      # Kasten = virtueller Korpus, falls vorhanden (Geräte-Platzhalter und bis zum Boden reichende
+      # Wangen zählen dann nicht), sonst die sichtbaren Teile (ausgeblendete Schubladen, Wangen … zählen nicht)
       def self.kasten(inst)
         d = Schraenke.definition(inst)
         bb = Geom::BoundingBox.new
-        d.entities.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
+        korpus = virtueller_korpus(d)
+        teile = korpus ? [korpus] : d.entities.to_a
+        teile.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
         bb = d.bounds if bb.empty?
         mn = bb.min.to_a
         mx = bb.max.to_a
@@ -341,11 +357,12 @@ module JTools
       def self.bezug(inst)
         seiten = []
         wangen = []
-        sammeln(Schraenke.definition(inst).entities, EINS, seiten, wangen)
-        Rechnung.bezug(seiten, wangen, seiten.empty? ? virtuelle_seite(inst) : nil, kasten(inst))
+        hinten = []
+        sammeln(Schraenke.definition(inst).entities, EINS, seiten, wangen, hinten)
+        Rechnung.bezug(seiten, wangen, seiten.empty? ? virtuelle_seite(inst) : nil, kasten(inst), hinten)
       end
 
-      def self.sammeln(ents, m, seiten, wangen)
+      def self.sammeln(ents, m, seiten, wangen, hinten)
         Schraenke.instanzen(ents).each do |e|
           next if e.respond_to?(:hidden?) && e.hidden?
           mm = Rechnung.matmul(m, e.transformation.to_a.map(&:to_f))
@@ -353,8 +370,11 @@ module JTools
           if %w[Seite Wange].include?(rolle)
             bb = Schraenke.definition(e).bounds
             (rolle == 'Seite' ? seiten : wangen) << Rechnung.box_trafo(mm, bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f))
+          elsif rolle == 'Rueckwand'
+            bb = Schraenke.definition(e).bounds
+            hinten << Rechnung.box_trafo(mm, bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f))
           elsif !e.get_attribute(JT_DICT, 'teil')
-            sammeln(Schraenke.definition(e).entities, mm, seiten, wangen)
+            sammeln(Schraenke.definition(e).entities, mm, seiten, wangen, hinten)
           end
         end
       end
