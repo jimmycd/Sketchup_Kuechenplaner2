@@ -7,8 +7,9 @@
 #   kuechenplaner-update/kuechenplaner_update.rbz  Plugins aktualisieren (ohne Extension Manager)
 #   kuechenplaner-symbolleiste/kuechenplaner_symbolleiste.rbz  Symbolleiste „Küchenplaner“
 #   Kuechenplaner_alle.rbz                     alles zusammen in einer Datei
-# Vorher wird gemeinsam/eingabe.rb (Eingabefenster im Treppenplaner-Stil) in jede
-# Erweiterung nach src/kuechenplaner_gemeinsam/ kopiert.
+# Vorher werden gemeinsam/eingabe.rb (Eingabefenster im Treppenplaner-Stil) und
+# gemeinsam/einstellungen.rb (Sockelhöhe, Abstände) in jede Erweiterung nach
+# src/kuechenplaner_gemeinsam/ kopiert.
 set -e
 cd "$(dirname "$0")"
 top=$(pwd)
@@ -21,6 +22,7 @@ for src in Komponenten/*/src sketchup-tcn-export-plugin/src kuechenplaner-update
   [ "$name" = kuechenplaner-symbolleiste ] && name=kuechenplaner_symbolleiste
   mkdir -p "$src/kuechenplaner_gemeinsam"
   cp gemeinsam/eingabe.rb "$src/kuechenplaner_gemeinsam/eingabe.rb"
+  cp gemeinsam/einstellungen.rb "$src/kuechenplaner_gemeinsam/einstellungen.rb"
   rm -f "$dir/$name.rbz"
   (cd "$src" && zip -q -X -r "$top/$dir/$name.rbz" . && zip -q -X -r "$top/Kuechenplaner_alle.rbz" .)
   echo "$dir/$name.rbz erstellt"

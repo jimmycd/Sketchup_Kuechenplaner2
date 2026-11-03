@@ -173,11 +173,11 @@ check(f.to_s.include?('Decke') && Raum.daten(raum)['hoehe'] == 2500.0, "zu niedr
 
 # --- Dialoge und Werkzeug ------------------------------------------------------------------
 model = $model = Sketchup.active_model = Sketchup::Model.new
-$antworten = [%w[3600 2800 2600 175 120]]
+$antworten = [%w[3600 2800 2600 175]]
 raum = Raum.raum_anlegen_dialog(model)
 check(raum && Raum.daten(raum)['dicke'] == 175.0 && model.selection.to_a == [raum], 'Raum anlegen über den Dialog, danach ausgewählt')
-check(Raum.daten(raum)['sockel'] == 120.0 && raum.entities.grep(Sketchup::ComponentInstance).all? { |i| i.get_attribute('JT_Raum', 'sockel') == 120.0 },
-      'Sockelhöhe aus dem Dialog an Raum und Wänden')
+check(!Raum.daten(raum).key?('sockel') && raum.entities.grep(Sketchup::ComponentInstance).none? { |i| i.get_attribute('JT_Raum', 'sockel') },
+      'keine Sockelhöhe mehr am Raum (steht in Küchenplaner › Einstellungen)')
 $antworten = [['Tür'], %w[900 2000 rechts innen]]
 Raum.einsetzen_dialog(model)
 wz = model.werkzeug
@@ -208,13 +208,9 @@ check(Raum.daten(raum)['oeffnungen'].empty?, 'Öffnung gelöscht')
 # Raum bearbeiten
 model.selection.clear
 model.selection.add(raum)
-$antworten = [%w[2400 300 80]]
+$antworten = [%w[2400 300]]
 Raum.raum_bearbeiten_dialog(model)
-check(Raum.daten(raum)['hoehe'] == 2400.0 && Raum.daten(raum)['dicke'] == 300.0 && Raum.daten(raum)['sockel'] == 80.0,
-      'Raumhöhe, Wanddicke und Sockelhöhe geändert')
-check(raum.entities.grep(Sketchup::ComponentInstance).all? { |i| i.get_attribute('JT_Raum', 'sockel') == 80.0 }, 'neue Sockelhöhe an den Wänden')
-check(R.pruefe('punkte' => re, 'geschlossen' => true, 'hoehe' => 2500, 'dicke' => 240, 'sockel' => 400).to_s.include?('Sockel'), 'Sockelhöhe über 300 mm abgelehnt')
-check(R.sockel({}) == 100.0, 'alter Raum ohne Sockelangabe: 100 mm')
+check(Raum.daten(raum)['hoehe'] == 2400.0 && Raum.daten(raum)['dicke'] == 300.0, 'Raumhöhe und Wanddicke geändert')
 
 # Wände aus Linien (offene L-Form, Betrachter im Raum)
 model = $model = Sketchup.active_model = Sketchup::Model.new
