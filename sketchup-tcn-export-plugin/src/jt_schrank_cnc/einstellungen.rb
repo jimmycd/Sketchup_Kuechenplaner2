@@ -1,6 +1,7 @@
 # encoding: UTF-8
 # Schrank-CNC – allgemeine Einstellungen (gelten für alle Modelle auf diesem Rechner,
-# gespeichert mit Sketchup.write_default).
+# gespeichert mit Sketchup.write_default). Das Fenster zeigt oben zusätzlich die
+# Werte der Küche (Sockelhöhe, Abstände) aus gemeinsam/einstellungen.rb.
 #
 # Übermaß: Rohmaß (Zuschnitt an der Formatsäge) = Fräsmaß + Übermaß, damit die CNC
 # das Teil rundum formatieren kann (squad). Angabe gesamt je Richtung in mm, also
@@ -56,14 +57,28 @@ module JTools
         a >= b ? [uebermass_laenge, uebermass_breite] : [uebermass_breite, uebermass_laenge]
       end
 
+      CNC_GRUPPE = 'CNC und Zuschnitt – alle Modelle'.freeze
+
+      # Ein Fenster für beide Arten: oben die Werte der Küche (Sockel, Abstände; im
+      # Modell gespeichert, gemeinsam/einstellungen.rb), unten CNC und Zuschnitt
+      # (für alle Modelle auf diesem Rechner).
       # true = gespeichert, false = abgebrochen oder ungültig
-      def dialog
+      def dialog(model = Sketchup.active_model)
+        kueche = Kuechenplaner::Einstellungen
         keys = WERTE.keys
-        alt = keys.map { |k| Tcn.n(wert(k)) }
-        erg = Kuechenplaner::Eingabe.abfragen(keys.map { |k| WERTE[k][0] }, alt, 'Küchenplaner – Einstellungen',
-                                              untertitel: 'gilt für alle Modelle', ok: 'Speichern') do |neu|
-          zahlen = neu.map { |s| s.to_s.strip.tr(',', '.') }
+        prompts = kueche.prompts + keys.map { |k| "#{CNC_GRUPPE}: #{WERTE[k][0].sub(/\AZuschnitt: /, '')}" }
+        alt = kueche.vorgaben(model) + keys.map { |k| Tcn.n(wert(k)) }
+        n = kueche::WERTE.size
+        erg = Kuechenplaner::Eingabe.abfragen(prompts, alt, 'Küchenplaner – Einstellungen',
+                                              untertitel: 'Sockel, Abstände, CNC', ok: 'Speichern') do |neu|
+          zahlen = neu[n..-1].map { |s| s.to_s.strip.tr(',', '.') }
           raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
+          model.start_operation('Einstellungen ändern', true) if model.respond_to?(:start_operation)
+          begin
+            kueche.uebernehmen(neu[0, n], model)
+          ensure
+            model.commit_operation if model.respond_to?(:commit_operation)
+          end
           keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
           true
         end
