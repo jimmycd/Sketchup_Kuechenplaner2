@@ -117,9 +117,23 @@ check(F.fronten(model, kategorie: 'Hochschrank').all? { |t| t.jt('griff_hoehe') 
 UI.antwort = ['Front Eiche 19mm', 'Alle Schränke', 'Nein', 'setzen', 'abc', 'Mitte', '35']
 F.dialog(model)
 check(UI.meldungen.last.include?('keine Zahl'), 'Dialog: ungültiges Lochmaß')
+# ohne Frontmaterial: erst „Neue Platte“ (Verwendung Front), danach geht es mit Frontfarbe weiter
 m2 = Sketchup.active_model = Sketchup::Model.new
+Sketchup.defaults.clear # leere Materialbibliothek
+os_m2 = Oberschrank.erstellen({})
+antworten = [['Front Nuss 19mm', 'Front', '#8B5A2B', '', '1000', '19', '2800', '2070', 'Ja', '(automatisch)'],
+             ['Front Nuss 19mm', 'Alle Schränke', 'Nein', 'unverändert lassen', '160', 'Mitte', '35']]
+fragen = []
+UI.define_singleton_method(:inputbox) { |*a| fragen << a; antworten.shift }
 F.dialog(m2)
-check(UI.meldungen.last.include?('kein Frontmaterial'), 'Dialog ohne Frontmaterial')
+nuss = m2.materials['Front Nuss 19mm']
+check(fragen.size == 2 && fragen[0][-1] == 'Neue Platte' && fragen[1][-1] == 'Frontfarbe und Griffe ändern',
+      "ohne Frontmaterial: erst Neue Platte, dann Frontfarbe (#{fragen.map(&:last).inspect})")
+check(nuss && S::Materialien.verwendung(nuss) == 'Front' && S::Materialien.maserung?(nuss), 'neues Frontmaterial angelegt')
+check(F.fronten(m2).all? { |t| t.inst.material.equal?(nuss) }, 'Fronten haben das neue Material')
+an = m2.materials['Anleimer Nuss']
+check(an && S::Materialien.kante?(an) && nuss.get_attribute('JT_Material', 'kante') == 'Anleimer Nuss', 'Anleimer Nuss angelegt und zugeordnet')
+check(fragen[1][2][0].split('|').include?(F::NEU), 'Auswahl enthält „Neues Frontmaterial…“')
 
 # .rbz muss zum Quelltext passen (sonst ./build_rbz.sh im Hauptordner ausführen)
 rbz = File.expand_path('../schrank_cnc.rbz', __dir__)

@@ -4,9 +4,9 @@
 # Je Material und Stärke werden die Rohmaße der Stückliste mit dem Guillotine-Optimierer
 # BinPacking2D (aus OpenCutList übernommen, GPL-3.0, siehe bin_packing_2d/ und
 # THIRD_PARTY.md) auf Platten verteilt: nur durchgehende Schnitte, wie an der Formatsäge.
-# Plattenformat aus dem Material (std_sizes im OCL-Wörterbuch, erstes Format), sonst
+# Plattenformat aus dem Material (Küchenplaner › Materialien…), sonst
 # 2800 × 2070. Schnittbreite und Besäumen aus den Einstellungen. Maserung am Material:
-# dann wird nicht gedreht, die Teillänge (L, längere Seite) liegt längs der Platte.
+# dann wird nicht gedreht, die Teillänge (L, in Faserrichtung) liegt längs der Platte.
 # Arbeitsplatten bleiben draußen (Zuschnitt von Hand).
 # Ausgabe: Zuschnitt.html, Druckseite A4 quer: Übersicht, dann je Platte eine Seite
 # mit maßstäblicher Skizze (Teilnummern wie in Stückliste und Etiketten) und
@@ -21,7 +21,6 @@ module JTools
       module_function
 
       BP = BinPacking2D
-      OCL_DICT = 'ladb_opencutlist'.freeze
       STANDARD_PLATTE = [2800.0, 2070.0].freeze
 
       Platte = Struct.new(:nr, :laenge, :breite, :teile, :schnitte, :reste, :ausnutzung)
@@ -33,9 +32,7 @@ module JTools
 
       # Plattenformat aus "2800mm x 2070mm;4100mm x 1300mm" (erstes Format), in mm
       def plattenformat(mat)
-        s = mat ? mat.get_attribute(OCL_DICT, 'std_sizes').to_s.split(';').first.to_s : ''
-        teile = s.split(/x/i).map { |t| Fraesliste.mm(t) }
-        teile.size == 2 && teile.all? { |v| v > 0 } ? teile.sort.reverse : STANDARD_PLATTE.dup
+        Materialien.plattenformat(mat) || STANDARD_PLATTE.dup
       end
 
       def material(model, name)

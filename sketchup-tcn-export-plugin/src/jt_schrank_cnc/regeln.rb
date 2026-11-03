@@ -509,7 +509,7 @@ module JTools
       # Anleimerstärke auf der Kontur (0 ohne Anleimer)
       def self.kontur_anleimer(w)
         f = Schraenke.definition(w.teil.inst).entities.grep(Sketchup::Face).find do |x|
-          x.material && x.material.get_attribute(Geometrie::OCL_DICT, 'type').to_i == 4 && x.normal.to_a.map(&:abs).max < 0.9999
+          Materialien.kante?(x.material) && x.normal.to_a.map(&:abs).max < 0.9999
         end
         f ? Geometrie.kantenstaerke(f.material) : 0.0
       end

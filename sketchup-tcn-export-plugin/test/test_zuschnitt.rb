@@ -77,7 +77,8 @@ S::Einstellungen.setzen('besaeumen', 10)
 mel.set_attribute('ladb_opencutlist', 'grained', true)
 zs_m, = S::Stueckliste.erzeugen(model)
 gm = Z.berechnen(model, zs_m).find { |g| g.material == 'Melamin weiss' && g.ds == 19 }
-check(gm.maserung && gm.platten.all? { |p| p.teile.none?(&:gedreht) && p.teile.all? { |t| t.l >= t.b - 1e-6 } }, 'Maserung: nicht gedreht, L längs')
+check(gm.maserung && gm.platten.all? { |p| p.teile.none?(&:gedreht) && p.teile.all? { |t| (t.l - t.zeile.roh[0]).abs < 1e-6 } },
+      'Maserung: nicht gedreht, L (Faserrichtung) längs der Platte')
 mel.set_attribute('ladb_opencutlist', 'grained', false)
 
 # Teil größer als die Platte: wird gemeldet, Rest trotzdem geplant
