@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -131,6 +131,30 @@ os = Oberschrank.erstellen({})
 kh = A.kasten(hs)
 ko = A.kasten(os)
 check(nah(os.transformation.origin.to_a[2] + ko[5], hs.transformation.origin.to_a[2] + kh[5], 1e-6), 'Oberschrank an Hochschrank: Oberkanten bündig')
+
+# Geschirrspüler- und Kühlschrank-Nische: Kasten = virtueller Korpus wie bei einem Unterschrank
+# (Nischenbreite, Front bis Rückwand, Unterkante bis Oberkante Korpus). Geräte-Platzhalter (bis zum
+# Fußboden, tiefer als der Korpus) und ausgeblendete Wangen zählen nicht.
+[[UnterschrankGeschirrspueler, 'Geschirrspüler'], [UnterschrankKuehlschrank, 'Kühlschrank-Nische']].each do |mod, name|
+  model.selection.clear
+  model.select_tool(nil)
+  us = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 52.0))
+  ku = A.kasten(us)
+  model.selection.clear
+  model.selection.add(us)
+  ni = mod.erstellen('Tiefe' => 52.0)
+  kn = A.kasten(ni)
+  check(nah(kn, [0, 60, -0.2, 1.9 + 52 + 0.8, 0, 70].map(&:cm), 1e-6), "#{name}: Kasten = virtueller Korpus (#{kn.map { |v| (v * 2.54).round(2) }})")
+  check(nah(kn[3..5], ku[3..5], 1e-6), "#{name}: Kasten hinten und Höhe wie Unterschrank daneben") # Fronten des Unterschranks sind im Mock ausgeblendet
+  check(nah(ni.transformation.origin.to_a[1..2], us.transformation.origin.to_a[1..2], 1e-6),
+        "#{name}: angereiht in gleicher Flucht und Höhe (#{ni.transformation.origin.to_a})")
+  check(nah(ni.transformation.origin.to_a[0], us.transformation.origin.to_a[0] + ku[1], 1e-6), "#{name}: direkt rechts daneben")
+  # mit beiden Wangen: Kasten wird um die Wangen breiter
+  model.selection.clear
+  model.select_tool(nil)
+  kw = A.kasten(mod.erstellen('Tiefe' => 52.0, 'Art_Wange' => 3.0))
+  check(nah(kw[0..1], [0, 63.8].map(&:cm), 1e-6), "#{name}: Kasten mit Wangen #{kw[0..1].map { |v| (v * 2.54).round(2) }}")
+end
 
 # Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
 wz = A::Werkzeug.new(us1)
