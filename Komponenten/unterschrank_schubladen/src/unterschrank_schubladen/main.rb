@@ -82,8 +82,8 @@ module UnterschrankSchubladen
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
-  # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
+  # Material-Einstellungen (Typ, Stärke, Format), falls die Materialien im Modell noch fehlen
+  # (Werte wie in Unterschrank.skp). Vorhandene Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
     MATERIAL => {
       'type' => 2, # Plattenmaterial
@@ -101,9 +101,9 @@ module UnterschrankSchubladen
     }
   }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # Richtungen im Schrank: ymin = vorne, zmax = oben, xmin/xmax = links/rechts.
-  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnet nur OCL.
+  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnen Stückliste und Zuschnitt.
   KANTEN = {
     'Seite'        => %i[ymin],                  # Vorderkante
     'Boden'        => %i[ymin],
@@ -155,7 +155,7 @@ module UnterschrankSchubladen
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_schubladen'.freeze
-  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen (Blum LEGRABOX), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank mit 1–6 Schubladen (Blum LEGRABOX)'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt exakt die DC-Formeln.
@@ -308,7 +308,7 @@ module UnterschrankSchubladen
     n.z > 0 ? :zmax : :zmin
   end
 
-  # Kantenflächen mit dem Anleimer-Material belegen (so erkennt OCL die Kanten)
+  # Kantenflächen mit dem Anleimer-Material belegen (so erkennen Stückliste und TCN-Export die Kanten)
   def self.anleimer_setzen(defn, kanten, anleimer)
     defn.entities.grep(Sketchup::Face).each do |f|
       f.material = anleimer if kanten.include?(seite_von(f))

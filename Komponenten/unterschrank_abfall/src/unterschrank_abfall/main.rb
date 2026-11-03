@@ -10,11 +10,11 @@
 # (Bereich B) und darunter der Auszug. Beide laufen auf Blum LEGRABOX free (Holzboden und
 # Holzrückwand, Zargen aus Metall), so setzt der TCN-Export Schienen- und Frontbohrungen wie beim
 # Unterschrank mit Schubladen. Im Auszug stehen 1–4 Abfallbehälter als Platzhalter (Kaufteil,
-# OpenCutList-Typ Beschlag, kein JT_Schrank: der TCN-Export übergeht sie).
+# Material-Typ Beschlag, kein JT_Schrank: der TCN-Export übergeht sie).
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Bereich>_<Teil> (z. B. USM1_SeiteL, USM1_A_Front) und das Wörterbuch
 # "JT_Schrank" für den TCN-Export. Anderes Kürzel:
 #   UnterschrankAbfall.erstellen({ 'Kuerzel' => 'USM2' }, ziel)
@@ -85,7 +85,7 @@ module UnterschrankAbfall
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_abfall'.freeze
-  HILFE_KURZ = 'Unterschrank Mülltrennung: Auszug mit 1–4 Abfallbehältern, wahlweise Schublade oben (Blum LEGRABOX), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank Mülltrennung: Auszug mit 1–4 Abfallbehältern, wahlweise Schublade oben (Blum LEGRABOX)'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -208,7 +208,7 @@ module UnterschrankAbfall
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -232,10 +232,10 @@ module UnterschrankAbfall
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Kaufteil: OCL-Typ 5 = Beschlag (erscheint in OCL als Beschlag, nicht als Platte)
+  # Kaufteil: Material-Typ 5 = Beschlag (kein Plattenteil)
   def self.behaelter_material(model)
     ocl_material(model, BEHAELTER, [90, 95, 100], 'type' => 5, 'description' => 'Abfallbehälter (Platzhalter)')
   end
@@ -261,7 +261,7 @@ module UnterschrankAbfall
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   KANTEN = {
     'Seite'           => %i[ymin],
@@ -276,7 +276,7 @@ module UnterschrankAbfall
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -480,7 +480,7 @@ module UnterschrankAbfall
       g = platte(model, "Abfallbehälter #{i}", "Behaelter#{i}", [r[:b_beh], r[:t_beh], r[:h_beh]],
                  ["#{s}!B_Beh", "#{s}!T_Beh", "#{s}!H_Beh"], art: 'Behaelter')
       sichtbarkeit(g, i <= r[:n], "IF(#{s}!Anz>=#{i},0,1)")
-      # kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL. Ausgeblendete Behälter
+      # kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung. Ausgeblendete Behälter
       # stehen auf dem Platz des ersten, sonst ragen sie seitlich aus dem Schrank und vergrößern die
       # Komponentengrenze (SketchUp zählt ausgeblendete Teile mit).
       gi = einsetzen(d.entities, g, "Behaelter#{i}", [mk + 1.75 + (i <= r[:n] ? (i - 1) * (r[:b_beh] + ba) : 0), mk, r[:ab_a] + mb],

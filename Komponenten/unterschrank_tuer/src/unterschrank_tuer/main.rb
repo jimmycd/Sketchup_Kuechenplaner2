@@ -4,7 +4,7 @@
 # Erweiterung) über Erweiterungen > Küchenplaner > Unterschränke > Unterschrank mit Tür ins Modell
 # ein und richtet sie ein: Kurzhilfe, ein eigener Tag je Teil (<Kürzel>_<Teil>,
 # z. B. UST1_SeiteL, UST1_Einlegeboden2, UST1_Tuer), das Wörterbuch "JT_Schrank"
-# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (OpenCutList)
+# für den TCN-Export, die Formeln der Einlegeböden und die Anleimer (Kantenmaterial)
 # an Boden, Einlegeböden und Streben. Jeder eingefügte Schrank
 # bekommt ein eigenes Kürzel (UST1, UST2 …).
 
@@ -16,7 +16,7 @@ module UnterschrankTuer
   DICT = 'dynamic_attributes'.freeze
   KUERZEL = 'UST'.freeze
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_tuer'.freeze
-  HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank mit Tür und 0–3 Einlegeböden'.freeze
 
   # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
   # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
@@ -125,7 +125,7 @@ module UnterschrankTuer
     inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
   end
 
-  # Anleimer (Kanten für OpenCutList), wie bei den anderen Unterschränken: nur die
+  # Anleimer (Kantenmaterial), wie bei den anderen Unterschränken: nur die
   # Vorderkante. In der von Hand gebauten Unterschrank.skp fehlte sie am Boden, die
   # vordere Strebe hatte auch hinten eine Kante und die hintere Strebe Kanten.
   # Seiten, Tür und Rückwand sind dort richtig und werden nicht angefasst.

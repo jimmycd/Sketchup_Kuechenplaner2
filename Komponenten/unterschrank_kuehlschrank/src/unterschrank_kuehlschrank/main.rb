@@ -164,8 +164,8 @@ module UnterschrankKuehlschrank
     d.set_attribute(DICT, '_hidden_units', 'BOOLEAN')
   end
 
-  # Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material (Format von
-  # OpenCutList, liest das Küchenplaner-Plugin). Bereits konfigurierte Materialien werden nicht verändert.
+  # Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material (liest das
+  # Küchenplaner-Plugin: Stückliste, Zuschnitt, TCN-Export). Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')

@@ -15,7 +15,7 @@
 #   layout.rb     Platten zuschneiden: Überstände, Ecken, Stoßarten, Teilung, Format
 #   modell.rb     Schränke aus dem Modell lesen (JT_Schrank)
 #   dialog.rb     Einstellungen abfragen
-#   ausgabe.rb    Platten zeichnen (OCL-Material, Anleimer, Tags, JT_Arbeitsplatte)
+#   ausgabe.rb    Platten zeichnen (Material, Anleimer, Tags, JT_Arbeitsplatte)
 
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil

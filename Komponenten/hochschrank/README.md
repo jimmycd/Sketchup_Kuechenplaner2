@@ -24,10 +24,10 @@ Mit *Interagieren*: Schubladen fahren heraus, die Tür (Anschlag links) öffnet 
 * **Schubkasten Blum LEGRABOX free** (Montageanleitung MD-015/4): Seiten aus Metall, aus Holz nur **Boden** (lichte Weite − 35 mm × NL − 10 mm, 16 mm) und **Holzrückwand** (lichte Weite − 38 mm × 148 mm, 16 mm, hinten auf dem Boden; bei niedrigen Schubladen niedriger). NL ist die Blum-Nennlänge: die größte in 50-mm-Schritten (max. 650) mit NL + 3 mm ≤ Korpustiefe; sie steht als Attribut `NL` (cm) am Schrank. Der Kasten beginnt an der Korpusvorderkante, mindestens 30 mm über der Front-Unterkante.
 * **Lochraster:** Der Kasten sitzt so, dass die Schienenbohrung (Unterkante Kasten + *Höhenoffset Schiene*, Standard 0) auf dem 32-mm-Raster der Seite liegt: 35 mm über der Unterkante der Seite (auch im Mittelfach), dann alle 32 mm (`Lochraster_Start`, `Lochraster` in den Komponentenattributen). Dafür rückt der Kasten bis zu 32 mm über den Mindestabstand von 30 mm zur Front-Unterkante; oben bleiben 30 mm Abstand, der Kasten wird entsprechend niedriger.
 * Einlegeböden 10 mm von vorne zurückgesetzt, gleichmäßig verteilt.
-* Material: alle Platten „Melamin weiss“, in OpenCutList als *Plattenwerkstoff* (Stärken 8/16/19 mm). Ist das Material im Modell schon in OCL eingerichtet, bleibt es unverändert.
+* Material: alle Platten „Melamin weiss“ (*Plattenwerkstoff*) (Stärken 8/16/19 mm). Ist das Material im Modell schon eingerichtet, bleibt es unverändert.
 
-## OpenCutList (OCL)
-Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Die Kantenflächen bekommen das Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). OCL zieht die 2 mm dann selbst ab und zeigt Zuschnitt- und Fertigmaß.
+## Material und Anleimer
+Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Die Kantenflächen bekommen das Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Stückliste und Zuschnitt ziehen die 2 mm ab und zeigen Zuschnitt- und Fertigmaß.
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -38,7 +38,7 @@ Geplant wird in SketchUp immer das **Endmaß**. Anleimer werden nur für OCL zug
 | Schubkasten: Rückwand | oben |
 | Schubkasten-Boden | keine |
 
-Ausgeblendete Schubladen und Einlegeböden erscheinen nicht in der OCL-Liste.
+Ausgeblendete Schubladen und Einlegeböden erscheinen nicht in der Stückliste.
 
 ## Tags
 Jedes Teil hat einen eigenen, eindeutigen Tag `<Kürzel>_<Bereich>_<Teil>` für die Zuordnung zu CAD/CAM-Dateien, z. B. `HS1_SeiteL`, `HS1_Deckel`, `HS1_O_Einlegeboden2`, `HS1_O_Tuer`, `HS1_U1_Front`, `HS1_M2_KastenRueckwand` (U = unten, M = Mitte, Nummer 1 = oberste Schublade im Bereich, O = oben). Korpusteile haben keinen Bereich.
@@ -53,4 +53,4 @@ Weitere feste Maße (Materialstärken, Abstände) stehen als Attribute im Fenste
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_hochschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, OCL-Material, Anleimer, Tags und die Kurzhilfe.
+`ruby test/test_hochschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie, Formeln, Material, Anleimer, Tags und die Kurzhilfe.

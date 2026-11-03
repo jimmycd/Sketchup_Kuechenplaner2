@@ -20,7 +20,7 @@
 #
 # Materialien und Anleimer: Platten "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
 # "Anleimer Melamin weiss" (2 mm). Die Angaben stehen im Wörterbuch "ladb_opencutlist" am
-# Material (Format von OpenCutList; Stückliste, Zuschnitt, Etiketten und TCN-Export des eigenen
+# Material (Stückliste, Zuschnitt, Etiketten und TCN-Export des eigenen
 # Plugins lesen es). Gezeichnet wird das Endmaß. Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. RA1_SeiteL, RA1_Einlegeboden2) und das Wörterbuch "JT_Schrank".
 
@@ -567,7 +567,10 @@ module RegalAbschluss
       def onTransactionCommit(model)
         return if @laeuft
         @laeuft = true
-        UI.start_timer(0, false) do
+        # Timer sofort anhalten: sonst feuert er erneut, solange eine Meldung
+        # (UI.messagebox beim Neuaufbau) offen ist
+        id = UI.start_timer(0, false) do
+          UI.stop_timer(id)
           begin
             RegalAbschluss.pruefen(model)
           ensure

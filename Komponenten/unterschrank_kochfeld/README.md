@@ -27,21 +27,21 @@ Ohne Installation: Ruby-Konsole `load 'C:/Pfad/zu/src/unterschrank_kochfeld/main
 | Breite / Lage Kanalausschnitt | 300 mm, mittig | links / mittig / rechts; links und rechts 100 mm von der Seite (frei von den Sockelfüßen) |
 | Lüftung | Umluft | Umluft (Filter im Sockel, Sockelblende mit Lüftungsgitter) oder Abluft (Kanal durch den Sockel zur Wand). Ändert den Schrank nicht, steht für die Geräte-Darstellung in `JT_Nische` |
 | Strebe vorn | hochkant | wahlweise flach wie beim Unterschrank |
-| Stärke Arbeitsplatte | 40 mm | nur für die Lage der Geräte, nicht für OCL |
+| Stärke Arbeitsplatte | 40 mm | nur für die Lage der Geräte, nicht für den Zuschnitt |
 
 Mit *Interagieren* auf eine Schublade klicken → sie fährt heraus.
 
 ## Aufbau
 * **SeiteL/R, Boden, Rückwand** wie beim Unterschrank mit Schubladen (Seiten sind immer gleich).
-* **Boden:** in SketchUp voll gezeichnet (OCL-Zuschnitt = volles Rechteck). Der **Kanalausschnitt** steckt nur in den CNC-Daten: Der TCN-Export fräst ihn als durchgehende Tasche (rect.tmcr, Stärke + 1 mm) von unten. Lage: `Ausschnitt_Links` ab der linken Bodenkante, 20 mm Steg vor der Hinterkante (`Kanal_Steg`), Tiefe = Installationstiefe − 2 × Steg (Standard 110 mm für einen Flachkanal ca. 222 × 89 mm).
+* **Boden:** in SketchUp voll gezeichnet (Zuschnitt = volles Rechteck). Der **Kanalausschnitt** steckt nur in den CNC-Daten: Der TCN-Export fräst ihn als durchgehende Tasche (rect.tmcr, Stärke + 1 mm) von unten. Lage: `Ausschnitt_Links` ab der linken Bodenkante, 20 mm Steg vor der Hinterkante (`Kanal_Steg`), Tiefe = Installationstiefe − 2 × Steg (Standard 110 mm für einen Flachkanal ca. 222 × 89 mm).
 * **StrebeVorn:** hochkant 100 × 19 mm direkt hinter der Blende, die Blende wird von innen durch die Strebe verschraubt (die Schraubbohrungen der Blende sind noch nicht im TCN).
 * **Blende:** feste Front oben, 2 mm Fuge zur obersten Schubladenfront, Anleimer rundum. Rolle „Front“, damit *Frontfarbe ändern* sie mitnimmt; Griffbohrungen bekommt sie nicht.
 * **Schubladen:** Front + LEGRABOX-Kasten (Boden LW − 35 × NL − 10, Holzrückwand LW − 38 × 148) im Lochraster wie beim Unterschrank mit Schubladen. Die Nennlänge NL ist die größte mit NL + 3 mm ≤ Tiefe − Installationstiefe (800 / 150 → NL 600) und steht als Attribut `NL` am Schrank; der TCN-Export bohrt die Schienen nach diesem Wert.
 
 Arbeitsplatte, Kochfeldausschnitt in der Platte und Sockelblende gehören wie bei den anderen Komponenten nicht zum Schrank.
 
-## OpenCutList (OCL)
-* **Material:** jedes Teil „Melamin weiss“ (Plattenmaterial in OCL), Endmaß in SketchUp, den 2-mm-Abzug für den Anleimer rechnet nur OCL.
+## Material und Anleimer
+* **Material:** jedes Teil „Melamin weiss“ (Plattenwerkstoff), Endmaß in SketchUp, den 2-mm-Abzug für den Anleimer rechnen Stückliste und Zuschnitt.
 
 | Teil | Anleimer |
 |---|---|
@@ -53,10 +53,10 @@ Arbeitsplatte, Kochfeldausschnitt in der Platte und Sockelblende gehören wie be
 * **Tags:** `<Kürzel>_<Bereich>_<Teil>`, Kürzel `USK1`, `USK2` …: `USK1_SeiteL`, `USK1_Boden`, `USK1_StrebeVorn`, `USK1_Rueckwand`, `USK1_Blende`, `USK1_S1_Front`, `USK1_S1_KastenBoden`, `USK1_S1_KastenRueckwand`, Gruppen `USK1_S1_Schublade`. Am Teil das Wörterbuch `JT_Schrank` mit `typ` = Unterschrank_Kochfeld und `kategorie` = Unterschrank (Frontfarbe „nur Unterschränke“, Sockelfüße im Export). Die Rolle `Blende` → `Front` steht in der gemeinsamen `ROLLEN`-Tabelle aller Komponenten.
 
 ## Nische für die Geräte-Darstellung
-Am Schrank steht das Wörterbuch `JT_Nische` (Stand beim Erzeugen, Maße in mm): `nische` = KF, `geraet` = KochfeldAbzug80 (nach Breite), `breite` (lichte Weite), `hoehe` (= Höhe Blende), `tiefe`, Einfügepunkt `x`/`y`/`z` vorne links auf der Korpusoberkante, dazu `lueftung` (Umluft/Abluft), `installationstiefe`, `kanal_breite`, `kanal_lage`, `kanal_x` (linke Kante des Ausschnitts ab Außenkante Schrank) und `arbeitsplatte`. Daran richtet sich der Platzhalter „Kochfeld mit Abzug“ aus. Geräte haben kein Plattenmaterial und kein `JT_Schrank`, OCL und TCN bleiben davon unberührt.
+Am Schrank steht das Wörterbuch `JT_Nische` (Stand beim Erzeugen, Maße in mm): `nische` = KF, `geraet` = KochfeldAbzug80 (nach Breite), `breite` (lichte Weite), `hoehe` (= Höhe Blende), `tiefe`, Einfügepunkt `x`/`y`/`z` vorne links auf der Korpusoberkante, dazu `lueftung` (Umluft/Abluft), `installationstiefe`, `kanal_breite`, `kanal_lage`, `kanal_x` (linke Kante des Ausschnitts ab Außenkante Schrank) und `arbeitsplatte`. Daran richtet sich der Platzhalter „Kochfeld mit Abzug“ aus. Geräte haben kein Plattenmaterial und kein `JT_Schrank`, Stückliste und TCN bleiben davon unberührt.
 
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kochfeld/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Blende, Fronten, Installationsraum, Einbauraum, Strebe hochkant/flach, Kanalausschnitt, NL), OCL-Material, Anleimer, Tags, `JT_Nische` und die Kurzhilfe, auch nach Umkonfiguration. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` im Hauptordner `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.
+`ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Blende, Fronten, Installationsraum, Einbauraum, Strebe hochkant/flach, Kanalausschnitt, NL), Material, Anleimer, Tags, `JT_Nische` und die Kurzhilfe, auch nach Umkonfiguration. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` im Hauptordner `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.

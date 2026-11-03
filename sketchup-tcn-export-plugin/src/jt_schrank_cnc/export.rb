@@ -48,7 +48,7 @@ module JTools
       end
 
       def self.teileliste(dateien)
-        z = ['Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;OCL-Teil']
+        z = ['Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname']
         dateien.each do |d|
           t = d.ws.teil
           mat = t.inst.material ? t.inst.material.name : ''

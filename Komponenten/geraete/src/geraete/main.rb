@@ -19,7 +19,7 @@
 #   Tag "Geraete_Plan":   halbtransparenter Block mit Beschriftung (Planung)
 #   Tag "Geraete_Render": Modell aus Schwarzglas, Edelstahl und Gehäuse (Kunde)
 # Geräte sind keine Schrankteile: kein Plattenmaterial, kein JT_Schrank, keine
-# Teil-Tags. Der TCN-Export übergeht sie; vor OpenCutList die Szene "Zuschnitt"
+# Teil-Tags. Der TCN-Export übergeht sie; für Stückliste/Etiketten die Szene "Zuschnitt"
 # wählen (beide Geräte-Tags aus).
 
 require 'sketchup.rb'
@@ -34,7 +34,7 @@ module Geraete
   TAG_PLAN    = 'Geraete_Plan'.freeze
   TAG_RENDER  = 'Geraete_Render'.freeze
 
-  # Materialien ohne OpenCutList-Einstellungen: [Farbe, Deckkraft]
+  # Materialien ohne Plattenwerkstoff-Einstellungen: [Farbe, Deckkraft]
   MATERIALIEN = {
     'Geraet Schwarzglas' => [[20, 20, 22], 1.0],
     'Geraet Edelstahl'   => [[190, 192, 195], 1.0],
@@ -69,7 +69,7 @@ module Geraete
   ARBEITSPLATTE = 40.0  # wenn die Nische keine Stärke angibt
 
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/geraete'.freeze
-  HILFE_KURZ = 'Geräte-Platzhalter für Planung und Rendering, für OpenCutList und TCN-Export unsichtbar'.freeze
+  HILFE_KURZ = 'Geräte-Platzhalter für Planung und Rendering, für Stückliste und TCN-Export unsichtbar'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp). Alles in mm, relativ zum Einfügepunkt der
@@ -504,7 +504,7 @@ module Geraete
     raise
   end
 
-  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum, für OCL)
+  # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum)
   SZENEN = { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.freeze
   RAUM_TAGS = 'Raum-'.freeze # Tags der Erweiterung Raum (Wände, Fenster, Türen, Boden)
 

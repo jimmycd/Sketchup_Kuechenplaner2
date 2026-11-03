@@ -17,8 +17,8 @@
 # Kästen. Über jedem Kasten bleibt dafür Freiraum_Scharnier frei; die Scharnierhöhen stehen als
 # Scharnier_1..6 am Schrank (0 = keins).
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
-# "Anleimer Melamin weiss" (Kante, 2 mm, nur in OCL abgezogen; gezeichnet wird das Endmaß).
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff), sichtbare Kanten
+# "Anleimer Melamin weiss" (Kante, 2 mm, erst in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß).
 # Jedes Teil hat einen eigenen Tag <Kürzel>_<Bereich>_<Teil> (z. B. HV1_SeiteL, HV1_U2_Innenfront)
 # und das Wörterbuch "JT_Schrank" für den TCN-Export.
 # Anderes Kürzel: HochschrankVorrat.erstellen({ 'Kuerzel' => 'HV2' })
