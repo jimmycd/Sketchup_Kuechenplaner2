@@ -26,12 +26,12 @@ Mit *Interagieren* öffnen sich die Türen bzw. fährt der Auszug heraus.
 ## Aufbau
 * **Korpus** wie beim Unterschrank mit Tür: Seiten über die volle Höhe und Tiefe, Boden zwischen den Seiten über die volle Tiefe, oben Strebe vorn und Strebe hinten (100 mm, liegend). Der Korpus beginnt bei y = 19 mm, die Fronten liegen 2 mm davor.
 * **Installationsebene:** Die Rückwand (8 mm) liegt 50 mm vor der Hinterkante der Seiten. Sie steckt in einer 9 mm tiefen Nut der Seiten, steht auf dem Boden und ist oben bündig. Dahinter ist Platz für die Leitungen; der Boden geht bis hinten durch. Die Strebe hinten endet vor der Rückwand.
-* **Rückwand-Ausschnitt** für Wasser und Abfluss: Rechteck über die lichte Breite minus 50 mm Steg je Seite, Standard 250 bis 650 mm über der Korpus-Unterkante (dort liegen bei 100–150 mm Sockel die üblichen Wandanschlüsse). Oben bleibt mindestens der Steg stehen. Der Ausschnitt ist als Umriss vor der Rückwand gezeichnet (Tag `<Kürzel>_Rueckwand_Ausschnitt`, nur Kanten, kein Teil für OpenCutList); die Rückwand selbst bleibt eine volle Platte (Zuschnitt), den Ausschnitt fräst der TCN-Export.
+* **Rückwand-Ausschnitt** für Wasser und Abfluss: Rechteck über die lichte Breite minus 50 mm Steg je Seite, Standard 250 bis 650 mm über der Korpus-Unterkante (dort liegen bei 100–150 mm Sockel die üblichen Wandanschlüsse). Oben bleibt mindestens der Steg stehen. Der Ausschnitt ist als Umriss vor der Rückwand gezeichnet (Tag `<Kürzel>_Rueckwand_Ausschnitt`, nur Kanten, kein Teil für die Stückliste); die Rückwand selbst bleibt eine volle Platte (Zuschnitt), den Ausschnitt fräst der TCN-Export.
 * **Türen** über die volle Höhe, außen 1 mm Fuge, zwischen zwei Türen 2 mm. Topfbänder setzt der TCN-Export, sobald Türen dort umgesetzt sind.
 * **Blende + Auszug:** oben eine feste Blende vor dem Spülbecken, darunter 2 mm Fuge und die Front des Auszugs bis zur Unterkante. Der Auszug ist ein **Blum LEGRABOX free** wie im Unterschrank mit Schubladen: Boden LW − 35 × NL − 10 (16 mm), Holzrückwand LW − 38 (16 mm), Schienen-Nennlänge NL aus der Tiefe bis zur Rückwand (Standard NL 650). Der Kasten sitzt unten im Lochraster (35 mm über Korpus-Unterkante). Seine Oberkante bleibt mindestens den **Siphon-Freiraum** unter der Blende; die Holzrückwand ist höchstens 148 mm hoch und wird bei niedrigen Schränken entsprechend niedriger. Der Abfallsammler steht im Kasten.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|

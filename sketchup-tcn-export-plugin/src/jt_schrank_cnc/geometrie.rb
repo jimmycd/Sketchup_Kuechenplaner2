@@ -2,11 +2,11 @@
 # Schrank-CNC – Teile vermessen.
 #
 # Jedes Teil wird als achsparalleler Quader in Weltkoordinaten (mm) erfasst,
-# dazu die Seiten mit Anleimer (Kantenflächen mit einer OCL-Kante, Typ 4).
+# dazu die Seiten mit Anleimer (Kantenflächen mit einer Kante, Material-Typ 4).
 # Die Lage auf der Maschine (Werkstückkoordinaten der TCN) beschreibt Lage:
 # DL entlang der längeren, DH entlang der kürzeren Plattenrichtung, DS = Stärke.
 # Alle Werkstückmaße und -lagen sind Fräsmaß: an jeder Seite mit Anleimer
-# um dessen Stärke kleiner (wie OpenCutList).
+# um dessen Stärke kleiner (Fräsmaß).
 
 module JTools
   module SchrankCnc
@@ -52,7 +52,7 @@ module JTools
         seite.to_s.end_with?('max')
       end
 
-      # Anleimerstärke einer OCL-Kante in mm ("2mm", "2 mm", "0.08in" wird nicht gelesen -> 2)
+      # Anleimerstärke einer Kante in mm ("2mm", "2 mm", "0.08in" wird nicht gelesen -> 2)
       def self.kantenstaerke(mat)
         t = mat.get_attribute(OCL_DICT, 'thickness').to_s
         t =~ /\A\s*([\d.,]+)\s*mm\s*\z/ ? $1.tr(',', '.').to_f : 2.0

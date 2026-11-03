@@ -8,7 +8,7 @@
 # OFFSET X/Y: halbes Übermaß aus den allgemeinen Einstellungen (einstellungen.rb),
 # damit squad das Rohteil rundum gleich formatiert: die TCN ist im Fräsmaß, das
 # Rohteil (Stückliste, Zuschnitt) um das Übermaß größer. OFFSET Z = 0.
-# COMMENT: Teilname in OCL (Name der Komponentendefinition).
+# COMMENT: Teilname (Name der Komponentendefinition).
 
 module JTools
   module SchrankCnc
@@ -18,7 +18,7 @@ module JTools
       # FIELD in der Liste: 9 wie in csv2tcn (Liste_Regalbad.xmlst) und im Treppenbau
       FIELD = 9
 
-      # Längenangabe aus OCL ("10 mm", "1 cm", "0.5\"", "0") in mm
+      # Längenangabe aus dem Material-Wörterbuch ("10 mm", "1 cm", "0.5\"", "0") in mm
       def mm(v)
         s = v.to_s.strip.tr(',', '.')
         z = s[/-?\d+(\.\d+)?/].to_f
@@ -35,7 +35,7 @@ module JTools
         Einstellungen.uebermass(d.lage.dl, d.lage.dh).map { |u| u / 2.0 }
       end
 
-      # Teilname wie in OpenCutList (Definition), z. B. "Front S1"
+      # Teilname (Name der Definition, wie in der Stückliste), z. B. "Front S1"
       def ocl_name(d)
         Schraenke.definition(d.ws.teil.inst).name.to_s
       end
