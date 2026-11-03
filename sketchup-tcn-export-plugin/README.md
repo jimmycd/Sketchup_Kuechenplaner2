@@ -59,22 +59,28 @@ Was geändert wird:
 ## Schrank andocken
 Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*.
 
-**Anreihen ohne Maus:** Ist beim Erzeugen genau ein Schrank ausgewählt, steht der neue sofort rechts bündig daneben: gleiche Drehung, Rückwände in einer Flucht, gleiche Unterkante. Weil der neue Schrank danach ausgewählt ist, entsteht so eine Zeile von links nach rechts, einfach durch mehrmaliges Erzeugen.
+**Ans freie Ende:** Gibt es schon Schränke, steht der neue sofort am freien rechten Ende seiner Zeile: ausgehend vom ausgewählten Schrank, sonst vom zuletzt eingefügten Schrank derselben Art (Unter-/Hochschränke bilden eine Zeile, Oberschränke mit den Hochschränken eine, Inselschränke eine eigene). Gleiche Drehung, Rückwände in einer Flucht. Der erste Oberschrank kommt über den Anfang (links) der Unterschrank-Zeile.
 
-**Andock-Werkzeug:** Ist nichts ausgewählt, hängt der neue Schrank als Vorschau an der Maus (blauer Kasten, Front rot):
+**Wo sich Schränke berühren** (Jürgen, 2026-11-02): Nachbarn berühren sich immer an der **oberen Außenecke der Seiten**. Gemessen wird nur an den Seiten (und sichtbaren Wangen), nicht an Fronten, Geräten oder Arbeitsplatte. Geräteschränke ohne eigene Seite (Geschirrspüler, Unterbau-Kühlschrank) haben eine virtuelle Seite: Nischenbreite × Korpushöhe; ihr Gerät steht damit auf dem Fußboden. Höhen:
+
+* Unterschrank neben Unterschrank: Seitenoberkanten gleich.
+* Hochschrank beteiligt: gleiche Unterkante (beide auf dem Sockel).
+* Oberschrank: Höhe immer fest = Seitenoberkante Unterschrank + Arbeitsplattenstärke + Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), auch neben einem Hochschrank. Oberschränke stehen nur an der Wand oder über einem Unterschrank, nie frei im Raum.
+
+**Andock-Werkzeug:** Gibt es noch keinen Schrank (oder über *Schrank andocken…* für den ausgewählten), hängt der Schrank als Vorschau an der Maus (blauer Kasten, Front rot):
 
 | Maus über … | Ergebnis |
 |---|---|
-| einem Schrank (Seite, Deckel) | links oder rechts bündig daneben, je nach Hälfte unter der Maus; übernimmt Drehung und Höhe |
-| der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks) |
-| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite an die Wand, rastet an Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke stehen auf dem Fußboden des Raums (Korpusunterkante um die Sockelhöhe des Raums darüber, einstellbar unter *Raum › Raum bearbeiten…*), Oberschränke behalten ihre Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
+| einem Schrank (Seite, Deckel) | links oder rechts an dessen Seite, je nach Hälfte unter der Maus; übernimmt Drehung, Höhe wie oben |
+| einem Unterschrank (beim Oberschrank) | darüber auf fester Höhe, Rückseiten in einer Flucht, links bzw. rechts bündig |
+| der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks); nicht beim Oberschrank |
+| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite mit Wandabstand an die Wand, rastet an Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe (*Einstellungen*), Oberschränke auf der festen Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
 | einer anderen senkrechten Fläche | Rückseite an die Wand, Mitte unter der Maus, Front in den Raum |
-| sonst | folgt der Maus auf seiner Höhe |
+| sonst | folgt der Maus auf seiner Höhe; ein Oberschrank lässt sich dort nicht absetzen |
 
 * **Tab** oder **Pfeil rechts/links**: um 90° drehen (am Nachbarn: gegenüber dem Nachbarn, z. B. für den zweiten Schenkel einer L-Küche, Rückwand an der Wand des Nachbarn)
 * **Pfeil hoch/runter**: Rückwände bündig (Vorgabe) oder Fronten bündig, wenn die Schränke verschieden tief sind
 * **Klick**: absetzen (ein Schritt *Rückgängig*), **Esc**: Schrank bleibt, wo er erzeugt wurde
-* Höhe: Unterkanten gleich; ein Oberschrank neben einem Hochschrank bekommt dieselbe Oberkante; Ober- neben Unterschrank behält seine Höhe.
 * Ausgeblendete Teile (z. B. abgeschaltete Wangen) zählen für die Maße nicht.
 
 Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küchenplaner › Schrank andocken…*.
