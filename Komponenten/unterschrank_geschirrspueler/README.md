@@ -44,3 +44,13 @@ Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_geschirrspueler/ma
 
 ## Tests
 `ruby test/test_geschirrspueler.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Front, Fugen, Wangen links/rechts/beide, Platzhalter, Formeln nach Umkonfigurieren (450/600, Fronthöhe, Sockel), Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische` und die Kurzhilfe. Der Plugin-Test prüft, dass der TCN-Export Front und Wangen nur formatiert und die Frontfarbe-Funktion die Front findet.
+
+## Komponentengrenze (virtueller Korpus)
+
+Die Nische hat keinen Korpus. Damit Einfügen und Andocken wie bei den anderen Unterschränken
+funktionieren, enthält die Komponente einen unsichtbaren Kasten „Korpus“ (Wörterbuch `JT_Korpus`,
+`virtuell` = true): Nischenbreite plus sichtbare Wangen, von der Front (2 mm vor dem Korpus) bis
+hinter die Rückwand, Unterkante bis Oberkante Korpus. Die Front ist links und rechts um die halbe
+Fuge kleiner, wie bei allen Fronten. Das Andock-Werkzeug nimmt diesen Kasten; Geräte-Platzhalter
+und bis zum Boden reichende Wangen zählen dafür nicht. Ausgeblendete Wangen liegen innerhalb der
+Nische, weil SketchUp auch ausgeblendete Teile zum Komponentenrahmen zählt.

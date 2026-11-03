@@ -145,7 +145,27 @@ def pruefe(w, p, label)
   g = q.('Geraet')
   check(nahe(g[0], xn + 0.1) && nahe(g[1], xn + b - 0.1) && nahe(g[4], -so) && nahe(g[5], h) && nahe(g[2], mk) &&
         nahe(g[3] - g[2], 55.0), "#{label}: Gerät #{g}")
-  check(sichtbar.combination(2).none? { |a, c| ueberlapp?(a[:q], c[:q]) }, "#{label}: Kollision")
+  teile_ohne_korpus = sichtbar.reject { |t2| t2[:name] == 'Korpus' }
+  check(teile_ohne_korpus.combination(2).none? { |a, c| ueberlapp?(a[:q], c[:q]) }, "#{label}: Kollision")
+
+  # Komponentengrenze = virtueller Korpus wie bei den anderen Unterschränken: Nische plus sichtbare
+  # Wangen, von der Front (2 mm vor dem Korpus) bis hinter die Rückwand, Unterkante bis Oberkante Korpus.
+  # Die Front ist links und rechts um die halbe Fuge kleiner (wie bei allen Fronten).
+  k = q.('Korpus')
+  breite = b + ((links ? 1 : 0) + (rechts ? 1 : 0)) * mk
+  check(nahe(k[0], 0) && nahe(k[1], breite) && nahe(k[2], -sp) && nahe(k[3], mk + t + rw) && nahe(k[4], 0) && nahe(k[5], h),
+        "#{label}: virtueller Korpus #{k.map { |v| v.round(2) }}")
+  alle.reject { |t2| %w[Korpus Geraet].include?(t2[:name]) }.each do |t2|
+    a = t2[:q]
+    innen = a[0] >= k[0] - EPS && a[1] <= k[1] + EPS && a[2] >= k[2] - EPS && a[3] <= k[3] + EPS && a[5] <= k[5] + EPS
+    # Wangen reichen bis zum Boden, eine Front über Korpushöhe (Fronthöhe > Höhe) unter den Korpus
+    innen &&= a[4] >= k[4] - EPS unless t2[:name].start_with?('Wange') || t2[:name] == 'Front'
+    check(innen, "#{label}: #{t2[:name]}#{t2[:hidden] ? ' (ausgeblendet)' : ''} außerhalb des virtuellen Korpus #{a.map { |v| v.round(2) }}")
+  end
+  unless links || rechts
+    fr = alle.find { |t2| t2[:name] == 'Front' }[:q]
+    check(nahe(fr[0] - k[0], sp / 2) && nahe(k[1] - fr[1], sp / 2), "#{label}: Front nicht um die halbe Fuge kleiner als die Komponente")
+  end
 end
 
 def pruefe_ocl(w, inst, p, label, kz)
@@ -156,6 +176,11 @@ def pruefe_ocl(w, inst, p, label, kz)
         "#{label}: Anleimer OCL")
   tags = []
   blaetter(w).each do |b|
+    if b.name == 'Korpus'
+      check(b.defn.get_attribute(H::KORPUS_DICT, 'virtuell') == true, "#{label}: virtueller Korpus markiert")
+      check(b.inst.attribute_dictionary(H::JT_DICT).nil? && b.inst.material.nil?, "#{label}: virtueller Korpus ist kein Schrankteil")
+      next
+    end
     if b.name == 'Geraet'
       check(b.inst.layer&.name == H::GERAET_TAG, "#{label}: Gerät auf Tag Geraete_Plan")
       check(b.inst.attribute_dictionary(H::JT_DICT).nil?, "#{label}: Gerät ohne JT_Schrank")
