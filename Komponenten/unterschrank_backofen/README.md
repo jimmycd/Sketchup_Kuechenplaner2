@@ -55,7 +55,7 @@ Am Schrank stehen zwei Wörterbücher (Stand beim Erzeugen, Maße in mm):
 *Geräte in Schränke setzen* setzt dort Backofen und Kochfeld (ohne Abzug) ein.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary/Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_backofen/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_backofen/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_generator.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie und Formeln (Einbauboden, Nische, Rückwand nur unten, Schublade oder Blende je nach lichter Höhe, NL, Lochraster), auch nach Umkonfiguration und Tiefenänderung, dazu Material, Anleimer, Tags, Nischen, Warnungen und die Kurzhilfe. Der TCN-Export für diesen Schrank wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft. Nach Änderungen an `src/` im Hauptordner `./build_rbz.sh` ausführen. In echtem SketchUp noch nicht getestet.

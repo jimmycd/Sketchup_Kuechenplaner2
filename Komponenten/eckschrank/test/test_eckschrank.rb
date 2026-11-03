@@ -401,12 +401,11 @@ E.erstellen({}, l_form: true)
 check(Sketchup.active_model.layers['UES1_Blende'] && Sketchup.active_model.layers['UES2_TuerL'], 'zweiter Schrank UES2')
 
 # --- Kurzhilfe in der Komponente ------------------------------------------
-{ 'Eckschrank Blindeck' => [E::HILFE_KURZ, E::HILFE], 'Eckschrank L-Form' => [E::HILFE_KURZ_L, E::HILFE_L] }.each do |n, (kurz, lang)|
+{ 'Eckschrank Blindeck' => E::HILFE_KURZ, 'Eckschrank L-Form' => E::HILFE_KURZ_L }.each do |n, kurz|
   hd = Sketchup.active_model.definitions[n]
   check(hd.description == kurz, "Hilfe #{n}: Beschreibung der Definition")
-  check(hd.get_attribute(E::DICT, 'summary') == kurz && hd.get_attribute(E::DICT, 'description') == lang, "Hilfe #{n}: summary/description")
-  check(%w[summary description].all? { |k| hd.get_attribute(E::DICT, "_#{k}_access") == 'VIEW' }, "Hilfe #{n}: nur anzeigen")
-  check(lang.include?(E::DOKU_URL), "Hilfe #{n}: Link zur Doku")
+  check(hd.get_attribute(E::DICT, 'summary') == kurz && hd.get_attribute(E::DICT, 'description').nil?, "Hilfe #{n}: summary/description")
+  check(%w[summary description].none? { |k| hd.get_attribute(E::DICT, "_#{k}_access") }, "Hilfe #{n}: keine eigenen Zeilen in den Optionen")
 end
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 

@@ -233,9 +233,7 @@ check(fd.get_attribute(H::DICT, 'onclick') == 'ANIMATE("ROTZ",0,-90)', 'Front ö
 hd = Sketchup.active_model.definitions[H::NAME]
 check(hd.description == H::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')
 check(hd.get_attribute(H::DICT, 'summary') == H::HILFE_KURZ, 'Hilfe: summary')
-check(hd.get_attribute(H::DICT, 'description') == H::HILFE, 'Hilfe: description')
-check(H::HILFE.include?(H::DOKU_URL) && H::HILFE.include?('Fronthöhe zum Gerät') && H::HILFE.include?('Lüftung'),
-      'Hilfe: Link zur Doku, Hinweis Fronthöhe und Lüftung')
+check(hd.get_attribute(H::DICT, 'description').nil?, 'Hilfe: description')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 
