@@ -1,7 +1,7 @@
 # encoding: UTF-8
 # Schrank-CNC – Guillotine-Zuschnitt in Stufen für die Formatsäge.
 #
-# Begriffe wie im Schnittplan von OpenCutList (Rectangle Guillotine):
+# Begriffe (Rectangle Guillotine, Schnitt in Stufen):
 #   Stufe 1  durchgehende Schnitte über die ganze (besäumte) Platte → Streifen
 #   Stufe 2  Schnitte quer durch einen Streifen → Abschnitte
 #   Stufe 3  Schnitte quer durch einen Abschnitt → Teile (nur bei 3 Stufen,
@@ -19,7 +19,7 @@
 # Abstand = Schnittbreite, Randabfall = Besäumen je Plattenkante. Reste (Abfall), die
 # in beiden Richtungen mindestens die Mindestgröße haben, sind als „behalten“ markiert.
 # Lager: zuerst die Plattenreste (begrenzte Anzahl), dann die Standardplatte.
-# Eigener Code (kein Code aus OpenCutList), Heuristik: je Platte mehrere Varianten
+# Eigener Code, Heuristik: je Platte mehrere Varianten
 # (Richtung, Sortierung, Streifenwahl) rechnen und die mit der größten belegten
 # Fläche nehmen.
 
