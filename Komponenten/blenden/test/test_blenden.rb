@@ -348,7 +348,7 @@ check(Kuechenplaner::GRUPPEN.include?('Blenden & Wangen'), 'Gruppe Blenden & Wan
 # Kurzhilfe und Doku
 d = Sketchup.active_model.definitions['Wange']
 check(d.description == B::HILFE_KURZ[:wange] && d.get_attribute(B::DICT, 'summary') == B::HILFE_KURZ[:wange], 'Hilfe: Summary')
-check(d.get_attribute(B::DICT, 'description').include?(B::DOKU_URL), 'Hilfe: Link zur Doku')
+check(d.get_attribute(B::DICT, 'description').nil?, 'Hilfe: keine lange Beschreibung im Fenster')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 # --- Tiefe nachträglich ändern (Komponentenoptionen) = gleich mit dieser Tiefe erzeugt ---

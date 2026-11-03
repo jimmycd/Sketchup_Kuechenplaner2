@@ -93,24 +93,6 @@ module Blenden
     wange: 'Seitenwange am Zeilenende, bündig mit der Front, bis zum Boden',
     sockelblende: 'Sockelblende unter einer Schrankzeile, geteilt ab 2800 mm'
   }.freeze
-  HILFE = {
-    passblende: [
-      'Breite, Höhe und Winkelleiste hier ändern. Die Blende steht bündig mit den Fronten und ist an allen vier Kanten bekantet.',
-      'Die Winkelleiste (80 mm tief) sitzt rechtwinklig dahinter und wird an die Schrankseite geschraubt, damit Türen und Auszüge an der Wand frei aufgehen.',
-      'Frontfarbe und Griffe färbt die Blende mit um (ohne Griff).'
-    ],
-    wange: [
-      'Höhe, Tiefe, Stärke (19/25/38 mm), Sockelhöhe und Überstand vorne hier ändern.',
-      'Tiefe = Korpus + Front + Rückwand: Die Wange schließt bündig mit der Front ab. Unter- und Hochschrank: bis zum Boden.',
-      'Kanten vorne und oben (Oberschrank auch unten). Frontfarbe färbt die Wange mit um.'
-    ],
-    sockelblende: [
-      'Länge, Sockelhöhe, Tiefe und Seitenstücke hier ändern. Die Blende steht 50 mm hinter der Korpusvorderkante, 3 mm über dem Boden, und wird auf die Sockelfüße geclipst.',
-      'Über 2800 mm wird sie in gleich lange Stücke geteilt (höchstens 5).',
-      'Seitenstücke schließen eine frei stehende Zeile seitlich bis zur Wand.'
-    ]
-  }.freeze
-  HILFE_ALLGEMEIN = ['Gezeichnet ist das Endmaß.', 'Jedes Teil hat einen eigenen Tag <Kürzel>_<Teil>.'].freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm,
@@ -189,22 +171,34 @@ module Blenden
     ent.set_attribute(DICT, "_#{k}_formlabel", formlabel || name)
     ent.set_attribute(DICT, "_#{k}_units", units || (laenge ? 'MILLIMETERS' : 'FLOAT'))
     ent.set_attribute(DICT, "_#{k}_formulaunits", formulaunits || (laenge ? 'CENTIMETERS' : 'FLOAT'))
-    ent.set_attribute(DICT, "_#{k}_options", options || '')
+    ent.set_attribute(DICT, "_#{k}_options", dc_optionen(options))
     ent.set_attribute(DICT, "_#{k}_formula", formula) if formula
   end
 
-  # Kurzhilfe als Komponenten-Info ("Summary"/"Description") und an der Definition
+  # Listen-Optionen kodiert das DC-Fenster mit JavaScript unescape() zurück, also Zeichen für
+  # Zeichen (Latin-1): UTF-8-Kodierung wie %C3%BC erscheint dort als "Ã¼". Deshalb Umlaute als
+  # %FC usw., andere Sonderzeichen als %uXXXX; ASCII bleibt, wie es ist.
+  def self.dc_optionen(text)
+    t = text.to_s.gsub(/(?:%[89A-Fa-f][0-9A-Fa-f])+/) do |m|
+      s = [m.delete('%')].pack('H*').force_encoding('UTF-8')
+      s.valid_encoding? ? s : m
+    end
+    t.each_char.map do |c|
+      o = c.ord
+      next c if o < 128
+      o < 256 ? format('%%%02X', o) : format('%%u%04X', o)
+    end.join
+  end
+
+  # Kurzhilfe: nur die Kurzfassung als "summary" (steht oben im Fenster "Komponentenoptionen")
+  # und als Beschreibung der Definition. Keine lange "description" und keine eigenen Zeilen
+  # dafür, sonst ist das Fenster nicht mehr ganz lesbar; die ausführliche Doku ist README.md.
   def self.hilfe(d, art)
     kurz = HILFE_KURZ.fetch(art)
-    lang = (HILFE.fetch(art) + HILFE_ALLGEMEIN + ["Doku: #{DOKU_URL}"]).join(' ')
     d.description = kurz
-    { 'summary' => ['Summary', kurz], 'description' => ['Description', lang] }.each do |k, (label, text)|
-      d.set_attribute(DICT, k, text)
-      d.set_attribute(DICT, "_#{k}_label", label)
-      d.set_attribute(DICT, "_#{k}_formlabel", label)
-      d.set_attribute(DICT, "_#{k}_access", 'VIEW')
-      d.set_attribute(DICT, "_#{k}_units", 'STRING')
-    end
+    d.set_attribute(DICT, 'summary', kurz)
+    %w[_summary_label _summary_formlabel _summary_access _summary_units description _description_label
+       _description_formlabel _description_access _description_units].each { |k| d.delete_attribute(DICT, k) }
     d.set_attribute(DICT, 'dialogwidth', 520)
     d.set_attribute(DICT, '_dialogwidth_label', 'DialogWidth')
   end

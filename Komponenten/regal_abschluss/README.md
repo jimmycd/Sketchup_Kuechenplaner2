@@ -58,7 +58,7 @@ Dübel, Lochreihen, Rückwand und Sockelfüße wie bei den anderen Schränken; a
 Die Arbeitsplatte über dem Regal bleibt rechteckig; die Schräge schneidest du von Hand.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/regal_abschluss/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/regal_abschluss/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_regal_abschluss.rb` prüft ohne SketchUp alle Formen, Typen und Zeilenenden (Teile, Lage, Tiefe der Seite außen, Fächer, Anleimer, Tags, `JT_Schrank`, `JT_Kontur`), feste Böden, Frontfarbe-Markierung, ungültige Maße, den Neuaufbau nach Änderungen (gleich wie frisch erzeugt, Kürzel und Typ bleiben, Frontmaterial bleibt), den Dialog und die Kurzhilfe. `sketchup-tcn-export-plugin/test/test_export.rb` prüft Kontur, Dübel, Sockelfüße, Stückliste und Frontfarbe am Regal.

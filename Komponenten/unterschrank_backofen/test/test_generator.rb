@@ -246,9 +246,8 @@ check(U.warnungen(U::DEFAULTS.merge('Breite' => 55.0, 'Hoehe' => 76.0)).any? { |
 Sketchup.active_model = Sketchup::Model.new
 hd = U.erstellen(eingabe).definition
 check(hd.description == U::HILFE_KURZ && hd.get_attribute(U::DICT, 'summary') == U::HILFE_KURZ, 'Hilfe: Beschreibung/summary')
-check(hd.get_attribute(U::DICT, 'description') == U::HILFE, 'Hilfe: description')
-check(%w[summary description].all? { |k| hd.get_attribute(U::DICT, "_#{k}_access") == 'VIEW' }, 'Hilfe: nur anzeigen')
-check(U::HILFE.include?(U::DOKU_URL), 'Hilfe: Link zur Doku')
+check(hd.get_attribute(U::DICT, 'description').nil?, 'Hilfe: description')
+check(%w[summary description].none? { |k| hd.get_attribute(U::DICT, "_#{k}_access") }, 'Hilfe: keine eigenen Zeilen in den Optionen')
 check(File.exist?(File.expand_path('../README.md', __dir__)), 'README.md vorhanden')
 
 # .rbz muss zum Quelltext passen (sonst ./build_rbz.sh im Hauptordner ausführen)
