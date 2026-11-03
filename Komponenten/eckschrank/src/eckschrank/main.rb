@@ -673,6 +673,27 @@ module Eckschrank
     end
   end
 
+  # Die DC merkt sich die Größe des Schranks an der Instanz (lenx/leny/lenz) und skaliert ihn
+  # beim Neuzeichnen auf diese Größe. Nach dem Tausch der Definition deshalb die neue Größe
+  # eintragen und eine Skalierung der Instanz zurücknehmen, sonst bleibt der Schrank so groß
+  # wie vorher und wird nur gestaucht (Fehler 2026-11-02: Tiefe 400 mm, gezeichnet 238 mm).
+  def self.groesse_uebernehmen(inst)
+    t = inst.transformation.to_a
+    achsen = [t[0, 3], t[4, 3], t[8, 3]].map do |a|
+      l = Math.sqrt(a.sum { |v| v * v })
+      l > 1e-9 ? a.map { |v| v / l } : a
+    end
+    inst.transformation = Geom::Transformation.new(achsen[0] + [0.0] + achsen[1] + [0.0] + achsen[2] + [0.0] + t[12, 3] + [1.0])
+    bb = inst.definition.bounds
+    return unless bb
+    { 'lenx' => bb.width, 'leny' => bb.height, 'lenz' => bb.depth }.each do |k, v|
+      [inst, inst.definition].each do |e|
+        e.set_attribute(DICT, k, v.to_f)
+        e.set_attribute(DICT, "_#{k}_nominal", v.to_f)
+      end
+    end
+  end
+
   def self.l_neu_aufbauen(model, inst, masse)
     alt = inst.definition
     gebaut = alt.get_attribute(L_DICT, L_GEBAUT)
@@ -704,6 +725,7 @@ module Eckschrank
       jt.each { |k, v| c.set_attribute(JT_DICT, k, v) if k.start_with?('griff_') } if jt
     end
     inst.definition = neu
+    groesse_uebernehmen(inst)
     L_MASSE.zip(masse).each { |k, v| inst.set_attribute(DICT, k.downcase, inch(v)) unless inst.get_attribute(DICT, k.downcase).nil? }
     model.definitions.remove(alt) if alt.instances.empty? && model.definitions.respond_to?(:remove)
     model.commit_operation

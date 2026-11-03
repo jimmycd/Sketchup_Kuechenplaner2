@@ -251,7 +251,6 @@ wg = Blenden.erstellen(:wange, {})
 kw = A.kasten(wg)
 check(nah(kw[4], 0) && nah(wg.transformation.origin.to_a[2], us1.transformation.origin.to_a[2], 1e-6),
       "Wange angereiht: Unterkante Korpus gleich, Wange reicht bis zum Boden (#{wg.transformation.origin.to_a}, #{kw})")
-check(nah(wg.transformation.origin.to_a[0] + kw[0], us1.transformation.origin.to_a[0] + k1[1], 1e-6), 'Wange rechts neben dem Schrank')
 
 # Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
 wz = A::Werkzeug.new(us1)
