@@ -9,7 +9,7 @@
 #     linker oder rechter Seite (Ecke einer L- oder U-Küche, z. B. vor ein Blindeck);
 #   * über einer Wand des Raums (Erweiterung Raum): Rückseite an die Wand, rastet an
 #     Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke
-#     stehen auf dem Fußboden des Raums plus dessen Sockelhöhe (Raum › Raum bearbeiten);
+#     stehen auf dem Fußboden des Raums plus Sockelhöhe (Küchenplaner › Einstellungen);
 #   * über einer anderen senkrechten Fläche: Rückseite daran, Mitte unter der Maus;
 #   * sonst: folgt der Maus auf seiner Höhe.
 #   Tab oder Pfeil rechts/links drehen um 90°, Klick setzt ab, Esc lässt ihn stehen.
@@ -391,7 +391,8 @@ module JTools
             links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
             rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
             w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG)
-            z = Rechnung.raum_hoehe(@kat, wl[3], winst.get_attribute(RAUM_DICT, 'sockel'), @start[3])
+            sockel = defined?(Kuechenplaner::Einstellungen) ? Kuechenplaner::Einstellungen.sockelhoehe(view.model) : nil
+            z = Rechnung.raum_hoehe(@kat, wl[3], sockel, @start[3])
             @ziel = [w, x, y, z]
             b = @kasten[1] - @kasten[0]
             @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"

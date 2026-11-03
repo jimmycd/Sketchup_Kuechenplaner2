@@ -19,6 +19,7 @@
 
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'einstellungen') # Sockelhöhe und Abstände der Küche
 require 'json'
 
 module Arbeitsplatte
@@ -61,8 +62,14 @@ module Arbeitsplatte
     Dialog.abfragen(erg) { |o| bauen(model, erg, o) }
   end
 
+  # Abstand Schrankrückseite – Wand aus Küchenplaner › Einstellungen (immer der aktuelle Wert)
+  def self.mit_wandabstand(model, o)
+    return o unless defined?(Kuechenplaner::Einstellungen)
+    o.merge(schrank_wandabstand: Kuechenplaner::Einstellungen.wandabstand(model))
+  end
+
   def self.bauen(model, erg, optionen)
-    lay = Layout.berechne(erg, optionen)
+    lay = Layout.berechne(erg, mit_wandabstand(model, optionen))
     model.start_operation('Arbeitsplatte erzeugen', true)
     inst = Ausgabe.bauen(model, erg, lay)
     model.commit_operation
@@ -94,7 +101,7 @@ module Arbeitsplatte
       erg[:warnungen] = warn + erg[:warnungen]
       # Ecken-Einstellungen gelten nur, solange die Ecken gleich nummeriert sind
       o[:ecken] = o[:ecken].select { |nr, _| erg[:ecken].any? { |e| e[:nr] == nr } }
-      lay = Layout.berechne(erg, o)
+      lay = Layout.berechne(erg, mit_wandabstand(model, o))
       model.entities.erase_entities(alt)
       [erg, lay, Ausgabe.bauen(model, erg, lay, kz: kz)]
     end
