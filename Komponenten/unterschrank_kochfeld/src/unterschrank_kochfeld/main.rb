@@ -86,8 +86,8 @@ module UnterschrankKochfeld
   LUEFTUNG = %w[Umluft Abluft].freeze
   KANAL_LAGE = %w[links mittig rechts].freeze
 
-  # OpenCutList-Einstellungen, falls die Materialien im Modell noch fehlen
-  # (Werte wie in Unterschrank.skp). Vorhandene OCL-Einstellungen bleiben unangetastet.
+  # Material-Einstellungen (Typ, Stärke, Format), falls die Materialien im Modell noch fehlen
+  # (Werte wie in Unterschrank.skp). Vorhandene Einstellungen bleiben unangetastet.
   OCL_MATERIALIEN = {
     MATERIAL => {
       'type' => 2, # Plattenmaterial
@@ -105,9 +105,9 @@ module UnterschrankKochfeld
     }
   }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # Richtungen im Schrank: ymin = vorne, zmax = oben, xmin/xmax = links/rechts.
-  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnet nur OCL.
+  # SketchUp zeigt Endmaße; den Abzug für den Anleimer rechnen Stückliste und Zuschnitt.
   KANTEN = {
     'Seite'        => %i[ymin],                  # Vorderkante
     'Boden'        => %i[ymin],
@@ -172,7 +172,7 @@ module UnterschrankKochfeld
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_kochfeld'.freeze
-  HILFE_KURZ = 'Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen (Blum LEGRABOX), OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen (Blum LEGRABOX)'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt exakt die DC-Formeln.
@@ -348,7 +348,7 @@ module UnterschrankKochfeld
     n.z > 0 ? :zmax : :zmin
   end
 
-  # Kantenflächen mit dem Anleimer-Material belegen (so erkennt OCL die Kanten)
+  # Kantenflächen mit dem Anleimer-Material belegen (so erkennen Stückliste und TCN-Export die Kanten)
   def self.anleimer_setzen(defn, kanten, anleimer)
     defn.entities.grep(Sketchup::Face).each do |f|
       f.material = anleimer if kanten.include?(seite_von(f))

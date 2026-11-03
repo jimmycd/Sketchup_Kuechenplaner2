@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Stückliste (ersetzt die Stückliste aus OpenCutList).
+# Schrank-CNC – Stückliste.
 #
 # Eine Zeile je TCN-Datei des Exports (gleiche Teile zusammengefasst, Anzahl), damit
 # Stückliste, TCN-Dateien und Fräsliste immer zusammenpassen. Drei Maße je Teil:

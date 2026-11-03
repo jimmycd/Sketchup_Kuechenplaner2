@@ -179,11 +179,10 @@ bnut = d['OS1_Boden'].text.split("\r\n").select { |x| x.start_with?('W#89', 'W#2
 check(bnut.size == 2 && bnut[0].include?('#1=-5 ') && bnut[1].include?('#1=572 '), "Boden: Nut durchgehend: #{bnut}")
 check(d['OS1_Boden'].lage.flaeche1 == :zmax && !d['OS1_Boden'].text.include?('#8522=3 '), 'Oberschrank-Boden: Nut oben, keine Sockelfüße')
 sd = bearbeitungen(d['OS1_Deckel'].text, 5) + bearbeitungen(d['OS1_Deckel'].text, 3)
-check(sd == ['W#1001{ ::WT2 WS #8098=..\\custom\\mcr\\fittingx.tmcr #6=1 #8508=0 #8509=0 #8510=50 #8511=x-50 #8512=231 #8513=-15 #8517=0 #8518=9.5 #8520=1 #8521=1 #8522=3 #8525=0 }W'],
-      "Deckel: 3 Schrauben Ø3 × 15 in die Hinterkante (50, Mitte, x-50): #{sd}")
+check(sd.empty?, "Deckel: Hinterkante nicht vorgebohrt (waagrecht gibt es nur Ø8): #{sd}")
 rs = bearbeitungen(d['OS1_Rueckwand'].text, 1).drop(1)
-check(rs.size == 1 && rs[0].include?('#8510=59 #8511=y-59 #8512=231 #8513=-9 ') && rs[0].include?('#8518=x-9.5 ') && rs[0].include?('#8522=4 '),
-      "Rückwand: 3 Bohrungen Ø4 durch, auf Höhe Deckelmitte: #{rs}")
+check(rs.size == 1 && rs[0].include?('#8510=59 #8511=y-59 #8512=231 #8513=-9 ') && rs[0].include?('#8518=x-9.5 ') && rs[0].include?('#8522=5 '),
+      "Rückwand: 3 Bohrungen Ø5 durch (Durchgangsbohrer), auf Höhe Deckelmitte: #{rs}")
 
 check(S::Export.dateiname('HS1 U1/Front') == 'HS1_U1_Front', 'Dateiname ohne Sonderzeichen')
 
@@ -212,7 +211,7 @@ check([nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)] == [650, 550, 500,
       "Nennlänge aus der lichten Tiefe (NL + 3 <= LT): #{[nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)]}")
 Sketchup.active_model = model
 check(z.any? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene: alle vier Bohrungen, keine Lochreihe im Schubladenfach')
-check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('#8522=4 '),
+check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('fitting'),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
 check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')
 # Frontbefestigung LEGRABOX: Ø3 × 5 hinten in der Front, 14 mm von der Innenseite der Seite (x = 30 im Fräsmaß),
@@ -310,9 +309,9 @@ Dir.mktmpdir do |dir|
   check(dateien.all? { |x| File.exist?(File.join(dir, "#{x.name}.tcn")) }, 'alle TCN geschrieben')
   csv = File.binread(File.join(dir, 'Teileliste.csv'))
   zeilen = csv.split("\r\n")
-  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;OCL-Teil' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
+  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
   check(zeilen.include?('HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden'), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
-  check(zeilen.first.end_with?(';OCL-Teil'), 'Teileliste: Spalte OCL-Teil')
+  check(zeilen.first.end_with?(';Teilname'), 'Teileliste: Spalte Teilname')
 
   # Fräsliste .xmlst für das TpaCAD-Board
   liste = File.join(dir, S::Fraesliste.name(dir))
@@ -421,7 +420,8 @@ check(ddz.keys.sort == %w[OSD1_Boden OSD1_Deckel OSD1_Einlegeboden1 OSD1_Rueckwa
 end
 check(bearbeitungen(ddz['OSD1_Boden'].text, 1).count { |x| x.start_with?('W#89') } == 2, 'Haubenboden: Nut für die Rückwand und Ausschnitt')
 check(!ddz['OSD1_Boden'].text.include?('#8522=3 '), 'Haubenboden: keine Sockelfüße')
-check(ddz['OSD1_Deckel'].text.include?('#8522=3 '), 'Deckel: Schrauben zur Rückwand')
+check(!ddz['OSD1_Deckel'].text.include?('#8522=3 '), 'Deckel: Kante nicht vorgebohrt (waagrecht nur Ø8)')
+check(ddz['OSD1_Rueckwand'].text.include?('#8522=5 '), 'Rückwand: Schrauben zum Deckel Ø5 durch')
 lr = bearbeitungen(ddz['OSD1_SeiteR'].text, 1).select { |x| x.include?('#8522=5 ') }
 check(lr.size == 4 && lr.all? { |x| x.include?('#8510=116 #8511=345') || x.include?('#8510=x-261 #8511=x-50') },
       "Dunstabzug Seite: Lochreihen nur im Fach über dem Haubenboden: #{lr}")
@@ -741,8 +741,9 @@ check(fe == { 'Blende' => nil, 'Tuer' => 160.0 }, "Eckschrank: Griff an der Tür
   bo = l['UES1_Boden']
   lb = bearbeitungen(bo.text, 1).select { |x| x.include?('#3=-20 ') }.map { |x| [lage_xy.(bo, x), x[/#1002=(\S+)/, 1]] }
   check(lb.size == 3 && lb.map { |(p, _)| p[0] }.sort == [x_soll - 16, x_soll, x_soll + 16] &&
-        lb.find { |_, d| d == '5' }[0][1].then { |y| [67.0, bo.lage.dh - 67].include?(y) },
-        "#{tx}: Säulenlager im Boden (durchgebohrt von unten): #{lb}")
+        lb.all? { |_, d| d == '5' } && # durch nur mit dem Durchgangsbohrer Ø5 (Werkzeugliste)
+        lb.find { |(p, _)| p[0] == x_soll }[0][1].then { |y| [67.0, bo.lage.dh - 67].include?(y) },
+        "#{tx}: Säulenlager im Boden (durchgebohrt von unten, alle Ø5): #{lb}")
   sv = l['UES1_StrebeVorn']
   ls = bearbeitungen(sv.text, 1).select { |x| x.include?('W#81') }.map { |x| [lage_xy.(sv, x), x[/#3=(\S+)/, 1]] }
   check(ls.size == 3 && ls.map { |(p, _)| p[0] }.sort == [x_soll - 16, x_soll, x_soll + 16] && ls.map(&:last).sort == %w[-10 -10 -13],
@@ -819,7 +820,8 @@ xs = fb.map { |p| [p[0], fk.lage.dl - p[0]].min }.uniq.sort
 ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
 check(fb.size == 4 && xs == [28.5] && ys == [59.0, 91.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
 check(ks.(d['OK2_KlappeO']).empty? && ks.(d['OK2_SeiteL']).empty?, 'HF: noch keine AVENTOS-Bohrungen')
-check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
+check(bearbeitungen(d['OK1_Rueckwand'].text, 1).any? { |x| x.include?('#8522=5 ') && x.include?('#8513=-9 ') }, 'Rückwand für die Deckelschrauben gebohrt')
+check([3, 4, 5, 6].flat_map { |sd| bearbeitungen(d['OK1_Deckel'].text, sd) }.none? { |x| x.include?('#8522=3 ') }, 'Deckel: Kante nicht vorgebohrt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
 # Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach
 # (520 - 150, 262) im Werkstück (x = Tiefe), Bahn 10 - 2 mm (Radius - Anleimer) in den Abfall versetzt
@@ -876,6 +878,27 @@ check(rmeld.empty?, "Regal rund: keine Meldungen #{rmeld}")
 k2 = bearbeitungen(rf['RA1_Boden'].text, 1).drop_while { |x| !x.include?('W#89') }
 check(k2.size == 4 && k2[2].include?('W#2125') && k2[2].include?('#8017=270 ') && k2[2] =~ /#8046=-?90 /,
       "Regal rund: Bogen als W#2125 R 270, 90 Grad: #{k2}")
+# Drehrichtung wie in der TPA-Ansicht (y nach unten, #8046 negativ = im Uhrzeigersinn; wie Arbeitsplatte):
+# in Rechenkoordinaten (y nach oben) negiert gelesen, endet der Bogen tangential zur Auslaufgeraden
+def bogen_tangential?(zeilen)
+  dir = nil
+  zeilen.each_with_index.all? do |l, i|
+    if l.start_with?('W#2201')
+      dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
+      neu = [dx, dy].map { |v| v / Math.hypot(dx, dy) }
+      ok = !(zeilen[i - 1].start_with?('W#2125')) || (neu[0] - dir[0]).abs < 1e-3 && (neu[1] - dir[1]).abs < 1e-3
+      dir = neu
+      ok
+    elsif l.start_with?('W#2125')
+      w = -l[/#8046=(\S+)/, 1].to_f * Math::PI / 180
+      dir = [dir[0] * Math.cos(w) - dir[1] * Math.sin(w), dir[0] * Math.sin(w) + dir[1] * Math.cos(w)]
+      true
+    else
+      true
+    end
+  end
+end
+check(bogen_tangential?(k2), "Regal rund: Bogen läuft in TPA-Richtung (Vorzeichen wie Arbeitsplatte): #{k2}")
 check(rf['RA1_SeiteL'].lage.dh.round(3) == 256, "Regal rund: Seite außen links 258 tief (#{rf['RA1_SeiteL'].lage.dh})")
 rz = S::Stueckliste.zeilen(rd).find { |x| x.tag == 'RA1_Boden' }
 check(rz && (rz.kontur.values.sum - Math::PI / 2 * 262).abs < 1.0, "Regal rund: Bogenlänge #{rz && rz.kontur}")
@@ -937,10 +960,10 @@ check(deo.none? { |x| x.text.include?('#8522=3 ') && x.text.include?('#8513=-3 '
   check(bearbeitungen(o[n].text, 1).any? { |x| x.include?('W#89') } && o[n].text.include?('#8522=5 '), "#{n}: Rückwandnut und Lochreihen")
 end
 od = o['OES1_Deckel']
-schr = [3, 4, 5, 6].flat_map { |sd| bearbeitungen(od.text, sd) }.select { |x| x.include?('#8513=-15 ') }
-check(schr.size == 2, "Eck-Oberschrank Deckel: an beide Rückwände geschraubt: #{schr}")
+schr = [3, 4, 5, 6].flat_map { |sd| bearbeitungen(od.text, sd) }.reject { |x| x.include?('#8522=8 ') }
+check(schr.empty?, "Eck-Oberschrank Deckel: Kanten nicht vorgebohrt (waagrecht nur Ø8): #{schr}")
 check(bearbeitungen(od.text, 1).any? { |x| x.include?('W#89') && x.include?('#3=-20 ') }, 'Eck-Oberschrank Deckel: Innenecke ausgefräst')
-check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
+check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') && o[n].text.include?('#8522=5 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
 check(S::Frontfarbe.fronten(eo).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'Eck-Oberschrank: Frontfarbe findet beide Türen')
 
 if $fehler.zero?

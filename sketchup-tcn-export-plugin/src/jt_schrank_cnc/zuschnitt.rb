@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Zuschnittplan für die Formatsäge (ersetzt den Zuschnitt aus OpenCutList).
+# Schrank-CNC – Zuschnittplan für die Formatsäge
 #
 # Je Material und Stärke werden die Rohmaße der Stückliste mit dem Guillotine-Optimierer
 # BinPacking2D (aus OpenCutList übernommen, GPL-3.0, siehe bin_packing_2d/ und

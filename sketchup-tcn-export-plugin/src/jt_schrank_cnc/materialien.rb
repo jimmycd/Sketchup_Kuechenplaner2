@@ -1,9 +1,9 @@
 # encoding: UTF-8
-# Schrank-CNC – Materialien (Plattenwerkstoffe und Anleimer) ohne OpenCutList.
+# Schrank-CNC – Materialien (Plattenwerkstoffe und Anleimer).
 #
 # Ein Material ist ein SketchUp-Material mit Angaben für Stückliste, Zuschnitt und
 # TCN-Export. Die Angaben stehen wie bisher im Wörterbuch „ladb_opencutlist“ am Material
-# (dasselbe Format wie OpenCutList, damit alte Modelle und alle Komponenten ohne Umbau
+# (bisheriges Datenformat, damit alte Modelle und alle Komponenten ohne Umbau
 # weiterlaufen): type 2 = Platte, 4 = Kante; std_thicknesses, std_sizes, grained bei
 # Platten; thickness, std_widths, edge_decremented bei Kanten. Dazu im Wörterbuch
 # JT_Material: verwendung (Korpus, Front, Rückwand) und kante (Name des passenden Anleimers).
@@ -36,12 +36,12 @@ module JTools
       # ------------------------------------------------------------------
       # Angaben lesen
       # ------------------------------------------------------------------
-      def ocl(m, k)
+      def angabe(m, k)
         m && m.get_attribute(OCL_DICT, k)
       end
 
       def typ(m)
-        ocl(m, 'type').to_i
+        angabe(m, 'type').to_i
       end
 
       def platte?(m)
@@ -71,30 +71,30 @@ module JTools
 
       # Plattenstärke (erste Standardstärke) in mm, nil wenn keine angegeben
       def staerke(m)
-        s = ocl(m, 'std_thicknesses').to_s.split(';').first
+        s = angabe(m, 'std_thicknesses').to_s.split(';').first
         s && mm(s) > 0 ? mm(s) : nil
       end
 
       # Anleimerstärke einer Kante in mm (ohne Angabe 2 mm)
       def kantendicke(m)
-        d = mm(ocl(m, 'thickness'))
+        d = mm(angabe(m, 'thickness'))
         d > 0 ? d : 2.0
       end
 
       def kantenbreite(m)
-        s = ocl(m, 'std_widths').to_s.split(';').first
+        s = angabe(m, 'std_widths').to_s.split(';').first
         s ? mm(s) : nil
       end
 
       # Plattenformat [Länge, Breite] in mm aus "2800mm x 2070mm;4100mm x 1300mm" (erstes Format)
       def plattenformat(m)
-        s = ocl(m, 'std_sizes').to_s.split(';').first.to_s
+        s = angabe(m, 'std_sizes').to_s.split(';').first.to_s
         t = s.split(/x/i).map { |v| mm(v) }
         t.size == 2 && t.all? { |v| v > 0 } ? t.sort.reverse : nil
       end
 
       def maserung?(m)
-        v = ocl(m, 'grained')
+        v = angabe(m, 'grained')
         v == true || v.to_s == 'true'
       end
 
@@ -108,9 +108,20 @@ module JTools
         'Korpus'
       end
 
+      # Platten im Modell; ein in SketchUp angelegtes Material „Front …“ ohne Typ zählt als Frontplatte
+      # und wird beim Anwenden zur Platte (platte_machen)
       def platten(model, verwendung = nil)
-        model.materials.to_a.select { |m| platte?(m) && (verwendung.nil? || Array(verwendung).include?(verwendung(m))) }
-             .sort_by { |m| m.name.to_s }
+        model.materials.to_a.select do |m|
+          (platte?(m) || (angabe(m, 'type').nil? && m.name.to_s.start_with?('Front'))) &&
+            (verwendung.nil? || Array(verwendung).include?(verwendung(m)))
+        end.sort_by { |m| m.name.to_s }
+      end
+
+      # Material ohne Typ zur Platte machen (Standard 19 mm, 2800 × 2070, ohne Maserung)
+      def platte_machen(m)
+        return unless angabe(m, 'type').nil?
+        { 'type' => PLATTE, 'std_thicknesses' => '19mm', 'std_sizes' => '2800mm x 2070mm',
+          'grained' => false }.each { |k, v| m.set_attribute(OCL_DICT, k, v) }
       end
 
       def kanten(model)

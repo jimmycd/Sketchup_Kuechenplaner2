@@ -1,6 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Fenster „Materialien…“ (Material-Konfigurator, ersetzt die Materialien aus
-# OpenCutList).
+# Schrank-CNC – Fenster „Materialien…“ (Material-Konfigurator).
 #
 # Liste aller Platten und Anleimer aus Modell und Bibliothek, mit Neu, Bearbeiten und
 # Löschen. Platten: Name, Verwendung (Korpus, Front, Rückwand), Farbe, Texturbild, Stärke,

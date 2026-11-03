@@ -37,7 +37,7 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 * **Korpus** wie beim Unterschrank mit Tür: Seiten über die volle Höhe und Tiefe, Boden zwischen den Seiten, oben Strebe vorn und hinten (100 mm, liegend), Rückwand hinter dem Korpus. Der Korpus beginnt bei y = 19 mm, die Fronten liegen 2 mm davor.
 * **Blende** über dem Blindteil, volle Höhe, Breite = Breite − Türbereich − 2 mm. Sie hat die Rolle Front (Frontfarbe ändert sie mit), bekommt aber keinen Griff und keine Bohrungen (Befestigung mit Winkeln).
 * **Türen** im Türbereich an der offenen Seite: eine Tür = Türbereich − 2 mm; zwei Türen je Türbereich/2 − 2 mm. Außen 1 mm Fuge, zwischen Blende und Tür bzw. zwischen zwei Türen 2 mm.
-* **Le Mans:** Türbreite = LeMans-Größe (z. B. LeMans 50 = Tür 500 mm). Der Beschlag ist als Platzhalter gezeichnet (Tag `<Kürzel>_LeMans`): Einbauraum von der Innenseite der Seite an der Tür bis zum Säulenlager (X = 426/476/526/626 mm), bis 500 mm tief, vom Boden bis unter die Streben. Er hat das Material „Kesseböhmer LeMans II“ (OCL-Typ *Beschlag*) und kein `JT_Schrank`; der TCN-Export übergeht ihn. Einlegeböden entfallen. Laut Kesseböhmer braucht der Korpus mindestens 764/800/910/960 mm Breite (LeMans 40/45/50/60), 500 mm Tiefe, Seiten ab 16 mm und eine obere Strebe ab 60 mm; die Tür muss aufschlagen (Vollanschlag).
+* **Le Mans:** Türbreite = LeMans-Größe (z. B. LeMans 50 = Tür 500 mm). Der Beschlag ist als Platzhalter gezeichnet (Tag `<Kürzel>_LeMans`): Einbauraum von der Innenseite der Seite an der Tür bis zum Säulenlager (X = 426/476/526/626 mm), bis 500 mm tief, vom Boden bis unter die Streben. Er hat das Material „Kesseböhmer LeMans II“ (Typ *Beschlag*) und kein `JT_Schrank`; der TCN-Export übergeht ihn. Einlegeböden entfallen. Laut Kesseböhmer braucht der Korpus mindestens 764/800/910/960 mm Breite (LeMans 40/45/50/60), 500 mm Tiefe, Seiten ab 16 mm und eine obere Strebe ab 60 mm; die Tür muss aufschlagen (Vollanschlag).
 
 ## L-Form
 | Option | Standard |
@@ -58,17 +58,17 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 * **Rückwände:** `Rueckwand1` hinter A geht durch die Ecke, `Rueckwand2` hinter B stößt daran.
 * **Falttür:** `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide sind mit einem Blum-Standardscharnier verbunden; die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export). Keine Animation.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
 | Seiten, Boden, Strebe vorn, Einlegeböden (Blindeck) | vorne |
 | Strebe hinten, Rückwand | keine |
 | Türen, Blende | alle vier |
-| L-Boden, L-Einlegeböden | keine in OCL (siehe unten) |
+| L-Boden, L-Einlegeböden | keine in der Stückliste (siehe unten) |
 
-**L-Platten:** OCL rechnet mit dem umschließenden Rechteck (Zuschnitt) und erkennt Anleimer nur an dessen Außenseiten. Die Kanten der Innenecke bekommen trotzdem einen Anleimer; der TCN-Export fräst sie dafür 2 mm zurück. In OCL steht bei diesen Platten deshalb kein Anleimer.
+**L-Platten:** Stückliste und Zuschnitt rechnen mit dem umschließenden Rechteck (Zuschnitt) und erkennt Anleimer nur an dessen Außenseiten. Die Kanten der Innenecke bekommen trotzdem einen Anleimer; der TCN-Export fräst sie dafür 2 mm zurück. In der Stückliste steht bei diesen Platten deshalb kein Anleimer.
 
 ## Tags
 Jedes Teil hat den Tag `<Kürzel>_<Teil>`:

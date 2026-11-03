@@ -8,10 +8,10 @@
 # Arbeitsplatte). Die Platte wird im Endmaß gezeichnet: Unterseite, Oberseite und
 # je Umrisskante eine Seitenfläche.
 #
-# OpenCutList: Schichtstoff ist Plattenwerkstoff (Typ 2), Massivholz Massivholz
+# Material: Schichtstoff ist Plattenwerkstoff (Typ 2), Massivholz Massivholz
 # (Typ 1). Bei Schichtstoff bekommt die Vorderkante das Kantenmaterial "Anleimer
 # Arbeitsplatte ab Werk" (Typ 4, wird nicht abgezogen, die Platte kommt bekantet),
-# freie Enden "Anleimer Arbeitsplatte" (Typ 4, 2 mm, wird in OCL abgezogen).
+# freie Enden "Anleimer Arbeitsplatte" (Typ 4, 2 mm, wird in Stückliste/Zuschnitt abgezogen).
 # Wand-, Stoß- und Hochschrankkanten bleiben ohne. Massivholz hat keine Anleimer.
 #
 # Für "neu berechnen" und den TCN-Export stehen im Wörterbuch JT_Arbeitsplatte
@@ -46,7 +46,7 @@ module Arbeitsplatte
       mm.to_f / MM
     end
 
-    # wie ocl_material in den Schrank-Komponenten: von OCL eingestellte Materialien bleiben
+    # wie ocl_material in den Schrank-Komponenten: bereits eingestellte Materialien bleiben
     def self.ocl_material(model, name, farbe, attribute)
       m = model.materials[name] || model.materials.add(name)
       m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')

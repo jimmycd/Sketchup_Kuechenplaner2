@@ -2,7 +2,7 @@
 # Schrank-CNC – Frontfarbe und Griffe ändern.
 #
 # Frontmaterialien sind Platten mit Verwendung „Front“ aus Küchenplaner › Materialien…
-# (ohne OpenCutList); „Neues Frontmaterial…“ in der Auswahl legt eins an.
+# (Material-Konfigurator); „Neues Frontmaterial…“ in der Auswahl legt eins an.
 # Setzt ein Frontmaterial auf alle Fronten und Türen (rolle Front oder Tuer) und auf
 # Teile mit JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“, ohne Griffe),
 # für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
@@ -107,6 +107,7 @@ module JTools
       def self.anwenden(model, fronten, material, griff: nil)
         return 0 if fronten.empty?
         kante = material && anleimer(model, material)
+        Materialien.platte_machen(material) if material
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
