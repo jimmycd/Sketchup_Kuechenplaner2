@@ -37,6 +37,10 @@ melamin = model.materials['Melamin weiss']
 
 # --- Materialien ---
 check(F.frontmaterialien(model).map(&:name) == ['Front Eiche 19mm', 'Front Grau'], 'nur Frontmaterialien (OCL Typ 2, Name Front…)')
+# ohne OCL: ein in SketchUp angelegtes Material „Front …“ (noch ohne Typ) zählt auch
+neu_front = model.materials.add('Front Neu')
+check(F.frontmaterialien(model).map(&:name) == ['Front Eiche 19mm', 'Front Grau', 'Front Neu'], 'Frontmaterial ohne Typ zählt')
+neu_front.set_attribute('ladb_opencutlist', 'type', 0) # für die folgenden Prüfungen wieder ausblenden
 check(F.dekor('Front Eiche hell 19mm') == 'Eiche hell' && F.dekor('Front Grau') == 'Grau' && F.dekor('Front Weiss 19 mm') == 'Weiss', 'Dekor aus Name')
 check(F.anleimer(model, eiche).name == 'Anleimer Eiche', 'vorhandener Anleimer zum Dekor')
 

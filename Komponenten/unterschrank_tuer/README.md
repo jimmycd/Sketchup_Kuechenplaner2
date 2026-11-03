@@ -18,10 +18,10 @@ Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Kor
 ## Aufbau
 SeiteL/R, Boden, StrebeVorn/-Hinten, Rückwand, Tür, Einlegeböden. Korpus beginnt bei y = Materialstärke, die Front sitzt um die Fuge davor, die Rückwand hinter dem Korpus.
 
-## OpenCutList (OCL)
-Alle Teile haben „Melamin weiss“ (Plattenmaterial in OCL). Eindeutige Tags je Teil setzt die Erweiterung beim Einfügen.
+## Material und Anleimer
+Alle Teile haben „Melamin weiss“ (Plattenwerkstoff). Eindeutige Tags je Teil setzt die Erweiterung beim Einfügen.
 
-Anleimer (Material „Anleimer weiss“, in OCL Kante 2 mm, wird nur dort abgezogen) wie bei den anderen Unterschränken:
+Anleimer (Material „Anleimer weiss“, Kante 2 mm, wird erst in Stückliste/Zuschnitt abgezogen) wie bei den anderen Unterschränken:
 
 | Teil | Anleimer |
 |---|---|

@@ -1,10 +1,14 @@
 # encoding: UTF-8
-# Schrank-CNC – Zuschnittplan für die Formatsäge (ersetzt den Zuschnitt aus OpenCutList).
+# Schrank-CNC – Zuschnittplan für die Formatsäge.
 #
 # Je Material und Stärke werden die Rohmaße der Stückliste mit dem Guillotine-Optimierer
 # BinPacking2D (aus OpenCutList übernommen, GPL-3.0, siehe bin_packing_2d/ und
 # THIRD_PARTY.md) auf Platten verteilt: nur durchgehende Schnitte, wie an der Formatsäge.
+<<<<<<< HEAD
 # Plattenformat aus dem Material (Küchenplaner › Materialien…), sonst
+=======
+# Plattenformat aus dem Material (std_sizes im Material-Wörterbuch, erstes Format), sonst
+>>>>>>> origin/main
 # 2800 × 2070. Schnittbreite und Besäumen aus den Einstellungen. Maserung am Material:
 # dann wird nicht gedreht, die Teillänge (L, in Faserrichtung) liegt längs der Platte.
 # Arbeitsplatten bleiben draußen (Zuschnitt von Hand).

@@ -24,9 +24,19 @@ module JTools
                    'Nur Innenfronten' => INNEN }.freeze
       LAGEN = %w[links Mitte rechts].freeze
 
+<<<<<<< HEAD
       # Plattenmaterialien mit Verwendung „Front“ im Modell (siehe Materialien)
       def self.frontmaterialien(model)
         Materialien.platten(model, 'Front')
+=======
+      # Plattenwerkstoffe (Typ 2 im Material-Wörterbuch), deren Name mit "Front" beginnt; ein in
+      # SketchUp neu angelegtes Material ohne Typ zählt auch und wird beim Anwenden zur Platte
+      def self.frontmaterialien(model)
+        model.materials.to_a.select do |m|
+          t = m.get_attribute(OCL_DICT, 'type')
+          (t.nil? || t.to_i == 2) && m.name.start_with?(PRAEFIX)
+        end.sort_by(&:name)
+>>>>>>> origin/main
       end
 
       def self.kanten(model)
@@ -37,7 +47,11 @@ module JTools
         Materialien.dekor(name)
       end
 
+<<<<<<< HEAD
       # Anleimer zum Frontmaterial: Zuordnung aus „Materialien…“, sonst über den Dekor im Namen
+=======
+      # Anleimer zum Frontmaterial: eine Kante (Typ 4) mit dem Dekor im Namen, sonst neu "Anleimer <Dekor>"
+>>>>>>> origin/main
       def self.anleimer(model, front)
         Materialien.anleimer(model, front)
       end
@@ -107,6 +121,7 @@ module JTools
       def self.anwenden(model, fronten, material, griff: nil)
         return 0 if fronten.empty?
         kante = material && anleimer(model, material)
+        material.set_attribute(OCL_DICT, 'type', 2) if material && material.get_attribute(OCL_DICT, 'type').nil?
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
@@ -137,10 +152,17 @@ module JTools
       # Dialog
       # ---------------------------------------------------------------------
       def self.dialog(model = Sketchup.active_model)
+<<<<<<< HEAD
         namen = Materialien.plattennamen(model, 'Front')
         if namen.empty?
           # noch kein Frontmaterial: gleich eins anlegen, danach geht es hier weiter
           Materialdialog.platte_formular(model, verwendung: 'Front') { dialog(model) }
+=======
+        mats = frontmaterialien(model)
+        if mats.empty?
+          UI.messagebox("Im Modell gibt es kein Frontmaterial.\n\nLege unter Fenster › Materialien ein Material an, " \
+                        "dessen Name mit „#{PRAEFIX}“ beginnt (z. B. „Front Eiche 19mm“).")
+>>>>>>> origin/main
           return
         end
         griff_opt = ['unverändert lassen', 'setzen', 'entfernen']

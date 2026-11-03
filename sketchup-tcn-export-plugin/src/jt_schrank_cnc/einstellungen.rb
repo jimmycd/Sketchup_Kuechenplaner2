@@ -6,8 +6,7 @@
 # Übermaß: Rohmaß (Zuschnitt an der Formatsäge) = Fräsmaß + Übermaß, damit die CNC
 # das Teil rundum formatieren kann (squad). Angabe gesamt je Richtung in mm, also
 # 10 mm = 5 mm je Kante. Länge = längere, Breite = kürzere Seite des Teils.
-# Früher kam das Übermaß aus OpenCutList (length_increase/width_increase am
-# Material); nach Jürgen (2026-11-01) ist es eine allgemeine Einstellung.
+# Das Übermaß stand früher am Material (length_increase/width_increase); nach Jürgen (2026-11-01) ist es eine allgemeine Einstellung.
 # Zuschnitt: Schnittbreite des Sägeblatts (Jürgen: 3 mm) und Besäumen ringsum.
 
 module JTools
