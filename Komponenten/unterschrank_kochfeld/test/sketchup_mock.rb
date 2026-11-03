@@ -41,6 +41,7 @@ module Sketchup
     def dicts = (@dicts ||= {})
     def set_attribute(d, k, v) = (dicts[d] ||= {})[k] = v
     def get_attribute(d, k, default = nil) = dicts.dig(d, k) || default
+    def delete_attribute(d, k) = dicts[d]&.delete(k)
     def attribute_dictionary(d) = dicts[d]
   end
 

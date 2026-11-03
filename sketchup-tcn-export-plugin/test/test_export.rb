@@ -791,13 +791,34 @@ check(S::Frontfarbe.fronten(lf).select(&:sichtbar?).map { |t| t.jt('teil') }.sor
 model = Sketchup.active_model = Sketchup::Model.new
 OberschrankKlappe.erstellen({})
 OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 })
-dk, = S::Export.erzeugen(model)
+dk, km = S::Export.erzeugen(model)
 d = dk.to_h { |x| [x.name, x] }
+check(km.size == 1 && km.first.start_with?('OK2: AVENTOS HF'), "Klappe: nur HF meldet fehlende Bohrungen: #{km}")
 check(d['OK1_Klappe'] && !d['OK1_KlappeO'] && d['OK2_KlappeO'] && d['OK2_KlappeU'] && !d['OK2_Klappe'],
       "Klappe: nur sichtbare Klappenteile exportiert: #{d.keys.grep(/Klappe/)}")
 check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [394, 894], "HK-top-Klappe 898 x 398 Endmaß, im TCN ohne Anleimer 894 x 394 (#{d['OK1_Klappe'].lage.dl} x #{d['OK1_Klappe'].lage.dh})")
 zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
 check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
+# AVENTOS HK-top (Standard 900 x 400): Kraftspeicher 4 × Ø5 in einer Reihe, 37/69/101/133 ab Vorderkante,
+# 36 unter der Oberkante; Frontbeschlag je Seite Ø5 12,5 ab Innenseite der Seite, 62/94 unter der Oberkante
+ks = ->(w) { bearbeitungen(w.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-12 ') && !x.include?('#8522') } }
+%w[OK1_SeiteL OK1_SeiteR].each do |n|
+  w = d[n]
+  pk = ks.(w).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
+  check(pk.size == 4 && pk.map(&:first).uniq.size == 1, "#{n}: Kraftspeicher 4 Löcher in einer Reihe: #{pk}")
+  vorn = pk.map(&:last).map { |y| [y, w.lage.dh - y].min }.sort
+  check(vorn == [37, 69, 101, 133].map { |v| v - 2.0 }, "#{n}: Kraftspeicher ab Vorderkante (Fräsmaß, 2 mm Anleimer vorn): #{vorn}")
+  hoch = pk.first && [pk.first.first, w.lage.dl - pk.first.first].min
+  check(hoch && (hoch - 34.0).abs < 1e-6, "#{n}: Kraftspeicher 36 unter der Oberkante (Fräsmaß 34): #{hoch}")
+end
+fk = d['OK1_Klappe']
+fb = ks.(fk).map { |x| [lage_mm(x[/#1=(\S+)/, 1], fk.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fk.lage.dh)] }.sort
+# Klappe 898 x 398, rundum Anleimer (Fräsmaß 894 x 394); Innenseite der Seite 18 vom Klappenrand -> 30,5 (28,5 im Fräsmaß),
+# Oberkante Klappe 1 unter Korpusoberkante -> 61 / 93 (59 / 91 im Fräsmaß)
+xs = fb.map { |p| [p[0], fk.lage.dl - p[0]].min }.uniq.sort
+ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
+check(fb.size == 4 && xs == [28.5] && ys == [59.0, 91.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
+check(ks.(d['OK2_KlappeO']).empty? && ks.(d['OK2_SeiteL']).empty?, 'HF: noch keine AVENTOS-Bohrungen')
 check(!bearbeitungen(d['OK1_Deckel'].text, 5).empty? || !bearbeitungen(d['OK1_Deckel'].text, 3).empty?, 'Deckel mit Rückwand verschraubt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
 # Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach

@@ -59,7 +59,7 @@ An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (`Untersch
 Korpus, Türen, Einlegeböden und Schubladen laufen wie bei den anderen Unterschränken: Dübel der Böden und Streben, Sockelfüße im Boden, Lochreihen bei Türen, LEGRABOX-Schienenbohrungen, Frontbefestigung und Bodenfalz bei Schubladen. Verkleidung, Wangen und Thekenplatte bekommen eine TCN nur mit Formatieren.
 
 ## Hilfe in SketchUp
-Eine Kurzfassung dieser Doku steht oben im Fenster *Komponentenoptionen* (Summary und Description) mit Link auf diese Seite. Der Text steht als `HILFE` in `src/unterschrank_insel/main.rb`.
+Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_insel/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
 `ruby test/test_unterschrank_insel.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Türen, Schubladen im Lochraster, Verkleidung, Wangen und Theke, Kollisionen, Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, Materialien, Anleimer, Tags, `JT_Schrank`, den Dialog und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft die TCN-Dateien und die Frontfarbe.
