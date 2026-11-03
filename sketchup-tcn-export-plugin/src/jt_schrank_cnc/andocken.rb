@@ -9,7 +9,7 @@
 #     linker oder rechter Seite (Ecke einer L- oder U-Küche, z. B. vor ein Blindeck);
 #   * über einer Wand des Raums (Erweiterung Raum): Rückseite an die Wand, rastet an
 #     Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke
-#     stehen auf dem Fußboden des Raums plus dessen Sockelhöhe (Raum › Raum bearbeiten);
+#     stehen auf dem Fußboden des Raums plus Sockelhöhe (Küchenplaner › Einstellungen);
 #   * über einer anderen senkrechten Fläche: Rückseite daran, Mitte unter der Maus;
 #   * sonst: folgt der Maus auf seiner Höhe.
 #   Tab oder Pfeil rechts/links drehen um 90°, Klick setzt ab, Esc lässt ihn stehen.
@@ -184,11 +184,25 @@ module JTools
         Schraenke.definition(inst).get_attribute(JT_DICT, 'kategorie')
       end
 
-      # Kasten aus den sichtbaren Teilen (ausgeblendete Schubladen, Wangen … zählen nicht)
+      KORPUS_DICT = 'JT_Korpus'.freeze
+
+      # Virtueller Korpus einer Komponente ohne eigenen Korpus (Geschirrspüler-, Kühlschrank-Nische):
+      # unsichtbarer Kasten, markiert mit JT_Korpus/virtuell an seiner Definition
+      def self.virtueller_korpus(d)
+        d.entities.find do |e|
+          e.respond_to?(:definition) && !(e.respond_to?(:hidden?) && e.hidden?) &&
+            e.definition.get_attribute(KORPUS_DICT, 'virtuell')
+        end
+      end
+
+      # Kasten = virtueller Korpus, falls vorhanden (Geräte-Platzhalter und bis zum Boden reichende
+      # Wangen zählen dann nicht), sonst die sichtbaren Teile (ausgeblendete Schubladen, Wangen … zählen nicht)
       def self.kasten(inst)
         d = Schraenke.definition(inst)
         bb = Geom::BoundingBox.new
-        d.entities.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
+        korpus = virtueller_korpus(d)
+        teile = korpus ? [korpus] : d.entities.to_a
+        teile.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
         bb = d.bounds if bb.empty?
         mn = bb.min.to_a
         mx = bb.max.to_a
@@ -393,7 +407,8 @@ module JTools
             links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
             rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
             w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG)
-            z = Rechnung.raum_hoehe(@kat, wl[3], winst.get_attribute(RAUM_DICT, 'sockel'), @start[3])
+            sockel = defined?(Kuechenplaner::Einstellungen) ? Kuechenplaner::Einstellungen.sockelhoehe(view.model) : nil
+            z = Rechnung.raum_hoehe(@kat, wl[3], sockel, @start[3])
             @ziel = [w, x, y, z]
             b = @kasten[1] - @kasten[0]
             @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"

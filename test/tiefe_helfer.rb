@@ -87,7 +87,8 @@ module TiefeHelfer
       n = knoten.new(inst2, inst2.definition, nil)
       n.redraw
       schluessel = (inst2.definition.attribute_dictionary(dict) || {}).keys.grep(/\A_(.+)_formula\z/) { $1 }
-      ["#{(t0 * 10).round} -> #{(t1 * 10).round} mm", abweichungen(g, n, schluessel.uniq.sort)]
+      ["#{(t0 * 10).round} -> #{(t1 * 10).round} mm",
+       abweichungen(g, n, schluessel.uniq.sort) + ausserhalb(g).map { |f| "Komponentengrenze: #{f}" }]
     end.merge('(Formeln, die auf Formeln desselben Bauteils verweisen)' => bezuege)
   end
 end
@@ -113,5 +114,25 @@ module TiefeHelfer
   def self.schluessel_von(k)
     dicts = [k.defn, k.inst].compact.map { |e| e.attribute_dictionary('dynamic_attributes') }.compact
     dicts.flat_map(&:keys).grep(/\A_(.+)_formula\z/) { $1 }.uniq
+  end
+end
+
+module TiefeHelfer
+  # Komponentengrenze (Thread "Komponentengrenzen korrigieren"): SketchUp zählt auch ausgeblendete
+  # Teile zum Kasten der Komponente (blauer Auswahlrahmen, Einfügen/Andocken). Ein ausgeblendetes
+  # Teil darf deshalb nie über die sichtbaren Teile hinausragen, sonst ist der Schrank scheinbar
+  # breiter/tiefer/höher. Liefert die Teile, die herausragen.
+  def self.ausserhalb(k)
+    alle = blaetter(k)
+    sichtbar = alle.values.reject { |_, l, vs| vs || l.any?(&:nil?) }
+    return [] if sichtbar.empty?
+    min = (0..2).map { |i| sichtbar.map { |o, l, _| [o[i], o[i] + l[i]].min }.min }
+    max = (0..2).map { |i| sichtbar.map { |o, l, _| [o[i], o[i] + l[i]].max }.max }
+    alle.filter_map do |p, (o, l, vs)|
+      next unless vs && l.none?(&:nil?)
+      raus = (0..2).select { |i| [o[i], o[i] + l[i]].min < min[i] - EPS || [o[i], o[i] + l[i]].max > max[i] + EPS }
+      next if raus.empty?
+      "#{p} (ausgeblendet) ragt in #{raus.map { |i| ACHSEN[i] }.join('/')} heraus"
+    end
   end
 end

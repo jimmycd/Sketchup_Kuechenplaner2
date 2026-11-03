@@ -413,9 +413,11 @@ module Blenden
     q0 = m['Sockelblende1']
     MAX_STUECKE.times do |i|
       name = "Sockelblende#{i + 1}"
-      q = m[name] || [q0[0] + i * (q0[1] - q0[0]), q0[0] + (i + 1) * (q0[1] - q0[0])] + q0[2..5]
+      # ausgeblendete Stücke liegen auf dem ersten: SketchUp zählt sie zur Komponentengrenze
+      q = m[name] || q0
+      x0 = "#{u}!Staerke*#{li.("#{u}!")}"
       teil(model, d, ctx, name, 'Sockelblende', q,
-           ["#{u}!Staerke*#{li.("#{u}!")}+#{i}*#{l_st}", y0, z0, l_st, "#{u}!Staerke", hz],
+           ["IF(#{u}!N>=#{i + 1},#{x0}+#{i}*#{l_st},#{x0})", y0, z0, l_st, "#{u}!Staerke", hz],
            sichtbar: !m[name].nil?, hidden_formel: "IF(#{u}!N>=#{i + 1},0,1)")
     end
     l, r = sockel_seiten(p)

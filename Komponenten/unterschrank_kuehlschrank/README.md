@@ -42,3 +42,13 @@ Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kuehlschrank/main.
 
 ## Tests
 `ruby test/test_kuehlschrank.rb` – prüft ohne SketchUp alle drei Geräte, 300/450/600, Wangen, Platzhalter, Formeln nach Umkonfigurieren (auch Gerät umstellen), Material, Anleimer, Tags, `JT_Schrank`, `JT_Nische`, Kurzhilfe und Tiefe nachträglich. Dazu prüfen der Plugin-Test (TCN-Export, Frontfarbe, Stückliste) und der Geräte-Test (Kühlgeräte, Umstellen in den Komponentenoptionen) die Komponente mit.
+
+## Komponentengrenze (virtueller Korpus)
+
+Die Nische hat keinen Korpus. Damit Einfügen und Andocken wie bei den anderen Unterschränken
+funktionieren, enthält die Komponente einen unsichtbaren Kasten „Korpus“ (Wörterbuch `JT_Korpus`,
+`virtuell` = true): Nischenbreite plus sichtbare Wangen, von der Front (2 mm vor dem Korpus) bis
+hinter die Rückwand, Unterkante bis Oberkante Korpus. Die Front ist links und rechts um die halbe
+Fuge kleiner, wie bei allen Fronten. Das Andock-Werkzeug nimmt diesen Kasten; Geräte-Platzhalter
+und bis zum Boden reichende Wangen zählen dafür nicht. Ausgeblendete Wangen liegen innerhalb der
+Nische, weil SketchUp auch ausgeblendete Teile zum Komponentenrahmen zählt.

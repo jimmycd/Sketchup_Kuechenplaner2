@@ -38,6 +38,8 @@ module Arbeitsplatte
       ueberstand_vorn: 20.0,     # vor der Frontlinie
       ueberstand_seite: 0.0,     # an freien Enden
       wandabstand: 5.0,          # Luft zur Wand
+      schrank_wandabstand: 0.0,  # Abstand Schrankrückseite – Wand (Küchenplaner › Einstellungen):
+                                 # die Platte reicht trotzdem bis an die Wand (minus wandabstand)
       fuge_hochschrank: 2.0,     # Fuge zum Hochschrank
       stoss: :gehrungsansatz,    # Standard für alle Ecken
       gehrungstiefe: 30.0,       # Gehrungsansatz: Tiefe der 45° in die durchlaufende Platte
@@ -74,7 +76,7 @@ module Arbeitsplatte
     # (bei erhöhter Theke ist sitzueberstand 0, die Platte endet an der Thekenwand)
     def self.q_wand(z, o)
       return z[:wand] - vz(z) * z[:sitzueberstand].to_f if z[:insel]
-      z[:wand] + vz(z) * o[:wandabstand]
+      z[:wand] + vz(z) * (o[:wandabstand].to_f - o[:schrank_wandabstand].to_f)
     end
 
     # Art der Hinterkante: Wand, frei (Insel, mit Anleimer) oder Thekenwand (ohne Anleimer)
