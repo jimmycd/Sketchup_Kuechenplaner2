@@ -184,11 +184,25 @@ module JTools
         Schraenke.definition(inst).get_attribute(JT_DICT, 'kategorie')
       end
 
-      # Kasten aus den sichtbaren Teilen (ausgeblendete Schubladen, Wangen … zählen nicht)
+      KORPUS_DICT = 'JT_Korpus'.freeze
+
+      # Virtueller Korpus einer Komponente ohne eigenen Korpus (Geschirrspüler-, Kühlschrank-Nische):
+      # unsichtbarer Kasten, markiert mit JT_Korpus/virtuell an seiner Definition
+      def self.virtueller_korpus(d)
+        d.entities.find do |e|
+          e.respond_to?(:definition) && !(e.respond_to?(:hidden?) && e.hidden?) &&
+            e.definition.get_attribute(KORPUS_DICT, 'virtuell')
+        end
+      end
+
+      # Kasten = virtueller Korpus, falls vorhanden (Geräte-Platzhalter und bis zum Boden reichende
+      # Wangen zählen dann nicht), sonst die sichtbaren Teile (ausgeblendete Schubladen, Wangen … zählen nicht)
       def self.kasten(inst)
         d = Schraenke.definition(inst)
         bb = Geom::BoundingBox.new
-        d.entities.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
+        korpus = virtueller_korpus(d)
+        teile = korpus ? [korpus] : d.entities.to_a
+        teile.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
         bb = d.bounds if bb.empty?
         mn = bb.min.to_a
         mx = bb.max.to_a

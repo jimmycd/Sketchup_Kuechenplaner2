@@ -27,8 +27,8 @@ Mit *Interagieren* öffnen sich die Türen (links um die linke, rechts um die re
 * Einlegeböden 10 mm von vorne zurückgesetzt und hinten bis zur Rückwand.
 * Der Korpus beginnt wie bei den anderen Schränken bei y = 19 mm, die Tür liegt davor.
 
-## OpenCutList (OCL)
-Gezeichnet ist immer das **Endmaß**. Anleimer werden nur für OCL zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (OCL-Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
+## Material und Anleimer
+Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
 
 | Teil | Kanten mit Anleimer |
 |---|---|
@@ -48,4 +48,4 @@ Die Schrankaufhänger kommen später dazu.
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_oberschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Rückwand in der Nut, Deckel vor der Rückwand, Türen und Fugen, Einlegeböden), Formeln nach Umkonfigurieren, OCL-Material, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe.
+`ruby test/test_oberschrank.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Geometrie (Rückwand in der Nut, Deckel vor der Rückwand, Türen und Fugen, Einlegeböden), Formeln nach Umkonfigurieren, Material, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe.

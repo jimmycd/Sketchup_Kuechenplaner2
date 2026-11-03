@@ -11,9 +11,9 @@
 # Die Front wird vor Ort mit der Schablone des Herstellers befestigt, deshalb gibt
 # es dafür keine CNC-Bohrungen.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. USG1_Front, USG1_WangeL) und das Wörterbuch "JT_Schrank"
 # für den TCN-Export. Der Geräte-Platzhalter liegt auf dem Tag "Geraete_Plan", hat
 # kein Plattenmaterial und kein JT_Schrank. Die Nische steht im Wörterbuch
@@ -77,7 +77,7 @@ module UnterschrankGeschirrspueler
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_geschirrspueler'.freeze
-  HILFE_KURZ = 'Nische für vollintegrierten Geschirrspüler (45/60 cm) mit Möbelfront, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Nische für vollintegrierten Geschirrspüler (45/60 cm) mit Möbelfront'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -159,7 +159,7 @@ module UnterschrankGeschirrspueler
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -183,10 +183,10 @@ module UnterschrankGeschirrspueler
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Halbtransparentes Material für den Platzhalter, ohne OCL-Einstellungen
+  # Halbtransparentes Material für den Platzhalter, ohne Plattenwerkstoff-Einstellungen
   def self.geraet_material(model)
     m = model.materials[GERAET_MATERIAL]
     return m if m
@@ -214,16 +214,17 @@ module UnterschrankGeschirrspueler
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer.
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer.
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   KANTEN = {
     'Front'  => %i[xmin xmax zmin zmax], # rundum
     'Wange'  => %i[ymin zmax],           # vorne und oben, unten steht sie auf dem Boden
-    'Geraet' => []
+    'Geraet' => [],
+    'Korpus' => []
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -282,6 +283,30 @@ module UnterschrankGeschirrspueler
       'z' => (-p['Sockelhoehe'] * 10).round(1) }.each { |k, v| d.set_attribute(NISCHE_DICT, k, v) }
   end
 
+  # Virtueller Korpus: Die Nische hat keinen Korpus, ihre Grenze soll aber wie bei den anderen
+  # Unterschränken sein (Breite der Nische plus sichtbare Wangen, Front bis Rückwand, Unterkante bis
+  # Oberkante Korpus). Front und Wangen allein sind dafür zu klein, der Geräte-Platzhalter reicht
+  # bis zum Fußboden und ist tiefer. Ein unsichtbarer Kasten (Kanten und Flächen ausgeblendet)
+  # gibt der Komponente ihre Grenze, das Andock-Werkzeug nimmt ihn als Kasten des Schranks
+  # (Wörterbuch JT_Korpus). Kein Schrankteil: kein Material, kein Tag, kein JT_Schrank.
+  KORPUS_DICT = 'JT_Korpus'.freeze
+
+  def self.korpus_masse(p)
+    mk = p['Materialstaerke_Korpus']
+    n_wangen = { 0 => 0, 1 => 1, 2 => 1, 3 => 2 }.fetch(p['Art_Wange'].to_i, 0)
+    [p['Breite'] + n_wangen * mk, p['Spaltbreite'] + mk + p['Tiefe'] + p['Materialstarke_Rueckwand'], p['Hoehe']]
+  end
+
+  def self.virtueller_korpus(model, e, p, _r, u)
+    d = platte(model, 'Virtueller Korpus', 'Korpus', korpus_masse(p),
+               ["#{u}!Breite+IF(#{u}!Art_Wange=0,0,IF(#{u}!Art_Wange=3,2,1))*#{u}!Materialstaerke_Korpus",
+                "#{u}!Spaltbreite+#{u}!Materialstaerke_Korpus+#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
+                "#{u}!Hoehe"], art: 'Korpus')
+    d.entities.to_a.each { |x| x.hidden = true if x.respond_to?(:hidden=) }
+    d.set_attribute(KORPUS_DICT, 'virtuell', true)
+    einsetzen(e, d, 'Korpus', [0, -p['Spaltbreite'], 0], [nil, "-#{u}!Spaltbreite", nil])
+  end
+
   # ---------------------------------------------------------------------------
   # Aufbau
   # ---------------------------------------------------------------------------
@@ -335,9 +360,12 @@ module UnterschrankGeschirrspueler
               mat: mat, kz: t_.('Front'))
 
     # --- Abschlusswangen außerhalb der Nische, wie die Seiten der Unterschränke, bis zum Boden ---
+    # Ausgeblendet liegt die rechte Wange innerhalb der Nische: SketchUp zählt ausgeblendete Teile zur
+    # Komponentengrenze, sonst wäre der Schrank scheinbar um die Wange breiter.
     wangen = [['WangeL', r[:links], 'IF(OR(Art_Wange=1,Art_Wange=3),0,1)', [0, nil]],
               ['WangeR', r[:rechts], 'IF(OR(Art_Wange=2,Art_Wange=3),0,1)',
-               [r[:x_nische] + p['Breite'], "#{u}!X_Nische+#{u}!Breite"]]]
+               [r[:x_nische] + p['Breite'] - (r[:rechts] ? 0 : mk),
+                "#{u}!X_Nische+#{u}!Breite-IF(OR(#{u}!Art_Wange=2,#{u}!Art_Wange=3),0,#{u}!Materialstaerke_Korpus)"]]]
     wangen.each do |teil, sichtbar, formel, (x, fx)|
       d = platte(model, teil, teil, [mk, p['Tiefe'] + p['Materialstarke_Rueckwand'], r[:h_unten]],
                  ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
@@ -347,6 +375,8 @@ module UnterschrankGeschirrspueler
                        mat: mat, kz: t_.(teil))
       inst.hidden = !sichtbar
     end
+
+    virtueller_korpus(model, e, p, r, u)
 
     # --- Geräte-Platzhalter (kein Schrankteil: kein Plattenmaterial, kein JT_Schrank) ---
     g = platte(model, 'Geschirrspueler Platzhalter', 'Geraet',

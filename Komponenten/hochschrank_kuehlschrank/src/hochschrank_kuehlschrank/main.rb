@@ -170,7 +170,7 @@ module HochschrankKuehlschrank
       end
     end
     n_eb = p['Anz_Einlegeboeden_Oben'].to_i
-    erg[:eb] = (1..MAX_EB).map { |k| k <= n_eb ? z_oben + (p['Hoehe'] - mk - z_oben) * k / (n_eb + 1) - mk / 2 : z_oben }
+    erg[:eb] = (1..MAX_EB).map { |k| k <= n_eb ? z_oben + (p['Hoehe'] - mk - z_oben) * k / (n_eb + 1) - mk / 2 : z_oben - mk }
     erg
   end
 
@@ -537,7 +537,7 @@ module HochschrankKuehlschrank
     end
     (1..MAX_EB).each do |k|
       f = "IF(Anz_Einlegeboeden_Oben>=#{k},#{f_z_oben}+(Hoehe-Materialstaerke_Korpus-#{f_z_oben})*#{k}/" \
-          "(Anz_Einlegeboeden_Oben+1)-Materialstaerke_Korpus/2,#{f_z_oben})"
+          "(Anz_Einlegeboeden_Oben+1)-Materialstaerke_Korpus/2,#{f_z_oben}-Materialstaerke_Korpus)"
       attribut(haupt, "Z_Einlegeboden_#{k}", r[:eb][k - 1], units: 'STRING', formula: f)
     end
 
@@ -581,8 +581,10 @@ module HochschrankKuehlschrank
     rueck = platte(model, 'Rückwand', 'Rückwand', [b, rw, h],
                    ["#{u}!Breite", "#{u}!Materialstarke_Rueckwand", "#{u}!Hoehe"], kanten: %i[xmin xmax zmax])
     sichtbarkeit(rueck, !schacht, "IF(#{u}!Lueftung=1,1,0)")
-    ri = einsetzen(e, rueck, 'Rückwand', [0, t + mk, 0],
-                   [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus", nil], mat: mat, kz: t_.('Rueckwand'))
+    # ausgeblendet (Schacht) liegt sie innerhalb der Seiten, damit sie die Komponentengrenze nicht vergrößert
+    ri = einsetzen(e, rueck, 'Rückwand', [0, t + mk - (schacht ? rw : 0), 0],
+                   [nil, "#{u}!Tiefe+#{u}!Materialstaerke_Korpus-IF(#{u}!Lueftung=1,#{u}!Materialstarke_Rueckwand,0)", nil],
+                   mat: mat, kz: t_.('Rueckwand'))
     ri.hidden = schacht
     # Lüftungsschacht: Rückwände oben und unten vor dem Schacht, in einer Nut der Seiten
     rb = ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus+2*#{u}!Nuttiefe", "#{u}!Materialstarke_Rueckwand"]

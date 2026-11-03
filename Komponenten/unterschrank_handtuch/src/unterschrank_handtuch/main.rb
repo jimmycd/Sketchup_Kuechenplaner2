@@ -13,12 +13,12 @@
 # (Seiten, Boden, Streben oben, Rückwand hinter dem Korpus).
 # Der Beschlag ist als Platzhalter gezeichnet (Einbauraum laut Häfele:
 # lichte Weite x 485 x 565 mm). Er hat das Material "Häfele HU Slim Base"
-# (OpenCutList-Typ Beschlag) und kein JT_Schrank, der TCN-Export übergeht ihn.
+# (Material-Typ Beschlag) und kein JT_Schrank, der TCN-Export übergeht ihn.
 # Die Bohrungen für Schienen und Front setzt der TCN-Export.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. USH1_SeiteL, USH1_Front) und das Wörterbuch "JT_Schrank"
 # für den TCN-Export. Anderes Kürzel:
 #   UnterschrankHandtuch.erstellen({ 'Kuerzel' => 'USH2' }, ziel)
@@ -80,7 +80,7 @@ module UnterschrankHandtuch
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_handtuch'.freeze
-  HILFE_KURZ = 'Schmaler Unterschrank 150/200 mm mit Hochauszug Häfele HU Slim Base, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Schmaler Unterschrank 150/200 mm mit Hochauszug Häfele HU Slim Base'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -150,7 +150,7 @@ module UnterschrankHandtuch
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -174,10 +174,10 @@ module UnterschrankHandtuch
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Kaufteil: OCL-Typ 5 = Beschlag (erscheint in OCL als Beschlag, nicht als Platte)
+  # Kaufteil: Material-Typ 5 = Beschlag (kein Plattenteil)
   def self.beschlag_material(model)
     ocl_material(model, BESCHLAG, [150, 150, 155], 'type' => 5, 'description' => 'Häfele UTENSIO Matrix HU Slim Base')
   end
@@ -203,7 +203,7 @@ module UnterschrankHandtuch
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer (wie Unterschrank mit Schubladen).
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer (wie Unterschrank mit Schubladen).
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   KANTEN = {
     'Seite'        => %i[ymin],
@@ -216,7 +216,7 @@ module UnterschrankHandtuch
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -364,7 +364,7 @@ module UnterschrankHandtuch
               mat: mat, kz: [model, kz, 'Front'])
 
     # Platzhalter Beschlag = Einbauraum laut Häfele, auf dem Boden ab Korpusvorderkante.
-    # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL.
+    # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung.
     g = platte(model, 'HU Slim Base', 'Beschlag', [r[:lw], p['Bauraum_Tiefe'], p['Bauraum_Hoehe']],
                ["#{a}!Breite-2*#{a}!Mk", "#{a}!BT", "#{a}!BH"])
     einsetzen(de, g, 'Beschlag', [mk, mk, mk], ["#{a}!Mk", "#{a}!Mk", "#{a}!Mk"],

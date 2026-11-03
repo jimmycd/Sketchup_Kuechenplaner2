@@ -23,7 +23,7 @@
 # einrasten (Wandenden, Tür- und Durchgangslaibungen); das Andock-Werkzeug liest sie.
 #
 # Der Raum ist kein Fertigungsteil: kein Plattenmaterial, kein JT_Schrank, Tags
-# "Raum-…". TCN-Export und Zuschnitt übergehen ihn; vor OpenCutList die Szene
+# "Raum-…". TCN-Export und Zuschnitt übergehen ihn; für Stückliste/Etiketten die Szene
 # "Zuschnitt" wählen (Geräte › Szenen anlegen blendet die Raum-Tags dort aus).
 
 require 'sketchup.rb'
@@ -41,7 +41,7 @@ module Raum
   TAG_TUER     = 'Raum-Tuer'.freeze
   TAG_AUFSCHLAG = 'Raum-Aufschlag'.freeze
 
-  # Materialien ohne OpenCutList-Einstellungen: [Farbe, Deckkraft]
+  # Materialien ohne Plattenwerkstoff-Einstellungen: [Farbe, Deckkraft]
   MATERIALIEN = {
     'Raum Wand'       => [[236, 233, 226], 1.0],
     'Raum Boden'      => [[205, 195, 175], 1.0],

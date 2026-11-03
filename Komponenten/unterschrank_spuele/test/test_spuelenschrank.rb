@@ -204,7 +204,7 @@ def pruefe_ocl(w, label, kz)
   tags = []
   blaetter(w).each do |b|
     if b.name == 'Ausschnitt'
-      check(b.defn.entities.faces.empty? && b.defn.entities.edges.size == 4, "#{label}: Umriss nur Kanten (kein OCL-Teil)")
+      check(b.defn.entities.faces.empty? && b.defn.entities.edges.size == 4, "#{label}: Umriss nur Kanten (kein Stücklistenteil)")
       check(b.inst.layer&.name == "#{kz}_Rueckwand_Ausschnitt" && b.inst.get_attribute(H::JT_DICT, 'teil').nil?,
             "#{label}: Umriss ohne JT_Schrank, eigener Tag")
       next

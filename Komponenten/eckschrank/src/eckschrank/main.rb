@@ -10,7 +10,7 @@
 # Komponentenoptionen: eine Tür, zwei Türen oder Le Mans (Kesseböhmer LeMans II,
 # Montageanleitung MA 406954 0000). Die Blindseite (links/rechts) ist umschaltbar.
 # Der Le-Mans-Beschlag ist als Platzhalter gezeichnet (Material "Kesseböhmer
-# LeMans II", OpenCutList-Typ Beschlag, kein JT_Schrank); die Bohrungen für
+# LeMans II", Material-Typ Beschlag, kein JT_Schrank); die Bohrungen für
 # Säulenlager und Seitenprofil setzt der TCN-Export.
 #
 # L-Form: L-förmiger Korpus mit zwei Schenkeln und Falttür. Boden und Einlegeböden
@@ -19,10 +19,10 @@
 # Schenkellängen und Tiefe beim Erzeugen festgelegt (Dialog); Höhe und Einlegeböden
 # bleiben Komponentenoptionen.
 #
-# OpenCutList: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
+# Material: Platten haben das Material "Melamin weiss" (Plattenwerkstoff),
 # sichtbare Kanten das Material "Anleimer Melamin weiss" (Kante, 2 mm, wird nur
-# in OCL abgezogen; gezeichnet wird das Endmaß). Die Kanten der Innenecke einer
-# L-Platte kann OCL nicht als Anleimer erkennen (OCL sieht nur die Außenseiten);
+# in Stückliste/Zuschnitt abgezogen; gezeichnet wird das Endmaß). Die Kanten der Innenecke einer
+# L-Platte erkennt die Stückliste nicht als Anleimer (sie sieht nur die Außenseiten);
 # der TCN-Export fräst sie 2 mm zurück. Jedes Teil hat einen eigenen Tag
 # <Kürzel>_<Teil> (z. B. UES1_SeiteL, UES1_Blende) und das Wörterbuch "JT_Schrank"
 # für den TCN-Export. Anderes Kürzel:
@@ -112,8 +112,8 @@ module Eckschrank
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/eckschrank'.freeze
-  HILFE_KURZ = 'Eck-Unterschrank Blindeck: eine Tür, zwei Türen oder Le Mans (Kesseböhmer), OpenCutList-fähig'.freeze
-  HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür, OpenCutList-fähig'.freeze
+  HILFE_KURZ = 'Eck-Unterschrank Blindeck: eine Tür, zwei Türen oder Le Mans (Kesseböhmer)'.freeze
+  HILFE_KURZ_L = 'Eck-Unterschrank L-Form mit Falttür'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -203,7 +203,7 @@ module Eckschrank
   end
 
   # OpenCutList: Materialtyp und Maße im Wörterbuch "ladb_opencutlist" am Material.
-  # Bereits von OCL konfigurierte Materialien werden nicht verändert.
+  # Bereits konfigurierte Materialien werden nicht verändert.
   def self.ocl_material(model, name, farbe, attribute)
     m = model.materials[name] || model.materials.add(name)
     m.color = Sketchup::Color.new(*farbe) unless m.texture || m.get_attribute(OCL_DICT, 'type')
@@ -227,10 +227,10 @@ module Eckschrank
                           'thickness' => '2mm',
                           'std_widths' => '23mm',
                           'std_lengths' => '75m',
-                          'edge_decremented' => true) # 2 mm werden nur in OCL abgezogen
+                          'edge_decremented' => true) # 2 mm werden erst in Stückliste/Zuschnitt abgezogen
   end
 
-  # Kaufteil: OCL-Typ 5 = Beschlag (erscheint in OCL als Beschlag, nicht als Platte)
+  # Kaufteil: Material-Typ 5 = Beschlag (kein Plattenteil)
   def self.beschlag_material(model)
     ocl_material(model, BESCHLAG, [150, 150, 155], 'type' => 5, 'description' => 'Kesseböhmer LeMans II, 2 Tablare')
   end
@@ -256,7 +256,7 @@ module Eckschrank
 
   SEITEN = { xmin: [0, -1], xmax: [0, 1], ymin: [1, -1], ymax: [1, 1], zmin: [2, -1], zmax: [2, 1] }.freeze
 
-  # Sichtbare Kanten je Teil, bekommen in OCL einen Anleimer (wie Unterschrank mit Tür).
+  # Sichtbare Kanten je Teil, bekommen einen Anleimer (wie Unterschrank mit Tür).
   # ymin = vorne, zmin/zmax = unten/oben, xmin/xmax = links/rechts.
   # In der L-Form zeigt die Vorderkante des linken Schenkels nach +x (…B).
   KANTEN = {
@@ -275,7 +275,7 @@ module Eckschrank
   }.freeze
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das
-  # Anleimer-Material (OCL erkennt Anleimer an der Material-Zuweisung der Kantenfläche).
+  # Anleimer-Material (Stückliste und TCN-Export erkennen den Anleimer an der Material-Zuweisung der Kantenfläche).
   def self.quader(ents, lx, ly, lz, kanten = [])
     f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
     f.reverse! if f.normal.z < 0
@@ -304,7 +304,7 @@ module Eckschrank
 
   # L-förmige Platte (L-Form: Boden, Einlegeböden): Rechteck lx x ly ohne die Ecke
   # vorne rechts (x >= ex, y <= ey). Die Kanten der Innenecke bleiben ohne Material,
-  # OCL erkennt dort keinen Anleimer. Die Ecke steht als ecke_x/ecke_y (Zoll, lokal)
+  # die Stückliste erkennt dort keinen Anleimer. Die Ecke steht als ecke_x/ecke_y (Zoll, lokal)
   # an der Definition, daraus fräst der TCN-Export den Ausschnitt.
   def self.l_platte(model, defname, dc_name, lx, ly, lz, ex, ey)
     d = model.definitions.add(defname)
@@ -518,7 +518,7 @@ module Eckschrank
 
   # Platzhalter Kesseböhmer LeMans II: Einbauraum von der Innenseite der Seite an der
   # Tür bis zum Säulenlager (X), Tiefe bis 500 mm, Boden bis unter die Streben.
-  # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung in OCL.
+  # Kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung.
   def self.lemans_platzhalter(model, e, p, r, kz)
     u = NAME
     mk, h, t = p['Materialstaerke_Korpus'], p['Hoehe'], p['Tiefe']
