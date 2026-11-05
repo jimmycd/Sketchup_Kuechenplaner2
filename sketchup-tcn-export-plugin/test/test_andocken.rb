@@ -474,6 +474,9 @@ end
 # Hinterkante an der Wand (Rückseite im Wandabstand), der Schrank springt nicht mit der Vorderkante
 # nach vorne an die Seite des Blindecks. Am L-Eck: Vorderkante bündig mit Schenkel B.
 model.selection.clear
+check(R.kollision([[0, 90, 0, 50]], [0], [0, 90, 0, 50], -2) == [[0, 90, -2, 50]] &&
+      R.kollision([[0, 90, 10, 50], [0, 50, 0, 50]], [0, 1], [0, 90, 0, 50], -2) == [[0, 90, 10, 50], [0, 50, 0, 50]],
+      'Kollision: Fronten vor dem Korpus zählen, L-Schenkel bleiben')
 check(R.front_viertel([[0, 90, 0, 50]]) == [0] && R.front_viertel([[0, 90, 0, 50], [0, 50, -40, 50]]) == [0, 1] &&
       R.front_viertel([[0, 90, 0, 50], [40, 90, -40, 50]]) == [0, 3], 'Frontrichtung je Schenkel')
 [[Eckschrank.erstellen({}), 'Blindeck', false], [Eckschrank.erstellen({}, l_form: true), 'L-Eck', true]].each do |eck, name, l_form|
@@ -497,11 +500,18 @@ check(R.front_viertel([[0, 90, 0, 50]]) == [0] && R.front_viertel([[0, 90, 0, 50
   e = R.ecken(bnb, wn.ziel)
   xs = e.map(&:first)
   ys = e.map { |q2| q2[1] }
-  check(nah(ys.max, front_eck, 1e-6), "#{name}: Nachbar liegt an der Front des Ecks an (#{ys.max * 2.54} / #{front_eck * 2.54})")
   if l_form
+    check(nah(ys.max, front_eck, 1e-6), "#{name}: Nachbar liegt am Korpus des Ecks an (#{ys.max * 2.54} / #{front_eck * 2.54})")
     vorn_b = o(eck)[0] + ge[1][1]
     check(nah(xs.max, vorn_b, 1e-6), "#{name}: Vorderkante bündig mit Schenkel B (#{xs.max * 2.54} / #{vorn_b * 2.54})")
   else
+    # Blindtür/Blende zählt bei der Kollision: der Nachbar steht vor der Blindtür, nicht in ihr
+    tuer = o(eck)[1] + A.vorne(eck)
+    check(tuer < front_eck - 1.5.cm && tuer > front_eck - 3.cm, "#{name}: Blindtür vor dem Korpus (#{(front_eck - tuer) * 25.4} mm)")
+    check(nah(ys.max, tuer, 1e-6), "#{name}: Nachbar liegt an der Blindtür an (#{ys.max * 2.54} / #{tuer * 2.54})")
+    check(R.platz?(bnb, wn.ziel, A.hindernisse(model, nb)), "#{name}: keine Kollision")
+    check(!R.platz?(bnb, [wn.ziel[0], wn.ziel[1], wn.ziel[2] + 1.cm, wn.ziel[3]], A.hindernisse(model, nb)),
+          "#{name}: 1 cm weiter wäre Kollision mit der Blindtür")
     check(nah(xs.min, 2.cm, 1e-6), "#{name}: Hinterkante im Wandabstand, nicht nach vorne gesprungen (#{xs.min * 2.54})")
     check(xs.max < o(eck)[0] + be2[1] - 10.cm, "#{name}: Vorderkante nicht an der Seite des Blindecks")
   end
