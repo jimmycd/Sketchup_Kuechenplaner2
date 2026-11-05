@@ -72,6 +72,10 @@ module Geraete
 
   SPALT        = 2.0    # Fuge vor dem Korpus (wie Spaltbreite der Schränke)
   FRONT_MAX    = 595.0  # Frontbreite der Einbaugeräte
+  # Unterbaugeräte (Spüler, Kühlgeräte) haben einen zurückspringenden Sockel: er beginnt hinter der
+  # Sockelblende (Korpus 19 + Rücksprung 50 + Blende 16 mm ab Korpusvorderkante), wie der Platzhalter
+  # der Nischen (Geraet_Sockel_Versatz). Jürgen 2026-11-05: Gerätesockel stand zu weit vorne.
+  SOCKEL_VERSATZ = 85.0
   ARBEITSPLATTE = 38.0  # wenn die Nische keine Stärke angibt (Schichtstoff, Standard der Arbeitsplatte)
 
   # Spüle und Kochfeld sitzen im Ausschnitt der Arbeitsplatte. Liegt im Modell eine Arbeitsplatte
@@ -128,6 +132,11 @@ module Geraete
     [(x0 + x1 - kb) / 2, (y0 + y1 - kt) / 2]
   end
 
+  # Gerätesockel: y relativ zum Einfügepunkt (der liegt n['y'] hinter der Korpusvorderkante)
+  def self.sockel_y(n)
+    SOCKEL_VERSATZ - zahl(n, 'y', 19.0)
+  end
+
   # Teil: [Name, Material, [x, y, z], [Breite, Tiefe, Höhe]]
   def self.teil(name, mat, pos, groesse)
     [name, mat, pos.map(&:to_f), groesse.map(&:to_f)]
@@ -148,11 +157,11 @@ module Geraete
   def self.berechne_geschirrspueler(n, _)
     b, h = zahl(n, 'breite'), zahl(n, 'hoehe')
     t = [550.0, zahl(n, 'tiefe', 550.0)].min
-    sockel = 100.0
+    sockel = zahl(n, 'z', 0.0) < 0 ? -zahl(n, 'z') : 100.0 # Einfügepunkt auf dem Fußboden: Sockel bis Unterkante Korpus
     { plan: [0, 0, 0, b, t, h],
       teile: [teil('Gehaeuse', 'Geraet Edelstahl', [0, 20, sockel], [b, t - 20, h - sockel - 20]),
               teil('Bedienleiste', 'Geraet Gehaeuse', [0, 0, h - 20 - 30], [b, 20, 30]),
-              teil('Sockel', 'Geraet Gehaeuse', [20, 50, 0], [b - 40, t - 50, sockel])] }
+              teil('Sockel', 'Geraet Gehaeuse', [20, sockel_y(n), 0], [b - 40, t - sockel_y(n), sockel])] }
   end
 
   # Unterbau-Kühlgeräte: Einfügepunkt auf dem Fußboden an der Korpusvorderkante,
@@ -166,7 +175,7 @@ module Geraete
     fy = -(zahl(n, 'y', 19.0) + SPALT) # Vorderseite der Möbelfronten
     { b: b, h: h, t: t, so: so, fy: fy,
       gehaeuse: teil('Gehaeuse', 'Geraet Gehaeuse', [0, 20, so], [b, t - 20, h - so]),
-      fuesse: teil('Fuesse', 'Geraet Gehaeuse', [20, 60, 0], [b - 40, t - 80, so]) }
+      fuesse: teil('Fuesse', 'Geraet Gehaeuse', [20, sockel_y(n), 0], [b - 40, t - 20 - sockel_y(n), so]) }
   end
 
   def self.berechne_kuehlschrank(n, _)
