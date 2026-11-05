@@ -454,8 +454,19 @@ check(kontur.size == 5 && kontur[0].include?('#1=63.015 #2=235.015 #3=-9 ') && k
       "Rückwand Spüle: Ausschnitt als geschlossene Kontur, 9 tief: #{kontur}")
 z = bearbeitungen(dsp['USP1_SeiteR'].text, 1)
 nut = z.select { |x| x.start_with?('W#89', 'W#2201') }
-check(nut.size == 2 && nut[0].include?('#1=19 #2=744 #3=-9 ') && nut[1].include?('#1=686 #2=0 '),
+# Seiten reichen bis zur Rückseite (Tiefe + 8 mm Rückwand), Nut 50 + 4 mm vor der Hinterkante
+check(nut.size == 2 && nut[0].include?('#1=19 #2=752 #3=-9 ') && nut[1].include?('#1=686 #2=0 '),
       "Seite Spüle: Nut 50 + 4 mm vor der Hinterkante, ab Oberkante Boden bis über die Oberkante: #{nut}")
+# Installationsebene 0 (Jürgen 2026-11-05): Rückwand wie beim Unterschrank voll hinter dem Korpus, keine Nut
+sm0 = Sketchup.active_model = Sketchup::Model.new
+Spuelenschrank.erstellen({ 'Rueckwand_Versatz' => 0.0 })
+ds0, ms0 = S::Export.erzeugen(sm0)
+d0 = ds0.to_h { |x| [x.name, x] }
+check(ms0.empty?, "Spülenschrank Installationsebene 0: keine Meldungen #{ms0}")
+check([d0['USP1_Rueckwand'].lage.dl, d0['USP1_Rueckwand'].lage.dh].sort == [700, 800].sort,
+      "Spüle Installationsebene 0: Rückwand 800 x 700 wie Unterschrank (#{d0['USP1_Rueckwand'].lage.dl} x #{d0['USP1_Rueckwand'].lage.dh})")
+check(%w[USP1_SeiteL USP1_SeiteR].none? { |n| d0[n].text.include?('#205=2200') && d0[n].text.include?('#3=-9 ') },
+      'Spüle Installationsebene 0: keine Rückwandnut in den Seiten')
 check(z.none? { |x| x.include?('#8522=5 ') && x.include?('fitting') }, 'Seite Spüle mit Auszug: keine Lochreihe')
 check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 4, 'Seite Spüle: Schienenbohrungen für den Auszug')
 bd = dsp['USP1_Boden'].text
