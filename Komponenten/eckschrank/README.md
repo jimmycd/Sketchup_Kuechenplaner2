@@ -7,8 +7,8 @@ Zwei Bauformen für die Ecke einer Küchenzeile:
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `eckschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank Blindeck…* baut den Blindeck-Schrank im aktuellen Modell; Maße und Optionen danach in den *Komponentenoptionen* einstellen.
-3. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank L-Form…* fragt Schenkel A, Schenkel B und Tiefe ab und baut dann den Schrank. Alle Maße lassen sich danach im Fenster *Komponentenoptionen* ändern (siehe unten).
+2. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank Blindeck…* fragt alle Werte der Komponentenoptionen ab (Breite, Höhe, Tiefe, Variante, Blindseite, Türbreite, LeMans-Größe, Einlegeböden, Passleiste, Nachbarschrank Wand bis Front) und baut dann den Schrank. Ungültige Kombinationen (Türbreite ≥ Breite, LeMans-Korpus zu schmal) meldet das Fenster, ohne zu schließen. Alles bleibt danach in den *Komponentenoptionen* änderbar.
+3. *Erweiterungen → Küchenplaner → Unterschränke → Eckschrank L-Form…* fragt Schenkel A, Schenkel B, Höhe, Tiefe und Anzahl Einlegeböden ab und baut dann den Schrank. Alle Maße lassen sich danach im Fenster *Komponentenoptionen* ändern (siehe unten).
 
 Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf den Schrank → *Speichern unter…*.
 

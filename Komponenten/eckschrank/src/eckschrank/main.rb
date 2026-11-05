@@ -888,20 +888,65 @@ module Eckschrank
     20.0
   end
 
+  # Auswahllisten im Anlage-Dialog, Reihenfolge = Wert der Komponentenoption
+  VARIANTEN_TEXT  = ['eine Tür', 'zwei Türen', 'Le Mans (Kesseböhmer)'].freeze
+  BLINDSEITE_TEXT = ['links (Tür rechts)', 'rechts (Tür links)'].freeze
+  LEMANS_TEXT     = LEMANS_MODELLE.keys.map { |k| "LeMans #{k}" }.freeze
+  EB_TEXT         = %w[0 1 2].freeze
+
+  def self.mm(cm)
+    (cm.to_f * 10).round.to_s
+  end
+
+  # Alle Werte, die auch im Fenster Komponentenoptionen stehen, schon beim Anlegen abfragen
   def self.dialog
-    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Eckschrank Blindeck', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
-      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-      t = eingabe['Tiefe']
-      if t < tiefe_min - 0.000001
-        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
-      end
-      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    d = DEFAULTS
+    prompts = ['Maße: Breite (mm)', 'Maße: Höhe (mm)', 'Maße: Tiefe Korpus (mm)',
+               'Ausführung: Variante', 'Ausführung: Blindseite',
+               'Ausführung: Türbreite (mm, eine/zwei Türen mit Fugen)',
+               'Ausführung: LeMans-Größe (= Türbreite bei Le Mans)', 'Ausführung: Anzahl Einlegeböden (nicht bei Le Mans)',
+               'Nachbarschrank: Passleiste (mm, sichtbare Blende neben der Tür)',
+               'Nachbarschrank: Wand bis Front Nachbar (mm)']
+    werte = [mm(d['Breite']), mm(d['Hoehe']), mm(TIEFE_NEU),
+             VARIANTEN_TEXT[d['Variante'].to_i], BLINDSEITE_TEXT[d['Blindseite'].to_i], mm(d['Tuerbreite']),
+             "LeMans #{d['LeMans'].to_i}", d['Anz_Einlegeboeden'].to_i.to_s,
+             mm(d['Passleiste']), mm(d['Tiefe_Nachbar'])]
+    listen = ['', '', '', VARIANTEN_TEXT.join('|'), BLINDSEITE_TEXT.join('|'), '',
+              LEMANS_TEXT.join('|'), EB_TEXT.join('|'), '', '']
+    Kuechenplaner::Eingabe.abfragen(prompts, werte, listen, 'Eckschrank Blindeck',
+                                    untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      eingabe = dialog_werte(res)
       erstellen(eingabe)
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
+  # Antworten des Anlage-Dialogs -> Parameter (cm); ArgumentError bei ungültigen Werten
+  def self.dialog_werte(res)
+    zahl = ->(v) { Float(v.to_s.tr(',', '.')) / 10.0 }
+    eingabe = { 'Breite' => zahl.(res[0]), 'Hoehe' => zahl.(res[1]), 'Tiefe' => zahl.(res[2]),
+                'Variante' => (VARIANTEN_TEXT.index(res[3].to_s) || 0).to_f,
+                'Blindseite' => (BLINDSEITE_TEXT.index(res[4].to_s) || 0).to_f,
+                'Tuerbreite' => zahl.(res[5]),
+                'LeMans' => res[6].to_s[/\d+/].to_f,
+                'Anz_Einlegeboeden' => (EB_TEXT.index(res[7].to_s) || 0).to_f,
+                'Passleiste' => zahl.(res[8]), 'Tiefe_Nachbar' => zahl.(res[9]) }
+    t = eingabe['Tiefe']
+    if t < tiefe_min - 0.000001
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
+    end
+    %w[Breite Hoehe Tuerbreite].each { |k| raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe[k] <= 0 }
+    %w[Passleiste Tiefe_Nachbar].each { |k| raise ArgumentError, 'Passleiste und Nachbarmaß dürfen nicht negativ sein' if eingabe[k].negative? }
+    p = DEFAULTS.merge(eingabe)
+    berechne(p) # Türbreite passt in die Breite, LeMans-Größe gibt es
+    if p['Variante'].to_i == LEMANS
+      min = lemans(p)[:korpus]
+      if p['Breite'] < min - 0.000001
+        raise ArgumentError, "LeMans #{p['LeMans'].to_i} braucht mindestens #{mm(min)} mm Breite"
+      end
+    end
+    eingabe
   end
 
   def self.erstellen(eingabe = {}, l_form: false)
@@ -930,14 +975,21 @@ module Eckschrank
     raise
   end
 
-  # L-Form: Schenkel und Tiefe vor dem Erzeugen abfragen (mm)
+  # L-Form: alle Werte aus dem Fenster Komponentenoptionen vor dem Erzeugen abfragen
   def self.dialog_l
     d = DEFAULTS_L
-    Kuechenplaner::Eingabe.abfragen(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Tiefe Korpus (mm)'],
-                        [d['Schenkel_A'], d['Schenkel_B'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
-                        'Eckschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
-      a, b, t = werte.map { |v| Float(v.tr(',', '.')) / 10.0 }
-      erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Tiefe' => t }, l_form: true)
+    Kuechenplaner::Eingabe.abfragen(['Maße: Schenkel A, hinten (mm)', 'Maße: Schenkel B, links (mm)', 'Maße: Höhe (mm)',
+                                     'Maße: Tiefe Korpus (mm)', 'Ausführung: Anzahl Einlegeböden'],
+                                    [mm(d['Schenkel_A']), mm(d['Schenkel_B']), mm(d['Hoehe']), mm(TIEFE_NEU),
+                                     d['Anz_Einlegeboeden'].to_i.to_s],
+                                    ['', '', '', '', EB_TEXT.join('|')],
+                                    'Eckschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
+      a, b, h, t = werte[0, 4].map { |v| Float(v.to_s.tr(',', '.')) / 10.0 }
+      raise ArgumentError, 'Maße müssen größer als 0 sein' if [a, b, h, t].any? { |v| v <= 0 }
+      eingabe = { 'Schenkel_A' => a, 'Schenkel_B' => b, 'Hoehe' => h, 'Tiefe' => t,
+                  'Anz_Einlegeboeden' => (EB_TEXT.index(werte[4].to_s) || 0).to_f }
+      masse_l(DEFAULTS_L.merge(eingabe)) # prüft die Maße, Fenster bleibt sonst offen
+      erstellen(eingabe, l_form: true)
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
