@@ -2,15 +2,15 @@
 # Schrank-CNC – Etiketten.
 #
 # Ein Etikett je Stück (Anzahl 3 = drei Etiketten "1/3", "2/3", "3/3"), in der
-# Reihenfolge der Stückliste (gleiche Nummern). Ausgabe als HTML-Seite, die im
-# Browser gedruckt wird (auch als PDF):
+# Reihenfolge der Stückliste (gleiche Nummern). Ausgabe als PDF (Etiketten.pdf), im
+# PDF-Leser mit „Tatsächliche Größe“ drucken:
 #   Bogen  – A4 hoch, Etiketten in Spalten × Zeilen mit Rändern und Abständen,
 #            Startposition für angebrochene Bögen
 #   Endlos – Etikettendrucker mit Rolle: je Etikett eine Seite in Etikettengröße
 # Das Format ist frei einstellbar und wird für alle Modelle gespeichert.
-# Inhalt: Tag, Nummer, Schrank/Teil, Material und Stärke, Rohmaß, Fertigmaß,
-# Kantenbild (Anleimer als dicke Linie), TCN-Dateiname, optional QR-Code
-# mit dem TCN-Dateinamen (braucht beim Drucken Internet für die QR-Bibliothek).
+# Inhalt: Tag, Nummer, Schrank/Teil, Material und Stärke, Rohmaß, Fräsmaß, Fertigmaß
+# (in dieser Reihenfolge), Kantenbild (Anleimer als dicke Linie), TCN-Dateiname,
+# optional QR-Code mit dem TCN-Dateinamen (im PDF gezeichnet, ohne Internet).
 
 module JTools
   module SchrankCnc
@@ -19,7 +19,6 @@ module JTools
 
       SEITE = [210.0, 297.0].freeze # A4 hoch, mm
       ARTEN = %w[Bogen Endlos].freeze
-      QR_JS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'.freeze
 
       # Schlüssel => [Bezeichnung, Standard]; Standard = A4-Bogen 3 × 8 à 70 × 37 mm
       FORMAT = {
@@ -85,97 +84,113 @@ module JTools
       end
 
       # Kantenbild: Rechteck im Seitenverhältnis des Teils (begrenzt), Länge waagrecht;
-      # L1 unten, L2 oben, B1 links, B2 rechts; Anleimer als dicke Linie
-      def kantenbild(z, breite_mm, hoehe_mm)
+      # L1 unten, L2 oben, B1 links, B2 rechts; Anleimer als dicke Linie.
+      # Zeichnet in das Feld x/y/w/h (mm), rechtsbündig oben
+      def kantenbild(doc, z, x, y, w, h)
         l, b = z.fertig
         r = [[b / l.to_f, 0.25].max, 1.0].min
-        w = 100.0
-        hh = w * r
-        sw = 7
-        o = +"<svg class=\"kb\" viewBox=\"-6 -6 #{w + 12} #{(hh + 12).round(2)}\" style=\"width:#{breite_mm}mm;max-height:#{hoehe_mm}mm\">"
-        o << "<rect x=\"0\" y=\"0\" width=\"#{w}\" height=\"#{hh.round(2)}\" fill=\"none\" stroke=\"#000\" stroke-width=\"1\"/>"
-        linien = { l1: [0, hh, w, hh], l2: [0, 0, w, 0], b1: [0, 0, 0, hh], b2: [w, 0, w, hh] }
+        bw = [w, h / r].min
+        bh = bw * r
+        x0 = x + w - bw
+        sw = [bw * 0.035, 0.5].max
+        doc.rechteck(x0, y, bw, bh, rand: [0, 0, 0], staerke: 0.15)
+        linien = { l1: [x0, y + bh, x0 + bw, y + bh], l2: [x0, y, x0 + bw, y],
+                   b1: [x0, y, x0, y + bh], b2: [x0 + bw, y, x0 + bw, y + bh] }
         linien.each do |k, (x1, y1, x2, y2)|
-          next unless z.kanten[k]
-          o << "<line x1=\"#{x1}\" y1=\"#{y1.round(2)}\" x2=\"#{x2}\" y2=\"#{y2.round(2)}\" stroke=\"#000\" stroke-width=\"#{sw}\" stroke-linecap=\"square\"/>"
+          doc.linie(x1, y1, x2, y2, staerke: sw) if z.kanten[k]
         end
-        o << '</svg>'
+        bh
       end
 
-      def etikett(z, i, n, f, qr_id = nil)
+      def mass(a)
+        "#{zahl(a[0])} × #{zahl(a[1])}"
+      end
+
+      # Textzeilen eines Etiketts: [Text, fett]
+      def zeilen(z)
+        [["#{z.schrank} · #{z.teil}", false],
+         ["#{z.material.empty? ? '(ohne Material)' : z.material} #{zahl(z.ds)} mm", false],
+         ["Roh #{mass(z.roh)}", true],
+         ["Fräs #{mass(z.fraes)}", false],
+         ["Fertig #{mass(z.fertig)}", false],
+         [z.datei.to_s, false]]
+      end
+
+      # Ein Etikett mit linker oberer Ecke x/y
+      def etikett(doc, z, i, n, f, x, y, qr)
         w = f['etikett_breite']
         hoch = f['etikett_hoehe']
-        bild_b = [w * 0.28, 22].min
-        o = +"<div class=\"inhalt\">"
-        o << "<div class=\"kopf\"><span class=\"tag\">#{h(z.tag)}</span><span class=\"nr\">Nr #{z.nr}#{n > 1 ? " · #{i}/#{n}" : ''}</span></div>"
-        o << "<div class=\"rumpf\"><div class=\"text\">"
-        o << "<div>#{h(z.schrank)} · #{h(z.teil)}</div>"
-        o << "<div>#{h(z.material.empty? ? '(ohne Material)' : z.material)} #{zahl(z.ds)} mm</div>"
-        o << "<div class=\"roh\">Roh #{zahl(z.roh[0])} × #{zahl(z.roh[1])}</div>"
-        o << "<div>Fertig #{zahl(z.fertig[0])} × #{zahl(z.fertig[1])}</div>"
-        # Schräg- oder Bogenkante (Abschlussregal): fräst die CNC, Anleimer danach von Hand
-        o << "<div>Kontur mit Anleimer (CNC)</div>" if z.respond_to?(:kontur) && z.kontur && !z.kontur.empty?
-        o << "<div class=\"datei\">#{h(z.datei)}</div>"
-        o << '</div><div class="bild">'
-        o << kantenbild(z, bild_b, hoch * 0.35)
-        o << "<div id=\"#{qr_id}\" class=\"qr\" data-text=\"#{h(z.datei)}\"></div>" if qr_id
-        o << '</div></div></div>'
+        fs = [[hoch / 14.0, w / 27.0].min, 1.6].max
+        pad_x = [w * 0.03, 2.0].min
+        pad_y = [hoch * 0.04, 1.5].min
+        innen = w - 2 * pad_x
+        doc.ausschnitt(x, y, w, hoch) do
+          # Kopf: Tag groß links, Nummer rechts, Linie darunter
+          nr = "Nr #{z.nr}#{n > 1 ? " · #{i}/#{n}" : ''}"
+          nr_b = doc.textbreite(nr, fs * 0.95)
+          ft = fs * 1.45
+          yk = y + pad_y + ft * 0.8
+          doc.text(x + w - pad_x, yk, nr, groesse: fs * 0.95, ausrichtung: :rechts)
+          doc.text(x + pad_x, yk, z.tag, groesse: ft, fett: true, max: innen - nr_b - 1)
+          yl = yk + ft * 0.3
+          doc.linie(x + pad_x, yl, x + w - pad_x, yl, staerke: 0.2)
+          # rechts: Kantenbild und QR-Code
+          rechts = [w * 0.28, 22.0].min
+          rest_h = hoch - (yl - y) - pad_y - 0.6
+          bild_h = kantenbild(doc, z, x + w - pad_x - rechts, yl + 0.8, rechts, [hoch * 0.3, rest_h].min)
+          if qr
+            q = [rest_h - bild_h - 1.7, rechts].min
+            doc.qr(x + w - pad_x - q, yl + 0.8 + bild_h + 1.5, q, z.datei) if q >= 6
+          end
+          # Text links
+          text_b = innen - rechts - 1.0
+          zh = fs * 1.2
+          ty = yl + 0.6 + zh * 0.85
+          zeilen(z).each do |t, fett|
+            g = t == z.datei.to_s ? fs * 0.85 : fs
+            break if ty > y + hoch - pad_y * 0.5
+            doc.text(x + pad_x, ty, t, groesse: g, fett: fett, max: text_b)
+            ty += zh
+          end
+        end
       end
 
-      def html(zs, f, start: 1, titel: 'Etiketten')
+      def pdf(zs, f, start: 1, titel: 'Etiketten')
         w = f['etikett_breite']
         hoch = f['etikett_hoehe']
         qr = f['etikett_qr'].to_s.strip.downcase.start_with?('j')
-        bogen = bogen?(f)
-        seite = bogen ? SEITE : [w, hoch]
-        # Schrift nach Etikettgröße: 70 × 37 → etwa 2,6 mm Grundschrift
-        fs = [[hoch / 14.0, w / 27.0].min, 1.6].max.round(2)
-        o = +"<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"utf-8\"><title>#{h(titel)}</title>\n<style>\n"
-        o << "@page{size:#{Tcn.n(seite[0])}mm #{Tcn.n(seite[1])}mm;margin:0}\n"
-        o << "html,body{margin:0;padding:0;background:#fff}body{font-family:Arial,sans-serif;color:#000}\n"
-        o << ".seite{position:relative;width:#{Tcn.n(seite[0])}mm;height:#{Tcn.n(seite[1])}mm;overflow:hidden;page-break-after:always;break-after:page}\n"
-        o << ".seite:last-child{page-break-after:auto;break-after:auto}\n"
-        o << ".etikett{position:absolute;width:#{Tcn.n(w)}mm;height:#{Tcn.n(hoch)}mm;box-sizing:border-box;padding:1.5mm 2mm;overflow:hidden}\n"
-        o << ".inhalt{font-size:#{fs}mm;line-height:1.2}.kopf{display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.2mm solid #000;margin-bottom:0.6mm}\n"
-        o << ".tag{font-weight:bold;font-size:1.45em}.nr{font-size:0.95em;white-space:nowrap;margin-left:1mm}.rumpf{display:flex;justify-content:space-between;gap:1mm}\n"
-        o << ".text{min-width:0}.text div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.roh{font-weight:bold}.datei{font-size:0.85em}\n"
-        o << ".bild{display:flex;flex-direction:column;align-items:flex-end;gap:0.8mm}.kb{display:block}.qr img,.qr canvas{width:#{Tcn.n((hoch * 0.4).round(1))}mm!important;height:#{Tcn.n((hoch * 0.4).round(1))}mm!important}\n"
-        o << "@media screen{body{background:#ccc}.seite{background:#fff;margin:4mm auto;box-shadow:0 0 2mm #888}.etikett{outline:0.1mm dashed #bbb}}\n"
-        o << "</style>\n"
-        o << "<script src=\"#{QR_JS}\"></script>\n" if qr
-        o << "</head><body>\n"
+        doc = Pdf.new(titel: titel)
         liste = stuecke(zs)
-        if bogen
+        if bogen?(f)
           vorne = [[start.to_i, 1].max, je_bogen(f)].min - 1
           plaetze = Array.new(vorne) + liste
-          nr = 0
+          pos = lagen(f)
           plaetze.each_slice(je_bogen(f)) do |seite_e|
-            o << "<div class=\"seite\">\n"
+            doc.seite(*SEITE)
             seite_e.each_with_index do |e, k|
-              next unless e
-              x = f['etikett_rand_links'] + (k % f['etikett_spalten']) * (w + f['etikett_abstand_h'])
-              y = f['etikett_rand_oben'] + (k / f['etikett_spalten']) * (hoch + f['etikett_abstand_v'])
-              o << "<div class=\"etikett\" style=\"left:#{Tcn.n(x.round(2))}mm;top:#{Tcn.n(y.round(2))}mm\">"
-              o << etikett(*e, f, qr ? "qr#{nr += 1}" : nil) << "</div>\n"
+              etikett(doc, *e, f, *pos[k], qr) if e
             end
-            o << "</div>\n"
           end
         else
-          liste.each_with_index do |e, k|
-            o << "<div class=\"seite\"><div class=\"etikett\" style=\"left:0;top:0\">"
-            o << etikett(*e, f, qr ? "qr#{k}" : nil) << "</div></div>\n"
+          liste.each do |e|
+            doc.seite(w, hoch)
+            etikett(doc, *e, f, 0, 0, qr)
           end
         end
-        if qr
-          o << "<script>if(window.QRCode){document.querySelectorAll('.qr').forEach(function(e){new QRCode(e,{text:e.dataset.text,width:128,height:128,correctLevel:QRCode.CorrectLevel.M})})}</script>\n"
+        doc
+      end
+
+      # Lage der Etiketten auf dem Bogen: [[x, y], …] für Platz 0 … je_bogen-1
+      def lagen(f)
+        (0...je_bogen(f)).map do |k|
+          [f['etikett_rand_links'] + (k % f['etikett_spalten']) * (f['etikett_breite'] + f['etikett_abstand_h']),
+           f['etikett_rand_oben'] + (k / f['etikett_spalten']) * (f['etikett_hoehe'] + f['etikett_abstand_v'])]
         end
-        o << "</body></html>\n"
       end
 
       def schreiben(ordner, zs, f, start: 1)
-        p = File.join(ordner, 'Etiketten.html')
-        File.binwrite(p, html(zs, f, start: start, titel: "Etiketten #{File.basename(ordner.to_s.tr('\\', '/'))}").encode('UTF-8').b)
-        p
+        p = File.join(ordner, 'Etiketten.pdf')
+        pdf(zs, f, start: start, titel: "Etiketten #{File.basename(ordner.to_s.tr('\\', '/'))}").schreiben(p)
       end
 
       # Format abfragen (vorbelegt mit dem gespeicherten), dazu die Startposition.
@@ -220,7 +235,7 @@ module JTools
           next unless ordner
           p = schreiben(ordner, zs, f, start: start)
           UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-          text = "#{stuecke(zs).size} Etiketten#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nIm Browser drucken: Größe 100 % (nicht „an Seite anpassen“), Ränder keine."
+          text = "#{stuecke(zs).size} Etiketten#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nDrucken mit „Tatsächliche Größe“ (100 %, nicht „an Seite anpassen“)."
           text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
           UI.messagebox(text)
         end
