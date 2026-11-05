@@ -137,12 +137,9 @@ erwartet.each_key do |s|
     check(kinder.map { |k| k.layer&.name }.sort == [G::TAG_PLAN, G::TAG_RENDER], "#{g.definition.name}: Tags #{kinder.map { |k| k.layer&.name }}")
     check(g.layer.nil?, "#{g.definition.name}: Gerät selbst ohne Tag")
     plan = kinder.find { |k| k.name == 'Plan' }
-    if g.definition.get_attribute(G::GERAET_DICT, 'geraet') == 'Spuele'
-      check(plan.definition.entities.grep(Sketchup::ComponentInstance).map { |k| k.definition.name } == ['Geraet Spuele Render'] &&
-            plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Spülenmodell, keinen Kasten")
-    else
-      check(plan.material.alpha < 1, "#{g.definition.name}: Planblock halbtransparent")
-    end
+    render = kinder.find { |k| k.name == 'Render' }
+    check(plan.definition.entities.grep(Sketchup::ComponentInstance).map(&:definition) == [render.definition] &&
+          plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Gerätemodell, keinen Kasten (sonst wirkt die Nische leer)")
     check(plan.definition.entities.texte.first&.first&.include?('Nische'), "#{g.definition.name}: Beschriftung")
   end
   platzhalter = s.definition.entities.grep(Sketchup::ComponentInstance).reject { |i| G.geraet?(i) }
@@ -217,6 +214,74 @@ check(G.in_schraenke_setzen(leer) == 0 && $meldungen.last.include?('Keine Schrä
   neu = G.nischen(i.definition, i).map { |n| n['tiefe'] }
   check(alt.all? { |t| t > 520 } && neu.all? { |t| nah(t, 520.0) }, "#{i.definition.name}: Nische mit aktueller Tiefe 520 statt #{alt} (#{neu})")
 end
+
+# --- Spüle und Kochfeld sitzen im Ausschnitt der Arbeitsplatte ---
+# Ohne Arbeitsplatte im Modell: Richtwerte, gerechnet wie die Arbeitsplatte selbst (Front des Schranks bei y = -Spalt)
+%w[erkennung ausschnitte layout].each { |f| load File.join(komp, 'arbeitsplatte', 'src', 'arbeitsplatte', "#{f}.rb") }
+ap_o = Arbeitsplatte::Layout::OPTIONEN
+check(nah(G::AP_UEBERSTAND, ap_o[:ueberstand_vorn]) && nah(G::AUSSCHNITT_SPUELE[:abstand_vorn], ap_o[:spuele_abstand_vorn]) &&
+      nah(G::AUSSCHNITT_SPUELE[:tiefe], ap_o[:spuele_tiefe]) && nah(G::AUSSCHNITT_SPUELE[:max], ap_o[:spuele_max]) &&
+      nah(G::AUSSCHNITT_SPUELE[:rand], ap_o[:spuele_rand]) && nah(G::AUSSCHNITT_KOCHFELD[:abstand_vorn], ap_o[:kochfeld_abstand_vorn]) &&
+      G::AUSSCHNITT_KOCHFELD[:breiten] == Arbeitsplatte::Ausschnitte::KOCHFELD.transform_values(&:first) &&
+      nah(G::ARBEITSPLATTE, Arbeitsplatte::Layout::STAERKE[:schichtstoff]), 'Richtwerte gleich wie in der Arbeitsplatte')
+ap_rechteck = lambda do |typ, breite|
+  z = { nr: 1, front: :ny, achse: 0, front_linie: -2.0, elemente: [{ kz: 'X1', typ: typ, s0: 0.0, s1: breite }] }
+  Arbeitsplatte::Ausschnitte.fuer_zeile(z, ap_o.merge(ausschnitte: {})).first[:rechteck]
+end
+[[usp, 'Spuelenschrank', :spuele, 800.0], [usk, 'Unterschrank_Kochfeld', :kochfeld, 800.0], [usb, 'Unterschrank_Backofen', :kochfeld, 600.0]].each do |s, typ, art, breite|
+  n = G.nischen(s.definition, s).find { |x| x['z'].to_f > 600 }
+  welt = ap_rechteck.(typ, breite)
+  soll = [welt[0] - n['x'], welt[1] - n['y'], welt[2] - n['x'], welt[3] - n['y']]
+  ist = G.ausschnitt(n, art)
+  check(ist.zip(soll).all? { |a, b| nah(a, b) }, "#{typ}: Ausschnitt #{ist} wie Arbeitsplatte #{soll}")
+end
+teil_von = ->(r, name) { r[:teile].find { |t| t[0] == name } }
+sp_n = G.nischen(usp.definition, usp).first
+ax0, ay0, ax1, ay1 = G.ausschnitt(sp_n, :spuele)
+r = G.berechne(sp_n)
+rv, rh, rl, rr, boden = %w[RandVorn RandHinten RandL RandR Beckenboden].map { |k| teil_von.(r, k) }
+check(nah(rv[2][0], ax0 - 10) && nah(rv[2][1], ay0 - 10) && nah(rv[2][0] + rv[3][0], ax1 + 10) &&
+      nah(rh[2][1] + rh[3][1], ay1 + 10), "Spülenrand liegt rundum 10 mm auf der Platte: #{rv} #{rh}")
+check(boden[2][0] > ax0 && boden[2][1] > ay0 && boden[2][0] + boden[3][0] < ax1 && boden[2][1] + boden[3][1] < ay1,
+      "Becken hängt im Ausschnitt: #{boden}")
+check(nah(rv[2][2], 38), "Spülenrand auf der Schichtstoffplatte (38 mm): #{rv[2]}")
+check(nah(ay0 + 19, 38) && nah(ax1 - ax0, 700), "Spülenausschnitt 60 mm hinter der Plattenvorderkante (Korpus y 38), 700 breit: #{[ax0, ay0, ax1, ay1]}")
+kf_n = G.nischen(usk.definition, usk).first
+k0, k1, k2, k3 = G.ausschnitt(kf_n, :kochfeld)
+glas = teil_von.(G.berechne(kf_n), 'Kochfeld')
+check(nah(glas[2][0] + glas[3][0] / 2, (k0 + k2) / 2) && nah(glas[2][1] + glas[3][1] / 2, (k1 + k3) / 2) &&
+      glas[2][0] < k0 && glas[2][1] < k1 && glas[2][0] + glas[3][0] > k2 && glas[2][1] + glas[3][1] > k3,
+      "Kochfeld mittig über dem Ausschnitt und deckt ihn: #{glas} / #{[k0, k1, k2, k3]}")
+
+# Mit Arbeitsplatte im Modell: deren Ausschnitt gilt (hier absichtlich anders als die Richtwerte)
+m2 = Sketchup::Model.new
+Sketchup.active_model = m2
+usp2 = m2.entities.add_instance(Spuelenschrank.erzeuge(m2, {}), Geom::Transformation.translation([1000 / 25.4, 500 / 25.4, 0]))
+kz2 = usp2.definition.get_attribute(G::JT_DICT, 'schrank')
+apd = m2.definitions.add('Arbeitsplatte APL1')
+apd.set_attribute(G::JT_DICT, 'typ', 'Arbeitsplatte')
+platte = apd.entities.add_instance(m2.definitions.add('APL1_Platte1'), Geom::Transformation.translation([0, 0, 700 / 25.4]))
+platte.set_attribute(G::AP_DICT, 'staerke', 40.0)
+platte.set_attribute(G::AP_DICT, 'ausschnitte', JSON.generate([{ 'schrank' => 'ANDERS', 'rechteck' => [0, 0, 1, 1] },
+                                                               { 'schrank' => kz2, 'rechteck' => [1070.0, 545.0, 1730.0, 1025.0] }]))
+m2.entities.add_instance(apd, Geom::Transformation.translation([0, 0, 0]))
+nn = G.nischen(usp2.definition, usp2).first
+aus = G.ausschnitt_aus_modell(m2, usp2, nn, kz2)
+check(aus['ausschnitt'] == [70.0 - 19, 45.0 - 19, 730.0 - 19, 525.0 - 19] && nah(aus['arbeitsplatte'], 40), "Ausschnitt aus dem Modell: #{aus}")
+check(G.ausschnitt_aus_modell(m2, usp2, nn, 'FREMD') == {}, 'anderer Schrank: kein Ausschnitt')
+G.einsetzen(m2, usp2)
+rd2 = geraete(usp2).first.definition.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'Render' }.definition
+rv2 = rd2.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'RandVorn' }
+check(rv2.transformation.origin.map { |v| (v * 25.4).round(3) } == [41.0, 16.0, 40.0], "Spüle im Ausschnitt der Arbeitsplatte: #{rv2.transformation.origin.map { |v| v * 25.4 }}")
+# gedrehter Schrank: Welt -> Schrank zurückrechnen
+dreh = [0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 10, 20, 0, 1].map(&:to_f) # 90° um z, verschoben
+check(G.lokal(dreh, G.punkt(dreh, [3.0, 4.0, 5.0])).zip([3, 4, 5]).all? { |a, b| nah(a, b) }, 'Welt -> Schrank bei gedrehtem Schrank')
+# Arbeitsplatte neu erzeugt: vorhandene Spüle wird neu ausgerichtet
+platte.set_attribute(G::AP_DICT, 'ausschnitte', JSON.generate([{ 'schrank' => kz2, 'rechteck' => [1080.0, 545.0, 1720.0, 1025.0] }]))
+check(G.an_arbeitsplatte_ausrichten(m2) == 1, 'Arbeitsplatte neu: Schrank mit Spüle ausgerichtet')
+rd3 = geraete(usp2).first.definition.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'Render' }.definition
+check(nah(rd3.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'RandVorn' }.transformation.origin[0] * 25.4, 51.0),
+      'Spüle folgt dem neuen Ausschnitt')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

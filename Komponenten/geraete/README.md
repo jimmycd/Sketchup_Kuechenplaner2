@@ -14,20 +14,20 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 
 | Szene | `Geraete_Plan` | `Geraete_Render` | wofür |
 |---|---|---|---|
-| Planung | an | aus | farbige, halbtransparente Blöcke mit Beschriftung (Gerät und Nischenmaß) |
+| Planung | an | aus | Gerätemodell mit Beschriftung (Gerät und Nischenmaß) |
 | Kunde | aus | an | Rendering: Schwarzglas, Edelstahl, Gehäuse |
 | Zuschnitt | aus | aus | Stückliste/Etiketten, keine Geräte |
 
-Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld, Haube), türkis = Wasser (Spüler, Spüle), blau = sonstige (Mikrowelle, Wärmeschublade).
+In der Planung steht das Gerät selbst in der Nische (kein farbiger Kasten mehr: der sah aus wie eine leere Nische), dazu die Beschriftung mit Nischenmaß.
 
 ## Welcher Schrank bekommt welches Gerät
 | Schrank | Nische | Gerät |
 |---|---|---|
 | Unterschrank Geschirrspüler | `JT_Nische` (N1) | vollintegrierter Spüler 45/60; die Möbelfront bleibt beim Schrank |
-| Unterschrank Kochfeld mit Abzug | `JT_Nische` (KF) | Kochfeld 60/80/90 × 520 mm auf der Arbeitsplatte (Stärke aus der Nische, sonst 40 mm), Abzugsgitter in der Mitte, Lüftermodul unter der Platte, Kanal im Installationsraum |
-| Unterschrank Backofen (Herdumbau) | `JT_Nische_KF`, `JT_Nische_N1` | Kochfeld 60/80/90 ohne Abzug (Glas 590/790/890 × 520 mm auf der Arbeitsplatte, Wanne 50 mm darunter) und Backofen 60 auf dem Einbauboden |
+| Unterschrank Kochfeld mit Abzug | `JT_Nische` (KF) | Kochfeld 60/80/90 × 520 mm mittig über dem Arbeitsplatten-Ausschnitt (Stärke aus der Arbeitsplatte, sonst 38 mm), Abzugsgitter in der Mitte, Lüftermodul unter der Platte, Kanal im Installationsraum |
+| Unterschrank Backofen (Herdumbau) | `JT_Nische_KF`, `JT_Nische_N1` | Kochfeld 60/80/90 ohne Abzug (Glas 590/790/890 × 520 mm mittig über dem Arbeitsplatten-Ausschnitt, Wanne 50 mm darunter) und Backofen 60 auf dem Einbauboden |
 | Unterschrank Kühlschrank | `JT_Nische` (N1), Gerät/Breite/Wange/Sockel aus den aktuellen Komponentenoptionen | Kühlschrank integriert (Gehäuse und Gerätetür, die Möbelfront bleibt beim Schrank), Kühlschrank unterbaufähig (Edelstahltür mit Griff), Weinkühler (Glastür im schwarzen Rahmen), 30/45/60 |
-| Spülenschrank | aus den Schrankmaßen (kein `JT_Nische`) | Edelstahlspüle mit einem Becken (höchstens 860 × 500 mm) und Armatur, Arbeitsplatte 40 mm |
+| Spülenschrank | aus den Schrankmaßen (kein `JT_Nische`) | Edelstahlspüle mit einem Becken und Armatur im Arbeitsplatten-Ausschnitt: Rand rundum 10 mm auf der Platte, Becken im Ausschnitt |
 | Oberschrank Dunstabzug | `JT_Nische` (DA), Breite, Haubenraum, Abluft und Rohr aus den aktuellen Komponentenoptionen | Flachschirmhaube 60/90 unten bündig im Haubenraum: Wrasenschirm, Filterwanne, Lüfterbaustein; bei Abluft das Rohr durch den Ausschnitt bis zur Oberkante des Schranks |
 | Hochschrank Geräte | `JT_Nische_N1`, `JT_Nische_N2` | Backofen 60 (Front 595 × 595), Kompaktgerät 45 (595 × 455), Mikrowelle 38 (595 × 382), Wärmeschublade 14 (595 × 140); „frei“ bleibt leer |
 | Hochschrank Kühlschrank | `JT_Nische_N1` | Einbau-Kühlgerät (`Kuehlgeraet178` usw.): Gehäuse und Gerätetür hinter der Möbeltür des Schranks, Höhe = Nischenhöhe |
@@ -51,3 +51,11 @@ Die Werte sind der Stand beim Erzeugen des Schranks. Jedes Gerät trägt das Wö
 `ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte, Herdumbauschrank und Oberschrank Dunstabzug, setzt und entfernt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder Material trägt und dass der TCN-Export die Geräte übergeht.
 
 **Noch nicht in echtem SketchUp geprüft.**
+
+## Spüle und Kochfeld im Arbeitsplatten-Ausschnitt
+
+Der Ausschnitt der Arbeitsplatte ist maßgebend (er geht in den TCN-Export), das Gerät richtet sich danach:
+
+- Liegt im Modell eine Arbeitsplatte mit Ausschnitt über dem Schrank, sitzen Spüle und Kochfeld genau darin; die Plattenstärke kommt ebenfalls von dort.
+- Ohne Arbeitsplatte gelten dieselben Richtwerte wie beim Erzeugen der Arbeitsplatte (Überstand vorn 20 mm, Spüle 60 mm und Kochfeld 50 mm hinter der Plattenvorderkante, Schichtstoff 38 mm).
+- „Arbeitsplatte erzeugen…“ und „neu berechnen“ setzen schon eingesetzte Spülen und Kochfelder automatisch neu, damit sie dem Ausschnitt folgen.
