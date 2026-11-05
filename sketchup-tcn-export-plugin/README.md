@@ -1,4 +1,4 @@
-# SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Frontfarbe, Andocken)
+# SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Materialien, Frontfarbe, Andocken)
 
 **Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe Blum AVENTOS HK-top kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen und Griffe folgen.
 
@@ -13,12 +13,32 @@ Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem
 
 Wer vorher die Version 0.1 installiert hatte: Das alte Untermenü *Schrank-CNC* verschwindet nach dem Installieren der neuen `.rbz` und einem Neustart von SketchUp.
 
+## Materialien
+*Erweiterungen › Küchenplaner › Materialien…* zeigt alle Platten und Anleimer aus Modell und Bibliothek, mit *Neue Platte*, *Neuer Anleimer*, *Bearbeiten* und *Löschen*.
+
+| Platte | |
+|---|---|
+| Name, Farbe, Texturbild | Farbe als `#RRGGBB` oder `R,G,B`; Texturbild optional mit Bildbreite in mm |
+| Verwendung | Korpus, Front oder Rückwand – Frontfarbe bietet die Front-Platten an, Korpusmaterial die Korpus- bzw. Rückwand-Platten |
+| Stärke, Format | Plattenstärke und Rohplattenformat (Zuschnittplan) |
+| Maserung | Ja: Zuschnitt dreht nicht, L der Stückliste ist die Seite in Faserrichtung |
+| Anleimer | zugeordneter Anleimer; *automatisch* = Kante mit dem Dekor im Namen, sonst neu „Anleimer <Dekor>“ |
+
+Anleimer: Name, Farbe, Dicke (wird in Stückliste und TCN abgezogen), Breite.
+
+* Die Angaben stehen wie bisher im Wörterbuch `ladb_opencutlist` am Material (gleiches Format, alte Modelle und alle Komponenten laufen unverändert), dazu `JT_Material` (`verwendung`, `kante`). Nur `materialien.rb` liest und schreibt sie.
+* **Bibliothek**: jedes gespeicherte Material steht auch in der Bibliothek auf diesem Rechner und wird in ein Modell übernommen, sobald man es dort auswählt.
+* **Maserrichtung**: bei Platten mit Maserung läuft die Faser bei Fronten, Türen und Sichtteilen senkrecht, sonst längs der längeren Seite. *Maserrichtung…* im Fenster setzt für die ausgewählten Schränke/Teile *senkrecht*, *waagrecht*, *längere Seite* oder wieder *automatisch* (`JT_Schrank/maserung`).
+
+## Korpusmaterial ändern
+*Erweiterungen › Küchenplaner › Korpusmaterial ändern…*: Teile (Korpus = Seiten, Böden, Deckel, Streben, Zwischen-/Einlegeböden, Leisten, Wangen; oder Rückwände), Material, Bereich (alle, Ober-, Unter-, Hochschränke) und *Nur ausgewählte Schränke*. Fronten, Sichtteile und Schubkästen bleiben, die Anleimer der Teile bekommen den zugeordneten Anleimer. Kopien eines Schranks werden wie bei der Frontfarbe vorher eindeutig gemacht.
+
 ## Frontfarbe und Griffe ändern
 *Erweiterungen › Küchenplaner › Frontfarbe und Griffe ändern…*
 
 | Feld | Bedeutung |
 |---|---|
-| Frontmaterial | alle Plattenwerkstoffe (Material-Typ 2, auch neue Materialien ohne Typ) im Modell, deren Name mit „Front“ beginnt, z. B. „Front Eiche 19mm“. Fehlt eins, unter Fenster › Materialien anlegen. |
+| Frontmaterial | alle Platten mit Verwendung „Front“ aus Modell und Bibliothek (siehe *Materialien*; alte Modelle: Name beginnt mit „Front“). *Neues Frontmaterial…* legt eins an; gibt es noch keins, öffnet sich gleich dieses Formular. |
 | Bereich | alle Schränke, nur Oberschränke, nur Unterschränke oder nur Hochschränke (`kategorie` in `JT_Schrank`) |
 | Nur ausgewählte Schränke | Ja: nur Schränke, die gerade ausgewählt sind |
 | Griffe | unverändert lassen, setzen oder entfernen |
@@ -32,7 +52,7 @@ Was geändert wird:
 * Fronten sind alle Teile mit `rolle` Front oder Tuer, auch ausgeblendete Schubladen und Türen. Korpus und Schubkästen bleiben unverändert.
 * Dazu Teile mit `JT_Schrank/frontfarbe` (Abschlussregal mit Farbe „Frontfarbe“): sie bekommen Material und Anleimer, aber keine Griffe.
 * Das Material kommt an die Instanz und als DC-Attribut `material`, damit es ein Neuzeichnen der Dynamic Component übersteht.
-* Die Anleimer der Fronten (Kantenflächen mit einer Kante, Material-Typ 4) bekommen den passenden Anleimer: eine Kante (Typ 4) mit dem Dekor im Namen („Anleimer Eiche“ zu „Front Eiche 19mm“), sonst legt das Plugin „Anleimer <Dekor>“ an (Kante, 2 mm, Abzug an).
+* Die Anleimer der Fronten (Kantenflächen mit einem Anleimer-Material) bekommen den zugeordneten Anleimer der Platte; ohne Zuordnung eine Kante mit dem Dekor im Namen („Anleimer Eiche“ zu „Front Eiche 19mm“), sonst legt das Plugin „Anleimer <Dekor>“ an (2 mm, Abzug an) und merkt sich die Zuordnung.
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
 
@@ -74,7 +94,7 @@ Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher 
 * Eine Zeile je TCN-Datei wie beim TCN-Export (gleiche Teile zusammengefasst, Spalte Anzahl), mit laufender Nummer, Tag und TCN-Dateiname. So passen Stückliste, TCN und Fräsliste immer zusammen.
 * **Fertigmaß** = Maß im Modell, **Fräsmaß** = Fertigmaß minus Anleimer an jeder Kante mit Anleimer (= DL/DH der TCN), **Rohmaß** = Fräsmaß plus Übermaß (Zuschnitt an der Formatsäge). L ist die längere, B die kürzere Seite.
 * Kanten: L1/L2 die beiden Längskanten, B1/B2 die Querkanten, jeweils mit dem Anleimer-Material (auf der Druckseite als Kürzel A, B … mit Legende).
-* Maserung: aus dem Material (`grained` im Material-Wörterbuch, bleibt der Materialstamm).
+* Maserung: aus dem Material (*Materialien…*). Mit Maserung ist L die Seite in Faserrichtung (Fronten senkrecht, siehe Maserrichtung), sonst die längere Seite.
 * Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
 
 ## Etiketten
@@ -174,6 +194,9 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 * `src/jt_schrank_cnc.rb` – Registrierung der Erweiterung
 * `src/jt_schrank_cnc/main.rb` – Menü, lädt die Untermodule
 * `src/jt_schrank_cnc/schraenke.rb` – Schränke und Teile im Modell finden
+* `src/jt_schrank_cnc/materialien.rb` – Materialangaben lesen/schreiben, Bibliothek, Maserrichtung
+* `src/jt_schrank_cnc/materialdialog.rb` – Fenster „Materialien…“
+* `src/jt_schrank_cnc/korpus.rb` – Korpusmaterial ändern
 * `src/jt_schrank_cnc/frontfarbe.rb` – Frontfarbe und Griffe
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
@@ -188,6 +211,7 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 * `src/jt_schrank_cnc/etiketten.rb` – Etiketten als PDF (Bogen oder Endlos)
 * `src/jt_schrank_cnc/guillotine.rb` – Guillotine-Optimierer in 2 oder 3 Stufen (erster Schnitt, Schnitttyp, Reste)
 * `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan als PDF für die Formatsäge
+* `test/test_materialien.rb` – Material-Konfigurator: Anlegen, Bearbeiten, Umbenennen, Löschen, Bibliothek, Maserrichtung, Korpusmaterial
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
 * `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Randabfall eingehalten, alle Kombinationen aus erstem Schnitt, Schnitttyp und Stufen (Schnitte wirklich durchgehend, Stufen eingehalten), Faserrichtung, Plattenreste, Reste behalten, gleiche Platten, PDF, Dialog

@@ -1,13 +1,15 @@
 # encoding: UTF-8
 # Schrank-CNC – Frontfarbe und Griffe ändern.
 #
+# Frontmaterialien sind Platten mit Verwendung „Front“ aus Küchenplaner › Materialien…
+# (Material-Konfigurator); „Neues Frontmaterial…“ in der Auswahl legt eins an.
 # Setzt ein Frontmaterial auf alle Fronten und Türen (rolle Front oder Tuer) und auf
 # Teile mit JT_Schrank/frontfarbe (Abschlussregal mit Farbe „Frontfarbe“, ohne Griffe),
 # für alle Schränke oder nur Ober-, Unter- oder Hochschränke,
 # oder nur auf die Innenfronten der Innenschubkästen (Hochschrank Vorrat),
 # Verkleidung und Wangen des Inselschranks (Teil#sichtteil?) bekommen das Frontmaterial mit, aber keinen Griff,
 # auf Wunsch nur für die ausgewählten Schränke. Die Anleimer der Fronten
-# bekommen den passenden Anleimer. Korpus und Schubkästen bleiben unverändert.
+# bekommen den zugeordneten Anleimer (Materialien.anleimer). Korpus und Schubkästen bleiben unverändert.
 # Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front im Wörterbuch
 # JT_Schrank (griff_lochmass, griff_lage, griff_hoehe, in mm); der TCN-Export
 # setzt daraus die Griffbohrungen.
@@ -15,43 +17,29 @@
 module JTools
   module SchrankCnc
     module Frontfarbe
-      OCL_DICT = 'ladb_opencutlist'.freeze
-      PRAEFIX  = 'Front'.freeze # Frontmaterialien erkennt man am Namen, z. B. "Front Eiche 19mm"
       INNEN    = :innenfronten # Bereich "Nur Innenfronten"
+      NEU      = 'Neues Frontmaterial…'.freeze
       BEREICHE = { 'Alle Schränke' => nil, 'Nur Oberschränke' => 'Oberschrank',
                    'Nur Unterschränke' => 'Unterschrank', 'Nur Hochschränke' => 'Hochschrank',
                    'Nur Innenfronten' => INNEN }.freeze
       LAGEN = %w[links Mitte rechts].freeze
 
-      # Plattenwerkstoffe (Typ 2 im Material-Wörterbuch), deren Name mit "Front" beginnt; ein in
-      # SketchUp neu angelegtes Material ohne Typ zählt auch und wird beim Anwenden zur Platte
+      # Plattenmaterialien mit Verwendung „Front“ im Modell (siehe Materialien)
       def self.frontmaterialien(model)
-        model.materials.to_a.select do |m|
-          t = m.get_attribute(OCL_DICT, 'type')
-          (t.nil? || t.to_i == 2) && m.name.start_with?(PRAEFIX)
-        end.sort_by(&:name)
+        Materialien.platten(model, 'Front')
       end
 
       def self.kanten(model)
-        model.materials.to_a.select { |m| m.get_attribute(OCL_DICT, 'type').to_i == 4 }
+        Materialien.kanten(model)
       end
 
-      # "Front Eiche hell 19mm" -> "Eiche hell"
       def self.dekor(name)
-        name.sub(/\A#{PRAEFIX}\s*/, '').sub(/\s*\d+([.,]\d+)?\s*mm\z/i, '').strip
+        Materialien.dekor(name)
       end
 
-      # Anleimer zum Frontmaterial: eine Kante (Typ 4) mit dem Dekor im Namen, sonst neu "Anleimer <Dekor>"
+      # Anleimer zum Frontmaterial: Zuordnung aus „Materialien…“, sonst über den Dekor im Namen
       def self.anleimer(model, front)
-        d = dekor(front.name)
-        vorhanden = kanten(model).select { |k| !d.empty? && k.name.downcase.include?(d.downcase) }
-        return vorhanden.min_by { |k| k.name.length } unless vorhanden.empty?
-        name = "Anleimer #{d.empty? ? front.name : d}"
-        k = model.materials[name] || model.materials.add(name)
-        k.color = front.color if front.respond_to?(:color) && front.color
-        { 'type' => 4, 'thickness' => '2 mm', 'std_widths' => '23 mm', 'std_lengths' => '75 m',
-          'edge_decremented' => true }.each { |a, v| k.set_attribute(OCL_DICT, a, v) }
-        k
+        Materialien.anleimer(model, front)
       end
 
       # Fronten im gewählten Bereich. kategorie nil = alle; auswahl = Instanzen, von denen
@@ -80,20 +68,30 @@ module JTools
       # Definitionen auf dem Weg zu den Fronten eindeutig machen, wenn sie auch von
       # Instanzen außerhalb der gewählten Schränke benutzt werden. Sonst würden
       # nicht gewählte Kopien mit umgefärbt.
-      def self.eindeutig_machen(fronten)
-        ziel = fronten.map { |f| f.pfad.first }.uniq
-        innen = ziel.flat_map { |s| baum(s) }
-        ziel.each { |inst| eindeutig(inst, innen, fronten) }
+      # ziel?: welche Teil-Instanzen umgefärbt werden (Standard: Fronten)
+      def self.eindeutig_machen(fronten, ziel = method(:front_inst?))
+        oben = fronten.map { |f| f.pfad.first }.uniq
+        innen = oben.flat_map { |s| baum(s) }
+        oben.each { |inst| eindeutig(inst, innen, ziel) }
       end
 
-      def self.eindeutig(inst, innen, fronten)
+      def self.eindeutig(inst, innen, ziel)
         fremd = inst.definition.instances.reject { |i| innen.include?(i) }
         inst.make_unique unless fremd.empty?
         inst_baum = baum(inst)
         Schraenke.instanzen(inst.definition.entities).each do |c|
-          # nur Zweige, in denen eine Front liegt (gleiche Teile wie Seiten bleiben geteilt)
-          next unless baum(c).any? { |i| front_inst?(i) }
-          eindeutig(c, inst_baum, fronten)
+          # nur Zweige, in denen ein Zielteil liegt (gleiche Teile wie Seiten bleiben geteilt)
+          next unless baum(c).any? { |i| ziel.call(i) }
+          eindeutig(c, inst_baum, ziel)
+        end
+      end
+
+      # Material auf ein Teil setzen; Kantenflächen bekommen den Anleimer kante
+      def self.material_setzen(inst, material, kante)
+        inst.material = material
+        inst.set_attribute(DC_DICT, 'material', material.name) # übersteht ein DC-Neuzeichnen
+        inst.definition.entities.grep(Sketchup::Face).each do |fl|
+          fl.material = kante if Materialien.kante?(fl.material)
         end
       end
 
@@ -109,20 +107,14 @@ module JTools
       def self.anwenden(model, fronten, material, griff: nil)
         return 0 if fronten.empty?
         kante = material && anleimer(model, material)
-        material.set_attribute(OCL_DICT, 'type', 2) if material && material.get_attribute(OCL_DICT, 'type').nil?
+        Materialien.platte_machen(material) if material
         eindeutig_machen(fronten)
         # nach dem Eindeutigmachen die Fronten neu einsammeln (die Instanzen haben sich geändert)
         ids = fronten.map { |f| f.pfad.first }.uniq
         neu = Schraenke.teile(model).select { |t| (t.frontfarbe? || t.rolle == 'Innenfront') && ids.include?(t.pfad.first) &&
                                                fronten.any? { |f| f.name == t.name } }
         neu.each do |f|
-          if material
-            f.inst.material = material
-            f.inst.set_attribute(DC_DICT, 'material', material.name) # übersteht ein DC-Neuzeichnen
-            f.inst.definition.entities.grep(Sketchup::Face).each do |fl|
-              fl.material = kante if fl.material && fl.material.get_attribute(OCL_DICT, 'type').to_i == 4
-            end
-          end
+          material_setzen(f.inst, material, kante) if material
           if griff && (f.jt('teil') == 'Blende' || !f.front?)
             next # feste Blende (Unterschrank Kochfeld), Innenfronten, Regalteile, Verkleidung und Wangen bekommen keinen Griff
           elsif griff
@@ -146,21 +138,25 @@ module JTools
       # Dialog
       # ---------------------------------------------------------------------
       def self.dialog(model = Sketchup.active_model)
-        mats = frontmaterialien(model)
-        if mats.empty?
-          UI.messagebox("Im Modell gibt es kein Frontmaterial.\n\nLege unter Fenster › Materialien ein Material an, " \
-                        "dessen Name mit „#{PRAEFIX}“ beginnt (z. B. „Front Eiche 19mm“).")
+        namen = Materialien.plattennamen(model, 'Front')
+        if namen.empty?
+          # noch kein Frontmaterial: gleich eins anlegen, danach geht es hier weiter
+          Materialdialog.platte_formular(model, verwendung: 'Front') { dialog(model) }
           return
         end
         griff_opt = ['unverändert lassen', 'setzen', 'entfernen']
         prompts = ['Frontmaterial', 'Bereich', 'Nur ausgewählte Schränke', 'Griffe',
                    'Griff: Lochmaß (mm)', 'Griff: Lage seitlich', 'Griff: Höhe ab Unterkante Front (mm)']
         auswahl_da = !model.selection.to_a.empty?
-        defaults = [mats.first.name, BEREICHE.keys.first, auswahl_da ? 'Ja' : 'Nein', griff_opt.first, '160', 'Mitte', '35']
-        lists = [mats.map(&:name).join('|'), BEREICHE.keys.join('|'), 'Ja|Nein', griff_opt.join('|'), '',
+        defaults = [namen.first, BEREICHE.keys.first, auswahl_da ? 'Ja' : 'Nein', griff_opt.first, '160', 'Mitte', '35']
+        lists = [(namen + [NEU]).join('|'), BEREICHE.keys.join('|'), 'Ja|Nein', griff_opt.join('|'), '',
                  LAGEN.join('|'), '']
         Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Frontfarbe und Griffe ändern', ok: 'Übernehmen') do |res|
-          material = model.materials[res[0]]
+          if res[0] == NEU
+            Materialdialog.platte_formular(model, verwendung: 'Front') { dialog(model) }
+            next
+          end
+          raise ArgumentError, "Material „#{res[0]}“ nicht gefunden" unless namen.include?(res[0])
           auswahl = res[2] == 'Ja' ? model.selection.to_a : nil
           f = fronten(model, kategorie: BEREICHE[res[1]], auswahl: auswahl)
           if f.empty?
@@ -171,12 +167,12 @@ module JTools
                   when 'setzen' then { lochmass: zahl(res[4]), lage: res[5], hoehe: zahl(res[6]) }
                   when 'entfernen' then false
                   end
-          frage = "#{vorschau(f)} bekommen „#{material.name}“#{griff ? ' und Griffbohrungen' : ''}. Übernehmen?"
+          frage = "#{vorschau(f)} bekommen „#{res[0]}“#{griff ? ' und Griffbohrungen' : ''}. Übernehmen?"
           next unless UI.messagebox(frage, MB_OKCANCEL) == IDOK
 
           begin
             model.start_operation('Frontfarbe ändern', true)
-            anwenden(model, f, material, griff: griff)
+            anwenden(model, f, Materialien.holen(model, res[0]), griff: griff) # aus der Bibliothek, falls nötig
             model.commit_operation
           rescue StandardError
             model.abort_operation

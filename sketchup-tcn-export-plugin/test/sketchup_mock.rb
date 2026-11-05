@@ -360,3 +360,16 @@ module Sketchup
     end
   end
 end
+
+# --- Materialien (Konfigurator): Farbanteile, Material löschen, Suche nach aktuellem Namen ---
+module Sketchup
+  class Color
+    def red = rgb[0].to_i
+    def green = rgb[1].to_i
+    def blue = rgb[2].to_i
+  end
+  class Named
+    def [](n) = @h[n] && @h[n].name == n ? @h[n] : @h.values.find { |m| m.name == n }
+    def remove(m) = @h.delete(@h.key(m))
+  end
+end

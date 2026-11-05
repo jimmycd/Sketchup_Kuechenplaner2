@@ -138,7 +138,8 @@ g5.each { |g| pruefen(g, 5.0, 20.0, "#{g.material} #{g.ds} (5/20)") }
 mel.set_attribute('ladb_opencutlist', 'grained', true)
 zs_m, = S::Stueckliste.erzeugen(model)
 gm = Z.berechnen(model, zs_m, o).find { |g| g.material == 'Melamin weiss' && g.ds == 19 }
-check(gm.maserung && gm.platten.all? { |p| p.teile.none?(&:gedreht) && p.teile.all? { |t| t.l >= t.b - EPS } }, 'Maserung: nicht gedreht, L längs')
+check(gm.maserung && gm.platten.all? { |p| p.teile.none?(&:gedreht) && p.teile.all? { |t| (t.l - t.stueck.daten[0].roh[0]).abs < EPS } },
+      'Maserung: nicht gedreht, L (Faserrichtung) längs der Platte')
 gi = Z.berechnen(model, zs_m, o.merge('zs_faser' => 'ignorieren')).find { |g| g.ds == 19 }
 check(!gi.maserung && gi.platten.any? { |p| p.teile.any?(&:gedreht) }, 'Faserrichtung ignorieren: drehen erlaubt')
 mel.set_attribute('ladb_opencutlist', 'grained', false)
