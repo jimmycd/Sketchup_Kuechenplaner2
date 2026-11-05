@@ -271,3 +271,15 @@ module Sketchup
     def erase! = @ents.faces.delete(self)
   end
 end
+
+# --- Neu berechnen: alte Definitionen und Tags entfernen wie in SketchUp ---
+module Sketchup
+  class Definitions
+    def remove(d) = @h.delete(@h.key(d))
+    def to_a = @h.values
+  end
+
+  class Named
+    def remove(m) = @h.delete(@h.key(m))
+  end
+end

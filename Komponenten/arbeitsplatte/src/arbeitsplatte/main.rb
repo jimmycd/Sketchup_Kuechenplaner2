@@ -3,8 +3,8 @@
 # Arbeitsplatte – Erweiterung (.rbz): Erweiterungen > Küchenplaner
 #   Arbeitsplatte erzeugen…       Unterschränke markieren (oder alle), Einstellungen
 #                                 im Dialog, Platten werden als APL<n> gezeichnet
-#   Arbeitsplatte neu berechnen   APL<n> (markiert, sonst alle) mit denselben
-#                                 Einstellungen über den Schränken neu aufbauen
+#   Arbeitsplatte neu berechnen   APL<n> (markiert, sonst alle) löschen und mit denselben
+#                                 Einstellungen über allen Schränken (auch neuen) neu aufbauen
 #
 # Plan: docs/plaene/arbeitsplatte.md. Stand Schritt 4: Platten mit Material,
 # Anleimer, Tags und Ausschnitten für Spüle und Kochfeld; Verbindungsfräsung/TCN
@@ -89,38 +89,95 @@ module Arbeitsplatte
     Geraete.an_arbeitsplatte_ausrichten(model) if defined?(Geraete) && Geraete.respond_to?(:an_arbeitsplatte_ausrichten)
   end
 
-  # Gespeicherte Arbeitsplatte(n) neu aufbauen: gleiche Schränke, gleiche Einstellungen
+  # Arbeitsplatte(n) komplett neu berechnen (Jürgen 2026-11-05): alte Platten mit Ausschnitten löschen
+  # und über ALLEN Schränken, die jetzt im Modell stehen, neu aufbauen – auch über Schränken, die
+  # nach dem Erzeugen dazugekommen sind. Einstellungen (Art, Format, Überstände, Stöße, Ausschnitte)
+  # und Kürzel bleiben. Gibt es mehrere Arbeitsplatten, behält jede ihre Schrankgruppe (zusammenhängende
+  # Zeilen); neue Gruppen kommen zur ersten. Hochschränke an den Zeilenenden werden immer berücksichtigt.
+  # Ein Vorgang: ein Rückgängig stellt die alte Platte wieder her.
   def self.neu_berechnen(model = Sketchup.active_model)
-    alte = Ausgabe.arbeitsplatten(model)
+    alte = Ausgabe.arbeitsplatten(model).sort_by { |i| i.name.to_s[/\d+/].to_i }
     if alte.empty?
       UI.messagebox('Keine Arbeitsplatte gefunden. Zuerst „Arbeitsplatte erzeugen…“.')
       return []
     end
     model.start_operation('Arbeitsplatte neu berechnen', true)
+    warn = []
+    geloescht = []
+    els = Modell.instanzen(model, alle: true).flat_map { |i| Modell.elemente(i, warn) }
+    zuteilung = schraenke_zuteilen(Erkennung.erkenne(els), alle_arbeitsplatten(model), alte)
     neu = alte.map do |alt|
       d = alt.definition
       kz = d.get_attribute(Ausgabe::JT_DICT, 'schrank')
+      kzs = zuteilung[kz] || []
       o = Ausgabe.optionen_lesen(d.get_attribute(Ausgabe::AP_DICT, 'optionen'))
-      kzs = JSON.parse(d.get_attribute(Ausgabe::AP_DICT, 'schraenke'))
-      warn = []
-      els = Modell.instanzen(model, alle: true).select { |i| kzs.include?(i.definition.get_attribute(Modell::JT_DICT, 'schrank')) }
-                  .flat_map { |i| Modell.elemente(i, warn) }
-      erg = Erkennung.erkenne(els)
-      erg[:warnungen] = warn + erg[:warnungen]
+      alt_loeschen(model, alt)
+      if kzs.empty? # keine Schränke mehr darunter
+        geloescht << kz
+        next nil
+      end
+      sel = els.select { |e| kzs.include?(e[:kz]) || e[:kategorie] == Erkennung::HOCHSCHRANK }
+      erg = Erkennung.erkenne(sel)
+      erg[:warnungen] = warn.uniq + erg[:warnungen]
       # Ecken-Einstellungen gelten nur, solange die Ecken gleich nummeriert sind
       o[:ecken] = o[:ecken].select { |nr, _| erg[:ecken].any? { |e| e[:nr] == nr } }
       lay = Layout.berechne(erg, mit_wandabstand(model, o))
-      model.entities.erase_entities(alt)
       [erg, lay, Ausgabe.bauen(model, erg, lay, kz: kz)]
-    end
+    end.compact
     geraete_ausrichten(model)
     model.commit_operation
-    UI.messagebox(neu.map { |erg, lay, inst| meldung(erg, lay, inst.name) }.join("\n\n"))
+    text = neu.map { |erg, lay, inst| meldung(erg, lay, inst.name) } +
+           geloescht.map { |kz| "Arbeitsplatte #{kz}: keine Unterschränke mehr darunter, gelöscht." }
+    UI.messagebox(text.join("\n\n"))
     neu.map(&:last)
   rescue StandardError => e
     model.abort_operation if model.respond_to?(:abort_operation)
     UI.messagebox("Fehler beim Neuberechnen: #{e.message}")
     raise
+  end
+
+  # alle Arbeitsplatten im Modell (auch nicht markierte), damit Schränke einer anderen Platte bei ihr bleiben
+  def self.alle_arbeitsplatten(model)
+    model.entities.to_a.grep(Sketchup::ComponentInstance)
+         .select { |i| i.definition.get_attribute(Ausgabe::JT_DICT, 'typ') == Ausgabe::TYP }
+  end
+
+  # Kürzel der Arbeitsplatte => Unterschrank-Kürzel. Je zusammenhängende Schrankgruppe (Zeilen über Ecken)
+  # gewinnt die Arbeitsplatte, der die meisten ihrer Schränke schon gehörten; eine Gruppe ohne
+  # Arbeitsplatte (neu aufgestellt) kommt zur ersten der neu zu berechnenden. Gruppen anderer, nicht
+  # markierter Arbeitsplatten bleiben unberührt.
+  def self.schraenke_zuteilen(erg, alle, alte)
+    besitz = {}
+    alle.each do |i|
+      kz = i.definition.get_attribute(Ausgabe::JT_DICT, 'schrank')
+      JSON.parse(i.definition.get_attribute(Ausgabe::AP_DICT, 'schraenke') || '[]').each { |s| besitz[s] ||= kz }
+    end
+    neu_kz = alte.map { |i| i.definition.get_attribute(Ausgabe::JT_DICT, 'schrank') }
+    erg[:formen].each_with_object(Hash.new { |h, k| h[k] = [] }) do |f, z|
+      kzs = f[:zeilen].flat_map { |nr| erg[:zeilen].find { |zz| zz[:nr] == nr }[:elemente].map { |e| e[:kz] } }.uniq
+      stimmen = kzs.map { |s| besitz[s] }.compact.tally
+      ziel = stimmen.empty? ? neu_kz.first : stimmen.max_by { |k, n| [n, -neu_kz.index(k).to_i] }.first
+      z[ziel].concat(kzs) if neu_kz.include?(ziel)
+    end
+  end
+
+  # Alte Arbeitsplatte samt Platten-Definitionen und Platten-Tags entfernen, damit die neue denselben
+  # Namen bekommt und keine Tags übrig bleiben (z. B. weniger Platten nach dem Neuberechnen)
+  def self.alt_loeschen(model, alt)
+    haupt = alt.definition
+    platten = haupt.entities.to_a.grep(Sketchup::ComponentInstance)
+    tags = platten.map(&:layer).compact.uniq
+    kz = haupt.get_attribute(Ausgabe::JT_DICT, 'schrank')
+    model.entities.erase_entities(alt)
+    return unless haupt.instances.empty? # Kopie der Arbeitsplatte im Modell: Definition bleibt
+    haupt.entities.erase_entities(platten)
+    defs = model.definitions
+    if defs.respond_to?(:remove)
+      platten.map(&:definition).uniq.each { |d| defs.remove(d) if d.instances.empty? }
+      defs.remove(haupt)
+    end
+    lay = model.layers
+    tags.each { |t| lay.remove(t) if t.name.start_with?("#{kz}_") } if lay.respond_to?(:remove)
   end
 end
 
