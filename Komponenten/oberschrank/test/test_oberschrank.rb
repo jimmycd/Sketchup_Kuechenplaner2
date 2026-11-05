@@ -43,6 +43,7 @@ class Knoten
 
   def IF(c, a, b) = c ? a : b
   def AND(*a) = a.all?
+  def OR(*a) = a.any?
 
   def auswerten(f)
     ruby = f.gsub(/(?<![<>=!])=(?!=)/, '==').gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -143,7 +144,8 @@ def pruefe(w, p, label)
 
   # Türen
   tueren = sichtbar.select { |t2| t2[:name].start_with?('Tür') }.sort_by { |t2| t2[:q][0] }
-  check(tueren.size == p['Art_Tuer'], "#{label}: #{tueren.size} Türen statt #{p['Art_Tuer']}")
+  anz = { 0 => 0, 1 => 1, 2 => 2, 3 => 1 }.fetch(p['Art_Tuer'].to_i)
+  check(tueren.size == anz, "#{label}: #{tueren.size} Türen statt #{anz}")
   tueren.each { |t2| check(nahe(t2[:q][4], sp / 2) && nahe(t2[:q][5], h - sp / 2) && nahe(t2[:q][2], -sp), "#{label}: Tür Höhe/Lage #{t2[:q]}") }
   unless tueren.empty?
     check(nahe(tueren.first[:q][0], sp / 2) && nahe(tueren.last[:q][1], b - sp / 2), "#{label}: Türen außen #{sp / 2} Fuge")
@@ -206,6 +208,30 @@ end
 lauf({}, 'Standard (2 Türen)', { 'Art_Tuer' => 1, 'Anz_Einlegeboeden' => 3, 'Breite' => 45.0, 'Hoehe' => 90.0 })
 lauf({ 'Breite' => 40.0, 'Art_Tuer' => 1.0, 'Anz_Einlegeboeden' => 2.0 }, 'eine Tür', { 'Art_Tuer' => 0, 'Anz_Einlegeboeden' => 0 })
 lauf({ 'Art_Tuer' => 0.0, 'Anz_Einlegeboeden' => 0.0, 'Tiefe' => 32.0 }, 'offen', { 'Art_Tuer' => 2, 'Tiefe' => 35.0 })
+lauf({ 'Breite' => 45.0, 'Art_Tuer' => 3.0 }, 'eine Tür rechts', { 'Art_Tuer' => 1, 'Breite' => 50.0 })
+lauf({ 'Art_Tuer' => 1.0 }, 'eine Tür links -> rechts', { 'Art_Tuer' => 3, 'Breite' => 40.0 })
+
+# --- Eine Tür: Drehpunkt (Halter) an der Anschlagseite, öffnet nach außen ---
+[[1.0, :links], [3.0, :rechts]].each do |art, seite|
+  Sketchup.active_model = Sketchup::Model.new
+  inst = H.erstellen({ 'Breite' => 50.0, 'Art_Tuer' => art })
+  w = Knoten.new(inst, inst.definition, nil)
+  w.redraw
+  halter = w.kinder.find { |k| k.name == 'TuerHalter' }
+  check(halter && !halter.hidden?, "eine Tür #{seite}: Halter sichtbar")
+  hx = halter.pos('x')
+  soll = seite == :rechts ? 50.0 - 0.1 : 0.1
+  check(nahe(hx, soll), "eine Tür #{seite}: Drehpunkt bei x = #{soll} (#{hx.round(3)})")
+  check(halter.wert('winkel') == (seite == :rechts ? 100.0 : -100.0), "eine Tür #{seite}: öffnet nach außen (Winkel #{halter.wert('winkel')})")
+  check(halter.defn.get_attribute(H::DICT, 'onclick') == 'ANIMATE("ROTZ",0,Winkel)', "eine Tür #{seite}: Interagieren")
+end
+
+# --- Anlage-Dialog: Türen und Einlegeböden ---
+dw = H.dialog_werte(['600', '700', '400', 'Eine Tür, Anschlag rechts', '2'])
+check(dw['Art_Tuer'] == 3.0 && dw['Anz_Einlegeboeden'] == 2.0, "Dialog: eine Tür rechts, 2 Böden (#{dw})")
+check(H.dialog_werte(['600', '700', '400', 'Keine (offen)', '0'])['Art_Tuer'] == 0.0, 'Dialog: offen')
+check(H.dialog_werte(['600', '700', '400', 'Eine Tür, Anschlag links', '1'])['Art_Tuer'] == 1.0, 'Dialog: eine Tür links')
+check(H::TUEREN_TEXT.values.sort == [0.0, 1.0, 2.0, 3.0], 'Dialog: alle Türvarianten')
 lauf({ 'Kuerzel' => 'OS7' }, 'eigenes Kürzel', nil, 'OS7')
 
 # Zweiter Schrank im selben Modell bekommt OS2
