@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -242,6 +242,15 @@ Kuechenplaner.send(:remove_const, :Einstellungen)
   kw = A.kasten(mod.erstellen('Tiefe' => 52.0, 'Art_Wange' => 3.0))
   check(nah(kw[0..1], [0, 63.8].map(&:cm), 1e-6), "#{name}: Kasten mit Wangen #{kw[0..1].map { |v| (v * 2.54).round(2) }}")
 end
+
+# Wange (Komponente Blenden) reicht bis zum Boden: angereiht zählt die Korpusunterkante
+model.select_tool(nil)
+model.selection.clear
+model.selection.add(us1)
+wg = Blenden.erstellen(:wange, {})
+kw = A.kasten(wg)
+check(nah(kw[4], 0) && nah(wg.transformation.origin.to_a[2], us1.transformation.origin.to_a[2], 1e-6),
+      "Wange angereiht: Unterkante Korpus gleich, Wange reicht bis zum Boden (#{wg.transformation.origin.to_a}, #{kw})")
 
 # Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
 wz = A::Werkzeug.new(us1)

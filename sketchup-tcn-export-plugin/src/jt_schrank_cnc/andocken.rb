@@ -347,6 +347,8 @@ module JTools
         bb = d.bounds if bb.empty?
         mn = bb.min.to_a
         mx = bb.max.to_a
+        # Wangen reichen bis zum Boden: als Unterkante zählt die Korpusunterkante (z = 0)
+        mn[2] = [mn[2].to_f, 0.0].max if d.get_attribute(JT_DICT, 'sockel_unter_korpus')
         [mn[0], mx[0], mn[1], mx[1], mn[2], mx[2]].map(&:to_f)
       end
 
