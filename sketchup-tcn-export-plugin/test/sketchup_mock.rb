@@ -275,6 +275,11 @@ module Geom
       t
     end
     def xaxis = Vector3d.new(*(achsen ? achsen[0] : [1, 0, 0]))
+    # Matrix spaltenweise wie SketchUp, mit Drehung, wenn über axes gebaut
+    def to_a
+      return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, *origin, 1].map(&:to_f) unless achsen
+      [*achsen[0], 0, *achsen[1], 0, *achsen[2], 0, *origin, 1].map(&:to_f)
+    end
   end
 end
 

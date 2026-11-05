@@ -39,13 +39,14 @@ Was geändert wird:
 ## Schrank andocken
 Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*.
 
-**Ans freie Ende:** Gibt es schon Schränke, steht der neue sofort am freien rechten Ende seiner Zeile: ausgehend vom ausgewählten Schrank, sonst vom zuletzt eingefügten Schrank derselben Art (Unter-/Hochschränke bilden eine Zeile, Oberschränke mit den Hochschränken eine, Inselschränke eine eigene). Gleiche Drehung, Rückwände in einer Flucht. Der erste Oberschrank kommt über den Anfang (links) der Unterschrank-Zeile.
+**Ans freie Ende:** Gibt es schon Schränke, kommt der neue ohne Maus an einen freien Platz. Ist ein Schrank markiert: rechts daneben, wenn dort Platz ist, sonst links daneben; sind beide Seiten belegt, ans rechte bzw. linke Ende seiner Zeile. Ohne Markierung: ans rechte, sonst linke Ende der Zeile des zuletzt eingefügten Schranks derselben Art (Unter-/Hochschränke bilden eine Zeile, Oberschränke mit den Hochschränken eine, Inselschränke eine eigene). „Platz“ heißt: keine Wand des Raums und kein anderer Schrank im Weg. Gleiche Drehung, Rückwände in einer Flucht. Der erste Oberschrank kommt über den Anfang (links) der Unterschrank-Zeile.
+
+**Sockelhöhe fest** (Jürgen, 2026-11-03): Unter- und Hochschränke stehen immer auf Fußboden + Sockelhöhe aus den *Einstellungen*, auch im Andock-Werkzeug und neben anderen Schränken. Komponenten mit eigenem Parameter Sockelhöhe (Geschirrspüler, Kühlschrank-Nische, Wangen, Sockelblende) bekommen beim Einfügen die Sockelhöhe der Küche. Wird die Sockelhöhe in den *Einstellungen* geändert, wandern alle vorhandenen Unter- und Hochschränke, Arbeitsplatten und Sockelblenden um die Differenz mit; Oberschränke auch, aber höchstens bis unter die Decke des Raums.
 
 **Wo sich Schränke berühren** (Jürgen, 2026-11-02): Nachbarn berühren sich immer an der **oberen Außenecke der Seiten**. Gemessen wird nur an den Seiten (und sichtbaren Wangen), nicht an Fronten, Geräten oder Arbeitsplatte. Geräteschränke ohne eigene Seite (Geschirrspüler, Unterbau-Kühlschrank) haben eine virtuelle Seite: Nischenbreite × Korpushöhe; ihr Gerät steht damit auf dem Fußboden. Höhen:
 
-* Unterschrank neben Unterschrank: Seitenoberkanten gleich.
-* Hochschrank beteiligt: gleiche Unterkante (beide auf dem Sockel).
-* Oberschrank: Höhe immer fest = Seitenoberkante Unterschrank + Arbeitsplattenstärke + Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), auch neben einem Hochschrank. Oberschränke stehen nur an der Wand oder über einem Unterschrank, nie frei im Raum.
+* Unter- und Hochschränke: immer auf dem Sockel (siehe oben).
+* Oberschrank: Höhe immer fest = Seitenoberkante Unterschrank + Arbeitsplattenstärke + Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), auch neben einem Hochschrank. Oberschränke stehen nur an der Wand oder über einem Unterschrank, nie frei im Raum, und höchstens bis unter die Decke.
 
 **Andock-Werkzeug:** Gibt es noch keinen Schrank (oder über *Schrank andocken…* für den ausgewählten), hängt der Schrank als Vorschau an der Maus (blauer Kasten, Front rot):
 
@@ -54,9 +55,9 @@ Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für al
 | einem Schrank (Seite, Deckel) | links oder rechts an dessen Seite, je nach Hälfte unter der Maus; übernimmt Drehung, Höhe wie oben |
 | einem Unterschrank (beim Oberschrank) | darüber auf fester Höhe, Rückseiten in einer Flucht, links bzw. rechts bündig |
 | der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks); nicht beim Oberschrank |
-| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite mit Wandabstand an die Wand, rastet an Wandenden und Tür-/Durchgangslaibungen ein (Fang 100 mm); Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe (*Einstellungen*), Oberschränke auf der festen Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
+| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite mit Wandabstand an die Wand, rastet an Wandenden (dort auch seitlich mit Wandabstand zur Nachbarwand) und Tür-/Durchgangslaibungen ein (Fang 100 mm); ein Eckschrank geht immer in die Ecke (L-Form links, Blindeck zur Blindseite) und steht so an beiden Wänden; Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe (*Einstellungen*), Oberschränke auf der festen Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
 | einer anderen senkrechten Fläche | Rückseite an die Wand, Mitte unter der Maus, Front in den Raum |
-| sonst | folgt der Maus auf seiner Höhe; ein Oberschrank lässt sich dort nicht absetzen |
+| sonst | folgt der Maus (Unter-/Hochschrank auf dem Sockel); ein Oberschrank lässt sich dort nicht absetzen |
 
 * **Tab** oder **Pfeil rechts/links**: um 90° drehen (am Nachbarn: gegenüber dem Nachbarn, z. B. für den zweiten Schenkel einer L-Küche, Rückwand an der Wand des Nachbarn)
 * **Pfeil hoch/runter**: Rückwände bündig (Vorgabe) oder Fronten bündig, wenn die Schränke verschieden tief sind

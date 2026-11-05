@@ -132,32 +132,37 @@ module JTools
 
         # Höhe (z der Lage) am Nachbarn, k/n = Bezugskästen. v = Vorgaben in Zoll:
         # sockel, aufbau (Arbeitsplatte + Abstand bis Oberschrank), ober (Fußboden bis
-        # Unterkante Oberschrank).
-        #   Unter-/Hochschrank neben Oberschrank: eigene Höhe (dort docken sie nicht an)
-        #   Oberschrank: Unterkante immer fest – neben Oberschrank gleiche Unterkante,
-        #     neben Hochschrank Fußboden (= Unterkante Hochschrank − Sockel) + ober,
-        #     über/neben Unterschrank Seitenoberkante + aufbau
-        #   Hochschrank beteiligt: gleiche Unterkante (beide auf dem Sockel)
-        #   sonst (Unterschränke): Seitenoberkanten gleich
+        # Unterkante Oberschrank), boden (Fußboden), decke (Decke oder nil).
+        #   Unter-/Hochschrank: immer auf Fußboden + Sockel (Jürgen 2026-11-03: Sockelhöhe fest,
+        #     keine andere Höhe), egal neben welchem Schrank
+        #   Oberschrank: Unterkante fest – neben Oberschrank gleiche Unterkante,
+        #     neben Hochschrank Fußboden + ober, über/neben Unterschrank Seitenoberkante + aufbau;
+        #     höchstens bis unter die Decke
         def hoehe(k, kat, n, nz, nkat, eigene_z, v = nil)
           v ||= vorgaben_zoll(VORGABEN)
-          ober = kat == 'Oberschrank'
-          nober = nkat == 'Oberschrank'
-          if ober
-            return nz + n[4] - k[4] if nober
-            return nz + n[4] - v[:sockel] + v[:ober] - k[4] if nkat == 'Hochschrank'
-            return nz + n[5] + v[:aufbau] - k[4]
-          end
-          return eigene_z if nober
-          return nz + n[4] - k[4] if kat == 'Hochschrank' || nkat == 'Hochschrank'
-          nz + n[5] - k[5]
+          return sockel_z(k, v) unless kat == 'Oberschrank'
+          z = if nkat == 'Oberschrank' then nz + n[4] - k[4]
+              elsif nkat == 'Hochschrank' then (v[:boden] || 0) + v[:ober] - k[4]
+              else nz + n[5] + v[:aufbau] - k[4]
+              end
+          unter_decke(z, k, v)
+        end
+
+        # Unter-/Hochschrank: Seitenunterkante auf Fußboden + Sockel
+        def sockel_z(k, v)
+          (v[:boden] || 0) + v[:sockel] - k[4]
+        end
+
+        # Oberschrank höchstens bis zur Decke
+        def unter_decke(z, k, v)
+          v[:decke] ? [z, v[:decke] - k[5]].min : z
         end
 
         # Vorgaben (mm, Schlüssel wie VORGABEN) → Zoll für #hoehe
         def vorgaben_zoll(m)
           platte = m[:arbeitsplatte_staerke].to_f + m[:abstand_oberschrank].to_f
           { sockel: m[:sockelhoehe].to_f * MM, aufbau: platte * MM, wand: m[:wandabstand].to_f * MM,
-            ober: (m[:sockelhoehe].to_f + m[:unterschrank_hoehe].to_f + platte) * MM }
+            ober: (m[:sockelhoehe].to_f + m[:unterschrank_hoehe].to_f + platte) * MM, boden: 0.0, decke: nil }
         end
 
         # Oberschrank über einem Unterschrank (Bezug n, Lage nl): Rückseiten in einer Flucht,
@@ -167,6 +172,20 @@ module JTools
           ox = rechts ? n[1] - k[1] : n[0] - k[0]
           x, y = welt(nl, ox, n[3] - k[3])
           [winkel(nl[0]), x, y, nl[3] + n[5] + aufbau - k[4]]
+        end
+
+        # --- freier Platz ------------------------------------------------------------
+        # hindernisse = [[lage, [x0, x1, y0, y1]], …] (Wände, andere Schränke) im Grundriss.
+        # Platz, wenn der Grundriss des Kastens k in Lage l keines davon um mehr als tol
+        # überlappt (Berühren ist erlaubt). Gerechnet im System des Hindernisses.
+        def platz?(k, l, hindernisse, tol = TOLERANZ)
+          ecken = [[k[0], k[2]], [k[1], k[2]], [k[1], k[3]], [k[0], k[3]]].map { |x, y| welt(l, x, y) }
+          hindernisse.none? do |hl, hb|
+            pts = ecken.map { |x, y| lokal(hl, x, y) }
+            xs = pts.map(&:first)
+            ys = pts.map(&:last)
+            xs.max > hb[0] + tol && xs.min < hb[1] - tol && ys.max > hb[2] + tol && ys.min < hb[3] - tol
+          end
         end
 
         # --- Bezugskasten -------------------------------------------------------------
@@ -258,14 +277,25 @@ module JTools
         # Rückseite an eine Wand des Raums. wl = Lage der Wand (x entlang der Wand von links
         # nach rechts aus dem Raum gesehen, y in die Wand hinein, wie bei einem Schrank),
         # lx = Maus entlang der Wand, links/rechts = Kanten, an denen die linke bzw. rechte
-        # Schrankseite einrastet. Liefert [winkel, x, y, linke Schrankkante entlang der Wand].
-        def an_raumwand(k, wl, lx, links, rechts, fang, abstand = 0)
+        # Schrankseite einrastet. abstand = Wandabstand: hinten und an den Wandenden
+        # (Kante 0 bzw. laenge) auch seitlich zur Nachbarwand. ecke = :links/:rechts setzt den
+        # Schrank immer in diese Ecke (Eckschrank: an beiden Wänden).
+        # Liefert [winkel, x, y, linke Schrankkante entlang der Wand].
+        def an_raumwand(k, wl, lx, links, rechts, fang, abstand = 0, laenge = nil, ecke = nil)
           breite = k[1] - k[0]
+          links = links.map { |s| s.abs < 1e-6 ? s + abstand : s }
+          rechts = rechts.map { |s| laenge && (s - laenge).abs < 1e-6 ? s - abstand : s }
           xs = lx - breite / 2.0
-          dl = links.map { |s| [(xs - s).abs, s] }.min
-          dr = rechts.map { |s| [(xs + breite - s).abs, s - breite] }.min
-          beste = [dl, dr].compact.select { |d, _| d <= fang }.min
-          xs = beste[1] if beste
+          if ecke == :links
+            xs = links.min
+          elsif ecke == :rechts
+            xs = rechts.max - breite
+          else
+            dl = links.map { |s| [(xs - s).abs, s] }.min
+            dr = rechts.map { |s| [(xs + breite - s).abs, s - breite] }.min
+            beste = [dl, dr].compact.select { |d, _| d <= fang }.min
+            xs = beste[1] if beste
+          end
           x, y = welt(wl, xs - k[0], -k[3] - abstand)
           [winkel(wl[0]), x, y, xs]
         end
@@ -273,8 +303,17 @@ module JTools
         # Höhe an einer Wand (boden_z = Fußboden): Unter- und Hochschränke stehen mit der
         # Seitenunterkante auf Fußboden + Sockel, Oberschränke auf der festen Höhe (v wie #hoehe).
         def raum_hoehe(kat, boden_z, k, v)
-          return boden_z + v[:ober] - k[4] if kat == 'Oberschrank'
+          return unter_decke(boden_z + v[:ober] - k[4], k, v) if kat == 'Oberschrank'
           boden_z + v[:sockel] - k[4]
+        end
+
+        # Sockelhöhe geändert um d (Zoll): neue z eines Schranks. Unter-, Hochschränke,
+        # Arbeitsplatte, Sockelblenden um d; Oberschränke auch, aber höchstens bis unter die
+        # Decke (stehen sie schon höher, bleiben sie).
+        def sockel_neu_z(kat, z, k, d, decke)
+          return z + d unless kat == 'Oberschrank' && decke && d > 0
+          grenze = decke - k[5]
+          z >= grenze ? z : [z + d, grenze].min
         end
 
         # frei: Mitte des Grundrisses unter der Maus
@@ -320,9 +359,68 @@ module JTools
         VORGABEN.fetch(name)
       end
 
-      # Vorgaben in Zoll (siehe Rechnung.hoehe)
-      def self.vorgaben
-        Rechnung.vorgaben_zoll(VORGABEN.keys.map { |k| [k, vorgabe(k)] }.to_h)
+      # Vorgaben in Zoll (siehe Rechnung.hoehe), mit Fußboden und Decke des Raums
+      def self.vorgaben(model = nil)
+        v = Rechnung.vorgaben_zoll(VORGABEN.keys.map { |k| [k, vorgabe(k)] }.to_h)
+        r = model && raum(model)
+        if r
+          z = r.transformation.origin.to_a[2].to_f
+          h = raum_daten(r)['hoehe']
+          v[:boden] = z
+          v[:decke] = h ? z + h.to_f * MM : nil
+        end
+        v
+      end
+
+      # --- Raum (Erweiterung Raum) ---------------------------------------------------
+      def self.raum(model)
+        Schraenke.instanzen(model.entities).find { |e| e.get_attribute(RAUM_DICT, 'typ') == 'Raum' }
+      end
+
+      def self.raum_daten(r)
+        require 'json'
+        JSON.parse(r.get_attribute(RAUM_DICT, 'daten', '{}').to_s)
+      rescue StandardError
+        {}
+      end
+
+      # Wände als Hindernisse [[lage, [0, laenge, 0, dicke]], …] (Wandsystem: y in die Wand)
+      def self.waende(model)
+        r = raum(model)
+        return [] unless r
+        dicke = (raum_daten(r)['dicke'] || 240).to_f * MM
+        m = r.transformation.to_a.map(&:to_f)
+        Schraenke.instanzen(Schraenke.definition(r).entities).select { |w| w.get_attribute(RAUM_DICT, 'typ') == 'Wand' }.map do |w|
+          mm = Rechnung.matmul(m, w.transformation.to_a.map(&:to_f))
+          [[Rechnung.winkel(Math.atan2(mm[1], mm[0])), mm[12], mm[13], mm[14]],
+           [0.0, w.get_attribute(RAUM_DICT, 'laenge').to_f * MM, 0.0, dicke]]
+        end
+      end
+
+      # Schränke, die nicht in einer Zeile stehen (Arbeitsplatte, Sockelblende)
+      KEINE_ZEILE = %w[Arbeitsplatte Sockel].freeze
+
+      # Hindernisse für einen Schrank der Kategorie kat: Wände und die anderen Schränke
+      # derselben Ebene (Oberschränke: Ober- und Hochschränke; sonst Unter- und Hochschränke)
+      def self.hindernisse(model, inst, kat)
+        andere = Schraenke.instanzen(model.entities).select do |e|
+          next false if e == inst || !schrank?(e)
+          ek = kategorie(e)
+          next false if KEINE_ZEILE.include?(ek)
+          kat == 'Oberschrank' ? ek != 'Unterschrank' : ek != 'Oberschrank'
+        end
+        waende(model) + andere.map do |e|
+          b = bezug(e)
+          [lage(e.transformation), [b[0], b[1], b[2], b[3]]]
+        end
+      end
+
+      # Eckschrank: in welche Ecke einer Wand er gehört (L-Form: Schenkel B an der linken
+      # Wand; Blindeck: zur Blindseite), sonst nil
+      def self.ecke(inst)
+        return nil unless Schraenke.definition(inst).get_attribute(JT_DICT, 'typ') == 'Eckschrank'
+        return :links if Schraenke.dc(inst, 'schenkel_a')
+        Schraenke.dc(inst, 'blindseite').to_i == 1 ? :rechts : :links
       end
 
       KORPUS_DICT = 'JT_Korpus'.freeze
@@ -403,6 +501,7 @@ module JTools
       # Aufruf aus den Komponenten direkt nach dem Erzeugen (vor dem Ändern der Auswahl)
       def self.neuer_schrank(inst)
         model = inst.model
+        sockel_angleichen(inst, vorgabe(:sockelhoehe))
         auswahl = model.selection.to_a.select { |e| e != inst && schrank?(e) }
         ziel = freies_ende(inst, auswahl.size == 1 ? auswahl.first : nil)
         if ziel
@@ -414,23 +513,41 @@ module JTools
         puts "Andocken: #{e.message}"
       end
 
+      # Komponenten mit eigenem Parameter Sockelhöhe (Geschirrspüler, Kühlschrank-Nische,
+      # Wangen, Sockelblende): auf die Sockelhöhe der Küche setzen, damit Gerät und Wangen
+      # auf dem Fußboden stehen
+      def self.sockel_angleichen(inst, sockel_mm)
+        alt = Schraenke.dc(inst, 'sockelhoehe')
+        return false if alt.nil? || kategorie(inst) == 'Oberschrank'
+        neu = sockel_mm.to_f * MM
+        return false if (alt.to_f - neu).abs < 1e-6
+        inst.set_attribute(DC_DICT, 'sockelhoehe', neu)
+        $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
+        true
+      end
+
       # Gehört schrank s in dieselbe Zeile wie ein neuer Schrank der Kategorie kat?
       # Oberschränke: Ober- und Hochschränke; sonst Unter- und Hochschränke; Insel für sich.
       def self.zeile?(kat, insel, s)
         sk = kategorie(s)
-        return false if insel != insel?(s)
+        return false if insel != insel?(s) || KEINE_ZEILE.include?(sk)
         kat == 'Oberschrank' ? %w[Oberschrank Hochschrank].include?(sk) : sk != 'Oberschrank'
       end
 
-      # Lage am freien Ende der Zeile oder nil (dann Werkzeug). start = ausgewählter Schrank.
+      # Lage für einen neuen Schrank oder nil (dann Werkzeug). start = ausgewählter Schrank.
+      # Reihenfolge der Plätze: rechts bzw. links neben dem ausgewählten Schrank, dann am
+      # rechten bzw. linken Ende seiner Zeile (ohne Auswahl: Zeile des zuletzt eingefügten).
+      # Genommen wird der erste Platz, an dem keine Wand und kein anderer Schrank im Weg ist.
       def self.freies_ende(inst, start = nil)
         model = inst.model
+        gewaehlt = !start.nil?
         kat = kategorie(inst)
         insel = insel?(inst)
         alle = Schraenke.instanzen(model.entities).select { |e| e != inst && schrank?(e) }
         zeile = alle.select { |e| zeile?(kat, insel, e) }
         k = bezug(inst)
-        v = vorgaben
+        v = vorgaben(model)
+        hind = hindernisse(model, inst, kat)
         start = nil if start && !zeile.include?(start) && !(kat == 'Oberschrank' && kategorie(start) == 'Unterschrank')
         start ||= zeile.reverse.find { |e| kategorie(e) == kat } || zeile.last
         if start.nil? && kat == 'Oberschrank'
@@ -439,19 +556,51 @@ module JTools
         end
         return nil unless start
         if kat == 'Oberschrank' && kategorie(start) == 'Unterschrank'
-          unten = alle.select { |e| kategorie(e) != 'Oberschrank' && insel?(e) == insel }
+          unten = alle.select { |e| %w[Unterschrank Hochschrank].include?(kategorie(e)) && insel?(e) == insel }
           liste = unten.map { |e| [bezug(e), lage(e.transformation)] }
-          i = Rechnung.zeilenende(liste, unten.index(start), :links)
-          n, nl = liste[i]
-          return Rechnung.ueber_unterschrank(k, n, nl, false, v[:aufbau])
+          plaetze = [[Rechnung.zeilenende(liste, unten.index(start), :links), false],
+                     [Rechnung.zeilenende(liste, unten.index(start), :rechts), true]].map do |i, rechts|
+            n, nl = liste[i]
+            l = Rechnung.ueber_unterschrank(k, n, nl, rechts, v[:aufbau])
+            l[3] = Rechnung.unter_decke(l[3], k, v)
+            l
+          end
+          return plaetze.find { |l| Rechnung.platz?(k, l, hind) }
         end
         liste = zeile.map { |e| [bezug(e), lage(e.transformation)] }
-        i = Rechnung.zeilenende(liste, zeile.index(start))
-        ende = zeile[i]
-        n, nl = liste[i]
-        w, x, y = Rechnung.an_nachbar(k, n, nl, :rechts, 0)
-        z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(ende), inst.transformation.origin.to_a[2].to_f, v)
-        [w, x, y, z]
+        s = zeile.index(start)
+        plaetze = []
+        plaetze << [s, :rechts] << [s, :links] if gewaehlt && zeile[s] == start
+        plaetze << [Rechnung.zeilenende(liste, s, :rechts), :rechts] << [Rechnung.zeilenende(liste, s, :links), :links]
+        plaetze.uniq.each do |i, seite|
+          n, nl = liste[i]
+          w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0)
+          z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(zeile[i]), inst.transformation.origin.to_a[2].to_f, v)
+          return [w, x, y, z] if Rechnung.platz?(k, [w, x, y, z], hind)
+        end
+        nil
+      end
+
+      # Sockelhöhe in den Einstellungen geändert (mm): alle Schränke mitnehmen
+      # (Unter-, Hochschränke, Arbeitsplatten, Sockelblenden; Oberschränke höchstens bis
+      # zur Decke) und den Parameter Sockelhöhe der Komponenten angleichen.
+      def self.sockel_geaendert(model, alt_mm, neu_mm)
+        d = (neu_mm.to_f - alt_mm.to_f) * MM
+        return 0 if d.abs < 1e-9
+        v = vorgaben(model)
+        n = 0
+        Schraenke.instanzen(model.entities).each do |e|
+          next unless schrank?(e)
+          kat = kategorie(e)
+          l = lage(e.transformation)
+          z = Rechnung.sockel_neu_z(kat, l[3], bezug(e), d, v[:decke])
+          if (z - l[3]).abs > 1e-9
+            e.transformation = transformation([l[0], l[1], l[2], z])
+            n += 1
+          end
+          sockel_angleichen(e, neu_mm)
+        end
+        n
       end
 
       def self.setzen(inst, ziel, text)
@@ -489,7 +638,8 @@ module JTools
           @inst = inst
           @kasten = Andocken.bezug(inst)
           @kat = Andocken.kategorie(inst)
-          @v = Andocken.vorgaben
+          @v = Andocken.vorgaben(inst.model)
+          @ecke = Andocken.ecke(inst)
           @start = Andocken.lage(inst.transformation)
           @drehung = 0
           @buendig = :hinten
@@ -612,6 +762,7 @@ module JTools
           n = eigen ? nil : nachbar(pf)
           # Unter- und Hochschränke docken nicht an Oberschränke an
           n = nil if n && !ober && Andocken.kategorie(n[0]) == 'Oberschrank'
+          n = nil if n && KEINE_ZEILE.include?(Andocken.kategorie(n[0]))
           if n
             ninst, ntr = n
             nl = Andocken.lage(ntr)
@@ -622,6 +773,7 @@ module JTools
             rechts = lx > (nk[0] + nk[1]) / 2.0
             if ober && nkat == 'Unterschrank'
               @ziel = Rechnung.ueber_unterschrank(@kasten, nk, nl, rechts, @v[:aufbau])
+            @ziel[3] = Rechnung.unter_decke(@ziel[3], @kasten, @v)
               @info = "über #{name} (#{rechts ? 'rechts' : 'links'} bündig)"
               return
             end
@@ -637,13 +789,13 @@ module JTools
             laenge = winst.get_attribute(RAUM_DICT, 'laenge').to_f * MM
             links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
             rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
-            w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG, @v[:wand])
+            w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG, @v[:wand], laenge, @ecke)
             @ziel = [w, x, y, Rechnung.raum_hoehe(@kat, wl[3], @kasten, @v)]
             b = @kasten[1] - @kasten[0]
             @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"
           elsif !eigen && (wn = wand(view))
             # andere senkrechte Fläche: Fußboden bei z = 0
-            z = ober ? Rechnung.raum_hoehe(@kat, 0, @kasten, @v) : @start[3]
+            z = Rechnung.raum_hoehe(@kat, @v[:boden], @kasten, @v)
             @ziel = Rechnung.an_wand(@kasten, [p.x, p.y], wn, @v[:wand]) + [z]
             @info = 'an die Wand'
           elsif ober
@@ -651,7 +803,8 @@ module JTools
             @ziel = nil
             @info = 'Oberschrank: nur an eine Wand oder über einen Unterschrank'
           else
-            @ziel = Rechnung.frei(@kasten, [p.x, p.y], @start[0] + @drehung * VIERTEL) + [@start[3]]
+            # Unter-/Hochschränke frei verschiebbar, aber immer auf Fußboden + Sockel
+            @ziel = Rechnung.frei(@kasten, [p.x, p.y], @start[0] + @drehung * VIERTEL) + [Rechnung.sockel_z(@kasten, @v)]
             @info = ''
           end
         end
