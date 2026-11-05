@@ -639,13 +639,87 @@ module Eckschrank
 
     # Falttür: Tür A (TuerR) vor Schenkel A läuft durch die Ecke, Tür B (TuerL) vor
     # Schenkel B endet mit einer Fuge vor der Front von A; verbunden mit einem Blum-Scharnier
-    xa = xk + sp
-    einsetzen(e, hoch.('Tür A', 'Tür', [a - sp / 2.0 - xa, mk, h], 'Tür'), 'TürR', [xa, -sp, 0], [nil, nil, nil],
-              mat: mat, kz: t_.('TuerR'))
-    yb0 = yw - bb + sp / 2.0
-    einsetzen(e, hoch.('Tür B', 'Tür', [mk, -1.5 * sp - yb0, h], 'TürB'), 'TürL', [xa, yb0, 0], [nil, nil, nil],
-              mat: mat, kz: t_.('TuerL'))
+    falttuer(model, e, p, m, mat, t_, h_f)
     haupt
+  end
+
+  # Falttür zum Öffnen mit Interagieren (Jürgen 2026-11-05: nacheinander, in fester
+  # Reihenfolge). Die längere Tür hängt am Korpus (Scharnier an der Außenkante ihrer
+  # Seite), die kürzere am Eckscharnier an ihr:
+  #   Klick 1: kurze Tür klappt vor die lange (Falten um 90°)
+  #   Klick 2: beide zusammen schwenken um das Korpusscharnier auf (100°)
+  #   Klick 3: zurück an den Korpus, Klick 4: kurze Tür klappt wieder auf.
+  # Aufbau: Halter "FaltHalter" (Ursprung am Korpusscharnier) mit der langen Tür und dem
+  # Halter "FaltHalterInnen" (Ursprung am Eckscharnier) mit der kurzen Tür. ROTZ dreht
+  # jeden Halter um seinen Ursprung; das onClick sitzt am FaltHalter, ein Klick auf eine
+  # der Türen löst es aus.
+  # Die DC sucht bei ANIMATE den aktuellen Wert in der Liste und nimmt den nächsten;
+  # gleiche Werte kämen nie weiter. Deshalb weichen Zwischenstände um Hundertstel Grad ab.
+  FALT_AUSSEN = 'FaltHalter'.freeze
+  FALT_INNEN = 'FaltHalterInnen'.freeze
+  FALT_WINKEL = 100
+  FALT_KLAPPEN = 90
+
+  # Lage der Falttür in cm. Ergebnis: Scharnier außen, Tür außen (Versatz, Größe xy),
+  # Eckscharnier relativ zum äußeren, Tür innen (Versatz, Größe xy), Drehsinn, welche Tür außen
+  def self.falttuer_lage(p, m)
+    mk, sp, a, bb = p['Materialstaerke_Korpus'], p['Spaltbreite'], p['Schenkel_A'], p['Schenkel_B']
+    xa = m[:xk] + sp
+    la = a - sp / 2.0 - xa
+    yb0 = m[:yw] - bb + sp / 2.0
+    lb = -1.5 * sp - yb0
+    if a >= bb
+      # Tür A am Korpus (Seite am Ende von A), Tür B klappt vor Tür A
+      ha = [a - sp / 2.0, -sp]
+      ecke = [xa + mk, -1.5 * sp]
+      { aussen: 'TürR', innen: 'TürL', scharnier: ha, tuer: [[-la, 0], [la, mk]],
+        ecke: [ecke[0] - ha[0], ecke[1] - ha[1]], tuer_innen: [[-mk, -lb], [mk, lb]], sinn: 1 }
+    else
+      # Tür B am Korpus (Seite am Ende von B), Tür A klappt vor Tür B
+      hb = [xa + mk, yb0]
+      ecke = [xa + mk + sp / 2.0, -sp]
+      { aussen: 'TürL', innen: 'TürR', scharnier: hb, tuer: [[-mk, 0], [mk, lb]],
+        ecke: [ecke[0] - hb[0], ecke[1] - hb[1]], tuer_innen: [[-(mk + sp / 2.0), 0], [la, mk]], sinn: -1 }
+    end
+  end
+
+  def self.falttuer(model, e, p, m, mat, t_, h_f)
+    mk, h = p['Materialstaerke_Korpus'], p['Hoehe']
+    f = falttuer_lage(p, m)
+    tuer = lambda do |name, halter, (versatz, groesse)|
+      art = name == 'TürR' ? 'Tür' : 'TürB'
+      defname = name == 'TürR' ? 'Tür A' : 'Tür B'
+      d = platte(model, defname, 'Tür', groesse + [h], [nil, nil, "#{halter.get_attribute(DICT, '_name')}!H_Tuer"], art: art)
+      einsetzen(halter.entities, d, name, versatz + [0], [nil, nil, nil], mat: mat, kz: t_.(name == 'TürR' ? 'TuerR' : 'TuerL'))
+    end
+    aussen = falt_halter(model, 'Falttür Halter', FALT_AUSSEN, h, h_f)
+    innen = falt_halter(model, 'Falttür Halter innen', FALT_INNEN, h, "#{FALT_AUSSEN}!H_Tuer")
+    tuer.(f[:aussen], aussen, f[:tuer])
+    tuer.(f[:innen], innen, f[:tuer_innen])
+    einsetzen(aussen.entities, innen, FALT_INNEN, f[:ecke] + [0], [nil, nil, nil])
+    sn = f[:sinn]
+    folge = {
+      'ROTZ' => [0, sn * 0.01, sn * FALT_WINKEL, sn * 0.02],
+      "#{FALT_INNEN}!ROTZ" => [0, sn * FALT_KLAPPEN, sn * (FALT_KLAPPEN - 0.01), sn * (FALT_KLAPPEN - 0.02)]
+    }
+    befehl = folge.map { |n, werte| "ANIMATE(\"#{n}\",#{werte.map { |w| zahl(w) }.join(',')})" }.join(';')
+    aussen.set_attribute(DICT, 'onclick', befehl)
+    aussen.set_attribute(DICT, '_onclick_label', 'onClick')
+    einsetzen(e, aussen, FALT_AUSSEN, f[:scharnier] + [0], [nil, nil, nil])
+  end
+
+  # Halter einer Falttür; die Türhöhe reicht er weiter (eine Tür sieht nur ihren Halter)
+  def self.falt_halter(model, defname, dc_name, h, h_f)
+    d = model.definitions.add(defname)
+    stempel(d)
+    d.set_attribute(DICT, '_name', dc_name)
+    d.set_attribute(DICT, 'rotz', 0.0)
+    attribut(d, 'H_Tuer', h, units: 'STRING', formula: h_f)
+    d
+  end
+
+  def self.zahl(w)
+    w == w.round ? w.round.to_s : w.round(2).to_s
   end
 
   # ---------------------------------------------------------------------------
@@ -695,6 +769,13 @@ module Eckschrank
     end
   end
 
+  # Teile der L-Form, auch die Türen in ihren Haltern (ältere Schränke: Türen direkt im Schrank)
+  def self.l_teile(defn)
+    defn.entities.grep(Sketchup::ComponentInstance).flat_map do |c|
+      [FALT_AUSSEN, FALT_INNEN].include?(c.name) ? l_teile(c.definition) : [c]
+    end
+  end
+
   def self.l_neu_aufbauen(model, inst, masse)
     alt = inst.definition
     gebaut = alt.get_attribute(L_DICT, L_GEBAUT)
@@ -714,12 +795,12 @@ module Eckschrank
     p['Kuerzel'] = alt.get_attribute(JT_DICT, 'schrank')
     FEST.each_key { |k| p[k] = dc_cm(inst, k) unless dc_wert(inst, k).nil? }
     # Frontmaterial und Griffe (Frontfarbe) der Teile merken
-    vorher = alt.entities.grep(Sketchup::ComponentInstance).to_h do |c|
+    vorher = l_teile(alt).to_h do |c|
       [c.name, [c.material, c.attribute_dictionary(JT_DICT) && c.attribute_dictionary(JT_DICT).to_h]]
     end
     model.start_operation('Eckschrank L-Form ändern', true, false, true)
     neu = erzeuge_l(model, p)
-    neu.entities.grep(Sketchup::ComponentInstance).each do |c|
+    l_teile(neu).each do |c|
       mat, jt = vorher[c.name]
       next unless mat || jt
       c.material = mat if mat
