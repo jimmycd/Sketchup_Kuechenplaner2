@@ -55,7 +55,7 @@ module KuechenplanerSymbolleiste
           ['Fenster/Tür einsetzen', :einsetzen_dialog], ['Öffnung bearbeiten', :oeffnung_bearbeiten_dialog],
           ['Raum bearbeiten', :raum_bearbeiten_dialog]].freeze
 
-  # [Icon, Titel, Hilfetext, verfügbar?, Aktion]
+  # [Icon, Titel, Hilfetext, verfügbar?, Aktion, eingeschaltet? (optional, Icon gedrückt)]
   BEFEHLE = [
     ['schrank', 'Schrank einfügen', 'Schranktyp auswählen und einfügen (Unter-, Ober- und Hochschränke, Blenden und Wangen)',
      -> { !Kuechenplaner.schraenke.empty? }, -> { KuechenplanerSymbolleiste.schrank_auswahl }],
@@ -65,6 +65,9 @@ module KuechenplanerSymbolleiste
      -> { defined?(::Arbeitsplatte) }, -> { KuechenplanerSymbolleiste.arbeitsplatte }],
     ['raum', 'Raum', 'Raum anlegen und bearbeiten: Wände, Fenster, Türen, Durchgänge',
      -> { defined?(::Raum) }, -> { KuechenplanerSymbolleiste.raum_auswahl }],
+    ['beschriftung', 'Schrank-Beschriftung', 'Kürzel der Schränke (wie auf den Etiketten) in den Szenen Planung und Zuschnitt ein- und ausblenden',
+     -> { defined?(JTools::SchrankCnc::Beschriftung) }, -> { JTools::SchrankCnc::Beschriftung.umschalten },
+     -> { JTools::SchrankCnc::Beschriftung.an? }],
     ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'TCN exportieren', 'CNC-Programme (TCN) für die Schränke exportieren',
@@ -95,7 +98,7 @@ module KuechenplanerSymbolleiste
       cmd.small_icon = cmd.large_icon = icon(ikon)
       cmd.tooltip = titel
       cmd.status_bar_text = hilfe
-      cmd.set_validation_proc { KuechenplanerSymbolleiste.verfuegbar?(i) ? MF_ENABLED : MF_GRAYED }
+      cmd.set_validation_proc { KuechenplanerSymbolleiste.zustand(i) }
       cmd
     end
 
@@ -105,6 +108,13 @@ module KuechenplanerSymbolleiste
 
     def verfuegbar?(i)
       BEFEHLE[i][3].call ? true : false
+    end
+
+    # ausgegraut ohne Erweiterung; Schalter (z. B. Beschriftung) erscheinen eingeschaltet gedrückt
+    def zustand(i)
+      return MF_GRAYED unless verfuegbar?(i)
+      an = BEFEHLE[i][5]
+      an && an.call ? MF_CHECKED : MF_ENABLED
     end
 
     # Legt die Symbolleiste einmal an; nach dem Neuladen kommen neue Icons hinten dazu

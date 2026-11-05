@@ -73,7 +73,7 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Frontfarbe und Griffe', 'TCN exportieren',
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Frontfarbe und Griffe', 'TCN exportieren',
                  'Stückliste', 'Etiketten', 'Zuschnittplan', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
@@ -92,6 +92,17 @@ $VERBOSE = nil
 UI.timer_ablaufen
 check(UI::Toolbar.alle.size == 1, 'Symbolleiste nur einmal angelegt')
 tb.befehle.each { |c| check(c.validation.call == MF_ENABLED, "#{c.titel}: mit allen Erweiterungen aktiv") }
+
+# Schrank-Beschriftung: Schalter, eingeschaltet gedrückt
+bs = tb.befehle.find { |c| c.titel == 'Schrank-Beschriftung' }
+umgeschaltet = 0
+an = false
+JTools::SchrankCnc::Beschriftung.define_singleton_method(:umschalten) { |*_a| umgeschaltet += 1; an = !an }
+JTools::SchrankCnc::Beschriftung.define_singleton_method(:an?) { |*_a| an }
+bs.aktion.call
+check(umgeschaltet == 1 && bs.validation.call == MF_CHECKED, 'Beschriftung: Klick schaltet ein, Icon gedrückt')
+bs.aktion.call
+check(umgeschaltet == 2 && bs.validation.call == MF_ENABLED, 'Beschriftung: zweiter Klick schaltet aus')
 
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
