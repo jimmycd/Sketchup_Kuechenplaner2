@@ -173,9 +173,14 @@ def kamera_bauen(bpy, daten, Vector):
     auge, ziel, oben = Vector(k["auge"]), Vector(k["ziel"]), Vector(k["oben"])
     cam.location = auge
     blick = (ziel - auge).normalized()
-    # Rotation aus Blickrichtung und Oben-Vektor der SketchUp-Kamera
-    rechts = blick.cross(oben).normalized()
-    hoch = rechts.cross(blick).normalized()
+    # Rotation aus Blickrichtung und Oben-Vektor der SketchUp-Kamera; mit "rechts" sind es
+    # die Bildachsen der Ansicht (aus den Blickstrahlen der Bildecken, rendern.rb bildebene)
+    if k.get("rechts"):
+        rechts = Vector(k["rechts"]).normalized()
+        hoch = oben.normalized()
+    else:
+        rechts = blick.cross(oben).normalized()
+        hoch = rechts.cross(blick).normalized()
     from mathutils import Matrix
     m = Matrix((rechts, hoch, -blick)).transposed()
     cam.rotation_mode = "QUATERNION"
@@ -185,6 +190,10 @@ def kamera_bauen(bpy, daten, Vector):
         cam_data.type = "PERSP"
         cam_data.sensor_fit = "VERTICAL" if k.get("fov_hoehe", True) else "HORIZONTAL"
         cam_data.angle = math.radians(float(k["fov"]))
+        # Objektiv-Shift wie in SketchUp (Zweipunktperspektive, 2D-Zoom/-Verschieben), in Bildhöhen
+        shift = k.get("shift") or [0.0, 0.0]
+        if cam_data.sensor_fit == "VERTICAL":
+            cam_data.shift_x, cam_data.shift_y = float(shift[0]), float(shift[1])
     else:
         cam_data.type = "ORTHO"
         # SketchUp: Höhe der Ansicht; Blender: größere Seite
@@ -206,6 +215,8 @@ def zweipunkt(cam, cam_data, auge, blick, breite, hoehe, Vector):
     neigung = math.atan2(blick.z, waag.length)
     if abs(neigung) > math.radians(40):  # steil von oben: lieber normal lassen
         return
+    if abs(neigung) < 1e-6:  # schon waagrecht (z. B. Zweipunktperspektive in SketchUp)
+        return
     waag.normalize()
     rechts = waag.cross(Vector((0.0, 0.0, 1.0))).normalized()
     hoch = rechts.cross(waag).normalized()
@@ -214,7 +225,7 @@ def zweipunkt(cam, cam_data, auge, blick, breite, hoehe, Vector):
     # Blender misst shift in Einheiten der Sensor-Bezugsseite (AUTO: größere
     # Bildseite) – derselben Seite, auf die sich cam_data.angle bezieht.
     # So landet der Zielpunkt genau in der Bildmitte.
-    cam_data.shift_y = math.tan(neigung) / (2.0 * math.tan(cam_data.angle / 2.0))
+    cam_data.shift_y += math.tan(neigung) / (2.0 * math.tan(cam_data.angle / 2.0))
 
 
 def umgebung_laden(bpy, welt, datei, staerke, hintergrund=None):

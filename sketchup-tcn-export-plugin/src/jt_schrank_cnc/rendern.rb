@@ -387,7 +387,7 @@ module JTools
       def kamera(view, seite = nil)
         c = seite && seite.respond_to?(:camera) && seite.camera ? seite.camera : view.camera
         perspektive = c.perspective?
-        {
+        k = {
           'auge' => c.eye.to_a.map { |v| (v.to_f * M).round(5) },
           'ziel' => c.target.to_a.map { |v| (v.to_f * M).round(5) },
           'oben' => c.up.to_a.map { |v| v.to_f.round(6) },
@@ -396,6 +396,85 @@ module JTools
           'fov_hoehe' => c.respond_to?(:fov_is_height?) ? c.fov_is_height? : true,
           'hoehe' => perspektive ? 0.0 : (c.height.to_f * M).round(5)
         }
+        # nur für die aktuelle Ansicht: die Strahlen gehören zu dem, was gerade zu sehen ist
+        return k unless perspektive && seite.nil? && view.respond_to?(:pickray)
+        bild = begin
+          bildebene(view)
+        rescue StandardError
+          nil
+        end
+        bild ? k.merge(bild) : k
+      end
+
+      # Genau der Bildausschnitt der Ansicht, aus den Blickstrahlen der vier Bildecken
+      # (view.pickray). So zählen auch Zweipunktperspektive und 2D-Zoom/-Verschieben
+      # von SketchUp mit, die in Auge/Ziel/fov nicht stehen.
+      # Liefert Auge, Bildachsen, senkrechten Öffnungswinkel und Objektiv-Shift
+      # (in Bildhöhen, wie Blender bei sensor_fit VERTICAL).
+      def bildebene(view)
+        w = view.vpwidth.to_i
+        h = view.vpheight.to_i
+        return nil if w <= 1 || h <= 1
+        auge = nil
+        strahl = lambda do |x, y|
+          o, d = view.pickray(x, y)
+          auge ||= o.to_a.map(&:to_f)
+          norm(d.to_a.map(&:to_f))
+        end
+        ol, or_, ul, ur = strahl.(0, 0), strahl.(w, 0), strahl.(0, h), strahl.(w, h)
+        # Bildzeilen sind parallel: die Ebenen (Auge, obere Zeile) und (Auge, untere Zeile)
+        # schneiden sich in der waagrechten Bildachse; ebenso die Spalten in der senkrechten
+        rechts = norm(kreuz(kreuz(ol, or_), kreuz(ul, ur)))
+        hoch = norm(kreuz(kreuz(ol, ul), kreuz(or_, ur)))
+        return nil unless rechts && hoch
+        rechts = rechts.map(&:-@) if punkt(rechts, minus(or_, ol)).negative?
+        hoch = hoch.map(&:-@) if punkt(hoch, minus(ol, ul)).negative?
+        blick = norm(kreuz(hoch, rechts))
+        return nil unless blick
+        blick = blick.map(&:-@) if punkt(blick, plus(ol, ur)).negative?
+        hoch = kreuz(rechts, blick)
+        # Ecken auf der Bildebene im Abstand 1 vor dem Auge
+        xy = [ol, or_, ul, ur].map do |d|
+          t = punkt(d, blick)
+          return nil if t <= 1e-9
+          [punkt(d, rechts) / t, punkt(d, hoch) / t]
+        end
+        links = (xy[0][0] + xy[2][0]) / 2.0
+        rechts_x = (xy[1][0] + xy[3][0]) / 2.0
+        oben = (xy[0][1] + xy[1][1]) / 2.0
+        unten = (xy[2][1] + xy[3][1]) / 2.0
+        hoehe = oben - unten
+        return nil if hoehe <= 1e-9 || rechts_x <= links
+        {
+          'auge' => auge.map { |v| (v * M).round(5) },
+          'ziel' => auge.each_with_index.map { |v, i| (v * M + blick[i]).round(5) },
+          'oben' => hoch.map { |v| v.round(6) },
+          'rechts' => rechts.map { |v| v.round(6) },
+          'fov' => (2.0 * Math.atan(hoehe / 2.0) * 180.0 / Math::PI).round(4),
+          'fov_hoehe' => true,
+          'shift' => [((links + rechts_x) / 2.0 / hoehe).round(5), ((oben + unten) / 2.0 / hoehe).round(5)]
+        }
+      end
+
+      def kreuz(a, b)
+        [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+      end
+
+      def punkt(a, b)
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+      end
+
+      def minus(a, b)
+        [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+      end
+
+      def plus(a, b)
+        [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+      end
+
+      def norm(a)
+        l = Math.sqrt(punkt(a, a))
+        l < 1e-12 ? nil : a.map { |v| v / l }
       end
 
       # Richtung zur Sonne: Schatten-Einstellungen der Szene Kunde (falls sie eigene hat),
