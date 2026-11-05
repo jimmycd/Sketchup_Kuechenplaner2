@@ -77,7 +77,7 @@ module UnterschrankKuehlschrank
     'Materialstarke_Rueckwand' => 0.8,
     'Spaltbreite'              => 0.2,
     'Geraet_Luft'              => 0.4,   # Nische 600 -> Gerät 596
-    'Geraet_Tiefe'             => 55.0
+    'Geraet_Tiefe'             => 55.0  # Tiefe des Platzhalters (höchstens Korpustiefe)
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -398,8 +398,8 @@ module UnterschrankKuehlschrank
 
     # --- Geräte-Platzhalter (kein Schrankteil: kein Plattenmaterial, kein JT_Schrank) ---
     g = platte(model, 'Kuehlschrank Platzhalter', 'Geraet',
-               [p['Breite'] - p['Geraet_Luft'], p['Geraet_Tiefe'], r[:h_unten]],
-               ["#{u}!Breite-#{u}!Geraet_Luft", "#{u}!Geraet_Tiefe", "#{u}!Hoehe+#{u}!Sockelhoehe"])
+               [p['Breite'] - p['Geraet_Luft'], [p['Geraet_Tiefe'], p['Tiefe']].min, r[:h_unten]],
+               ["#{u}!Breite-#{u}!Geraet_Luft", "MIN(#{u}!Geraet_Tiefe,#{u}!Tiefe)", "#{u}!Hoehe+#{u}!Sockelhoehe"])
     tag = model.layers[GERAET_TAG] || model.layers.add(GERAET_TAG)
     einsetzen(e, g, 'Geraet', [r[:x_nische] + p['Geraet_Luft'] / 2.0, mk, -p['Sockelhoehe']],
               ["#{u}!X_Nische+#{u}!Geraet_Luft/2", nil, "-#{u}!Sockelhoehe"],
