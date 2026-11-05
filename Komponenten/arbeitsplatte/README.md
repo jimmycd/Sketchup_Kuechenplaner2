@@ -20,9 +20,13 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
    einstellen, je Ecke Stoßart und durchlaufende Platte. Danach liegt die Komponente
    `APL1` (bzw. `APL2` …) über den Schränken, und eine Meldung zeigt Zeilen, Ecken,
    Platten, Stöße und Warnungen.
-4. Schränke verschoben? **Arbeitsplatte neu berechnen** baut `APL1` (markiert, sonst alle
-   Arbeitsplatten) mit denselben Einstellungen über denselben Schränken neu auf.
-   Handänderungen an den Platten gehen dabei verloren.
+4. Schränke verschoben, dazugestellt oder entfernt? **Arbeitsplatte neu berechnen** löscht
+   `APL1` (markiert, sonst alle Arbeitsplatten) samt Platten, Ausschnitten und Tags und
+   berechnet sie mit denselben Einstellungen über **allen** Schränken, die jetzt im Modell
+   stehen, komplett neu (Ausschnitte, Teilung, Hochschränke an den Enden inklusive). Bei
+   mehreren Arbeitsplatten behält jede ihre zusammenhängende Schrankgruppe, eine neue Gruppe
+   kommt zur ersten; eine Platte ohne Schränke wird gelöscht. Ein Rückgängig nimmt alles
+   zurück. Handänderungen an den Platten gehen dabei verloren.
 
 ## Was gezeichnet wird
 
