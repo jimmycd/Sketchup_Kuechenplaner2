@@ -82,12 +82,29 @@ module Arbeitsplatte
       quelle.grep(Sketchup::ComponentInstance).select { |i| schrank?(i) }
     end
 
+    GERAET_DICT = 'JT_Geraet'.freeze
+
+    # Grenzen des Schranks ohne eingesetzte Geräte (Spüle mit Armatur, Kochfeld): die ragen über den
+    # Korpus hinaus, dann lag die Oberkante zu hoch und der Schrank fiel aus seiner Zeile (Jürgen 2026-11-05).
+    # [[x0, y0, z0], [x1, y1, z1]] in Zoll im Schranksystem
+    def self.korpus_grenzen(d)
+      bb = d.bounds
+      ganz = [bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f)]
+      ents = d.entities.to_a
+      geraete = ents.grep(Sketchup::ComponentInstance).select { |i| i.definition.get_attribute(GERAET_DICT, 'geraet') }
+      return ganz if geraete.empty?
+      rest = (ents - geraete).select { |e| e.respond_to?(:bounds) }
+      boxen = rest.map { |e| b = e.bounds; [b.min.to_a.map(&:to_f), b.max.to_a.map(&:to_f)] }
+                  .reject { |mn, mx| mn.zip(mx).any? { |a, b| a > b } } # leere Box
+      return ganz if boxen.empty?
+      [boxen.map(&:first).transpose.map(&:min), boxen.map(&:last).transpose.map(&:max)]
+    end
+
     # Elemente eines Schranks (meist eins, beim L-Eckschrank zwei)
     def self.elemente(inst, warnungen = [])
       d = inst.definition
       m = inst.transformation.to_a.map(&:to_f)
-      bb = d.bounds
-      (x0, y0, z0), (x1, y1, z1) = bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f)
+      (x0, y0, z0), (x1, y1, z1) = korpus_grenzen(d)
       basis = { kz: d.get_attribute(JT_DICT, 'schrank').to_s, typ: d.get_attribute(JT_DICT, 'typ').to_s,
                 kategorie: d.get_attribute(JT_DICT, 'kategorie').to_s }
       ins = insel(inst)

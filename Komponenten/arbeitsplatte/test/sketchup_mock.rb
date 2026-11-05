@@ -275,11 +275,39 @@ end
 # --- Neu berechnen: alte Definitionen und Tags entfernen wie in SketchUp ---
 module Sketchup
   class Definitions
-    def remove(d) = @h.delete(@h.key(d))
+    def remove(d)
+      d.instance_variable_set(:@entfernt, true)
+      @h.delete(@h.key(d))
+    end
     def to_a = @h.values
+  end
+
+  class ComponentDefinition
+    def valid? = !@entfernt
   end
 
   class Named
     def remove(m) = @h.delete(@h.key(m))
+  end
+end
+
+# --- wie SketchUp: gelöschte Instanzen dürfen nicht mehr angefasst werden ---
+module Sketchup
+  class Entities
+    alias_method :erase_entities_ohne_pruefung, :erase_entities
+    def erase_entities(*l)
+      erase_entities_ohne_pruefung(*l)
+      l.flatten.each { |e| e.instance_variable_set(:@geloescht, true) if e.is_a?(ComponentInstance) }
+    end
+  end
+
+  class ComponentInstance
+    %i[definition transformation name layer material].each do |m|
+      alt = instance_method(m)
+      define_method(m) do
+        raise TypeError, 'reference to deleted ComponentInstance' if @geloescht
+        alt.bind(self).call
+      end
+    end
   end
 end
