@@ -504,6 +504,59 @@ module Geraete
     raise
   end
 
+  # Geräte aus einem Schrank entfernen und die alten Platzhalter (Tag Geraete_Plan)
+  # wieder einblenden, so dass der Schrank aussieht wie vor dem Einsetzen.
+  # Korpus, Nischen (JT_Nische*) und Schrankteile bleiben unberührt. Liefert die Anzahl.
+  def self.entfernen_aus(schrank)
+    ents = schrank.definition.entities
+    alt = ents.grep(Sketchup::ComponentInstance).select { |i| geraet?(i) }
+    return 0 if alt.empty?
+    ents.erase_entities(alt)
+    platzhalter_zeigen(ents)
+    alt.size
+  end
+
+  # Platzhalter wieder einblenden, sobald im Schrank kein Gerät mehr steckt
+  def self.platzhalter_zeigen(ents)
+    kinder = ents.grep(Sketchup::ComponentInstance)
+    return if kinder.any? { |i| geraet?(i) }
+    kinder.each { |i| i.hidden = false if i.layer && i.layer.name == TAG_PLAN }
+  end
+
+  # Was der Befehl "Geräte entfernen" trifft: gewählte Geräte einzeln (auch im
+  # geöffneten Schrank gewählt), sonst die gewählten Schränke, ohne Auswahl alle
+  # Schränke des Modells (oberste Ebene). Liefert [einzelne Geräte, Schränke].
+  def self.entfernen_ziele(model)
+    auswahl = model.selection.to_a.grep(Sketchup::ComponentInstance)
+    einzeln = auswahl.select { |i| geraet?(i) }
+    quelle = model.selection.to_a.empty? ? model.entities.to_a : auswahl
+    schraenke = quelle.grep(Sketchup::ComponentInstance).reject { |i| geraet?(i) }.select do |i|
+      i.definition.entities.grep(Sketchup::ComponentInstance).any? { |k| geraet?(k) }
+    end
+    [einzeln, schraenke]
+  end
+
+  def self.entfernen(model = Sketchup.active_model)
+    einzeln, schraenke = entfernen_ziele(model)
+    if einzeln.empty? && schraenke.empty?
+      UI.messagebox('Keine eingesetzten Geräte gefunden. Ohne Auswahl werden alle Geräte des Modells entfernt, mit Auswahl nur die der gewählten Schränke oder die gewählten Geräte.')
+      return 0
+    end
+    model.start_operation('Geräte entfernen', true)
+    eltern = einzeln.map(&:parent).uniq
+    einzeln.each(&:erase!)
+    eltern.each { |d| platzhalter_zeigen(d.entities) if d.respond_to?(:entities) }
+    anzahl = einzeln.size
+    anzahl += schraenke.sum { |s| entfernen_aus(s) }
+    model.commit_operation
+    UI.messagebox("#{anzahl} Geräte entfernt. Mit \"Geräte in Schränke setzen\" lassen sie sich jederzeit wieder einsetzen.")
+    anzahl
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Entfernen: #{e.message}")
+    raise
+  end
+
   # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum)
   SZENEN = { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.freeze
   RAUM_TAGS = 'Raum-'.freeze # Tags der Erweiterung Raum (Wände, Fenster, Türen, Boden)
@@ -557,6 +610,7 @@ end unless defined?(Kuechenplaner.schrank)
 
 unless file_loaded?(__FILE__)
   Kuechenplaner.untermenu('Geräte').add_item('Geräte in Schränke setzen') { Geraete.in_schraenke_setzen }
+  Kuechenplaner.untermenu('Geräte').add_item('Geräte entfernen') { Geraete.entfernen }
   Kuechenplaner.untermenu('Geräte').add_item('Szenen Planung/Kunde/Zuschnitt anlegen') { Geraete.szenen_anlegen }
   file_loaded(__FILE__)
 end

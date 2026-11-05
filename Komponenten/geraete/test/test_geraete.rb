@@ -165,6 +165,34 @@ model.selection.add(usg)
 check(G.in_schraenke_setzen(model) == 1, 'mit Auswahl nur der gewählte Schrank')
 model.selection.clear
 
+# --- Geräte entfernen ---
+platzhalter = lambda do |s|
+  s.definition.entities.grep(Sketchup::ComponentInstance).reject { |i| G.geraet?(i) }.select { |i| i.layer&.name == G::TAG_PLAN }
+end
+teile_vorher = JTools::SchrankCnc::Schraenke.teile(model).size
+nischen_vorher = erwartet.keys.to_h { |s| [s, G.nischen(s.definition)] }
+# einzeln: ein Gerät im geöffneten Hochschrank gewählt
+model.selection.add(geraete(hg).first)
+check(G.entfernen(model) == 1 && geraete(hg).size == 1, "einzelnes Gerät entfernt (#{geraete(hg).size} übrig)")
+check(platzhalter.(hg).all?(&:hidden), 'Platzhalter bleiben aus, solange noch ein Gerät im Schrank steckt')
+model.selection.clear
+model.selection.add(geraete(hg).first)
+check(G.entfernen(model) == 1 && geraete(hg).empty?, 'zweites Gerät entfernt')
+check(platzhalter.(hg).any? && platzhalter.(hg).none?(&:hidden), 'letztes Gerät weg: Platzhalter wieder sichtbar')
+model.selection.clear
+# gewählter Schrank
+model.selection.add(usb)
+check(G.entfernen(model) == 2 && geraete(usb).empty? && geraete(usp).size == 1, 'mit Auswahl nur der gewählte Schrank (Kochfeld + Backofen)')
+model.selection.clear
+# ohne Auswahl: alle
+rest = erwartet.keys.sum { |s| geraete(s).size }
+check(G.entfernen(model) == rest && erwartet.keys.all? { |s| geraete(s).empty? }, "ohne Auswahl alle Geräte entfernt (#{rest})")
+check(usg.definition.entities.grep(Sketchup::ComponentInstance).any? && platzhalter.(usg).none?(&:hidden), 'Spüler: Platzhalter wieder sichtbar')
+check(erwartet.keys.all? { |s| G.nischen(s.definition) == nischen_vorher[s] }, 'Nischen bleiben erhalten')
+check(JTools::SchrankCnc::Schraenke.teile(model).size == teile_vorher, 'TCN-Export: Schrankteile unverändert')
+check(G.entfernen(model).zero? && $meldungen.last.include?('Keine eingesetzten Geräte'), 'Hinweis, wenn nichts zu entfernen ist')
+check(G.in_schraenke_setzen(model) == anzahl && platzhalter.(usg).all?(&:hidden), 'danach wieder einsetzbar')
+
 # Szenen (mit Raum: dessen Tags nur in Planung und Kunde sichtbar)
 %w[Raum-Wand Raum-Fenster].each { |t| model.layers.add(t) }
 G.szenen_anlegen(model)

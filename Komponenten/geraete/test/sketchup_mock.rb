@@ -78,6 +78,7 @@ module Sketchup
     def add_text(t, p) = @texte << [t, p]
     def add_instance(d, tr)
       i = ComponentInstance.new(d, tr)
+      i.parent_entities = self
       @list << i
       i
     end
@@ -98,9 +99,11 @@ module Sketchup
 
   class ComponentInstance
     include Attr
-    attr_accessor :name, :material, :layer, :hidden
+    attr_accessor :name, :material, :layer, :hidden, :parent_entities
     attr_reader :definition, :transformation
     def initialize(d, tr) = (@definition, @transformation = d, tr)
+    def erase! = (parent_entities&.erase_entities([self]); nil)
+    def parent = parent_entities&.definition
     def hidden? = !!hidden
   end
 
