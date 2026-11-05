@@ -9,7 +9,8 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 2. Schränke wie gewohnt erzeugen und einstellen.
 3. *Erweiterungen → Küchenplaner → Geräte → Geräte in Schränke setzen*: setzt in alle gewählten Schränke (ohne Auswahl: in alle Schränke des Modells) das passende Gerät. Die alten Platzhalter der Schränke werden ausgeblendet.
 4. Nach einer Änderung am Schrank (Breite, Gerätewahl …) den Befehl einfach erneut ausführen; vorhandene Geräte werden ersetzt.
-5. *Erweiterungen → Küchenplaner → Geräte → Szenen Planung/Kunde/Zuschnitt anlegen*: legt drei Szenen an (oder aktualisiert sie).
+5. *Erweiterungen → Küchenplaner → Geräte → Geräte entfernen*: nimmt die eingesetzten Geräte wieder heraus. Ohne Auswahl alle Geräte des Modells, mit gewählten Schränken nur deren Geräte, mit einem gewählten Gerät (im geöffneten Schrank anklicken) nur dieses eine. Korpus, Nischen und TCN-Export bleiben unverändert; sobald ein Schrank kein Gerät mehr hat, sind seine alten Platzhalter wieder sichtbar. Wieder einsetzen mit Schritt 3. Die nicht mehr benutzten Gerätedefinitionen räumt *Fenster → Modellinformationen → Statistik → Nicht verwendete Elemente löschen* auf.
+6. *Erweiterungen → Küchenplaner → Geräte → Szenen Planung/Kunde/Zuschnitt anlegen*: legt drei Szenen an (oder aktualisiert sie).
 
 | Szene | `Geraete_Plan` | `Geraete_Render` | wofür |
 |---|---|---|---|
@@ -47,6 +48,6 @@ Ein Schrank mit Gerätenische legt an seiner Definition ein Wörterbuch `JT_Nisc
 Die Werte sind der Stand beim Erzeugen des Schranks. Jedes Gerät trägt das Wörterbuch `JT_Geraet` (`geraet`, `nische`, `schrank`, `text`).
 
 ## Tests
-`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte, Herdumbauschrank und Oberschrank Dunstabzug, setzt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder Material trägt und dass der TCN-Export die Geräte übergeht.
+`ruby test/test_geraete.rb` (ohne SketchUp, mit Mock-API) erzeugt die echten Schränke Spüler, Kochfeld, Spüle, Hochschrank Geräte, Herdumbauschrank und Oberschrank Dunstabzug, setzt und entfernt die Geräte und prüft Lage, Maße, Tags, Szenen, dass kein Geräteteil `JT_Schrank` oder Material trägt und dass der TCN-Export die Geräte übergeht.
 
 **Noch nicht in echtem SketchUp geprüft.**
