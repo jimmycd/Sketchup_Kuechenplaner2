@@ -27,6 +27,10 @@ module JTools
       M = 0.0254 # Zoll -> Meter
       # Qualität -> Samples (Cycles, mit Entrauschen)
       QUALITAET = { 'Entwurf' => 32, 'Normal' => 128, 'Hoch' => 512 }.freeze
+      # Umgebung: HDRI aus Blenders eigenen Dateien (datafiles/studiolights/world), kein Download
+      UMGEBUNG = { 'Innenraum' => 'interior.exr', 'Innenhof' => 'courtyard.exr', 'Studio' => 'studio.exr',
+                   'Stadt' => 'city.exr', 'Wald' => 'forest.exr', 'Sonnenuntergang' => 'sunset.exr',
+                   'einfarbig hell' => nil }.freeze
       # Tags, die im Bild nie erscheinen bzw. immer (falls es keine Szene Kunde gibt)
       NIE = %w[Beschriftung Geraete_Plan].freeze
       IMMER = %w[Geraete_Render].freeze
@@ -47,6 +51,11 @@ module JTools
         t = text.to_s.gsub('ä', 'ae').gsub('ö', 'oe').gsub('ü', 'ue').gsub('Ä', 'Ae').gsub('Ö', 'Oe')
                 .gsub('Ü', 'Ue').gsub('ß', 'ss')
         t.gsub(/[^0-9A-Za-z_-]+/, '_').gsub(/\A_+|_+\z/, '')[0, 50]
+      end
+
+      # Definition eines Oberschranks (JT_Schrank/kategorie, wie Stückliste und TCN-Export)
+      def oberschrank?(defn)
+        defn.respond_to?(:get_attribute) && defn.get_attribute('JT_Schrank', 'kategorie') == 'Oberschrank'
       end
 
       def materialart(name, alpha = 1.0)
@@ -132,7 +141,12 @@ module JTools
           @namen = {}       # SketchUp-Material (oder nil) => Name in der MTL
           @flaechen = 0
           @box = nil
+          @leds = []     # Unterseiten der Oberschränke [x0, y0, x1, y1, z] in m
+          @punkte = []   # alle Punkte in m (für die Begrenzung der Oberschränke)
+          @im_ober = false
         end
+
+        attr_reader :leds
 
         def obj_text
           @obj.join("\n") + "\n"
@@ -152,7 +166,15 @@ module JTools
               next unless sichtbar?(e)
               defn = e.respond_to?(:definition) ? e.definition : nil
               kinder = defn ? defn.entities : e.entities
-              entities(kinder, tr * e.transformation, e.material || erbe)
+              if !@im_ober && Rendern.oberschrank?(defn || (e.entities.respond_to?(:parent) ? e.entities.parent : nil))
+                @im_ober = true
+                start = @punkte.size
+                entities(kinder, tr * e.transformation, e.material || erbe)
+                @im_ober = false
+                led(@punkte[start..-1])
+              else
+                entities(kinder, tr * e.transformation, e.material || erbe)
+              end
             end
           end
         end
@@ -218,7 +240,15 @@ module JTools
           @flaechen += 1
         end
 
+        # LED-Leiste unter dem Oberschrank: Unterseite seiner Begrenzung
+        def led(punkte)
+          return if punkte.nil? || punkte.empty?
+          xs, ys, zs = punkte.transpose
+          @leds << [xs.min, ys.min, xs.max, ys.max, zs.min].map { |v| v.round(4) }
+        end
+
         def erweitern(x, y, z)
+          @punkte << [x, y, z]
           if @box
             @box[0] = [[@box[0][0], x].min, [@box[0][1], y].min, [@box[0][2], z].min]
             @box[1] = [[@box[1][0], x].max, [@box[1][1], y].max, [@box[1][2], z].max]
@@ -308,7 +338,10 @@ module JTools
       end
 
       # Exportiert Modell und Szene; liefert den Pfad der szene.json
-      def exportieren(model, ordner, bild, breite:, samples:, raumlicht: true, blend: true, kamera_kunde: false)
+      # Optionen: raumlicht, led (unter Oberschränken), umgebung (Name aus UMGEBUNG),
+      # senkrecht (Zweipunktperspektive: senkrechte Kanten bleiben senkrecht), kamera_kunde
+      def exportieren(model, ordner, bild, breite:, samples:, raumlicht: true, blend: true, kamera_kunde: false,
+                      led: true, umgebung: 'Innenraum', senkrecht: true)
         FileUtils.mkdir_p(ordner)
         s = Sammler.new(sichtbarkeit(model))
         s.entities(model.entities, Geom::Transformation.new, nil)
@@ -320,8 +353,10 @@ module JTools
           'obj' => 'szene.obj',
           'blend' => blend ? 'szene.blend' : nil,
           'bild' => { 'datei' => bild, 'breite' => breite, 'hoehe' => bildhoehe(view, breite), 'samples' => samples },
-          'kamera' => kamera(view, kamera_kunde ? seite_kunde(model) : nil),
-          'licht' => { 'sonne' => sonne(model), 'raumlicht' => raumlicht },
+          'kamera' => kamera(view, kamera_kunde ? seite_kunde(model) : nil).merge('senkrecht' => senkrecht),
+          'licht' => { 'sonne' => sonne(model), 'raumlicht' => raumlicht, 'led' => led ? s.leds : [],
+                       'umgebung' => UMGEBUNG[umgebung] },
+          'kanten' => 0.0015, # Kantenradius in m (Bevel-Shader)
           'box' => s.box.map { |p| p.map { |v| v.round(4) } },
           'materialien' => s.materialien.transform_values do |m|
             { 'farbe' => m[:farbe], 'alpha' => m[:alpha], 'textur' => m[:textur], 'art' => m[:art] }
@@ -392,37 +427,40 @@ module JTools
       def dialog(model = Sketchup.active_model)
         blender = blender_suchen
         kunde = szene_kunde?(model)
-        prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Kamera', 'Bild: Raumlicht von oben',
-                   'Bild: Bilddatei (PNG)', 'Blender: Programm (blender.exe)']
+        prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Kamera',
+                   'Bild: Senkrechte Kanten gerade (Zweipunktperspektive)', 'Licht: Umgebung',
+                   'Licht: Raumlicht von oben', 'Licht: LED-Leisten unter Oberschränken',
+                   'Datei: Bilddatei (PNG)', 'Datei: Blender-Programm (blender.exe)']
         kameras = kunde ? 'aktuelle Ansicht|Szene Kunde' : 'aktuelle Ansicht'
         werte = [vorgabe('breite', '1920').to_s, vorgabe('qualitaet', 'Normal').to_s, 'aktuelle Ansicht',
-                 vorgabe('raumlicht', 'ja').to_s, standard_bild(model), blender]
-        listen = ['', QUALITAET.keys.join('|'), kameras, 'ja|nein', ':speichern', ':programm']
+                 vorgabe('senkrecht', 'ja').to_s, vorgabe('umgebung', 'Innenraum').to_s,
+                 vorgabe('raumlicht', 'ja').to_s, vorgabe('led', 'ja').to_s, standard_bild(model), blender]
+        listen = ['', QUALITAET.keys.join('|'), kameras, 'ja|nein', UMGEBUNG.keys.join('|'), 'ja|nein', 'ja|nein',
+                  ':speichern', ':programm']
         untertitel = kunde ? 'Sichtbarkeit und Sonne wie Szene Kunde' : 'Szene Kunde fehlt: aktuelle Sichtbarkeit'
         Kuechenplaner::Eingabe.abfragen(prompts, werte, listen, 'Küche rendern (Blender)',
                                         untertitel: untertitel, ok: 'Rendern') do |neu|
           breite = neu[0].to_s.strip.to_i
           raise ArgumentError, 'Breite bitte zwischen 200 und 8000 Pixel.' unless breite.between?(200, 8000)
-          bild = neu[4].to_s.strip.tr('\\', '/')
+          bild = neu[7].to_s.strip.tr('\\', '/')
           raise ArgumentError, 'Bitte eine Bilddatei angeben.' if bild.empty?
           bild += '.png' unless bild =~ /\.png\z/i
-          exe = neu[5].to_s.strip.tr('\\', '/')
+          exe = neu[8].to_s.strip.tr('\\', '/')
           unless File.file?(exe)
             raise ArgumentError, 'Blender nicht gefunden. Bitte Blender installieren (kostenlos, blender.org) ' \
                                  'und hier blender.exe wählen.'
           end
-          merken('breite', breite.to_s)
-          merken('qualitaet', neu[1])
-          merken('raumlicht', neu[3])
-          merken('blender', exe)
-          starten(model, exe, bild, breite, QUALITAET.fetch(neu[1], 128), neu[3] != 'nein', neu[2] == 'Szene Kunde')
+          { 'breite' => breite.to_s, 'qualitaet' => neu[1], 'senkrecht' => neu[3], 'umgebung' => neu[4],
+            'raumlicht' => neu[5], 'led' => neu[6], 'blender' => exe }.each { |k, v| merken(k, v) }
+          optionen = { raumlicht: neu[5] != 'nein', kamera_kunde: neu[2] == 'Szene Kunde', senkrecht: neu[3] != 'nein',
+                       umgebung: UMGEBUNG.key?(neu[4]) ? neu[4] : 'Innenraum', led: neu[6] != 'nein' }
+          starten(model, exe, bild, breite, QUALITAET.fetch(neu[1], 128), optionen)
         end
       end
 
-      def starten(model, exe, bild, breite, samples, raumlicht, kamera_kunde = false)
+      def starten(model, exe, bild, breite, samples, optionen = {})
         ordner = bild.sub(/\.png\z/i, '_blender')
-        json = exportieren(model, ordner, bild, breite: breite, samples: samples, raumlicht: raumlicht,
-                                                kamera_kunde: kamera_kunde)
+        json = exportieren(model, ordner, bild, breite: breite, samples: samples, **optionen)
         File.delete(bild) if File.exist?(bild)
         log = File.join(ordner, 'blender.log')
         status = File.join(ordner, 'kp_status.txt')

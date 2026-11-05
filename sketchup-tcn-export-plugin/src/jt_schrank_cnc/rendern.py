@@ -98,7 +98,7 @@ def srgb_linear(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
-def material_bauen(bpy, mat, daten, ordner):
+def material_bauen(bpy, mat, daten, ordner, kanten=0.0):
     mat.use_nodes = True
     nt = mat.node_tree
     nt.nodes.clear()
@@ -134,6 +134,15 @@ def material_bauen(bpy, mat, daten, ordner):
             bild.location = (-400, 0)
             bild.image = bpy.data.images.load(pfad, check_existing=True)
             nt.links.new(bild.outputs["Color"], eingang(bsdf, "Base Color"))
+    # leicht gerundete Kanten (nur im Licht, Geometrie bleibt): keine scharfen CAD-Kanten
+    if kanten > 0 and "transmission" not in art:
+        bevel = nt.nodes.new("ShaderNodeBevel")
+        bevel.location = (-200, -300)
+        bevel.samples = 4
+        bevel.inputs["Radius"].default_value = kanten
+        normal = eingang(bsdf, "Normal")
+        if normal is not None:
+            nt.links.new(bevel.outputs["Normal"], normal)
     mat.diffuse_color = farbe  # Farbe in der Blender-Ansicht
 
 
@@ -180,10 +189,79 @@ def kamera_bauen(bpy, daten, Vector):
         cam_data.type = "ORTHO"
         # SketchUp: Höhe der Ansicht; Blender: größere Seite
         cam_data.ortho_scale = float(k["hoehe"]) * max(1.0, breite / float(hoehe))
+    if k.get("perspektive", True) and k.get("senkrecht"):
+        zweipunkt(cam, cam_data, auge, blick, breite, hoehe, Vector)
     cam_data.clip_start = 0.01
     cam_data.clip_end = 1000.0
     bpy.context.scene.camera = cam
     return cam
+
+
+def zweipunkt(cam, cam_data, auge, blick, breite, hoehe, Vector):
+    """Zweipunktperspektive: Kamera waagrecht stellen, die Neigung über den Objektiv-Shift
+    ausgleichen. Senkrechte Kanten (Schrankseiten, Wände) bleiben im Bild senkrecht."""
+    waag = Vector((blick.x, blick.y, 0.0))
+    if waag.length < 1e-6:
+        return
+    neigung = math.atan2(blick.z, waag.length)
+    if abs(neigung) > math.radians(40):  # steil von oben: lieber normal lassen
+        return
+    waag.normalize()
+    rechts = waag.cross(Vector((0.0, 0.0, 1.0))).normalized()
+    hoch = rechts.cross(waag).normalized()
+    from mathutils import Matrix
+    cam.rotation_quaternion = Matrix((rechts, hoch, -waag)).transposed().to_quaternion()
+    # Shift in Bruchteilen der größeren Bildseite; Bildhöhe entspricht 2·tan(fov/2)
+    halb = math.tan(cam_data.angle / 2.0)
+    if cam_data.sensor_fit == "HORIZONTAL":
+        halb *= hoehe / float(breite)  # angle gilt für die Breite
+    hoehe_einheiten = 2.0 * halb
+    groesser = hoehe_einheiten * max(1.0, breite / float(hoehe))
+    cam_data.shift_y = math.tan(neigung) / groesser
+
+
+def umgebung_laden(bpy, welt, datei, staerke, hintergrund=None):
+    """HDRI aus Blenders eigenen Dateien als Umgebung (Licht und Spiegelungen)."""
+    try:
+        ordner = bpy.utils.system_resource("DATAFILES", path="studiolights/world")
+    except (TypeError, AttributeError):
+        return False
+    pfad = os.path.join(ordner or "", datei)
+    if not os.path.exists(pfad):
+        return False
+    nt = welt.node_tree
+    hg = nt.nodes.get("Background")
+    env = nt.nodes.new("ShaderNodeTexEnvironment")
+    env.image = bpy.data.images.load(pfad, check_existing=True)
+    nt.links.new(env.outputs["Color"], hg.inputs["Color"])
+    hg.inputs["Strength"].default_value = staerke
+    # Die Kamera sieht dahinter nur einen hellen, ruhigen Hintergrund; das HDRI liefert
+    # Licht und Spiegelungen (sonst stünde die Küche z. B. vor einem fremden Wohnzimmer)
+    if hintergrund is not None:
+        flach = nt.nodes.new("ShaderNodeBackground")
+        flach.inputs["Color"].default_value = [srgb_linear(x) for x in hintergrund] + [1.0]
+        weg = nt.nodes.new("ShaderNodeLightPath")
+        mix = nt.nodes.new("ShaderNodeMixShader")
+        aus = nt.nodes.get("World Output")
+        nt.links.new(weg.outputs["Is Camera Ray"], mix.inputs[0])
+        nt.links.new(hg.outputs[0], mix.inputs[1])
+        nt.links.new(flach.outputs[0], mix.inputs[2])
+        nt.links.new(mix.outputs[0], aus.inputs["Surface"])
+    return True
+
+
+def led_bauen(bpy, leds, staerke):
+    """Warmweiße LED-Leisten als Flächenlicht unter jedem Oberschrank (nach unten)."""
+    for i, (x0, y0, x1, y1, z) in enumerate(leds):
+        ld = bpy.data.lights.new("LED_%d" % (i + 1), "AREA")
+        ld.shape = "RECTANGLE"
+        ld.size = max(0.05, x1 - x0 - 0.04)
+        ld.size_y = max(0.05, y1 - y0 - 0.04)
+        ld.color = (1.0, 0.82, 0.62)  # ca. 3000 K
+        ld.energy = staerke * ld.size * ld.size_y
+        lo = bpy.data.objects.new("LED_%d" % (i + 1), ld)
+        lo.location = ((x0 + x1) / 2, (y0 + y1) / 2, z - 0.003)
+        bpy.context.scene.collection.objects.link(lo)  # Flächenlicht strahlt nach -Z
 
 
 def licht_bauen(bpy, daten, Vector):
@@ -208,10 +286,14 @@ def licht_bauen(bpy, daten, Vector):
         lo = bpy.data.objects.new("Raumlicht", ld)
         lo.location = ((x0 + x1) / 2, (y0 + y1) / 2, hoehe)
         bpy.context.scene.collection.objects.link(lo)
+    led_bauen(bpy, licht.get("led") or [], float(licht.get("led_staerke", 120.0)))
     welt = bpy.data.worlds.new("Umgebung")
     welt.use_nodes = True
     hg = welt.node_tree.nodes.get("Background")
-    if hg is not None:
+    if licht.get("umgebung") and umgebung_laden(bpy, welt, licht["umgebung"], float(licht.get("umgebung_staerke", 1.0)),
+                                                     licht.get("himmel", [0.9, 0.9, 0.9])):
+        pass
+    elif hg is not None:
         c = licht.get("himmel", [0.78, 0.84, 0.92])
         hg.inputs["Color"].default_value = [srgb_linear(x) for x in c] + [1.0]
         hg.inputs["Strength"].default_value = float(licht.get("himmel_staerke", 1.0))
@@ -255,7 +337,7 @@ def rendern(bpy, daten, ordner):
     for mat in bpy.data.materials:
         d = materialien.get(mat.name)
         if d is not None:
-            material_bauen(bpy, mat, d, ordner)
+            material_bauen(bpy, mat, d, ordner, float(daten.get("kanten", 0.0)))
     kamera_bauen(bpy, daten, Vector)
     licht_bauen(bpy, daten, Vector)
 

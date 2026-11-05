@@ -93,7 +93,9 @@ module Sketchup
 
   class Definition
     attr_reader :entities
-    def initialize = @entities = Entities.new
+    def initialize = (@entities, @attr = Entities.new, {})
+    def set_attribute(d, k, v) = @attr[[d, k]] = v
+    def get_attribute(d, k, s = nil) = @attr.fetch([d, k], s)
   end
 
   class ComponentInstance
@@ -287,21 +289,28 @@ Dir.mktmpdir do |tmp|
   R.dialog(model)
   prompts, werte, listen, titel = aufruf[0]
   check(titel == 'Küche rendern (Blender)' && aufruf[1][:ok] == 'Rendern', 'Fenster „Küche rendern“')
-  check(listen == ['', 'Entwurf|Normal|Hoch', 'aktuelle Ansicht|Szene Kunde', 'ja|nein', ':speichern', ':programm'], "Felder: #{listen}")
-  check(werte[4] == File.join(tmp, 'Mueller_Render.png'), "Bild neben dem Modell: #{werte[4]}")
+  check(listen == ['', 'Entwurf|Normal|Hoch', 'aktuelle Ansicht|Szene Kunde', 'ja|nein',
+                   'Innenraum|Innenhof|Studio|Stadt|Wald|Sonnenuntergang|einfarbig hell', 'ja|nein', 'ja|nein',
+                   ':speichern', ':programm'], "Felder: #{listen}")
+  check(werte[7] == File.join(tmp, 'Mueller_Render.png') && werte[3] == 'ja' && werte[4] == 'Innenraum' && werte[6] == 'ja',
+        "Vorschläge: Bild neben dem Modell, Senkrechte gerade, Innenraum, LED: #{werte.inspect}")
   begin
-    aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'ja', werte[4], File.join(tmp, 'gibtsnicht.exe')])
+    aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', werte[7], File.join(tmp, 'gibtsnicht.exe')])
     check(false, 'fehlendes Blender wird gemeldet')
   rescue ArgumentError => e
     check(e.message.include?('blender.org'), 'Blender fehlt: Hinweis auf blender.org')
   end
   exe = File.join(tmp, 'blender.exe')
   File.write(exe, '')
-  aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'nein', File.join(tmp, 'bild'), exe])
-  check(gestartet == [model, exe, File.join(tmp, 'bild.png'), 1920, 512, false, true], "Start mit den Eingaben: #{gestartet.inspect}")
+  aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'nein', 'Studio', 'nein', 'ja', File.join(tmp, 'bild'), exe])
+  check(gestartet == [model, exe, File.join(tmp, 'bild.png'), 1920, 512,
+                      { raumlicht: false, kamera_kunde: true, senkrecht: false, umgebung: 'Studio', led: true }],
+        "Start mit den Eingaben: #{gestartet.inspect}")
+  check(Sketchup.read_default('JT_Rendern', 'umgebung') == 'Studio' && Sketchup.read_default('JT_Rendern', 'senkrecht') == 'nein',
+        'Auswahl für das nächste Mal gemerkt')
   check(Sketchup.read_default('JT_Rendern', 'blender') == exe, 'Blender-Pfad gemerkt')
   begin
-    aufruf[2].call(['50', 'Hoch', 'Szene Kunde', 'ja', 'x.png', exe])
+    aufruf[2].call(['50', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', 'x.png', exe])
     check(false, 'zu kleine Breite')
   rescue ArgumentError
     check(true, 'zu kleine Breite wird abgelehnt')
@@ -321,6 +330,23 @@ Dir.mktmpdir do |tmp|
     check(e.message.include?('nichts Sichtbares'), 'leeres Modell: verständliche Meldung')
   end
 
+  # --- Oberschrank: LED-Leiste an seiner Unterseite, Umgebung, Kanten, Zweipunktperspektive ----
+  ober = Sketchup::Definition.new
+  ober.set_attribute('JT_Schrank', 'kategorie', 'Oberschrank')
+  innen = Sketchup::Definition.new # Teile liegen eine Ebene tiefer, wie bei den Komponenten
+  quader(innen, 23.6, 13.8, 28.3)
+  ober.entities << Sketchup::ComponentInstance.new(innen, Geom::Transformation.translation([0, 0, 0]))
+  o_inst = Sketchup::ComponentInstance.new(ober, Geom::Transformation.translation([0, 6.7, 54.7]))
+  o_inst.material = weiss
+  model.entities << o_inst
+  d = JSON.parse(File.read(R.exportieren(model, ordner, bild, breite: 640, samples: 16)))
+  check(d['licht']['led'] == [[0.0, 0.1702, 0.5994, 0.5207, 1.3894]], "LED unter dem Oberschrank (m): #{d['licht']['led']}")
+  check(d['licht']['umgebung'] == 'interior.exr' && d['kanten'] == 0.0015 && d['kamera']['senkrecht'] == true,
+        'Standard: Innenraum-HDRI, Kanten gerundet, Senkrechte gerade')
+  d = JSON.parse(File.read(R.exportieren(model, ordner, bild, breite: 640, samples: 16, led: false, umgebung: 'einfarbig hell',
+                                                                   senkrecht: false)))
+  check(d['licht']['led'] == [] && d['licht']['umgebung'].nil? && d['kamera']['senkrecht'] == false, 'alles abschaltbar')
+
   # --- echter Render mit Blender (bpy), falls vorhanden -----------------------------------------
   py = ENV['BPY_PYTHON'] || 'python3'
   if system(py, '-c', 'import bpy', out: File::NULL, err: File::NULL)
@@ -335,6 +361,20 @@ Dir.mktmpdir do |tmp|
     check(R.ergebnis(status) == [:fertig, bild] && R.pids(status).size == 1 && status.include?('KP_SAMPLE 8/8'),
           "eigene Statusdatei mit PID, Samples und Fertig-Meldung (ohne Konsolenausgabe): #{status.lines.map(&:strip)}")
     FileUtils.cp(bild, ENV['RENDER_KOPIE']) if ENV['RENDER_KOPIE']
+    pruef = <<~PY
+      import bpy, math, sys
+      bpy.ops.wm.open_mainfile(filepath=sys.argv[1])
+      cam = bpy.data.objects["Kamera"]
+      z = cam.matrix_world.to_3x3().col[2]
+      leds = [o for o in bpy.data.objects if o.name.startswith("LED_")]
+      env = [n for n in bpy.context.scene.world.node_tree.nodes if n.type == "TEX_ENVIRONMENT"]
+      bevel = any(n.type == "BEVEL" for m in bpy.data.materials if m.node_tree for n in m.node_tree.nodes)
+      print("PRUEF", round(abs(z.z), 6), round(cam.data.shift_y, 4), len(leds), len(env), bevel)
+    PY
+    out = IO.popen([py, '-c', pruef, File.join(ordner, 'szene.blend')], err: File::NULL, &:read)
+    werte = out[/^PRUEF (.*)$/, 1].to_s.split
+    check(werte[0] == '0.0' && werte[1].to_f < -0.05, "Zweipunktperspektive: Kamera waagrecht, Blick nach unten als Shift nach unten (#{werte.inspect})")
+    check(werte[2] == '1' && werte[3] == '1' && werte[4] == 'True', "Blender-Szene mit LED, HDRI-Umgebung und Kantenradius (#{werte.inspect})")
   else
     puts 'Hinweis: Python-Modul bpy fehlt, echter Blender-Render übersprungen (BPY_PYTHON setzen).'
   end
