@@ -6,7 +6,7 @@
 # aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau: Seiten über die volle Höhe, Boden und Deckel zwischen den Seiten,
-# 0–3 Einlegeböden, offen oder mit einer oder zwei Türen.
+# 0–3 Einlegeböden, offen, mit einer Tür (Anschlag links oder rechts) oder zwei Türen.
 # Rückwand 8 mm, 25 mm vor der Hinterkante (Fach für die Aufhängung), steht in
 # einer 9 mm tiefen Nut in Seiten und Boden und wird von oben eingeschoben.
 # Der Deckel endet vor der Rückwand und wird mit ihr verschraubt.
@@ -60,7 +60,7 @@ module Oberschrank
     'Breite'                    => 60.0,
     'Hoehe'                     => 70.0,
     'Tiefe'                     => 40.0,  # Korpus ohne Front
-    'Art_Tuer'                  => 2.0,   # 0 = offen, 1 = eine Tür (Anschlag links), 2 = zwei Türen
+    'Art_Tuer'                  => 2.0,   # 0 = offen, 1 = eine Tür (Anschlag links), 2 = zwei Türen, 3 = eine Tür (Anschlag rechts)
     'Anz_Einlegeboeden'         => 1.0,
     'Materialstaerke_Korpus'    => 1.9,
     'Materialstarke_Rueckwand'  => 0.8,
@@ -72,7 +72,7 @@ module Oberschrank
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/oberschrank'.freeze
-  HILFE_KURZ = 'Oberschrank offen, mit einer oder zwei Türen, 0–3 Einlegeböden'.freeze
+  HILFE_KURZ = 'Oberschrank offen, mit einer Tür (Anschlag links/rechts) oder zwei Türen, 0–3 Einlegeböden'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -286,7 +286,8 @@ module Oberschrank
     attribut(haupt, 'Hoehe', p['Hoehe'], access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front)')
     attribut(haupt, 'Art_Tuer', p['Art_Tuer'], laenge: false, access: 'LIST', formlabel: 'Türen',
-             units: 'INTEGER', options: '&Keine%20(offen)=0&Eine%20T%C3%BCr%20(Anschlag%20links)=1&Zwei%20T%C3%BCren=2&')
+             units: 'INTEGER', options: '&Keine%20(offen)=0&Eine%20T%C3%BCr%20(Anschlag%20links)=1&Eine%20T%C3%BCr%20(Anschlag%20rechts)=3&' \
+                      'Zwei%20T%C3%BCren=2&')
     attribut(haupt, 'Anz_Einlegeboeden', p['Anz_Einlegeboeden'], laenge: false, access: 'LIST',
              formlabel: 'Anzahl Einlegeböden', units: 'INTEGER', options: liste(0, MAX_EB))
 
@@ -353,20 +354,37 @@ module Oberschrank
     haupt
   end
 
-  # Türen: eine (Anschlag links) oder zwei, mit "Interagieren" öffnen
+  # Türen: eine (Anschlag links oder rechts) oder zwei, mit "Interagieren" öffnen
+  # Art_Tuer: 0 = offen, 1 = eine Tür Anschlag links, 2 = zwei Türen, 3 = eine Tür Anschlag rechts
   def self.tueren(model, e, p, r, mat, t_)
     u = NAME
     sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
     art = p['Art_Tuer'].to_i
     h_f = "#{u}!Hoehe-#{u}!Spaltbreite"
 
-    # eine Tür, Drehpunkt links (Ursprung der Komponente)
-    t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, r[:h_tuer]],
-                ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", h_f])
-    tuer_drehen(t1, art == 1, "IF(#{u}!Art_Tuer=1,0,1)", -100)
-    i1 = einsetzen(e, t1, 'Tür', [sp / 2.0, -sp, sp / 2.0],
-                   ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Spaltbreite/2"], mat: mat, kz: t_.('Tuer'))
-    i1.hidden = art != 1
+    # eine Tür: steckt in einem Halter am Scharnier (links oder rechts), darin liegt sie bei
+    # x = 0 (Anschlag links) bzw. x = -Breite der Tür (Anschlag rechts)
+    rechts = art == 3
+    eh = model.definitions.add('Tür Halter')
+    stempel(eh)
+    eh.set_attribute(DICT, '_name', 'TuerHalter')
+    attribut(eh, 'B_Tuer', r[:b_tuer1], units: 'STRING', formula: "#{u}!Breite-#{u}!Spaltbreite")
+    attribut(eh, 'H_Tuer', r[:h_tuer], units: 'STRING', formula: h_f)
+    attribut(eh, 'Mk', mk, units: 'STRING', formula: "#{u}!Materialstaerke_Korpus")
+    attribut(eh, 'Anschlag', rechts ? 1.0 : 0.0, laenge: false, units: 'STRING', formula: "IF(#{u}!Art_Tuer=3,1,0)")
+    attribut(eh, 'Winkel', rechts ? 100.0 : -100.0, laenge: false, units: 'STRING', formula: "IF(#{u}!Art_Tuer=3,100,-100)")
+    sichtbarkeit(eh, [1, 3].include?(art), "IF(OR(#{u}!Art_Tuer=1,#{u}!Art_Tuer=3),0,1)")
+    eh.set_attribute(DICT, 'rotz', 0.0)
+    eh.set_attribute(DICT, 'onclick', 'ANIMATE("ROTZ",0,Winkel)')
+    eh.set_attribute(DICT, '_onclick_label', 'onClick')
+    hn = 'TuerHalter'
+    t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, r[:h_tuer]], ["#{hn}!B_Tuer", "#{hn}!Mk", "#{hn}!H_Tuer"])
+    einsetzen(eh.entities, t1, 'Tür', [rechts ? -r[:b_tuer1] : 0, 0, 0], ["IF(#{hn}!Anschlag=1,-#{hn}!B_Tuer,0)", nil, nil],
+              mat: mat, kz: t_.('Tuer'))
+    i1 = einsetzen(e, eh, hn, [rechts ? b - sp / 2.0 : sp / 2.0, -sp, sp / 2.0],
+                   ["IF(#{u}!Art_Tuer=3,#{u}!Breite-#{u}!Spaltbreite/2,#{u}!Spaltbreite/2)", "-#{u}!Spaltbreite",
+                    "#{u}!Spaltbreite/2"])
+    i1.hidden = ![1, 3].include?(art)
 
     # zwei Türen: links wie oben, Drehpunkt links
     tl = platte(model, 'Tür links', 'TürL', [r[:b_tuer2], mk, r[:h_tuer]],
@@ -412,20 +430,36 @@ module Oberschrank
     20.0
   end
 
+  # Auswahl "Türen" im Anlage-Dialog -> Wert von Art_Tuer
+  TUEREN_TEXT = {
+    'Zwei Türen' => 2.0, 'Eine Tür, Anschlag links' => 1.0, 'Eine Tür, Anschlag rechts' => 3.0, 'Keine (offen)' => 0.0
+  }.freeze
+
   def self.dialog
-    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                      [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s, (TIEFE_NEU * 10).round.to_s], 'Oberschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
-      w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
-      t = eingabe['Tiefe']
-      if t < tiefe_min - 0.000001
-        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens 200 mm, mindestens #{(tiefe_min * 10).round} mm)"
-      end
-      raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-      erstellen(eingabe)
+    tueren = TUEREN_TEXT.key(DEFAULTS['Art_Tuer'])
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Türen', 'Anzahl Einlegeböden'],
+                                    [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s,
+                                     (TIEFE_NEU * 10).round.to_s, tueren, DEFAULTS['Anz_Einlegeboeden'].to_i.to_s],
+                                    ['', '', '', TUEREN_TEXT.keys.join('|'), (0..MAX_EB).to_a.join('|')],
+                                    'Oberschrank', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+      erstellen(dialog_werte(res))
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
+  # Antworten des Anlage-Dialogs -> Parameter (cm); ArgumentError bei ungültigen Werten
+  def self.dialog_werte(res)
+    w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
+    eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
+    t = eingabe['Tiefe']
+    if t < tiefe_min - 0.000001
+      raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
+    end
+    raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
+    eingabe['Art_Tuer'] = TUEREN_TEXT.fetch(res[3].to_s, DEFAULTS['Art_Tuer'])
+    eingabe['Anz_Einlegeboeden'] = res[4].to_s.to_i.clamp(0, MAX_EB).to_f
+    eingabe
   end
 
   def self.erstellen(eingabe = {}, ziel = nil)

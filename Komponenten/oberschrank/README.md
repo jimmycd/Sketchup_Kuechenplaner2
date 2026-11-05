@@ -12,18 +12,18 @@ Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf
 | Option | Standard |
 |---|---|
 | Breite / Höhe / Tiefe (Korpus ohne Front) | 600 / 700 / 400 mm |
-| Türen | keine (offen), eine Tür (Anschlag links), zwei Türen; Standard zwei |
+| Türen | keine (offen), eine Tür Anschlag links, eine Tür Anschlag rechts, zwei Türen; Standard zwei. Auch im Anlage-Dialog wählbar, zusammen mit den Einlegeböden |
 | Anzahl Einlegeböden | 0–3, gleichmäßig verteilt; Standard 1 |
 
 Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `Rueckwand_Versatz` 25 mm, `Nuttiefe` 9 mm, `Spaltbreite` 2 mm, `Rueckversatz_Einlegeboden` 10 mm.
 
-Mit *Interagieren* öffnen sich die Türen (links um die linke, rechts um die rechte Kante).
+Mit *Interagieren* öffnen sich die Türen (links um die linke, rechts um die rechte Kante; eine einzelne Tür um ihre Anschlagseite). Im TCN-Export sitzen die Blum-Topfbänder an der Anschlagkante.
 
 ## Aufbau
 * Seiten über die volle Höhe und Tiefe, Boden und Deckel zwischen den Seiten.
 * **Rückwand** 8 mm, ihre Rückseite liegt 25 mm vor der Hinterkante der Seiten (Fach für die Aufhängung). Sie steht in einer 8 mm breiten, 9 mm tiefen Nut in beiden Seiten und im Boden und wird von oben eingeschoben; oben ist sie bündig mit den Seiten.
 * **Boden** geht über die volle Tiefe (Nut auf der Oberseite). Der **Deckel** endet vor der Rückwand und wird mit ihr verschraubt (3 Schrauben, je 50 mm von den Seiten und in der Mitte; die Bohrungen setzt der TCN-Export).
-* **Türen** liegen 2 mm vor dem Korpus, mit 1 mm Fuge außen und oben/unten und 2 mm zwischen zwei Türen. Eine Tür: Breite − 2 mm; zwei Türen: je Breite/2 − 2 mm.
+* **Türen** liegen 2 mm vor dem Korpus, mit 1 mm Fuge außen und oben/unten und 2 mm zwischen zwei Türen. Eine Tür: Breite − 2 mm, Anschlag links oder rechts (sie hängt in einem Halter am Scharnier, `TuerHalter`); zwei Türen: je Breite/2 − 2 mm.
 * Einlegeböden 10 mm von vorne zurückgesetzt und hinten bis zur Rückwand.
 * Der Korpus beginnt wie bei den anderen Schränken bei y = 19 mm, die Tür liegt davor.
 
