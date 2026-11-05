@@ -16,7 +16,7 @@ Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf
 | Türen (bei Fronten = Türen) | eine Tür (Anschlag links) oder zwei Türen; Standard zwei |
 | Höhe Blende | 200 mm |
 | Siphon-Freiraum unter der Blende | 200 mm |
-| Installationsebene (Rückwand vor der Hinterkante) | 50 mm |
+| Installationsebene (Rückwand vor der Rückseite, 0 = hinten) | 50 mm |
 | Rückwand-Ausschnitt: Unterkante über Korpus-Unterkante / Höhe / Steg seitlich und oben | 250 / 400 / 50 mm; Höhe 0 = kein Ausschnitt |
 
 Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `Nuttiefe` 9 mm, `BreiteStreben` 100 mm, `Spaltbreite` 2 mm und die LEGRABOX-Werte wie im Unterschrank mit Schubladen (`Materialstaerke_Kastenboden`, `Hoehe_Kastenrueckwand`, `Lochraster_Start`, `Lochraster`, `Kasten_Abstand_unten`, `Hoehenoffset_Schiene`).
@@ -25,7 +25,7 @@ Mit *Interagieren* öffnen sich die Türen bzw. fährt der Auszug heraus.
 
 ## Aufbau
 * **Korpus** wie beim Unterschrank mit Tür: Seiten über die volle Höhe und Tiefe, Boden zwischen den Seiten über die volle Tiefe, oben Strebe vorn und Strebe hinten (100 mm, liegend). Der Korpus beginnt bei y = 19 mm, die Fronten liegen 2 mm davor.
-* **Installationsebene:** Die Rückwand (8 mm) liegt 50 mm vor der Hinterkante der Seiten. Sie steckt in einer 9 mm tiefen Nut der Seiten, steht auf dem Boden und ist oben bündig. Dahinter ist Platz für die Leitungen; der Boden geht bis hinten durch. Die Strebe hinten endet vor der Rückwand.
+* **Installationsebene:** Die Rückseite des Schranks liegt immer in einer Flucht mit den anderen Unterschränken (Tiefe + 8 mm Rückwand). Bei einer Installationsebene > 0 reichen Seiten und Boden bis zu dieser Rückseite (Tiefe + 8 mm), die Rückwand (8 mm) liegt um den eingestellten Wert davor (Standard 50 mm, mindestens 10 mm, kleinere Werte werden angehoben). Sie steckt in einer 9 mm tiefen Nut der Seiten, steht auf dem Boden und ist oben bündig. Dahinter ist Platz für die Leitungen; der Boden geht bis hinten durch. Die Strebe hinten endet vor der Rückwand. Bei **0** sitzt die Rückwand wie beim Unterschrank als volle Platte hinter Seiten und Boden (keine Nut, Seiten wie beim Unterschrank).
 * **Rückwand-Ausschnitt** für Wasser und Abfluss: Rechteck über die lichte Breite minus 50 mm Steg je Seite, Standard 250 bis 650 mm über der Korpus-Unterkante (dort liegen bei 100–150 mm Sockel die üblichen Wandanschlüsse). Oben bleibt mindestens der Steg stehen. Der Ausschnitt ist als Umriss vor der Rückwand gezeichnet (Tag `<Kürzel>_Rueckwand_Ausschnitt`, nur Kanten, kein Teil für die Stückliste); die Rückwand selbst bleibt eine volle Platte (Zuschnitt), den Ausschnitt fräst der TCN-Export.
 * **Türen** über die volle Höhe, außen 1 mm Fuge, zwischen zwei Türen 2 mm. Topfbänder setzt der TCN-Export, sobald Türen dort umgesetzt sind.
 * **Blende + Auszug:** oben eine feste Blende vor dem Spülbecken, darunter 2 mm Fuge und die Front des Auszugs bis zur Unterkante. Der Auszug ist ein **Blum LEGRABOX free** wie im Unterschrank mit Schubladen: Boden LW − 35 × NL − 10 (16 mm), Holzrückwand LW − 38 (16 mm), Schienen-Nennlänge NL aus der Tiefe bis zur Rückwand (Standard NL 650). Der Kasten sitzt unten im Lochraster (35 mm über Korpus-Unterkante). Seine Oberkante bleibt mindestens den **Siphon-Freiraum** unter der Blende; die Holzrückwand ist höchstens 148 mm hoch und wird bei niedrigen Schränken entsprechend niedriger. Der Abfallsammler steht im Kasten.

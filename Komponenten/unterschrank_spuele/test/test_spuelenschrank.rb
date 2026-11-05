@@ -125,6 +125,9 @@ def pruefe(w, p, label)
   mk, sp, rw, nut = 1.9, 0.2, 0.8, 0.9
   vs, hb, sf = p['Rueckwand_Versatz'], p['Hoehe_Blende'], p['Siphon_Freiraum']
   r = H.berechne(p)
+  ve = H.versatz(p)
+  nutz = vs > 0
+  hinten = mk + t + rw # Rückseite wie beim Unterschrank (Korpus + Rückwand dahinter)
   alle = teile(w)
   sichtbar = alle.reject { |t2| t2[:hidden] }
   q = ->(n) { (sichtbar.find { |t2| t2[:name] == n } || raise("#{label}: #{n} fehlt"))[:q] }
@@ -132,7 +135,7 @@ def pruefe(w, p, label)
 
   alle.each do |t2|
     a = t2[:q]
-    check(a[0] >= -EPS && a[1] <= b + EPS && a[4] >= -EPS && a[5] <= h + EPS && a[2] >= -sp - EPS && a[3] <= t + mk + EPS,
+    check(a[0] >= -EPS && a[1] <= b + EPS && a[4] >= -EPS && a[5] <= h + EPS && a[2] >= -sp - EPS && a[3] <= hinten + EPS,
           "#{label}: #{t2[:pfad]} außerhalb #{a.map { |v| v.round(2) }}")
   end
   # Kollisionen; erlaubt ist nur die Rückwand in der Nut der Seiten
@@ -142,16 +145,26 @@ def pruefe(w, p, label)
     check(!ueberlapp?(a[:q], c[:q]), "#{label}: Kollision #{a[:pfad]} / #{c[:pfad]}")
   end
 
-  # Installationsebene: Rückwand Versatz vor der Hinterkante, in der Seitennut, auf dem Boden, oben bündig
+  # Rückseite durchgehend wie beim Unterschrank (Jürgen 2026-11-05): hinterstes Teil bei Tiefe + Rückwand
+  check(nahe(sichtbar.map { |t2| t2[:q][3] }.max, hinten), "#{label}: Rückseite bei Tiefe + Rückwand (#{hinten})")
   rq = q.('Rückwand')
-  check(nahe(rq[3], mk + t - vs) && nahe(rq[3] - rq[2], rw), "#{label}: Rückwand Lage y #{rq[2..3]}")
-  check(nahe(rq[0], mk - nut) && nahe(rq[1], b - mk + nut), "#{label}: Rückwand in Seitennut #{rq[0..1]}")
-  check(nahe(rq[4], mk) && nahe(rq[5], h), "#{label}: Rückwand auf dem Boden, oben bündig #{rq[4..5]}")
-  check(nahe(q.('Boden')[3], mk + t) && nahe(q.('Boden')[4], 0), "#{label}: Boden volle Tiefe")
+  check(nahe(rq[3], hinten - ve) && nahe(rq[3] - rq[2], rw), "#{label}: Rückwand #{ve} vor der Rückseite, y #{rq[2..3]}")
+  check(ve.zero? || ve >= 1.0 - EPS, "#{label}: hinter der Nut mindestens 10 mm (#{ve})")
+  if nutz
+    # Installationsebene: Rückwand in der Seitennut, auf dem Boden, oben bündig; Seiten/Boden bis zur Rückseite
+    check(nahe(rq[0], mk - nut) && nahe(rq[1], b - mk + nut), "#{label}: Rückwand in Seitennut #{rq[0..1]}")
+    check(nahe(rq[4], mk) && nahe(rq[5], h), "#{label}: Rückwand auf dem Boden, oben bündig #{rq[4..5]}")
+  else
+    # 0: wie beim Unterschrank volle Platte hinter dem Korpus, keine Nut
+    check(nahe(rq[0], 0) && nahe(rq[1], b) && nahe(rq[4], 0) && nahe(rq[5], h), "#{label}: Rückwand wie Unterschrank #{rq}")
+    %w[SeiteL SeiteR Boden].each { |n| check(nahe(q.(n)[3], rq[2]), "#{label}: #{n} endet an der Rückwand") }
+  end
+  tk = nutz ? t + rw : t
+  check(nahe(q.('Boden')[3] - q.('Boden')[2], tk) && nahe(q.('Boden')[4], 0), "#{label}: Boden volle Tiefe")
   sh = q.('StrebeHinten')
   check(nahe(sh[3], rq[2]) && nahe(sh[5], h), "#{label}: Strebe hinten endet an der Rückwand #{sh}")
   check(nahe(q.('StrebeVorn')[2], mk) && nahe(q.('StrebeVorn')[5], h), "#{label}: Strebe vorn")
-  %w[SeiteL SeiteR].each { |s| check(nahe(q.(s)[5] - q.(s)[4], h) && nahe(q.(s)[3] - q.(s)[2], t), "#{label}: #{s}") }
+  %w[SeiteL SeiteR].each { |s| check(nahe(q.(s)[5] - q.(s)[4], h) && nahe(q.(s)[3] - q.(s)[2], tk), "#{label}: #{s}") }
   check(sichtbar.none? { |t2| t2[:name].start_with?('Einlegeboden') }, "#{label}: keine Einlegeböden")
 
   # Rückwand-Ausschnitt: Attribute an der Rückwand, Umriss davor
@@ -183,8 +196,8 @@ def pruefe(w, p, label)
           "#{label}: Blende #{bq}")
     check(nahe(fq[4], 0) && nahe(bq[4] - fq[5], sp) && nahe(fq[0], sp / 2) && nahe(fq[1], b - sp / 2), "#{label}: Front Auszug #{fq}")
     kb, kr = q.('KastenBoden'), q.('KastenRueckwand')
-    nl = H.nennlaenge(t - vs - rw)
-    check(nl + 0.3 <= t - vs - rw + EPS && nl >= 35, "#{label}: NL #{nl} passt vor die Rückwand")
+    nl = H.nennlaenge(t - ve)
+    check(nl + 0.3 <= t - ve + EPS && nl >= 35, "#{label}: NL #{nl} passt vor die Rückwand")
     check(nahe(kb[3] - kb[2], nl - 1) && nahe(kb[2], mk) && nahe(kb[1] - kb[0], b - 2 * mk - 3.5), "#{label}: Kastenboden LW-35 x NL-10 #{kb}")
     check(nahe(kr[3], mk + nl - 1) && nahe(kr[1] - kr[0], b - 2 * mk - 3.8) && nahe(kr[4], kb[5]), "#{label}: Kastenrückwand #{kr}")
     n = (kb[4] - p['Lochraster_Start']) / p['Lochraster']
@@ -253,11 +266,17 @@ lauf({ 'Breite' => 60.0, 'Tiefe' => 56.0, 'Rueckwand_Versatz' => 8.0 }, 'Auszug 
 lauf({ 'Hoehe' => 55.0 }, 'niedrig: Kasten unter dem Siphon-Freiraum', { 'Siphon_Freiraum' => 10.0 })
 lauf({ 'Ausschnitt_Hoehe' => 0.0 }, 'ohne Ausschnitt', { 'Ausschnitt_Hoehe' => 30.0, 'Ausschnitt_Unten' => 1.0 })
 lauf({ 'Ausschnitt_Hoehe' => 80.0 }, 'Ausschnitt zu hoch wird begrenzt')
+# Installationsebene 0: Rückseite durchgehend wie beim Unterschrank, umschalten in beide Richtungen
+lauf({ 'Rueckwand_Versatz' => 0.0, 'Tiefe' => 52.0 }, 'Installationsebene 0', { 'Rueckwand_Versatz' => 5.0 })
+lauf({ 'Rueckwand_Versatz' => 5.0, 'Tiefe' => 52.0, 'Frontvariante' => 0.0 }, 'Installationsebene 50 -> 0', { 'Rueckwand_Versatz' => 0.0 })
+lauf({ 'Rueckwand_Versatz' => 0.3 }, 'Installationsebene 3 mm wird 10 mm')
 lauf({ 'Kuerzel' => 'USP7' }, 'eigenes Kürzel', nil, 'USP7')
 
 # Werte der Standard-Komponente in mm
 r = H.berechne(H::DEFAULTS)
-check(nahe(r[:nl], 65) && nahe(r[:t_innen], 74.2), "Standard: NL 650 bei 742 mm bis zur Rückwand (#{r[:nl]}, #{r[:t_innen]})")
+check(nahe(r[:nl], 65) && nahe(r[:t_innen], 75.0), "Standard: NL 650 bei 750 mm bis zur Rückwand (#{r[:nl]}, #{r[:t_innen]})")
+r0 = H.berechne(H::DEFAULTS.merge('Rueckwand_Versatz' => 0.0, 'Tiefe' => 52.0))
+check(nahe(r0[:t_innen], 52.0) && nahe(r0[:t_korpus], 52.0) && nahe(r0[:nl], 50), "Installationsebene 0: wie Unterschrank (#{r0})")
 check(nahe(r[:ab], 3.5) && nahe(r[:hrw], 14.8) && nahe(r[:h_auszug], 49.8), "Standard: Kasten ab 35 mm, Rückwand 148, Front 498 (#{r})")
 check(nahe(r[:a_unten], 25) && nahe(r[:a_hoehe], 40) && nahe(r[:a_breite], 66.2), "Standard: Ausschnitt 662 x 400 ab 250 mm (#{r})")
 r = H.berechne(H::DEFAULTS.merge('Hoehe' => 55.0))
