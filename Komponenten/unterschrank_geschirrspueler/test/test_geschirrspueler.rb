@@ -144,8 +144,18 @@ def pruefe(w, p, label)
 
   # Gerät: in der Nische, 1 mm Luft je Seite, vom Boden bis Oberkante Korpus, hinter der Front
   g = q.('Geraet')
-  check(nahe(g[0], xn + 0.1) && nahe(g[1], xn + b - 0.1) && nahe(g[4], -so) && nahe(g[5], h) && nahe(g[2], mk) &&
+  check(nahe(g[0], xn + 0.1) && nahe(g[1], xn + b - 0.1) && nahe(g[4], 0) && nahe(g[5], h) && nahe(g[2], mk) &&
         nahe(g[3] - g[2], [55.0, t].min) && g[3] <= mk + t + EPS, "#{label}: Gerät #{g} (höchstens Korpustiefe)")
+  # Gerätesockel springt zurück: beginnt hinter der Sockelblende (Korpus + Rücksprung + Blende = 85 mm)
+  # und endet hinten mit dem Gerät; nur bei Sockelhöhe > 0
+  gs = alle.find { |t2| t2[:name] == 'Geraetesockel' }
+  check(gs && gs[:hidden] == !(so > 0), "#{label}: Gerätesockel sichtbar nur mit Sockelhöhe")
+  if so > 0
+    s = gs[:q]
+    check(nahe(s[0], g[0]) && nahe(s[1], g[1]) && nahe(s[2], 8.5) && nahe(s[3], g[3]) && nahe(s[4], -so) && nahe(s[5], 0),
+          "#{label}: Gerätesockel #{s.map { |v| v.round(2) }}")
+    check(s[2] >= mk + 5.0 + 1.6 - EPS, "#{label}: Gerätesockel hinter der Sockelblende")
+  end
   teile_ohne_korpus = sichtbar.reject { |t2| t2[:name] == 'Korpus' }
   check(teile_ohne_korpus.combination(2).none? { |a, c| ueberlapp?(a[:q], c[:q]) }, "#{label}: Kollision")
 
@@ -156,7 +166,7 @@ def pruefe(w, p, label)
   breite = b + ((links ? 1 : 0) + (rechts ? 1 : 0)) * mk
   check(nahe(k[0], 0) && nahe(k[1], breite) && nahe(k[2], -sp) && nahe(k[3], mk + t + rw) && nahe(k[4], 0) && nahe(k[5], h),
         "#{label}: virtueller Korpus #{k.map { |v| v.round(2) }}")
-  alle.reject { |t2| %w[Korpus Geraet].include?(t2[:name]) }.each do |t2|
+  alle.reject { |t2| %w[Korpus Geraet Geraetesockel].include?(t2[:name]) }.each do |t2|
     a = t2[:q]
     innen = a[0] >= k[0] - EPS && a[1] <= k[1] + EPS && a[2] >= k[2] - EPS && a[3] <= k[3] + EPS && a[5] <= k[5] + EPS
     # Wangen reichen bis zum Boden, eine Front über Korpushöhe (Fronthöhe > Höhe) unter den Korpus
@@ -182,7 +192,7 @@ def pruefe_ocl(w, inst, p, label, kz)
       check(b.inst.attribute_dictionary(H::JT_DICT).nil? && b.inst.material.nil?, "#{label}: virtueller Korpus ist kein Schrankteil")
       next
     end
-    if b.name == 'Geraet'
+    if %w[Geraet Geraetesockel].include?(b.name)
       check(b.inst.layer&.name == H::GERAET_TAG, "#{label}: Gerät auf Tag Geraete_Plan")
       check(b.inst.attribute_dictionary(H::JT_DICT).nil?, "#{label}: Gerät ohne JT_Schrank")
       check(b.inst.material && b.inst.material.get_attribute(H::OCL_DICT, 'type').nil?, "#{label}: Gerät ohne OCL-Material")

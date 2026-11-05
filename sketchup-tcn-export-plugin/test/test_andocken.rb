@@ -205,7 +205,7 @@ bk = A.bezug(uk)
 check(nah([bk[0], bk[1], bk[4], bk[5]], [0, 60.cm, 0, 70.cm], 1e-6), "Kühlschrank: virtuelle Seite = Nische (#{bk})")
 check(nah(o(uk)[0], o(us2)[0] + 60.cm, 1e-6) && nah(o(uk)[2], o(us3)[2], 1e-6),
       "Kühlschrank: am freien rechten Ende, auf dem Sockel (#{o(uk)})")
-geraet = uk.definition.entities.instances.find { |i| i.definition.name.include?('Platzhalter') }
+geraet = uk.definition.entities.instances.find { |i| i.definition.name.include?('Platzhalter Sockel') } # Gerätesockel ganz unten
 check(geraet && nah(o(uk)[2] + geraet.transformation.origin[2], o(us1)[2] - 10.cm, 1e-6),
       'Kühlschrank: Geräteunterkante auf dem Fußboden (Sockel nicht vergessen)')
 

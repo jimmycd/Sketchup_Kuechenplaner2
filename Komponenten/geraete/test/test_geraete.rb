@@ -35,6 +35,14 @@ check(nah(rahmen[2][1], -21) && nah(rahmen[2][0], -16.5), "Front mittig, 2 mm vo
 check(ofen[:text] == 'Backofen 60 · Nische 562 × 590 mm', "Beschriftung: #{ofen[:text]}")
 check(G.berechne('geraet' => 'frei', 'breite' => 562.0, 'hoehe' => 300.0).nil?, 'freie Nische bleibt leer')
 
+# Unterbaugeräte: Sockel/Füße springen zurück, Vorderkante hinter der Sockelblende (85 mm ab Korpusvorderkante)
+{ 'Geschirrspueler60' => 'Sockel', 'Kuehlschrank60' => 'Fuesse', 'KuehlschrankFrei60' => 'Fuesse', 'Weinkuehler60' => 'Fuesse' }.each do |k, teil|
+  r = G.berechne('geraet' => k, 'breite' => 598.0, 'hoehe' => 800.0, 'tiefe' => 520.0, 'x' => 0.0, 'y' => 19.0, 'z' => -100.0, 'sockel' => 100.0)
+  so = r[:teile].find { |t| t[0] == teil }
+  check(nah(so[2][1] + 19.0, 85.0) && nah(so[2][2], 0) && nah(so[3][2], 100) && so[3][1].positive?,
+        "#{k}: #{teil} springt zurück (hinter die Sockelblende) #{so}")
+end
+
 %w[Geschirrspueler60 Geschirrspueler45 KochfeldAbzug60 KochfeldAbzug80 KochfeldAbzug90 Kochfeld60 Kochfeld80 Spuele
    Backofen60 Kompakt45 Mikrowelle38 Waermeschublade14 Flachschirmhaube60 Flachschirmhaube90 Kuehlschrank60 KuehlschrankFrei60 Weinkuehler30 Weinkuehler60 Kuehlgeraet178].each do |k|
   r = G.berechne('geraet' => k, 'breite' => k.end_with?('45') ? 448.0 : 562.0, 'hoehe' => 590.0, 'tiefe' => 800.0,
