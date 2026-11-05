@@ -331,6 +331,9 @@ Dir.mktmpdir do |tmp|
     text = File.read(log)
     check(ok && R.ergebnis(text) == [:fertig, bild] && File.size(bild) > 1000, "Blender rendert das Bild (#{R.ergebnis(text).inspect})")
     check(File.exist?(File.join(ordner, 'szene.blend')), '.blend zum Weiterbearbeiten gespeichert')
+    status = File.read(File.join(ordner, 'kp_status.txt'))
+    check(R.ergebnis(status) == [:fertig, bild] && R.pids(status).size == 1 && status.include?('KP_SAMPLE 8/8'),
+          "eigene Statusdatei mit PID, Samples und Fertig-Meldung (ohne Konsolenausgabe): #{status.lines.map(&:strip)}")
     FileUtils.cp(bild, ENV['RENDER_KOPIE']) if ENV['RENDER_KOPIE']
   else
     puts 'Hinweis: Python-Modul bpy fehlt, echter Blender-Render übersprungen (BPY_PYTHON setzen).'
@@ -345,6 +348,49 @@ check(R.fortschritt(log) == [0.5, 'Rendern: Sample 64 von 128'], "Fortschritt: S
 check(R.ergebnis(log).nil?, 'läuft noch')
 check(R.ergebnis(log + "KP_FERTIG C:/x/k.png\n") == [:fertig, 'C:/x/k.png'], 'fertig mit Bilddatei')
 check(R.ergebnis("KP_FEHLER Datei fehlt\n") == [:fehler, 'Datei fehlt'], 'Fehler aus dem Skript')
+check(R.fortschritt("KP_STATUS Rendern mit OPTIX\nKP_SAMPLE 32/128\n") == [0.25, 'Rendern: Sample 32 von 128'], 'Fortschritt aus der Statusdatei')
+check(R.pids("KP_PID 4711\nKP_STATUS x\nKP_PID 4712\n") == [4711, 4712], 'Prozessnummern zum Abbrechen')
+t0 = Time.now
+check(!R.abgebrochen?(true, t0 - 5, t0) && R.abgebrochen?(true, t0 - 31, t0) && !R.abgebrochen?(false, t0 - 999, t0),
+      'beendet erst, wenn der Prozess weg ist und 30 s nichts mehr kommt')
+
+# --- Blender 5 unter Windows: Start-Prozess endet sofort, gerendert wird weiter ----------------
+module UI
+  class HtmlDialog
+    STYLE_DIALOG = 0
+    attr_reader :skripte
+    def initialize(*) = @skripte = []
+    def set_html(_) = nil
+    def add_action_callback(*) = nil
+    def set_on_closed(&) = nil
+    def center = nil
+    def show = nil
+    def visible? = true
+    def execute_script(js) = @skripte << js
+  end
+  def self.timer = (@timer ||= [])
+  def self.start_timer(_s, _r = false, &b) = (timer << b; timer.size)
+  def self.stop_timer(_id) = nil
+end
+Dir.mktmpdir do |tmp|
+  bild = File.join(tmp, 'k.png')
+  status = File.join(tmp, 'kp_status.txt')
+  pid = Process.spawn(RbConfig.ruby, '-e', 'exit')
+  sleep 0.3
+  f = R::Fortschritt.new(pid, File.join(tmp, 'blender.log'), bild, tmp, status)
+  f.zeigen
+  UI.timer.shift.call
+  d = f.instance_variable_get(:@d)
+  check(d.skripte.last.start_with?('KP.stand(') && f.instance_variable_get(:@beendet), "Prozess weg, aber kein Fehler: #{d.skripte.last}")
+  File.write(status, "KP_PID 1\nKP_STATUS Rendern mit OPTIX\nKP_SAMPLE 64/128\n")
+  UI.timer.shift.call
+  check(d.skripte.last == 'KP.stand(50, "Rendern: Sample 64 von 128")', "Fortschritt läuft weiter: #{d.skripte.last}")
+  File.binwrite(bild, Sketchup.png_streifen)
+  File.write(status, "KP_FERTIG #{bild}\n", mode: 'a')
+  UI.timer.shift.call
+  check(d.skripte.last.start_with?("KP.bild('data:image/png;base64,"), 'Bild wird angezeigt statt „ohne Bild beendet“')
+  check(UI.timer.empty?, 'danach kein Timer mehr')
+end
 
 # --- Blender suchen ---------------------------------------------------------------------------
 Dir.mktmpdir do |pf|
