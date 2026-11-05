@@ -74,7 +74,7 @@ check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleis
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
 check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Frontfarbe und Griffe', 'TCN exportieren',
-                 'Stückliste', 'Etiketten', 'Zuschnittplan', 'Einstellungen'],
+                 'Stückliste', 'Etiketten', 'Zuschnittplan', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
 tb.befehle.each do |c|
@@ -168,11 +168,12 @@ check(gerufen == :einsetzen, 'Raum-Auswahl ruft Fenster/Tür einsetzen')
 # Stückliste, Etiketten, Zuschnittplan: Icons öffnen dieselben Dialoge wie das Menü
 gerufen = []
 { 'Stückliste' => JTools::SchrankCnc::Stueckliste, 'Etiketten' => JTools::SchrankCnc::Etiketten,
-  'Zuschnittplan' => JTools::SchrankCnc::Zuschnitt, 'Einstellungen' => JTools::SchrankCnc::Einstellungen }.each do |t, mod|
+  'Zuschnittplan' => JTools::SchrankCnc::Zuschnitt, 'Materialien' => JTools::SchrankCnc::Materialdialog,
+  'Einstellungen' => JTools::SchrankCnc::Einstellungen }.each do |t, mod|
   mod.define_singleton_method(:dialog) { |*_a| gerufen << t }
   tb.befehle.find { |c| c.titel == t }.aktion.call
 end
-check(gerufen == %w[Stückliste Etiketten Zuschnittplan Einstellungen], "Stückliste/Etiketten/Zuschnittplan/Einstellungen öffnen ihren Dialog: #{gerufen.inspect}")
+check(gerufen == %w[Stückliste Etiketten Zuschnittplan Materialien Einstellungen], "Stückliste/Etiketten/Zuschnittplan/Materialien/Einstellungen öffnen ihren Dialog: #{gerufen.inspect}")
 
 # Arbeitsplatte: ohne Auswahl erzeugen, mit gewählter Arbeitsplatte neu berechnen
 aufrufe = []

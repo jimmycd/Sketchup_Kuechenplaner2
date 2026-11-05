@@ -72,6 +72,8 @@ module KuechenplanerSymbolleiste
      -> { defined?(JTools::SchrankCnc::Etiketten) }, -> { JTools::SchrankCnc::Etiketten.dialog }],
     ['zuschnitt', 'Zuschnittplan', 'Zuschnittplan je Platte für die Formatsäge',
      -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }],
+    ['materialien', 'Materialien', 'Material-Konfigurator: Platten und Anleimer anlegen und bearbeiten, Maserrichtung',
+     -> { defined?(JTools::SchrankCnc::Materialdialog) }, -> { JTools::SchrankCnc::Materialdialog.dialog }],
     ['einstellungen', 'Einstellungen', 'Generelle Einstellungen: Sockelhöhe, Wandabstand, Abstand Arbeitsplatte–Oberschrank und CNC-Werte',
      -> { defined?(JTools::SchrankCnc::Einstellungen) }, -> { JTools::SchrankCnc::Einstellungen.dialog }]
   ].freeze
