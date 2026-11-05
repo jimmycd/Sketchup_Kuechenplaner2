@@ -53,23 +53,40 @@ module JTools
       # etwas nach rechts, nach vorn und nach oben
       PFEIL = [100.0, -200.0, 150.0].map { |v| v / 25.4 }.freeze
 
-      # Sichtbare Fronten/Türen des Schranks als Kasten [x0, x1, y0, y1, z0, z1] im Schranksystem
-      def fronten(model, inst)
-        Schraenke.teile(model, Schraenke.definition(inst).entities, [], inst).select { |t| t.front? && t.sichtbar? }.map do |t|
+      # Kästen [x0, x1, y0, y1, z0, z1] der sichtbaren Teile des Schranks im Schranksystem, die der
+      # Block auswählt
+      def kaesten(model, inst)
+        Schraenke.teile(model, Schraenke.definition(inst).entities, [], inst).select { |t| t.sichtbar? && yield(t) }.map do |t|
           m = t.pfad.reduce(Andocken::EINS) { |a, i| Andocken::Rechnung.matmul(a, i.transformation.to_a.map(&:to_f)) }
           b = Schraenke.definition(t.inst).bounds
           Andocken::Rechnung.box_trafo(m, b.min.to_a.map(&:to_f), b.max.to_a.map(&:to_f))
         end
       end
 
+      # Sichtbare Fronten/Türen des Schranks
+      def fronten(model, inst)
+        kaesten(model, inst, &:front?)
+      end
+
+      def arbeitsplatte?(inst)
+        Schraenke.definition(inst).get_attribute(JT_DICT, 'kategorie') == 'Arbeitsplatte'
+      end
+
       # Pfeilspitze und Pfeil des Texts (Weltkoordinaten): [x, y, z, vx, vy, vz]. Die Spitze sitzt wie
       # bei den Geräten vorn mittig auf der größten sichtbaren Front (Tür, Klappe, Schubkasten);
       # ohne Front vorn mittig am Schrankkasten. Vorn ist im Schranksystem die kleine y-Seite.
+      # Arbeitsplatte: oben mittig auf der größten Platte – ihr System ist das Modell, „vorn“ am
+      # umschließenden Kasten lag bei Ecken weit neben der Platte (Jürgen 2026-11-05).
       # Ein Text ohne Pfeil auf der Front verschwand, sobald man die Ansicht etwas drehte
       # (Jürgen 2026-11-05), mitten im Schrank war er nur bei offener Tür zu sehen.
       def punkt(model, inst, w)
-        f = fronten(model, inst).max_by { |b| [(b[1] - b[0]) * (b[5] - b[4]), b[5]] } || Andocken.kasten(inst)
-        p = [(f[0] + f[1]) / 2.0, f[2] - VOR_FRONT, (f[4] + f[5]) / 2.0]
+        p = if arbeitsplatte?(inst)
+              k = kaesten(model, inst) { true }.max_by { |b| (b[1] - b[0]) * (b[3] - b[2]) } || Andocken.kasten(inst)
+              [(k[0] + k[1]) / 2.0, (k[2] + k[3]) / 2.0, k[5] + VOR_FRONT]
+            else
+              f = fronten(model, inst).max_by { |b| [(b[1] - b[0]) * (b[5] - b[4]), b[5]] } || Andocken.kasten(inst)
+              [(f[0] + f[1]) / 2.0, f[2] - VOR_FRONT, (f[4] + f[5]) / 2.0]
+            end
         (0..2).map { |r| w[r] * p[0] + w[4 + r] * p[1] + w[8 + r] * p[2] + w[12 + r] } +
           (0..2).map { |r| w[r] * PFEIL[0] + w[4 + r] * PFEIL[1] + w[8 + r] * PFEIL[2] }
       end

@@ -403,3 +403,10 @@ module Sketchup
     def remove(m) = @h.delete(@h.key(m))
   end
 end
+
+# Maßänderung: Modell gültig
+module Sketchup
+  class Model
+    def valid? = true
+  end
+end
