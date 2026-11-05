@@ -18,7 +18,7 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 | Kunde | aus | an | Rendering: Schwarzglas, Edelstahl, Gehäuse |
 | Zuschnitt | aus | aus | Stückliste/Etiketten, keine Geräte |
 
-In der Planung steht das Gerät selbst in der Nische (kein farbiger Kasten mehr: der sah aus wie eine leere Nische), dazu die Beschriftung mit Nischenmaß.
+In der Planung steht das Gerät selbst in der Nische (kein farbiger Kasten mehr: der sah aus wie eine leere Nische), dazu die Beschriftung mit Nischenmaß. Die Beschriftung liegt auf dem Tag „Beschriftung“: der Schalter *Schrank-Beschriftung* in der Symbolleiste blendet sie zusammen mit den Schrank-Kürzeln ein und aus (Planung/Zuschnitt). Ältere Modelle: „Geräte in Schränke setzen“ erneut ausführen.
 
 ### Kundensicht (Szene „Kunde“)
 Beim Anlegen/Aktualisieren der Szenen bekommt die Szene **Kunde** ihren eigenen Darstellungsstil (`src/geraete/kundensicht.rb`). Planung und Zuschnitt bleiben, wie sie sind.

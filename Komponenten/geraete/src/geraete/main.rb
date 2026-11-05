@@ -473,7 +473,9 @@ module Geraete
     pd.entities.add_instance(rd, verschiebung([0, 0, 0]))
     text_pos = r[:text_pos] || (px, py, pz, lx, _, lz = r[:plan]; [px + lx / 2, py, pz + lz / 2])
     if pd.entities.respond_to?(:add_text)
-      pd.entities.add_text(r[:text], Geom::Point3d.new(*text_pos.map { |v| inch(v) }))
+      tx = pd.entities.add_text(r[:text], Geom::Point3d.new(*text_pos.map { |v| inch(v) }))
+      # auf dem Tag der Schrank-Beschriftung: der Schalter in der Symbolleiste blendet beide ein/aus
+      tx.layer = tag(model, TAG_BESCHRIFTUNG)
     end
     plan = d.entities.add_instance(pd, verschiebung([0, 0, 0]))
     plan.name = 'Plan'
