@@ -112,7 +112,7 @@ def stein_koernung(nt, bsdf, farbe):
 
 BODEN = {
     # Art: (Farbe 1, Farbe 2, Fuge, Breite, Höhe, Fugenbreite, Versatz, Rauheit)
-    "parkett": ((0.62, 0.45, 0.28), (0.55, 0.38, 0.22), (0.30, 0.20, 0.12), 1.2, 0.18, 0.0015, 0.5, 0.45),
+    "parkett": ((0.62, 0.45, 0.28), (0.55, 0.38, 0.22), (0.30, 0.20, 0.12), 1.2, 0.18, 0.0015, 0.5, 0.3),
     "fliesen_hell": ((0.86, 0.85, 0.82), (0.82, 0.81, 0.78), (0.70, 0.69, 0.66), 0.6, 0.6, 0.003, 0.0, 0.35),
     "fliesen_dunkel": ((0.20, 0.20, 0.21), (0.24, 0.24, 0.25), (0.35, 0.35, 0.35), 0.6, 0.6, 0.003, 0.0, 0.4),
     "beton": None,
@@ -200,6 +200,41 @@ def decke_bauen(bpy, raum, kamera_z):
     o.name = "Decke"
     o.scale = (x1 - x0, y1 - y0, 1.0)
     o.data.materials.append(einfach(bpy, "Deko_Decke", (0.93, 0.93, 0.92), 0.9))
+    return True
+
+
+def boden_fehlt(bpy, box, raster=7):
+    """Liegt unter der Küche ein Boden? Strahlen knapp über der Unterkante nach unten."""
+    from mathutils import Vector
+    (x0, y0, z0), (x1, y1, _) = box
+    dg = bpy.context.evaluated_depsgraph_get()
+    treffer = 0
+    for i in range(raster):
+        for j in range(raster):
+            x = x0 + (x1 - x0) * (i + 0.5) / raster
+            y = y0 + (y1 - y0) * (j + 0.5) / raster
+            if bpy.context.scene.ray_cast(dg, Vector((x, y, z0 + 0.01)), Vector((0, 0, -1)), distance=0.05)[0]:
+                treffer += 1
+    return treffer < 0.6 * raster * raster
+
+
+def boden_ergaenzen(bpy, daten):
+    """Ohne Boden im Modell sähe die Kamera nur den flachen Hintergrund (grau, ohne Schatten):
+    dann eine Bodenfläche unter die Küche legen, im gewählten Belag (sonst Parkett)."""
+    box = daten.get("box")
+    if not box or not boden_fehlt(bpy, box):
+        return False
+    raum = (daten.get("raum") or {}).get("decke")
+    (x0, y0, z0), (x1, y1, _) = raum or [[box[0][0] - 4, box[0][1] - 4, 0], [box[1][0] + 4, box[1][1] + 4, 0]]
+    bpy.ops.mesh.primitive_plane_add(size=1.0, location=((x0 + x1) / 2, (y0 + y1) / 2, box[0][2]))
+    o = bpy.context.active_object
+    o.name = "Boden"
+    o.scale = (x1 - x0, y1 - y0, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)  # Belag in Metern
+    mat = einfach(bpy, "Deko_Boden", (0.6, 0.6, 0.6), 0.5)
+    art = (daten.get("raum") or {}).get("boden")
+    boden_material(bpy, mat, art if art in BODEN else "parkett")
+    o.data.materials.append(mat)
     return True
 
 
@@ -474,12 +509,14 @@ def ausstatten(bpy, daten, melden):
     raum = daten.get("raum") or {}
     oberflaechen(bpy, daten.get("materialien", {}), raum)
     decke = decke_bauen(bpy, raum, auge[2])
+    boden = boden_ergaenzen(bpy, daten)
     deko = daten.get("deko") or {}
     gestellt = deko_verteilen(bpy, deko, auge)
     decke_z = raum["decke"][1][2] if decke else None
     pendel = pendelleuchten(bpy, deko.get("inseln") or [], deko.get("arbeitsflaechen") or [], decke_z) \
         if deko.get("pendel") else 0
-    melden("STATUS", "Ausstattung: %s%s%s" % (", ".join(gestellt) or "keine Deko",
+    melden("STATUS", "Ausstattung: %s%s%s%s" % (", ".join(gestellt) or "keine Deko",
                                              ", %d Pendelleuchten" % pendel if pendel else "",
-                                             ", Decke" if decke else ""))
-    return {"deko": gestellt, "pendel": pendel, "decke": decke}
+                                             ", Decke" if decke else "",
+                                             ", Boden ergänzt" if boden else ""))
+    return {"deko": gestellt, "pendel": pendel, "decke": decke, "boden": boden}
