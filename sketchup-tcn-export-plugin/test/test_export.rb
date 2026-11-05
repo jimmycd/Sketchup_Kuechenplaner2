@@ -1033,6 +1033,7 @@ def tb_export(titel)
 end
 [['Oberschrank', -> { Oberschrank.erstellen({}) }, %w[OS1_TuerL OS1_TuerR]],
  ['Oberschrank eine Tür', -> { Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 }) }, %w[OS1_Tuer]],
+ ['Oberschrank eine Tür rechts', -> { Oberschrank.erstellen({ 'Art_Tuer' => 3.0, 'Breite' => 50.0 }) }, %w[OS1_Tuer]],
  ['Hochschrank', -> { Hochschrank.erstellen({}) }, %w[HS1_O_Tuer]],
  ['Spüle', -> { Spuelenschrank.erstellen({ 'Frontvariante' => 0.0 }) }, %w[USP1_TuerL USP1_TuerR]],
  ['Insel', -> { UnterschrankInsel.erstellen({ 'Frontart' => 0.0 }) }, %w[USI1_TuerL USI1_TuerR]],
@@ -1074,6 +1075,14 @@ td, = tb_export('OS') { Oberschrank.erstellen({}) }
   check(op.seite == :ymax, "#{n}: Topf auf der Innenseite (#{op.seite})")
   w = td[n].ws
   check((n.end_with?('L') ? op.p0[0] - w.lo_f(0) : w.hi_f(0) - op.p0[0]).round(3) == 21.5, "#{n}: Topfmitte 21,5 vom Rand")
+end
+# Oberschrank mit einer Tür: Anschlag links oder rechts wählbar
+[[1.0, :xmin], [3.0, :xmax]].each do |art, kante|
+  te, = tb_export('OS eine Tür') { Oberschrank.erstellen({ 'Art_Tuer' => art, 'Breite' => 50.0 }) }
+  op = te['OS1_Tuer'].ws.ops.find { |o| o.art == :topfband }
+  check(op.daten[:kante] == kante && op.seite == :ymax, "OS1_Tuer (Art #{art.to_i}): Anschlag #{op.daten[:kante]}, Topf #{op.seite}")
+  w = te['OS1_Tuer'].ws
+  check((kante == :xmin ? op.p0[0] - w.lo_f(0) : w.hi_f(0) - op.p0[0]).round(3) == 21.5, "OS1_Tuer (Art #{art.to_i}): Topfmitte 21,5 vom Rand")
 end
 # Bänder liegen in der Lochreihe: Schraublöcher der Montageplatte = Löcher der Reihe
 sl = td['OS1_SeiteL'].ws
