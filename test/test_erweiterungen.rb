@@ -90,7 +90,7 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 
         :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…', 'Küchenplaner neu laden']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
-  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
+  'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank mit Doppeltür…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…'],
   'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
@@ -205,7 +205,7 @@ SRC.each do |src|
     check(!File.read(f, encoding: 'UTF-8').include?('UI.inputbox'), "#{f}: UI.inputbox statt Kuechenplaner::Eingabe.abfragen")
   end
 end
-check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 14, 'alle Unterschränke geprüft')
 
 # Neu laden ohne Neustart: in jeder Erweiterung die gleiche Datei aus gemeinsam/neuladen.rb, geladen von main.rb;
 # das gemeinsame Menü darf mehrfach laufen (kein „unless defined?“ mehr, sonst bliebe nach dem Neuladen der alte Stand)

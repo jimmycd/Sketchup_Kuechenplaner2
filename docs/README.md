@@ -9,6 +9,7 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Schrank | Ordner | Kürzel | Plan |
 |---|---|---|---|
 | Unterschrank mit Tür | [`Komponenten/unterschrank_tuer/`](../Komponenten/unterschrank_tuer/) | UST | – |
+| Unterschrank mit Doppeltür (zwei Türen, 0–3 Einlegeböden) | [`Komponenten/unterschrank_doppeltuer/`](../Komponenten/unterschrank_doppeltuer/) | USD | – |
 | Unterschrank mit Schubladen | [`Komponenten/unterschrank_schubladen/`](../Komponenten/unterschrank_schubladen/) | USS | – |
 | Geschirrspüler-Unterschrank | [`Komponenten/unterschrank_geschirrspueler/`](../Komponenten/unterschrank_geschirrspueler/) | USG | [Plan](plaene/unterschrank-geschirrspueler.md) |
 | Unterbau-Kühlschrank / Weinkühler | [`Komponenten/unterschrank_kuehlschrank/`](../Komponenten/unterschrank_kuehlschrank/) | UKS | Plan im Thread (wie Geschirrspüler, ohne Korpus) |
