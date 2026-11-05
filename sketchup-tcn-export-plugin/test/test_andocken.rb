@@ -459,14 +459,24 @@ model.selection.clear
   wn = A::Werkzeug.new(nb)
   wn.setze_punkt(ende_a + 10.cm, 280.cm)
   check(nah(wn.ziel[1] + bn2[0], ende_a, 1e-6), "#{name}: Nachbar liegt am Ende von Schenkel A an")
-  check(nah(wn.ziel[2] + bn2[2], vorn_a, 1e-6) || nah(wn.ziel[2] + bn2[3], 298.cm, 1e-6) && wn.ziel[2] + bn2[2] > vorn_a,
-        "#{name}: Vorderkante bündig mit Schenkel A, nicht mit dem Eck (#{(wn.ziel[2] + bn2[2]) * 2.54} / #{vorn_a * 2.54})")
+  if mit == 2
+    check(nah(wn.ziel[2] + bn2[2], vorn_a, 1e-6) || nah(wn.ziel[2] + bn2[3], 298.cm, 1e-6) && wn.ziel[2] + bn2[2] > vorn_a,
+          "#{name}: Vorderkante bündig mit Schenkel A, nicht mit dem Eck (#{(wn.ziel[2] + bn2[2]) * 2.54} / #{vorn_a * 2.54})")
+  else
+    # Oberschrank (Jürgen 2026-11-05): Rücken immer direkt an der Wand, keine Frontausrichtung
+    check(nah(wn.ziel[2] + bn2[3], 300.cm, 1e-6), "#{name}: Nachbar-Oberschrank direkt an der Wand (#{(wn.ziel[2] + bn2[3]) * 2.54})")
+  end
   # Einfügen mit markiertem Eck: rechts daneben, untere vordere Korpusecke von A
   model.selection.clear
   model.selection.add(eck)
   nb2 = mit == 2 ? UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 40.0)) : Oberschrank.erstellen(Oberschrank::DEFAULTS.merge('Tiefe' => 25.0))
-  check(nah(o(nb2)[0] + A.bezug(nb2)[0], ende_a, 1e-6) && nah(o(nb2)[1] + A.bezug(nb2)[2], vorn_a, 1e-6),
-        "#{name}: eingefügt rechts an Schenkel A, Vorderkanten bündig (#{o(nb2).map { |v| v * 2.54 }})")
+  if mit == 2
+    check(nah(o(nb2)[0] + A.bezug(nb2)[0], ende_a, 1e-6) && nah(o(nb2)[1] + A.bezug(nb2)[2], vorn_a, 1e-6),
+          "#{name}: eingefügt rechts an Schenkel A, Vorderkanten bündig (#{o(nb2).map { |v| v * 2.54 }})")
+  else
+    check(nah(o(nb2)[0] + A.bezug(nb2)[0], ende_a, 1e-6) && nah(o(nb2)[1] + A.bezug(nb2)[3], 300.cm, 1e-6),
+          "#{name}: eingefügt rechts an Schenkel A, Rücken an der Wand (#{o(nb2).map { |v| v * 2.54 }})")
+  end
   model.selection.clear
   [nb2, eck].each { |i| model.entities.instances.delete(i) }
 end
@@ -517,6 +527,63 @@ check(R.front_viertel([[0, 90, 0, 50]]) == [0] && R.front_viertel([[0, 90, 0, 50
   end
   model.entities.instances.delete(eck)
 end
+
+# Ober- und Hochschränke (Jürgen 2026-11-05): Rücken IMMER direkt an der Wand, der Wandabstand
+# gilt nur für Unterschränke; ein tiefer Hochschrank zieht keinen Ober-/Unterschrank nach vorne.
+model.selection.clear
+model.select_tool(nil)
+vw = A.vorgaben(model)
+check(nah(R.wandabstand('Oberschrank', vw), 0) && nah(R.wandabstand('Hochschrank', vw), 0) &&
+      nah(R.wandabstand('Unterschrank', vw), 2.cm, 1e-6), 'Wandabstand nur für Unterschränke')
+check(!R.vorne_buendig?('Oberschrank', 'Oberschrank') && !R.vorne_buendig?('Unterschrank', 'Hochschrank') &&
+      R.vorne_buendig?('Unterschrank', 'Unterschrank'), 'Fronten bündig nur unter Unterschränken')
+hw = Hochschrank.erstellen({})
+check(model.werkzeug.is_a?(A::Werkzeug), 'Hochschrank im leeren Raum: hängt an der Maus')
+whs = model.werkzeug
+bhw = A.bezug(hw)
+whs.setze_punkt(100.cm, 280.cm)
+check(nah(whs.ziel[2] + bhw[3], 300.cm, 1e-6), "Hochschrank: Rücken direkt an der Wand (#{(whs.ziel[2] + bhw[3]) * 2.54})")
+whs.setze_punkt(5.cm, 280.cm)
+check(nah(whs.ziel[1] + bhw[0], 0, 1e-6), 'Hochschrank in der Ecke: auch seitlich direkt an der Wand')
+whs.setze_punkt(100.cm, 280.cm)
+whs.onLButtonDown(0, 0, 0, fake_view)
+model.select_tool(nil)
+check(nah(o(hw)[1] + bhw[3], 300.cm, 1e-6), 'Hochschrank abgesetzt an der Wand')
+# Oberschrank neben dem Hochschrank (markiert): Rücken an der Wand, nicht an der Hochschrank-Front
+model.selection.clear
+model.selection.add(hw)
+ow = Oberschrank.erstellen({})
+bow = A.bezug(ow)
+check(nah(o(ow)[0] + bow[0], o(hw)[0] + bhw[1], 1e-6), "Oberschrank rechts am Hochschrank (#{o(ow)})")
+check(nah(o(ow)[1] + bow[3], 300.cm, 1e-6),
+      "Oberschrank neben Hochschrank: Rücken an der Wand, nicht nach vorne gesprungen (#{(o(ow)[1] + bow[3]) * 2.54})")
+model.entities.instances.delete(ow)
+# im Werkzeug an den Hochschrank heranschieben: bleibt an der Wand
+wo = A::Werkzeug.new(ow)
+wo.setze_punkt(o(hw)[0] + bhw[1] + 10.cm, 280.cm)
+check(nah(wo.ziel[1] + bow[0], o(hw)[0] + bhw[1], 1e-6) && nah(wo.ziel[2] + bow[3], 300.cm, 1e-6),
+      "Werkzeug: Oberschrank liegt am Hochschrank an, Rücken an der Wand (#{wo.ziel.map { |q2| q2 * 2.54 }})")
+# Unterschrank neben dem Hochschrank: bleibt im Wandabstand, keine Frontausrichtung
+model.selection.clear
+model.selection.add(hw)
+uw = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+buw = A.bezug(uw)
+check(nah(o(uw)[0] + buw[0], o(hw)[0] + bhw[1], 1e-6) && nah(o(uw)[1] + buw[3], 298.cm, 1e-6),
+      "Unterschrank neben Hochschrank: Rücken im Wandabstand (#{o(uw).map { |q2| q2 * 2.54 }})")
+model.entities.instances.delete(uw)
+wu = A::Werkzeug.new(uw)
+wu.setze_punkt(o(hw)[0] + bhw[1] + 10.cm, 280.cm)
+check(nah(wu.ziel[2] + buw[3], 298.cm, 1e-6), 'Werkzeug: Unterschrank am Hochschrank bleibt im Wandabstand')
+wu.setze_punkt(o(hw)[0] + bhw[1] + 10.cm, 280.cm)
+wu.onLButtonDown(0, 0, 0, fake_view)
+model.select_tool(nil)
+# Oberschrank über dem markierten Unterschrank: Rücken an der Wand (Unterschrank 20 mm davor)
+model.selection.clear
+model.selection.add(uw)
+ou = Oberschrank.erstellen({})
+check(nah(o(ou)[1] + A.bezug(ou)[3], 300.cm, 1e-6), "Oberschrank über Unterschrank: Rücken an der Wand (#{(o(ou)[1] + A.bezug(ou)[3]) * 2.54})")
+model.selection.clear
+[hw, uw, ou].each { |i| model.entities.instances.delete(i) }
 
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'wandabstand'])
 

@@ -112,15 +112,17 @@ module JTools
         end
 
         # Lage des neuen Schranks (Kasten k) am Nachbarn (Kasten n, Lage nl).
-        # buendig :hinten = Rückwände in einer Flucht, :vorne = Fronten.
+        # buendig :hinten = Rückwände in einer Flucht, :vorne = Fronten. versatz = um so viel
+        # steht die Rückseite weiter hinten als die des Nachbarn (Wandabstand des Nachbarn minus
+        # eigener, siehe #wandabstand: Oberschrank neben Unterschrank rückt an die Wand).
         # Liefert [winkel, x, y]; die Höhe kommt aus #hoehe.
-        def an_nachbar(k, n, nl, seite, viertel, buendig = :hinten)
+        def an_nachbar(k, n, nl, seite, viertel, buendig = :hinten, versatz = 0)
           rel = viertel * VIERTEL
           r = rechteck(k, rel)
           case seite
           when :rechts, :links
             ox = seite == :rechts ? n[1] - r[0] : n[0] - r[1]
-            oy = buendig == :vorne ? n[2] - r[2] : n[3] - r[3]
+            oy = buendig == :vorne ? n[2] - r[2] : n[3] - r[3] + versatz
           else
             # quer vor der Front: hinten an die Front, seitlich bündig mit dem Nachbarn
             oy = n[2] - r[3]
@@ -167,15 +169,33 @@ module JTools
 
         # Oberschrank über einem Unterschrank (Bezug n, Lage nl): Rückseiten in einer Flucht,
         # linke bzw. rechte Seite bündig, Unterkante = Seitenoberkante + aufbau.
+        # versatz = Wandabstand des Unterschranks: der Oberschrank steht direkt an der Wand.
         # Liefert die ganze Lage [winkel, x, y, z].
-        def ueber_unterschrank(k, n, nl, rechts, aufbau)
+        def ueber_unterschrank(k, n, nl, rechts, aufbau, versatz = 0)
           ox = rechts ? n[1] - k[1] : n[0] - k[0]
-          x, y = welt(nl, ox, n[3] - k[3])
+          x, y = welt(nl, ox, n[3] - k[3] + versatz)
           [winkel(nl[0]), x, y, nl[3] + n[5] + aufbau - k[4]]
         end
 
+        # Jürgen 2026-11-05: Ober- und Hochschränke stehen IMMER mit dem Rücken direkt an der
+        # Wand, der Wandabstand der Einstellungen gilt nur für Unterschränke.
+        WAND_DIREKT = %w[Oberschrank Hochschrank].freeze
+
+        # Abstand Rückseite–Wand (Zoll) für einen Schrank der Kategorie kat (v wie #hoehe)
+        def wandabstand(kat, v)
+          WAND_DIREKT.include?(kat) ? 0.0 : v[:wand].to_f
+        end
+
+        # Fronten bündig mit dem Nachbarn? Nur unter Schränken derselben Kategorie, und nie
+        # bei Ober- und Hochschränken (die stehen an der Wand): ein tiefer Hochschrank zieht
+        # keinen Ober- oder Unterschrank nach vorne. kat oder nkat nil = unbekannt (wie bisher).
+        def vorne_buendig?(kat, nkat)
+          return false if WAND_DIREKT.include?(kat)
+          kat.nil? || nkat.nil? || kat == nkat
+        end
+
         # --- freier Platz ------------------------------------------------------------
-        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art, frontwinkel, korpus], …] (Wände:
+        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art, frontwinkel, korpus, kategorie], …] (Wände:
         # nil = ganze Höhe, art :wand; andere Schränke: :schrank; frontwinkel = Richtung der Front
         # des Rechtecks, ohne ihn gilt der Winkel der Lage; korpus = Rechteck ohne Fronten zum
         # Ausrichten, das Kollisions-Rechteck davor enthält die Fronten). Platz, wenn der Kasten k in Lage l
@@ -216,8 +236,9 @@ module JTools
         # Rastet an den Wandenden (dort seitlich im abstand) und Laibungen ein (fang),
         # weicht Hindernissen aus (bleibt anliegend stehen) und stellt die Vorderkante bündig
         # mit einem anliegenden Nachbarn, der weiter vorne steht (untere vordere Korpusecke gleich).
-        # z = [z0, z1] des Schranks. Liefert [winkel, x, y, linke Kante entlang der Wand] oder nil.
-        def an_wand_gleiten(k, wl, laenge, lx, q, abstand, fang, links, rechts, hindernisse, z, tol = TOLERANZ)
+        # z = [z0, z1] des Schranks, kat = seine Kategorie (siehe #vorne_buendig?).
+        # Liefert [winkel, x, y, linke Kante entlang der Wand] oder nil.
+        def an_wand_gleiten(k, wl, laenge, lx, q, abstand, fang, links, rechts, hindernisse, z, tol = TOLERANZ, kat = nil)
           r = rechteck(k, q * VIERTEL)
           b = r[1] - r[0]
           oy = -abstand - r[3]
@@ -229,8 +250,8 @@ module JTools
           xs = [[xs, 0.0].max, laenge - b].min if laenge && laenge >= b # nicht über das Wandende hinaus
           richtung = winkel(wl[0] + q * VIERTEL)
           huellen = hindernisse.select { |_, _, hz| z_ueberlappt?(z, hz, tol) }
-                               .map do |hl, hb, _, art, fw, kb|
-                                 [huelle(hl, hb, wl), art, gleich_gerichtet?(fw || hl[0], richtung), huelle(hl, kb || hb, wl)]
+                               .map do |hl, hb, _, art, fw, kb, hk|
+                                 [huelle(hl, hb, wl), art, gleich_gerichtet?(fw || hl[0], richtung), huelle(hl, kb || hb, wl), hk]
                                end
           gesperrt = lambda do |y0|
             huellen.select { |h, _| h[3] > y0 + r[2] + tol && h[2] < y0 + r[3] - tol }
@@ -243,8 +264,8 @@ module JTools
           # der Front eines Eckschranks (Blindeck: die Nachbarzeile deckt den Blindteil ab), bleibt
           # seine Rückseite an der Wand (Jürgen 2026-11-05: Hinterkante bündig).
           # Gerechnet am Korpus (ohne Fronten), die Kollision dagegen mit Fronten.
-          nachbar = huellen.find do |_, art, gleich, h|
-            art == :schrank && gleich && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
+          nachbar = huellen.find do |_, art, gleich, h, hk|
+            art == :schrank && gleich && vorne_buendig?(kat, hk) && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
               ((h[1] - xs).abs <= tol || (h[0] - xs - b).abs <= tol)
           end
           if nachbar
@@ -558,19 +579,22 @@ module JTools
       KEINE_ZEILE = %w[Arbeitsplatte Sockel].freeze
 
       # Hindernisse für einen Schrank: alle Wände und alle anderen Schränke mit ihrem Korpus
-      # (Grundriss und Höhe; ob sie im Weg sind, entscheidet die Höhe)
-      def self.hindernisse(model, inst, _kat = nil)
+      # (Grundriss und Höhe; ob sie im Weg sind, entscheidet die Höhe). Die Zone vor der Wand
+      # hat den Wandabstand der Kategorie kat (Ober-/Hochschrank: keine, direkt an die Wand).
+      def self.hindernisse(model, inst, kat = nil)
+        kat ||= kategorie(inst)
         andere = Schraenke.instanzen(model.entities).select do |e|
           e != inst && schrank?(e) && !KEINE_ZEILE.include?(kategorie(e))
         end
-        waende(model, vorgabe(:wandabstand) * MM) + andere.flat_map do |e|
+        waende(model, Rechnung.wandabstand(kat, wand: vorgabe(:wandabstand) * MM)) + andere.flat_map do |e|
+          ek = kategorie(e)
           b = bezug(e)
           l = lage(e.transformation)
           rs = grundrisse(e, b)
           fv = Rechnung.front_viertel(rs)
           ks = Rechnung.kollision(rs, fv, b, vorne(e))
           rs.each_index.map do |i|
-            [l, ks[i], [l[3] + b[4], l[3] + b[5]], :schrank, Rechnung.winkel(l[0] + fv[i] * VIERTEL), rs[i]]
+            [l, ks[i], [l[3] + b[4], l[3] + b[5]], :schrank, Rechnung.winkel(l[0] + fv[i] * VIERTEL), rs[i], ek]
           end
         end
       end
@@ -730,13 +754,13 @@ module JTools
         zeile = alle.select { |e| zeile?(kat, insel, e) }
         k = bezug(inst)
         v = vorgaben(model)
-        hind = hindernisse(model, inst)
+        hind = hindernisse(model, inst, kat)
         if gewaehlt && kat == 'Oberschrank' && kategorie(start) == 'Unterschrank'
           # Oberschrank über den markierten Unterschrank, links bündig, sonst rechts bündig
           n = bezug(start)
           nl = lage(start.transformation)
           return [false, true].map do |rechts|
-            l = Rechnung.ueber_unterschrank(k, n, nl, rechts, v[:aufbau])
+            l = Rechnung.ueber_unterschrank(k, n, nl, rechts, v[:aufbau], Rechnung.wandabstand('Unterschrank', v))
             l[3] = feste_hoehe(kat, k, v)
             l
           end.find { |l| Rechnung.platz?(k, l, hind) }
@@ -755,7 +779,7 @@ module JTools
                       return nil unless u
                       ul = unten.map { |e| [bezug(e), lage(e.transformation)] }
                       n, nl = ul[Rechnung.zeilenende(ul, u, :links)]
-                      l = Rechnung.ueber_unterschrank(k, n, nl, false, v[:aufbau])
+                      l = Rechnung.ueber_unterschrank(k, n, nl, false, v[:aufbau], Rechnung.wandabstand('Unterschrank', v))
                       l[3] = feste_hoehe(kat, k, v)
                       return Rechnung.platz?(k, l, hind) ? l : nil
                     end
@@ -765,9 +789,13 @@ module JTools
         plaetze.uniq.each do |i, seite|
           n, nl = liste[i]
           n = Rechnung.an_seite(n, grundrisse(zeile[i], n), seite)
-          z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(zeile[i]), 0, v)
-          %i[vorne hinten].each do |buendig|
-            w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0, buendig)
+          nkat = kategorie(zeile[i])
+          z = Rechnung.hoehe(k, kat, n, nl[3], nkat, 0, v)
+          # Fronten bündig nur in derselben Kategorie; sonst Rückseite in der Flucht, um den
+          # Unterschied der Wandabstände versetzt (Ober-/Hochschrank direkt an der Wand)
+          versatz = Rechnung.wandabstand(nkat, v) - Rechnung.wandabstand(kat, v)
+          (Rechnung.vorne_buendig?(kat, nkat) ? %i[vorne hinten] : %i[hinten]).each do |buendig|
+            w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0, buendig, versatz)
             return [w, x, y, z] if Rechnung.platz?(k, [w, x, y, z], hind)
           end
         end
@@ -847,7 +875,8 @@ module JTools
           @insel = Andocken.insel?(inst)
           @start = Andocken.lage(inst.transformation)
           @waende = Andocken.raumwaende(model)
-          @hind = Andocken.hindernisse(model, inst)
+          @hind = Andocken.hindernisse(model, inst, @kat)
+          @abstand = Rechnung.wandabstand(@kat, @v)
           @z = Andocken.feste_hoehe(@kat, @kasten, @v)
           @wand = nil
           @q = 0
@@ -1002,7 +1031,8 @@ module JTools
           w = @waende[@wand]
           lx, = Rechnung.lokal(w[:lage], px, py)
           z = [@z + @kasten[4], @z + @kasten[5]]
-          l = Rechnung.an_wand_gleiten(@kasten, w[:lage], w[:laenge], lx, @q, @v[:wand], FANG, w[:links], w[:rechts], @hind, z)
+          l = Rechnung.an_wand_gleiten(@kasten, w[:lage], w[:laenge], lx, @q, @abstand, FANG, w[:links], w[:rechts], @hind, z,
+                                       TOLERANZ, @kat)
           if l
             @ziel = l[0, 3] + [@z]
             b = (Rechnung.rechteck(@kasten, @q * VIERTEL)[1] - Rechnung.rechteck(@kasten, @q * VIERTEL)[0])
