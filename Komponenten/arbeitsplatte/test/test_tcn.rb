@@ -131,6 +131,29 @@ check(k.size == 2 && k.map(&:last) == [-19.5, -39] && k[0][0] == k[1][0] && k[0]
       nahe(ys.min, 835 - 60 - 490 + 10) && nahe(ys.max, 835 - 60 - 10), "Ausschnitt: #{k}")
 check(bohrungen(d2[0].text).empty?, 'ohne Stoß keine Verbinder')
 
+# --- Überlänge: 7 × 600 -> Längsstoß stumpf mitten auf USS7 (x = 3900), Hundeknochen an beiden Teilplatten ---
+m4 = Sketchup::Model.new
+Sketchup.active_model = m4
+(0...7).each { |i| schrank(m4, "USS#{i + 1}", 600, gerade(i * 600, 20)) }
+A.erzeugen(m4, optionen: {})
+d4, me4 = S::Export.erzeugen(m4)
+check(d4.map(&:name).sort == %w[APL1_Platte1_Stoss1 APL1_Platte2_Stoss1] && me4.empty?, "Längsstoß: je Teilplatte eine TCN: #{d4.map(&:name)} #{me4}")
+l1 = d4.find { |d| d.name == 'APL1_Platte1_Stoss1' }
+l2 = d4.find { |d| d.name == 'APL1_Platte2_Stoss1' }
+check(l1.text.include?('DL=3900 DH=835') && l2.text.include?('DL=300 DH=835'), "Teilplatten 3900 / 300: #{l1.text[/::UNm.*/]} #{l2.text[/::UNm.*/]}")
+# Stoßlänge 835 -> 3 Hundeknochen je Seite, Ø 35, 20 tief, 65 vom Stoß; Steg mit 2200 in einer Zustellung (≤ 20 mm)
+[l1, l2].each do |d|
+  bo = bohrungen(d.text)
+  check(bo.size == 3 && bo.all? { |x, _, t, dm| nahe(x, 65) && t == -20 && dm == 35 }, "#{d.name}: Hundeknochen #{bo}")
+  st = bahnen(d.text, S::Arbeitsplatten::STEG[:werkzeug])
+  check(st.size == 6 && st.all? { |_, t| t == -20 }, "#{d.name}: Stege #{st.map(&:last)}")
+  check(!d.text.include?('W#2125'), "#{d.name}: kein W#2125")
+end
+# Stückliste führt die Teilplatten einzeln
+zs = S::Stueckliste.zeilen(d4)
+check(zs.count { |z| z.hinweis == 'Arbeitsplatte' } == 2 && zs.map(&:fertig).sort == [[300.0, 835.0], [3900.0, 835.0]],
+      "Stückliste: zwei Teilplatten #{zs.map(&:fertig)}")
+
 # --- Platte ohne gespeicherte Daten: Meldung ---
 inst = d2[0].ws.teil.inst
 inst.attribute_dictionary('JT_Arbeitsplatte').delete('front') if inst.attribute_dictionary('JT_Arbeitsplatte').respond_to?(:delete)
