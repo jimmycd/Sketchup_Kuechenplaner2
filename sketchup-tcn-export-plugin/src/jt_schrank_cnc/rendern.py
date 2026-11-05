@@ -340,6 +340,11 @@ def rendern(bpy, daten, ordner):
             material_bauen(bpy, mat, d, ordner, float(daten.get("kanten", 0.0)))
     kamera_bauen(bpy, daten, Vector)
     licht_bauen(bpy, daten, Vector)
+    # Bodenbelag, Holz-/Steinstruktur, Decke, Deko, Pendelleuchten (rendern_ausstattung.py)
+    sys.dont_write_bytecode = True  # kein __pycache__ im Plugin-Ordner
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import rendern_ausstattung
+    rendern_ausstattung.ausstatten(bpy, daten, melden)
 
     szene.render.engine = "CYCLES"
     geraet = gpu_einschalten(bpy)

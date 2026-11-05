@@ -31,6 +31,11 @@ module JTools
       UMGEBUNG = { 'Innenraum' => 'interior.exr', 'Innenhof' => 'courtyard.exr', 'Studio' => 'studio.exr',
                    'Stadt' => 'city.exr', 'Wald' => 'forest.exr', 'Sonnenuntergang' => 'sunset.exr',
                    'einfarbig hell' => nil }.freeze
+      # Deko auf der Arbeitsplatte: Anzahl der Gegenstände
+      DEKO = { 'keine' => 0, 'wenig' => 3, 'mittel' => 6, 'viel' => 10 }.freeze
+      # Bodenbelag im Bild (in Blender erzeugt, ohne Bilddateien)
+      BODEN = { 'wie Modell' => nil, 'Parkett Eiche' => 'parkett', 'Fliesen hell' => 'fliesen_hell',
+                'Fliesen anthrazit' => 'fliesen_dunkel', 'Beton' => 'beton' }.freeze
       # Tags, die im Bild nie erscheinen bzw. immer (falls es keine Szene Kunde gibt)
       NIE = %w[Beschriftung Geraete_Plan].freeze
       IMMER = %w[Geraete_Render].freeze
@@ -51,6 +56,37 @@ module JTools
         t = text.to_s.gsub('ä', 'ae').gsub('ö', 'oe').gsub('ü', 'ue').gsub('Ä', 'Ae').gsub('Ö', 'Oe')
                 .gsub('Ü', 'Ue').gsub('ß', 'ss')
         t.gsub(/[^0-9A-Za-z_-]+/, '_').gsub(/\A_+|_+\z/, '')[0, 50]
+      end
+
+      TAG_BODEN = 'Raum-Boden'.freeze
+      TAG_WAND = 'Raum-Wand'.freeze
+
+      def tag_name(e)
+        e.respond_to?(:layer) && e.layer ? e.layer.name.to_s : ''
+      end
+
+      def arbeitsplatte?(defn)
+        defn.respond_to?(:get_attribute) && defn.get_attribute('JT_Schrank', 'kategorie') == 'Arbeitsplatte'
+      end
+
+      def insel?(defn)
+        defn.respond_to?(:get_attribute) && defn.get_attribute('JT_Schrank', 'insel') ? true : false
+      end
+
+      # Gerätename (JT_Geraet/geraet, z. B. Spuele, Kochfeld60) oder nil
+      def geraet(defn)
+        defn.respond_to?(:get_attribute) ? defn.get_attribute('JT_Geraet', 'geraet') : nil
+      end
+
+      def begrenzung(punkte)
+        return nil if punkte.nil? || punkte.empty?
+        xs, ys, zs = punkte.transpose
+        [[xs.min, ys.min, zs.min].map { |v| v.round(4) }, [xs.max, ys.max, zs.max].map { |v| v.round(4) }]
+      end
+
+      def vereinen(a, b)
+        return b unless a
+        [a[0].zip(b[0]).map(&:min), a[1].zip(b[1]).map(&:max)]
       end
 
       # Definition eines Oberschranks (JT_Schrank/kategorie, wie Stückliste und TCN-Export)
@@ -144,9 +180,15 @@ module JTools
           @leds = []     # Unterseiten der Oberschränke [x0, y0, x1, y1, z] in m
           @punkte = []   # alle Punkte in m (für die Begrenzung der Oberschränke)
           @im_ober = false
+          @arbeitsflaechen = [] # Dreiecke der Arbeitsplatten-Oberseiten [[x,y,z]×3] in m (Deko)
+          @inseln = []   # Begrenzung der Inselschränke [[min], [max]]
+          @geraete = []  # Begrenzung der Geräte (Spüle, Kochfeld …) [[min], [max], name]
+          @raum = nil    # Begrenzung der Wände [[min], [max]]
+          @dreiecke = nil # beim Sammeln einer Arbeitsplatte: ihre waagrechten Dreiecke
+          @boden = false  # Flächen auf dem Tag Raum-Boden bekommen eigene Materialien
         end
 
-        attr_reader :leds
+        attr_reader :leds, :arbeitsflaechen, :inseln, :geraete, :raum
 
         def obj_text
           @obj.join("\n") + "\n"
@@ -161,35 +203,66 @@ module JTools
         def entities(ents, tr, erbe)
           ents.each do |e|
             if e.is_a?(Sketchup::Face)
-              flaeche(e, tr, erbe) if sichtbar?(e)
+              next unless sichtbar?(e)
+              boden_vorher = @boden
+              @boden ||= Rendern.tag_name(e) == TAG_BODEN
+              flaeche(e, tr, erbe)
+              @boden = boden_vorher
             elsif e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)
               next unless sichtbar?(e)
-              defn = e.respond_to?(:definition) ? e.definition : nil
-              kinder = defn ? defn.entities : e.entities
-              if !@im_ober && Rendern.oberschrank?(defn || (e.entities.respond_to?(:parent) ? e.entities.parent : nil))
-                @im_ober = true
-                start = @punkte.size
-                entities(kinder, tr * e.transformation, e.material || erbe)
-                @im_ober = false
-                led(@punkte[start..-1])
-              else
-                entities(kinder, tr * e.transformation, e.material || erbe)
-              end
+              instanz(e, tr, erbe)
             end
           end
         end
 
+        # Eine Instanz (oder Gruppe) samt Inhalt; merkt sich Oberschränke (LED), Arbeitsplatten
+        # (Deko), Inseln (Pendelleuchten), Geräte (dort keine Deko) und Wände (Decke)
+        def instanz(e, tr, erbe)
+          defn = e.respond_to?(:definition) ? e.definition : nil
+          defn = e.entities.parent if defn.nil? && e.respond_to?(:entities) && e.entities.respond_to?(:parent)
+          kinder = e.respond_to?(:definition) ? e.definition.entities : e.entities
+          t = tr * e.transformation
+          mat = e.material || erbe
+          tag = Rendern.tag_name(e)
+          start = @punkte.size
+          boden_vorher = @boden
+          @boden ||= tag == TAG_BODEN
+          if !@im_ober && Rendern.oberschrank?(defn)
+            @im_ober = true
+            entities(kinder, t, mat)
+            @im_ober = false
+            led(@punkte[start..-1])
+          elsif @dreiecke.nil? && Rendern.arbeitsplatte?(defn)
+            @dreiecke = []
+            entities(kinder, t, mat)
+            oben = @dreiecke.map { |d| d.map { |p| p[2] }.max }.max
+            @arbeitsflaechen.concat(@dreiecke.select { |d| d.all? { |p| p[2] > oben - 0.003 } }) if oben
+            @dreiecke = nil
+          else
+            entities(kinder, t, mat)
+          end
+          @boden = boden_vorher
+          box = Rendern.begrenzung(@punkte[start..-1])
+          return unless box
+          @inseln << box if Rendern.insel?(defn)
+          name = Rendern.geraet(defn)
+          @geraete << (box + [name]) if name
+          @raum = Rendern.vereinen(@raum, box) if tag == TAG_WAND
+        end
+
         # Name des Materials in der MTL (eindeutig, nur Buchstaben/Ziffern/_)
         def mtl_name(mat)
-          return @namen[mat] if @namen.key?(mat)
+          schluessel = [mat, @boden]
+          return @namen[schluessel] if @namen.key?(schluessel)
           basis = mat ? mat.respond_to?(:display_name) ? mat.display_name : mat.name : 'Standard'
           basis = Rendern.ascii(basis)
           basis = 'Material' if basis.empty?
+          basis = "Boden_#{basis}" if @boden
           name = basis
           k = 1
           name = "#{basis}_#{k += 1}" while @materialien.key?(name)
-          @namen[mat] = name
-          @materialien[name] = eintrag(mat)
+          @namen[schluessel] = name
+          @materialien[name] = eintrag(mat).merge(boden: @boden)
           name
         end
 
@@ -210,12 +283,14 @@ module JTools
           mesh = f.mesh(tex ? 1 : 0) # 0 nur Punkte, 1 mit UVQ vorne
           n = mesh.count_points
           gespiegelt = Rendern.gespiegelt?(tr)
-          (1..n).each do |i|
+          welt = (1..n).map do |i|
             p = mesh.point_at(i).transform(tr)
             x, y, z = p.x.to_f * M, p.y.to_f * M, p.z.to_f * M
             @obj << format('v %.5f %.5f %.5f', x, y, z)
             erweitern(x, y, z)
+            [x, y, z]
           end
+          arbeitsflaeche(mesh, welt) if @dreiecke
           if tex
             (1..n).each do |i|
               uvq = mesh.uv_at(i, true)
@@ -238,6 +313,15 @@ module JTools
           @v += n
           @vt += n if tex
           @flaechen += 1
+        end
+
+        # Waagrechte Dreiecke einer Arbeitsplatte (Oberseite wird danach ausgewählt)
+        def arbeitsflaeche(mesh, welt)
+          mesh.polygons.each do |poly|
+            next unless poly.size == 3
+            d = poly.map { |i| welt[i.abs - 1].map { |v| v.round(4) } }
+            @dreiecke << d if d.map { |p| p[2] }.minmax.reduce(:-).abs < 0.001
+          end
         end
 
         # LED-Leiste unter dem Oberschrank: Unterseite seiner Begrenzung
@@ -341,7 +425,8 @@ module JTools
       # Optionen: raumlicht, led (unter Oberschränken), umgebung (Name aus UMGEBUNG),
       # senkrecht (Zweipunktperspektive: senkrechte Kanten bleiben senkrecht), kamera_kunde
       def exportieren(model, ordner, bild, breite:, samples:, raumlicht: true, blend: true, kamera_kunde: false,
-                      led: true, umgebung: 'Innenraum', senkrecht: true)
+                      led: true, umgebung: 'Innenraum', senkrecht: true, deko: 'mittel', variante: 1,
+                      pendel: true, boden: 'wie Modell', decke: true)
         FileUtils.mkdir_p(ordner)
         s = Sammler.new(sichtbarkeit(model))
         s.entities(model.entities, Geom::Transformation.new, nil)
@@ -357,9 +442,12 @@ module JTools
           'licht' => { 'sonne' => sonne(model), 'raumlicht' => raumlicht, 'led' => led ? s.leds : [],
                        'umgebung' => UMGEBUNG[umgebung] },
           'kanten' => 0.0015, # Kantenradius in m (Bevel-Shader)
+          'deko' => { 'anzahl' => DEKO.fetch(deko, 0), 'variante' => variante.to_i, 'arbeitsflaechen' => s.arbeitsflaechen,
+                      'geraete' => s.geraete, 'inseln' => s.inseln, 'pendel' => pendel },
+          'raum' => { 'boden' => BODEN[boden], 'decke' => decke && s.raum ? s.raum : nil },
           'box' => s.box.map { |p| p.map { |v| v.round(4) } },
           'materialien' => s.materialien.transform_values do |m|
-            { 'farbe' => m[:farbe], 'alpha' => m[:alpha], 'textur' => m[:textur], 'art' => m[:art] }
+            { 'farbe' => m[:farbe], 'alpha' => m[:alpha], 'textur' => m[:textur], 'art' => m[:art], 'boden' => m[:boden] ? true : false }
           end,
           'flaechen' => s.flaechen
         }
@@ -430,30 +518,38 @@ module JTools
         prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Kamera',
                    'Bild: Senkrechte Kanten gerade (Zweipunktperspektive)', 'Licht: Umgebung',
                    'Licht: Raumlicht von oben', 'Licht: LED-Leisten unter Oberschränken',
+                   'Ausstattung: Deko auf der Arbeitsplatte', 'Ausstattung: Deko-Variante (1–9, andere Auswahl und Anordnung)',
+                   'Ausstattung: Pendelleuchten über der Insel', 'Ausstattung: Bodenbelag', 'Ausstattung: Decke',
                    'Datei: Bilddatei (PNG)', 'Datei: Blender-Programm (blender.exe)']
         kameras = kunde ? 'aktuelle Ansicht|Szene Kunde' : 'aktuelle Ansicht'
         werte = [vorgabe('breite', '1920').to_s, vorgabe('qualitaet', 'Normal').to_s, 'aktuelle Ansicht',
                  vorgabe('senkrecht', 'ja').to_s, vorgabe('umgebung', 'Innenraum').to_s,
-                 vorgabe('raumlicht', 'ja').to_s, vorgabe('led', 'ja').to_s, standard_bild(model), blender]
+                 vorgabe('raumlicht', 'ja').to_s, vorgabe('led', 'ja').to_s, vorgabe('deko', 'mittel').to_s,
+                 vorgabe('variante', '1').to_s, vorgabe('pendel', 'ja').to_s, vorgabe('boden', 'wie Modell').to_s,
+                 vorgabe('decke', 'ja').to_s, standard_bild(model), blender]
         listen = ['', QUALITAET.keys.join('|'), kameras, 'ja|nein', UMGEBUNG.keys.join('|'), 'ja|nein', 'ja|nein',
+                  DEKO.keys.join('|'), (1..9).to_a.join('|'), 'ja|nein', BODEN.keys.join('|'), 'ja|nein',
                   ':speichern', ':programm']
         untertitel = kunde ? 'Sichtbarkeit und Sonne wie Szene Kunde' : 'Szene Kunde fehlt: aktuelle Sichtbarkeit'
         Kuechenplaner::Eingabe.abfragen(prompts, werte, listen, 'Küche rendern (Blender)',
                                         untertitel: untertitel, ok: 'Rendern') do |neu|
           breite = neu[0].to_s.strip.to_i
           raise ArgumentError, 'Breite bitte zwischen 200 und 8000 Pixel.' unless breite.between?(200, 8000)
-          bild = neu[7].to_s.strip.tr('\\', '/')
+          bild = neu[12].to_s.strip.tr('\\', '/')
           raise ArgumentError, 'Bitte eine Bilddatei angeben.' if bild.empty?
           bild += '.png' unless bild =~ /\.png\z/i
-          exe = neu[8].to_s.strip.tr('\\', '/')
+          exe = neu[13].to_s.strip.tr('\\', '/')
           unless File.file?(exe)
             raise ArgumentError, 'Blender nicht gefunden. Bitte Blender installieren (kostenlos, blender.org) ' \
                                  'und hier blender.exe wählen.'
           end
           { 'breite' => breite.to_s, 'qualitaet' => neu[1], 'senkrecht' => neu[3], 'umgebung' => neu[4],
-            'raumlicht' => neu[5], 'led' => neu[6], 'blender' => exe }.each { |k, v| merken(k, v) }
+            'raumlicht' => neu[5], 'led' => neu[6], 'deko' => neu[7], 'variante' => neu[8], 'pendel' => neu[9],
+            'boden' => neu[10], 'decke' => neu[11], 'blender' => exe }.each { |k, v| merken(k, v) }
           optionen = { raumlicht: neu[5] != 'nein', kamera_kunde: neu[2] == 'Szene Kunde', senkrecht: neu[3] != 'nein',
-                       umgebung: UMGEBUNG.key?(neu[4]) ? neu[4] : 'Innenraum', led: neu[6] != 'nein' }
+                       umgebung: UMGEBUNG.key?(neu[4]) ? neu[4] : 'Innenraum', led: neu[6] != 'nein',
+                       deko: DEKO.key?(neu[7]) ? neu[7] : 'mittel', variante: [[neu[8].to_i, 1].max, 9].min,
+                       pendel: neu[9] != 'nein', boden: BODEN.key?(neu[10]) ? neu[10] : 'wie Modell', decke: neu[11] != 'nein' }
           starten(model, exe, bild, breite, QUALITAET.fetch(neu[1], 128), optionen)
         end
       end
