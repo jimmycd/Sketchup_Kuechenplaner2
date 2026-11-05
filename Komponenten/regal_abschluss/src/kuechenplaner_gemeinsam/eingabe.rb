@@ -19,7 +19,8 @@
 # „Stärke (mm, 0 = Standard)“ zusätzlich den Hinweis „0 = Standard“. „Ecke 1: Stoß“
 # kommt in die Gruppe „Ecke 1“. listen: 'a|b|c' wird eine Auswahl, '' ein Eingabefeld.
 # Besondere Felder über listen: ':farbe' zeigt einen Farbwähler (Farbrad mit Helligkeitsregler,
-# Vorschau, Wert als #RRGGBB), ':datei' ein Eingabefeld mit Knopf „Datei wählen…“ (Bilder).
+# Vorschau, Wert als #RRGGBB), ':datei' ein Eingabefeld mit Knopf „Datei wählen…“ (Bilder),
+# ':programm' ebenso für ein Programm (z. B. blender.exe), ':speichern' mit „Speichern unter…“.
 # Abbrechen oder Schließen ruft den Block nicht auf (wie nil/false bei UI.inputbox).
 # Ohne UI::HtmlDialog (sehr alte SketchUp-Versionen) wird UI.inputbox benutzt.
 # main.rb lädt die Datei mit require (einmal je Sitzung); „Plugins aktualisieren“
@@ -36,7 +37,7 @@ module Kuechenplaner
 
     # Feldarten über listen
     def self.arten
-      { ':farbe' => :farbe, ':datei' => :datei }
+      { ':farbe' => :farbe, ':datei' => :datei, ':programm' => :programm, ':speichern' => :speichern }
     end
 
     # Aussehen wie die Dialoge im Treppenplaner (Farben, Schrift, Gruppen, Fußzeile mit Knöpfen)
@@ -112,13 +113,26 @@ module Kuechenplaner
           end
         end
         d.add_action_callback('abbrechen') { |_ctx| d.close }
-        d.add_action_callback('datei') do |_ctx, n|
-          pfad = UI.openpanel('Datei wählen', '', 'Bilder|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.tga||')
+        d.add_action_callback('datei') do |_ctx, n, art, wert|
+          pfad = datei_waehlen(art.to_s, wert.to_s)
           d.execute_script("KP.setze(#{n.to_i}, #{JSON.generate(pfad.to_s.tr('\\', '/'))})") if pfad
         end
         d.center
         d.show
         @dialog = d
+      end
+
+      # Dateiauswahl je Feldart: Bild öffnen, Programm wählen oder Speichern unter
+      def datei_waehlen(art, wert = '')
+        ordner = wert.empty? ? '' : File.dirname(wert)
+        case art
+        when 'programm'
+          UI.openpanel('Programm wählen', ordner, 'Programme|*.exe;*.app;blender;Blender||')
+        when 'speichern'
+          UI.savepanel('Speichern unter', ordner, wert.empty? ? '' : File.basename(wert))
+        else
+          UI.openpanel('Datei wählen', '', 'Bilder|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.tga||')
+        end
       end
 
       # [{ gruppe:, label:, einheit:, hilfe:, wert:, liste: }, …]
@@ -180,8 +194,9 @@ module Kuechenplaner
               ctl += %(<span class="muster" id="f#{n}_muster"></span>)
               extra = %(<div class="farbwahl" data-feld="#{n}"><canvas id="f#{n}_rad" width="124" height="124"></canvas>) +
                       %(<canvas class="hell" id="f#{n}_hell" width="18" height="124"></canvas></div>)
-            when :datei
-              ctl += %(<button type="button" class="datei" title="Datei wählen" onclick="sketchup.datei(#{n})">…</button>)
+            when :datei, :programm, :speichern
+              ctl += %(<button type="button" class="datei" title="Datei wählen" ) +
+                     %(onclick="sketchup.datei(#{n}, '#{f[:art]}', document.getElementById('f#{n}').value)">…</button>)
             end
             %(<div class="row"><label for="f#{n}">#{h(f[:label])}</label><div class="ctl">#{ctl}#{einheit}</div>#{hilfe}#{extra}</div>)
           end

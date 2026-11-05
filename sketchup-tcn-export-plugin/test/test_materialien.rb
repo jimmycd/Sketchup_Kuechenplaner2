@@ -84,7 +84,7 @@ check(liste.html.include?('Anleimer Eiche'), 'Liste nach dem Speichern aktualisi
 liste.callbacks['neu'].call(nil, 'platte')
 felder = EingabeHelfer.felder(letzter_dialog.html).to_h
 check(felder['Stärke'] == '19' && felder['Format Länge'] == '2800' && felder['Verwendung'] == 'Korpus', "Vorgaben Platte: #{felder}")
-check(letzter_dialog.html.include?('class="farbwahl"') && letzter_dialog.html.include?('sketchup.datei(3)'), 'Platte: Farbrad und Dateiwahl für die Textur')
+check(letzter_dialog.html.include?('class="farbwahl"') && letzter_dialog.html.include?('sketchup.datei(3,'), 'Platte: Farbrad und Dateiwahl für die Textur')
 ok('Name' => 'Front Eiche 19mm', 'Verwendung' => 'Front', 'Farbe' => '#B08850', 'Maserung' => 'Ja',
    'Anleimer' => 'Anleimer Eiche', 'Format Länge' => '2070', 'Format Breite' => '2800')
 eiche = model.materials['Front Eiche 19mm']
