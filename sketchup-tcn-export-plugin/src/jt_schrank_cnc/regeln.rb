@@ -10,7 +10,8 @@
 # Rohrausschnitt im Oberschrank Dunstabzug;
 # Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
 # der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II;
-# beim Oberschrank mit Klappe die Bohrungen für Blum AVENTOS HK-top (Kraftspeicher und Frontbeschlag).
+# beim Oberschrank mit Klappe die Bohrungen für Blum AVENTOS HK-top (Kraftspeicher und Frontbeschlag);
+# an allen Türen die Blum-Topfbänder (Topf Ø35 in der Tür, Montageplatte in der Seite).
 # Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
 # Werkstückkoordinaten (Fräsmaß) umgerechnet.
@@ -72,6 +73,16 @@ module JTools
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
       DURCH = 1 # mm: Durchbruch = Stärke + 1 mm (wie Durchgangsbohrung Rückwand, von Jürgen bestätigt)
       FESTE_BOEDEN = %w[Boden Deckel Zwischenboden Strebe].freeze
+      # Blum-Topfband (Vorlagen T_re_L_Topfband.tcn / T_rR.tcn): Makro inge100 mit Topf Ø35 × 14,
+      # Schraublöchern Ø8 (45 / 9,5), Topfmitte 21,5 mm von der Anschlagkante (Fräsmaß).
+      # Höhen wie in den Vorlagen im 32er-Raster der Lochreihe: die Montageplatte sitzt mit zwei
+      # Systemschrauben Ø5 in der Seite, 37 mm ab Vorderkante (= Lochreihe 35 im Fräsmaß), 16 mm über
+      # und unter der Topfmitte. Oberstes und unterstes Band möglichst 80 mm, mindestens 60 mm vom
+      # Türrand (Vorlagen: 73/66 bzw. 90/94). Anzahl nach Türhöhe (Blum): bis 900 mm 2, bis 1600 3,
+      # bis 2000 4, bis 2400 5, darüber 6. Hochschrank Vorrat: Höhen aus Scharnier_1..6 am Schrank.
+      TOPFBAND = { d: 35, tiefe: 14, kante: 21.5, ziel: 80, min: 60,
+                   anzahl: [[900, 2], [1600, 3], [2000, 4], [2400, 5]], max_anzahl: 6,
+                   platte: { d: 5, tiefe: 12, abstand: 16 } }.freeze
 
       def self.anwenden(werkstuecke)
         werkstuecke.each { |w| w.ops.clear }
@@ -97,6 +108,7 @@ module JTools
           lemans(teile, meldungen) if lm
           schienen(teile, meldungen)
           aventos(teile, meldungen)
+          topfbaender(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
@@ -409,6 +421,168 @@ module JTools
           [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
             kl.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => oben - dz), nil, fc[:d], fc[:tiefe], nil, nil,
                              'Frontbeschlag AVENTOS HK-top')
+          end
+        end
+      end
+
+      def self.dc_name(inst)
+        [inst.name, Schraenke.definition(inst).get_attribute(DC_DICT, '_name'), inst.get_attribute(DC_DICT, '_name')].compact.join(' ')
+      end
+
+      # Drehpunkt der Tür (mm, Welt): Ursprung ihres Halters ("…Halter", "Scharnier…"), sonst ihr eigener
+      def self.drehpunkt(tuer)
+        pfad = tuer.teil.pfad
+        n = pfad.size >= 2 && dc_name(pfad[-2]) =~ /Halter|Scharnier/ ? pfad.size - 1 : pfad.size
+        Geometrie.punkt(Geometrie.welt(pfad.first(n)), [0, 0, 0]).map { |v| v * Geometrie::MM }
+      end
+
+      def self.anzahl_baender(hoehe)
+        (TOPFBAND[:anzahl].find { |h, _| hoehe <= h + TOL } || [nil, TOPFBAND[:max_anzahl]]).last
+      end
+
+      # Seite hinter der Anschlagkante (kante: Weltseite der Tür, z. B. :xmin)
+      def self.seite_am_anschlag(tuer, kante, teile)
+        wa = Geometrie.achse(kante)
+        da = tuer.dicke_achse
+        e = Geometrie.max?(kante) ? tuer.hi[wa] : tuer.lo[wa]
+        teile.find do |s|
+          next false unless s.rolle == 'Seite' && s.dicke_achse == wa && ueberlapp(s, tuer, 2) > 1.0
+          aussen = Geometrie.max?(kante) ? s.hi[wa] : s.lo[wa]
+          spalt = [(s.lo[da] - tuer.hi[da]).abs, (tuer.lo[da] - s.hi[da]).abs].min
+          (aussen - e).abs < 40 && spalt < 30
+        end
+      end
+
+      # Topfhöhen (Welt-z): im Raster der Lochreihe der Seite, sonst frei nach Türhöhe
+      def self.band_hoehen(tuer, seite, teile)
+        tb = TOPFBAND
+        lo, hi = tuer.lo_f(2) + tb[:min], tuer.hi_f(2) - tb[:min]
+        schrank = tuer.teil.schrank
+        if Schraenke.dc(schrank, 'scharnier_1')
+          seiten = teile.select { |w| w.rolle == 'Seite' }
+          z0 = (seiten.empty? ? teile : seiten).map { |w| w.lo[2] }.min
+          return (1..6).map { |i| Schraenke.dc(schrank, "scharnier_#{i}").to_f * Geometrie::MM }
+                       .select(&:positive?).map { |z| z0 + z }.select { |z| z.between?(lo - TOL, hi + TOL) }.sort
+        end
+        n = anzahl_baender(tuer.mass(2))
+        ziele = (0...n).map { |i| (tuer.lo_f(2) + tb[:ziel]) + (tuer.hi_f(2) - tuer.lo_f(2) - 2 * tb[:ziel]) * i / (n - 1) }
+        kand = []
+        if seite
+          l = LOCHREIHE
+          lagen = boeden_an(seite, teile).map { |f| [f.lo[2], f.hi[2]] }.uniq.sort
+          lagen.each_cons(2) do |(_, unten), (oben, _)|
+            z = unten + l[:ueber] + tb[:platte][:abstand]
+            while z + tb[:platte][:abstand] <= oben - l[:unter] + TOL
+              kand << z if z.between?(lo - TOL, hi + TOL)
+              z += l[:raster]
+            end
+          end
+        end
+        return ziele if kand.empty?
+        ziele.map do |ziel|
+          z = kand.min_by { |k| [(k - ziel).abs, k] }
+          kand.delete(z)
+        end.compact.sort
+      end
+
+      # Blum-Topfbänder an jeder Tür: Topf + Schraublöcher (inge100) auf der Innenseite an der
+      # Anschlagkante, Montageplatte in der Seite dahinter
+      def self.topfbaender(teile, meldungen)
+        tueren = teile.select { |w| w.rolle == 'Tuer' && w.dicke_achse != 2 }
+        tueren.each do |t|
+          schrank = t.teil.schrank
+          # Schlepptür (Hochschrank Kühlschrank): die Nischentür hängt am Gerät, nicht am Korpus
+          next if t.teil.jt('bereich') == 'N' && Schraenke.dc(schrank, 'tuertechnik').to_f.round == 1
+          kante, eck = anschlag(t, tueren, teile)
+          topfband(t, kante, eck, teile, meldungen)
+        end
+      end
+
+      # Anschlagkante der Tür (Weltseite, z. B. :xmin) und ob sie am Eckscharnier einer Falttür hängt
+      def self.anschlag(t, tueren, teile)
+        wa = (t.flaechen_achsen - [2]).first
+        kanten = %w[min max].map { |m| :"#{Geometrie::ACHSEN[wa]}#{m}" }
+        rand = ->(k) { Geometrie.max?(k) ? t.hi[wa] : t.lo[wa] }
+        # Falttür (zwei Türen über Eck): die längere hängt am Korpus, die kürzere am Eckscharnier
+        # an der längeren (wie beim Eck-Unterschrank L-Form)
+        andere = tueren.find { |o| !o.equal?(t) && o.dicke_achse != t.dicke_achse && ueberlapp(o, t, 2) > 1.0 }
+        if andere && tueren.size == 2
+          naeher = kanten.min_by { |k| (rand.(k) - (andere.lo[wa] + andere.hi[wa]) / 2.0).abs }
+          kurz = t.mass(wa) < andere.mass(andere.flaechen_achsen.find { |a| a != 2 })
+          return kurz ? [naeher, true] : [(kanten - [naeher]).first, false]
+        end
+        p = drehpunkt(t)
+        k = kanten.find { |x| (p[wa] - rand.(x)).abs < 5 } ||
+            kanten.find { |x| seite_am_anschlag(t, x, teile) } || kanten.first
+        [k, false]
+      end
+
+      # eck: kurze Tür einer Falttür, hängt am Eckscharnier an der langen Tür (nur Topf, dahinter keine Seite)
+      def self.topfband(t, kante, eck, teile, meldungen)
+        tb = TOPFBAND
+        da = t.dicke_achse
+        wa = Geometrie.achse(kante)
+        max = Geometrie.max?(kante)
+        s = seite_am_anschlag(t, kante, teile)
+        # Innenseite der Tür: zum Korpus hin
+        korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
+        korpus = teile if korpus.empty?
+        km = korpus.sum { |w| w.lo[da] + w.hi[da] } / (2.0 * korpus.size)
+        hinten = km > (t.lo[da] + t.hi[da]) / 2.0
+        tseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        tfl = hinten ? t.hi[da] : t.lo[da]
+        x = max ? t.hi_f(wa) - tb[:kante] : t.lo_f(wa) + tb[:kante]
+        zs = band_hoehen(t, s, teile)
+        if s
+          sseite, sfl = flaeche_innen(s, wa, !max)
+          # wie die Lochreihe: 35 im Fräsmaß (= 37 ab der fertigen Vorderkante mit 2-mm-Anleimer)
+          y = hinten ? s.lo_f(da) + LOCHREIHE[:rand] : s.hi_f(da) - LOCHREIHE[:rand]
+          zs = zs.map { |z| ins_raster(s, sseite, wa, da, y, z) }
+        end
+        zs.each do |z|
+          t.ops << Op.new(:topfband, tseite, punkt(da => tfl, wa => x, 2 => z), nil, tb[:d], tb[:tiefe], nil, nil,
+                          'Topfband', { kante: kante })
+        end
+        unless s
+          meldungen << "#{t.name}: keine Seite hinter dem Anschlag – Montageplatten der Topfbänder nicht gebohrt" unless eck
+          return
+        end
+        zs.each do |z|
+          [z - tb[:platte][:abstand], z + tb[:platte][:abstand]].each do |zz|
+            q = punkt(wa => sfl, da => y, 2 => zz)
+            next if loch_da?(s, sseite, q, tb[:platte][:d])
+            s.ops << Op.new(:bohrung, sseite, q, nil, tb[:platte][:d], tb[:platte][:tiefe], nil, nil, 'Montageplatte Topfband')
+          end
+        end
+      end
+
+      # Liegt die Montageplatte im Bereich einer Lochreihe, kommt sie in deren Raster
+      # (Hochschrank Vorrat: Scharnier im Fach mit Einlegeböden)
+      def self.ins_raster(s, seite, wa, da, y, z)
+        ab = TOPFBAND[:platte][:abstand]
+        r = s.ops.find do |o|
+          o.art == :reihe && o.seite == seite && (o.d - LOCHREIHE[:d]).abs < TOL && (o.p0[da] - y).abs < 0.5 &&
+            (o.p0[2] - o.p1[2]).abs > TOL && z.between?([o.p0[2], o.p1[2]].min + ab - TOL, [o.p0[2], o.p1[2]].max - ab + TOL)
+        end or return z
+        a, b = [r.p0[2], r.p1[2]].minmax
+        k = ((z - ab - a) / r.raster).round.clamp(0, [((b - a) / r.raster + 1e-6).floor - 1, 0].max)
+        a + k * r.raster + ab
+      end
+
+      # Gibt es an der Stelle schon ein Loch gleicher Größe (Lochreihe oder Einzelbohrung)?
+      def self.loch_da?(w, seite, q, d)
+        w.ops.any? do |o|
+          next false unless o.seite == seite && (o.d - d).abs < TOL
+          if o.art == :bohrung
+            (0..2).all? { |i| (o.p0[i] - q[i]).abs < 0.5 }
+          elsif o.art == :reihe && !o.verteilt
+            i = (0..2).find { |a| (o.p0[a] - o.p1[a]).abs > TOL } or next false
+            rest = (0..2).reject { |a| a == i }
+            next false unless rest.all? { |a| (o.p0[a] - q[a]).abs < 0.5 }
+            a, b = [o.p0[i], o.p1[i]].minmax
+            q[i].between?(a - 0.5, b + 0.5) && (((q[i] - a) / o.raster) - ((q[i] - a) / o.raster).round).abs * o.raster < 0.5
+          else
+            false
           end
         end
       end

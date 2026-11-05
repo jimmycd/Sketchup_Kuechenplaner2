@@ -965,6 +965,87 @@ check(bearbeitungen(od.text, 1).any? { |x| x.include?('W#89') && x.include?('#3=
 check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') && o[n].text.include?('#8522=5 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
 check(S::Frontfarbe.fronten(eo).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'Eck-Oberschrank: Frontfarbe findet beide Türen')
 
+# --- Blum-Topfbänder an allen Türen (inge100 wie T_re_L_Topfband.tcn, Montageplatte im Raster der Lochreihe) ---
+VORLAGE_TB = beispiel('T_re_L_Topfband.tcn').split(/\r?\n/).grep(/inge100/).first.sub(/WS=\d+ +/, 'WS ').sub(/ #8507=\S+/, '').tr(',', '.')
+def topfbaender(d) = bearbeitungen(d.text, 1).grep(/inge100/)
+def tb_x(d) = topfbaender(d).map { |z| v = z[/#8507=(\S+)/, 1]; v.start_with?('x-') ? d.lage.dl - v[2..].to_f : v.to_f }.sort
+def tb_export(titel)
+  m = Sketchup.active_model = Sketchup::Model.new
+  yield
+  dt, me = S::Export.erzeugen(m)
+  [dt.to_h { |x| [x.name, x] }, me, dt]
+end
+[['Oberschrank', -> { Oberschrank.erstellen({}) }, %w[OS1_TuerL OS1_TuerR]],
+ ['Oberschrank eine Tür', -> { Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 }) }, %w[OS1_Tuer]],
+ ['Hochschrank', -> { Hochschrank.erstellen({}) }, %w[HS1_O_Tuer]],
+ ['Spüle', -> { Spuelenschrank.erstellen({ 'Frontvariante' => 0.0 }) }, %w[USP1_TuerL USP1_TuerR]],
+ ['Insel', -> { UnterschrankInsel.erstellen({ 'Frontart' => 0.0 }) }, %w[USI1_TuerL USI1_TuerR]],
+ ['Dunstabzug', -> { OberschrankDunstabzug.erstellen({}) }, %w[OSD1_TuerL OSD1_TuerR]],
+ ['Eckschrank', -> { Eckschrank.erstellen({}) }, %w[UES1_Tuer]],
+ ['Eckschrank L-Form', -> { Eckschrank.erstellen({}, l_form: true) }, %w[UES1_TuerL UES1_TuerR]],
+ ['Eck-Oberschrank', -> { EckOberschrank.erstellen({}) }, %w[OES1_TuerL OES1_TuerR]],
+ ['Hochschrank Geräte', -> { HochschrankGeraete.erstellen({}) }, %w[HG1_O_Tuer]],
+ ['Hochschrank Kühlschrank', -> { HochschrankKuehlschrank.erstellen({}) }, %w[HK1_O_Tuer]]].each do |titel, bau, namen|
+  td, tm, = tb_export(titel, &bau)
+  alle = td.values.select { |x| x.ws.rolle == 'Tuer' }.map(&:name)
+  check((namen - alle).empty?, "#{titel}: Türen #{alle}")
+  namen.each do |n|
+    t = td[n]
+    z = topfbaender(t)
+    check(z.size == 2, "#{titel} #{n}: 2 Topfbänder (#{z.size})")
+    check(z.all? { |l| l.sub(/ #8507=\S+/, '').tr(',', '.') == VORLAGE_TB }, "#{titel} #{n}: wie die Vorlage (Ø35, Schraublöcher 45/9,5, y-21,5): #{z.first}")
+    x = tb_x(t)
+    check(x.first.between?(60, 140) && (t.lage.dl - x.last).between?(60, 140), "#{titel} #{n}: Bänder #{x} nahe Ober-/Unterkante (DL #{t.lage.dl})")
+    # (die kurze Falttür hängt an der langen Tür, nicht an der Lochreihe; Dunstabzug: Bänder in zwei
+    # Fächern, unten über der Strebe vor dem Abzug)
+    check(%w[UES1_TuerL OES1_TuerL].include?(n) || titel == 'Dunstabzug' || (((x.last - x.first) / 32.0) - ((x.last - x.first) / 32.0).round).abs < 1e-6,
+          "#{titel} #{n}: Abstand im 32er-Raster (#{x})")
+    check(t.lage.flaeche1 == t.ws.ops.find { |o| o.art == :topfband }.seite, "#{titel} #{n}: Topf auf Fläche 1")
+  end
+  check(tm.none? { |m| m.include?('Topfb') }, "#{titel}: keine Meldung zu Topfbändern: #{tm}")
+  # Montageplatte: Systemschrauben Ø5 16 mm über und unter jedem Band liegen in der Lochreihe der Seite
+  td.values.select { |x| x.ws.rolle == 'Seite' }.each do |s|
+    mp = s.ws.ops.select { |o| o.titel.include?('Montageplatte') }
+    check(mp.empty?, "#{titel} #{s.name}: Montageplatte in der vorhandenen Lochreihe, keine Extralöcher (#{mp.size})")
+  end
+end
+
+# Ober- und Unterschrank: Anschlag links bzw. rechts, Topf auf der Innenseite an der Anschlagkante
+td, = tb_export('OS') { Oberschrank.erstellen({}) }
+%w[OS1_TuerL OS1_TuerR].each do |n|
+  op = td[n].ws.ops.find { |o| o.art == :topfband }
+  check(op.daten[:kante] == (n.end_with?('L') ? :xmin : :xmax), "#{n}: Anschlag #{op.daten[:kante]}")
+  check(op.seite == :ymax, "#{n}: Topf auf der Innenseite (#{op.seite})")
+  w = td[n].ws
+  check((n.end_with?('L') ? op.p0[0] - w.lo_f(0) : w.hi_f(0) - op.p0[0]).round(3) == 21.5, "#{n}: Topfmitte 21,5 vom Rand")
+end
+# Bänder liegen in der Lochreihe: Schraublöcher der Montageplatte = Löcher der Reihe
+sl = td['OS1_SeiteL'].ws
+os_t = td['OS1_TuerL'].ws.ops.select { |o| o.art == :topfband }.map { |o| o.p0[2] }
+reihe = sl.ops.find { |o| o.titel == 'Lochreihe' && (o.p0[1] - (sl.lo_f(1) + 35)).abs < 0.5 && os_t.first.between?(*[o.p0[2], o.p1[2]].minmax) }
+check(reihe && os_t.all? { |z| [z - 16, z + 16].all? { |q| ((q - [reihe.p0[2], reihe.p1[2]].min) / 32.0).then { |f| (f - f.round).abs < 1e-6 } } },
+      "Oberschrank: Montageplatte in der Lochreihe (#{os_t})")
+
+# Falttür: lange Tür am Korpus, kurze am Eckscharnier (an der Kante zur langen Tür)
+td, = tb_export('L') { Eckschrank.erstellen({}, l_form: true) }
+lang, kurz = %w[UES1_TuerR UES1_TuerL].map { |n| td[n].ws }.sort_by { |w| -w.flaechen_achsen.reject { |a| a == 2 }.map { |a| w.mass(a) }.max }
+k = kurz.ops.find { |o| o.art == :topfband }.daten[:kante]
+a = S::Geometrie.achse(k)
+check((S::Geometrie.max?(k) ? kurz.hi[a] : kurz.lo[a]).between?(lang.lo[a] - 30, lang.hi[a] + 30), "Falttür: kurze Tür am Eckscharnier (#{k})")
+
+# Hochschrank Kühlschrank: Schlepptür ohne Topfbänder, Festtür mit 4 Bändern und Montageplatten (Nische ohne Lochreihe)
+td, = tb_export('HK') { HochschrankKuehlschrank.erstellen({}) }
+check(topfbaender(td['HK1_N_Tuer']).empty?, 'Schlepptür hängt am Gerät: keine Topfbänder')
+td, = tb_export('HK fest') { HochschrankKuehlschrank.erstellen({ 'Tuertechnik' => 2.0 }) }
+check(topfbaender(td['HK1_N_Tuer']).size == 4, "Festtür 1812 hoch: 4 Topfbänder (#{topfbaender(td['HK1_N_Tuer']).size})")
+mp = td.values.flat_map { |x| x.ws.ops.select { |o| o.titel.include?('Montageplatte') } }
+check(mp.size == 8 && mp.all? { |o| o.d == 5 && o.tiefe == 12 }, "Festtür: 8 Löcher Ø5 × 12 für die Montageplatten (#{mp.size})")
+
+# Hochschrank Vorrat: Bänder auf den Höhen Scharnier_1..6 (im Fach mit Lochreihe ins Raster gerückt)
+td, = tb_export('HV') { HochschrankVorrat.erstellen({}) }
+hv_t = td['HV1_U_Tuer'].ws.ops.select { |o| o.art == :topfband }.map { |o| o.p0[2].round(1) }.sort
+check(hv_t[0..2] == [229.5, 710.5, 951.0] && hv_t.size == 5, "Hochschrank Vorrat: Bänder #{hv_t}")
+
 if $fehler.zero?
   puts 'test_export: alles OK'
 else
