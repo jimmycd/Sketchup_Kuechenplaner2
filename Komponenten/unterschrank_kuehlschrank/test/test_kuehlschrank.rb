@@ -44,6 +44,7 @@ class Knoten
   def IF(c, a, b) = c ? a : b
   def AND(*a) = a.all?
   def OR(*a) = a.any?
+  def MIN(*a) = a.min
 
   def auswerten(f)
     ruby = f.gsub(/(?<![<>=!])=(?!=)/, '==').gsub(/(\w+)!(\w+)|\b([A-Za-z_]\w*)\b(?!\s*\()/) do
@@ -148,7 +149,7 @@ def pruefe(w, p, label)
   # Gerät: in der Nische, 2 mm Luft je Seite, vom Boden bis Oberkante Korpus, hinter der Front
   g = q.('Geraet')
   check(nahe(g[0], xn + 0.2) && nahe(g[1], xn + b - 0.2) && nahe(g[4], -so) && nahe(g[5], h) && nahe(g[2], mk) &&
-        nahe(g[3] - g[2], 55.0), "#{label}: Gerät #{g}")
+        nahe(g[3] - g[2], [55.0, t].min) && g[3] <= mk + t + EPS, "#{label}: Gerät #{g} (höchstens Korpustiefe)")
   teile_ohne_korpus = sichtbar.reject { |t2| t2[:name] == 'Korpus' }
   check(teile_ohne_korpus.combination(2).none? { |a, c| ueberlapp?(a[:q], c[:q]) }, "#{label}: Kollision")
 
@@ -241,6 +242,7 @@ lauf({}, 'Standard 60', { 'Breite' => 45.0, 'Art_Wange' => 3, 'Fronthoehe' => 72
 lauf({ 'Breite' => 45.0, 'Art_Wange' => 1.0 }, '45 mit Wange links', { 'Art_Wange' => 2, 'Sockelhoehe' => 15.0, 'Hoehe' => 72.0 })
 lauf({ 'Art_Wange' => 3.0, 'Fronthoehe' => 68.0, 'Sockelhoehe' => 12.0 }, 'beide Wangen, kürzere Front', { 'Art_Wange' => 0 })
 lauf({ 'Art_Wange' => 2.0, 'Tiefe' => 56.0 }, 'Wange rechts', { 'Breite' => 60.0, 'Tiefe' => 60.0 })
+lauf({ 'Tiefe' => 52.0 }, 'Tiefe 520 (Gerät nicht tiefer als Korpus)', { 'Tiefe' => 50.0 })
 lauf({ 'Geraet_Art' => 1.0, 'Breite' => 30.0, 'Art_Wange' => 3.0 }, 'Weinkühler 30', { 'Geraet_Art' => 0, 'Breite' => 60.0 })
 lauf({ 'Geraet_Art' => 2.0 }, 'unterbaufähig', { 'Geraet_Art' => 1, 'Art_Wange' => 1 })
 lauf({ 'Kuerzel' => 'UKS7' }, 'eigenes Kürzel', { 'Geraet_Art' => 2 }, 'UKS7')
