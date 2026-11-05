@@ -167,14 +167,15 @@ module Arbeitsplatte
     haupt = alt.definition
     platten = haupt.entities.to_a.grep(Sketchup::ComponentInstance)
     tags = platten.map(&:layer).compact.uniq
+    platten_defs = platten.map(&:definition).uniq # vor dem Löschen merken: gelöschte Instanzen darf man nicht mehr fragen
     kz = haupt.get_attribute(Ausgabe::JT_DICT, 'schrank')
     model.entities.erase_entities(alt)
     return unless haupt.instances.empty? # Kopie der Arbeitsplatte im Modell: Definition bleibt
     haupt.entities.erase_entities(platten)
     defs = model.definitions
     if defs.respond_to?(:remove)
-      platten.map(&:definition).uniq.each { |d| defs.remove(d) if d.instances.empty? }
-      defs.remove(haupt)
+      platten_defs.each { |d| defs.remove(d) if d.valid? && d.instances.empty? }
+      defs.remove(haupt) if haupt.valid?
     end
     lay = model.layers
     tags.each { |t| lay.remove(t) if t.name.start_with?("#{kz}_") } if lay.respond_to?(:remove)
