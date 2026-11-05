@@ -192,11 +192,12 @@ apl1 = A.erzeugen(zwei, optionen: {})
 zwei.selection.clear
 zwei.selection << b1
 apl2 = A.erzeugen(zwei, optionen: { art: :massivholz })
+namen = [apl1.name, apl2.name]
 zwei.selection.clear
 schrank(zwei, 'US3', 600, gerade(5600, 20))
 r = A.neu_berechnen(zwei)
 sk = ->(i) { JSON.parse(i.definition.get_attribute('JT_Arbeitsplatte', 'schraenke')) }
-check(apl1.name == 'APL1' && apl2.name == 'APL2' && r.map(&:name) == %w[APL1 APL2], "beide neu: #{r.map(&:name)}")
+check(namen == %w[APL1 APL2] && r.map(&:name) == %w[APL1 APL2], "beide neu: #{r.map(&:name)}")
 check(sk.(r[0]) == %w[US1] && sk.(r[1]).sort == %w[US2 US3], "Zuteilung: #{r.map { |i| sk.(i) }}")
 check(r[1].definition.entities.instances[0].material.name == 'Arbeitsplatte Massivholz', 'APL2 behält Massivholz')
 # markiert nur APL1: ein neuer, freier Schrank kommt zu APL1, APL2 bleibt unberührt
@@ -209,6 +210,26 @@ check(r2.size == 1 && sk.(r2[0]).sort == %w[US1 US4] && zwei.entities.instances.
 zwei.entities.erase_entities(zwei.entities.instances.select { |i| %w[US2 US3].include?(i.definition.name) })
 r3 = A.neu_berechnen(zwei)
 check(r3.map(&:name) == %w[APL1] && zwei.entities.instances.none? { |i| i.name == 'APL2' }, "APL2 ohne Schränke gelöscht: #{r3.map(&:name)}")
+
+# --- Eingesetzte Spüle (Gerät ragt über den Korpus): Schrank bleibt in seiner Zeile ---
+gm = Sketchup::Model.new
+Sketchup.active_model = gm
+box = ->(mn, mx) { Struct.new(:min, :max).new(mn, mx) }
+s1 = schrank(gm, 'US1', 600, gerade(0, 20))
+s2 = schrank(gm, 'USP1', 600, gerade(600, 20))
+kd = gm.definitions.add('Korpus')
+k = s2.definition.entities.add_instance(kd, gerade)
+k.define_singleton_method(:bounds) { box.([0, mm(-20), 0], [mm(600), mm(800), mm(720)]) }
+gd = gm.definitions.add('Spuele')
+gd.set_attribute('JT_Geraet', 'geraet', 'Spuele')
+g = s2.definition.entities.add_instance(gd, gerade)
+g.define_singleton_method(:bounds) { box.([mm(-50), mm(-80), mm(600)], [mm(650), mm(500), mm(1100)]) }
+b = s2.definition.bounds
+s2.definition.define_singleton_method(:bounds) { box.(b.min, [b.max[0], b.max[1], mm(1100)]) } # wie SketchUp: Gerät zählt mit
+el = A::Modell.elemente(s2)
+check(el.size == 1 && el[0][:z1] == 720.0 && el[0][:rechteck] == [600.0, 0.0, 1200.0, 820.0], "Korpus ohne Spüle: #{el}")
+eg = A::Modell.erkenne(gm)
+check(eg[:zeilen].size == 1 && eg[:zeilen][0][:elemente].map { |e| e[:kz] } == %w[US1 USP1], "eine Zeile mit Spüle: #{eg[:zeilen].map { |z| z[:elemente].map { |e| e[:kz] } }}")
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
