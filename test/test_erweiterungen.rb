@@ -51,7 +51,7 @@ SRC.each do |src|
   check(l.include?("SketchupExtension.new('Küchenplaner – ") && l.include?('Sketchup.register_extension'),
         "#{name}: registriert Erweiterung „Küchenplaner – …“")
   main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
-  s = main[/^# Gemeinsames Untermenü.*?^end unless defined\?\(Kuechenplaner\.schrank\)\n/m]
+  s = main[/^# Gemeinsames Untermenü.*?^end # gemeinsames Untermenü\n/m]
   check(s, "#{name}: gemeinsames Küchenplaner-Menü fehlt")
   snippet ||= s
   check(s == snippet, "#{name}: Küchenplaner-Menü nicht wortgleich")
@@ -87,7 +87,7 @@ check(erw.size == 1 && erw.first.is_a?(UI::Menu) && erw.first.titel == 'Küchenp
 kp = erw.first.eintraege
 titel = kp.map { |e| e.is_a?(Array) ? e.first : e.is_a?(UI::Menu) ? e.titel : e }
 soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum', :trenner, 'Arbeitsplatte erzeugen…', 'Arbeitsplatte neu berechnen', :trenner, 'TCN exportieren…', 'Stückliste…', 'Etiketten…', 'Zuschnittplan…', 'Materialien…', 'Frontfarbe und Griffe ändern…', 'Korpusmaterial ändern…', 'Schrank andocken…', 'Einstellungen…',
-        :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…']
+        :trenner, 'Plugins aktualisieren (GitHub)…', 'Plugins aus Ordner laden…', 'Küchenplaner neu laden']
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
@@ -171,6 +171,21 @@ SRC.each do |src|
   end
 end
 check(unterschraenke.size == 13, 'alle Unterschränke geprüft')
+
+# Neu laden ohne Neustart: in jeder Erweiterung die gleiche Datei aus gemeinsam/neuladen.rb, geladen von main.rb;
+# das gemeinsame Menü darf mehrfach laufen (kein „unless defined?“ mehr, sonst bliebe nach dem Neuladen der alte Stand)
+vorlage = File.read(File.join(haupt, 'gemeinsam/neuladen.rb'), encoding: 'UTF-8')
+SRC.each do |src|
+  kopie = File.join(src, 'kuechenplaner_gemeinsam/neuladen.rb')
+  check(File.exist?(kopie) && File.read(kopie, encoding: 'UTF-8') == vorlage, "#{kopie}: fehlt oder veraltet (./build_rbz.sh ausführen)")
+  name = File.basename(Dir[File.join(src, '*.rb')].first, '.rb')
+  main = File.read(File.join(src, name, 'main.rb'), encoding: 'UTF-8')
+  check(main.include?("require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen')"), "#{name}: lädt den Neulade-Wächter")
+  check(!main.include?('unless defined?(Kuechenplaner.schrank)'), "#{name}: gemeinsames Menü nicht neu ladbar")
+  # weitere Dateien der Erweiterung mit load, nicht require (sonst bleibt beim Neuladen der alte Code)
+  check(main.scan(/^\s*require(?:_relative)? .*(?:PATH|__dir__, ['"](?!\.\.)|File\.dirname\(__FILE__\))/).reject { |z| z.include?('kuechenplaner_gemeinsam') }.empty?,
+        "#{name}: eigene Dateien mit require statt load")
+end
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

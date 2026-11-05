@@ -22,6 +22,7 @@
 
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
 
 module Spuelenschrank
 
@@ -633,8 +634,10 @@ end
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke' | 'Blenden & Wangen', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
 # Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Darf mehrfach laufen (Neuladen ohne Neustart): die Methoden werden ersetzt, die
+# angelegten Menüs bleiben gemerkt.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze unless const_defined?(:GRUPPEN, false)
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
@@ -644,7 +647,7 @@ module Kuechenplaner
   # Ladereihenfolge der Erweiterungen abhängt.
   def self.untermenu(gruppe)
     @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
-    @untermenues.fetch(gruppe)
+    @untermenues[gruppe] ||= menu.add_submenu(gruppe) # neue Gruppe aus einem Update: unten anhängen
   end
 
   # Schrank in seiner Gruppe ins Menü eintragen und für die Symbolleiste merken
@@ -657,7 +660,7 @@ module Kuechenplaner
   def self.schraenke
     @schraenke ||= []
   end
-end unless defined?(Kuechenplaner.schrank)
+end # gemeinsames Untermenü
 
 unless file_loaded?(__FILE__)
   Kuechenplaner.schrank('Unterschränke', 'Spülenschrank…') { Spuelenschrank.dialog }

@@ -10,6 +10,7 @@
 # wenn alle Downloads stimmen, wird geschrieben.
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
 require 'json'
 require 'digest/sha1'
 require 'fileutils'
@@ -21,8 +22,10 @@ require 'uri'
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke' | 'Blenden & Wangen', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
 # Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Darf mehrfach laufen (Neuladen ohne Neustart): die Methoden werden ersetzt, die
+# angelegten Menüs bleiben gemerkt.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze unless const_defined?(:GRUPPEN, false)
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
@@ -32,7 +35,7 @@ module Kuechenplaner
   # Ladereihenfolge der Erweiterungen abhängt.
   def self.untermenu(gruppe)
     @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
-    @untermenues.fetch(gruppe)
+    @untermenues[gruppe] ||= menu.add_submenu(gruppe) # neue Gruppe aus einem Update: unten anhängen
   end
 
   # Schrank in seiner Gruppe ins Menü eintragen und für die Symbolleiste merken
@@ -45,7 +48,7 @@ module Kuechenplaner
   def self.schraenke
     @schraenke ||= []
   end
-end unless defined?(Kuechenplaner.schrank)
+end # gemeinsames Untermenü
 
 module KuechenplanerUpdate
   REPO  = 'jimmycd/sketchup_kuechenplaner2'.freeze
@@ -172,9 +175,11 @@ module KuechenplanerUpdate
       # diese Erweiterung selbst zuletzt, sie wird dabei ersetzt
       ordner = ordner.partition { |o| o != 'kuechenplaner_update' }.flatten
       geladen = []
-      # gemeinsames Eingabefenster zuerst (main.rb lädt es nur einmal je Sitzung)
-      gemeinsam = File.join(plugins_ordner, 'kuechenplaner_gemeinsam', 'eingabe.rb')
-      load gemeinsam if ziele.include?('kuechenplaner_gemeinsam/eingabe.rb') && File.file?(gemeinsam)
+      # gemeinsame Dateien zuerst (main.rb lädt sie mit require nur einmal je Sitzung)
+      ziele.select { |z| z.start_with?('kuechenplaner_gemeinsam/') && z.end_with?('.rb') }.sort.each do |z|
+        datei = File.join(plugins_ordner, z)
+        load datei if File.file?(datei)
+      end
       # neue Erweiterungen registrieren (lädt sie auch)
       lader_neu.sort.each do |l|
         load File.join(plugins_ordner, l)
@@ -187,6 +192,8 @@ module KuechenplanerUpdate
         load main
         geladen << o
       end
+      # Der Wächter (kuechenplaner_gemeinsam/neuladen.rb) soll das nicht noch einmal laden
+      Kuechenplaner::Neuladen.stand_merken if defined?(Kuechenplaner::Neuladen)
       geladen
     end
 
@@ -226,8 +233,8 @@ module KuechenplanerUpdate
 
     def fertig(geladen, quelle)
       melden("Aktualisiert (#{quelle}).\n\nNeu geladen: #{geladen.empty? ? '–' : geladen.join(', ')}\n\n" \
-             'Die Änderungen gelten ab sofort. Neue Menüeinträge stehen bis zum nächsten Start von SketchUp ' \
-             'am Ende des Küchenplaner-Menüs.')
+             'Die Änderungen gelten ab sofort, ohne Neustart. Neue Menüeinträge stehen bis zum nächsten Start ' \
+             'von SketchUp am Ende ihres Menüs.')
     end
 
     def melden(text)
@@ -248,6 +255,7 @@ module KuechenplanerUpdate
       menu.add_separator
       menu.add_item('Plugins aktualisieren (GitHub)…') { KuechenplanerUpdate.von_github }
       menu.add_item('Plugins aus Ordner laden…') { KuechenplanerUpdate.von_ordner }
+      menu.add_item('Küchenplaner neu laden') { Kuechenplaner::Neuladen.neu_laden }
     end
     file_loaded(__FILE__)
   end
