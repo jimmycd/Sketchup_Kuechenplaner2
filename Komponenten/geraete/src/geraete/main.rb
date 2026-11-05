@@ -639,6 +639,8 @@ module Geraete
   # Szenen: Planung (Blöcke), Kunde (Modelle), Zuschnitt (keine Geräte und kein Raum)
   SZENEN = { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.freeze
   RAUM_TAGS = 'Raum-'.freeze # Tags der Erweiterung Raum (Wände, Fenster, Türen, Boden)
+  TAG_BESCHRIFTUNG = 'Beschriftung'.freeze # Schrank-Kürzel (JTools::SchrankCnc::Beschriftung)
+  BESCHRIFTUNG = 'JT_Beschriftung'.freeze
 
   def self.szenen_anlegen(model = Sketchup.active_model)
     plan, render = tag(model, TAG_PLAN), tag(model, TAG_RENDER)
@@ -647,6 +649,8 @@ module Geraete
       plan.visible = p
       render.visible = r
       model.layers.to_a.each { |l| l.visible = name != 'Zuschnitt' if l.name.start_with?(RAUM_TAGS) }
+      # Schrank-Beschriftung (TCN-Export › Beschriftung): in Planung/Zuschnitt, wenn eingeschaltet, in Kunde nie
+      model.layers.to_a.each { |l| l.visible = name != 'Kunde' && model.get_attribute(BESCHRIFTUNG, 'an') == true if l.name == TAG_BESCHRIFTUNG }
       seite = model.pages[name]
       seite ? seite.update(32) : model.pages.add(name) # 32 = sichtbare Tags
     end

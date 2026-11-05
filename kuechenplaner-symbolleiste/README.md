@@ -8,6 +8,7 @@ Erweiterung `kuechenplaner_symbolleiste.rbz` (steckt auch in `Kuechenplaner_alle
 | ![](src/kuechenplaner_symbolleiste/icons/andocken.svg) | Schrank andocken | Startet das Andock-Werkzeug für den gewählten Schrank. |
 | ![](src/kuechenplaner_symbolleiste/icons/arbeitsplatte.svg) | Arbeitsplatte | Ist eine Arbeitsplatte gewählt, wird sie neu berechnet, sonst wird eine neue erzeugt. |
 | ![](src/kuechenplaner_symbolleiste/icons/raum.svg) | Raum | Auswahl der Raum-Befehle: Raum anlegen, Wände aus Linien, Fenster/Tür einsetzen, Öffnung bearbeiten, Raum bearbeiten (Erweiterung [`Komponenten/raum/`](../Komponenten/raum/)). |
+| ![](src/kuechenplaner_symbolleiste/icons/beschriftung.svg) | Schrank-Beschriftung | Schalter: zeigt bzw. verbirgt die Kürzel der Schränke (dieselben wie auf den Etiketten, z. B. US1, HS2) in den Szenen *Planung* und *Zuschnitt*; in *Kunde* nie. Eingeschaltet ist das Icon gedrückt. Die Texte folgen dem Modell (verschieben, neues Kürzel, neuer/gelöschter Schrank). Szenen anlegen: *Geräte › Szenen Planung/Kunde/Zuschnitt anlegen*. |
 | ![](src/kuechenplaner_symbolleiste/icons/frontfarbe.svg) | Frontfarbe und Griffe | Dialog für Frontfarbe und Griffe. |
 | ![](src/kuechenplaner_symbolleiste/icons/tcn.svg) | TCN exportieren | TCN-Export für TpaCAD. |
 | ![](src/kuechenplaner_symbolleiste/icons/stueckliste.svg) | Stückliste | Stückliste aller Teile (Fertig-, Fräs- und Rohmaß, Material, Kanten) als CSV/HTML. |

@@ -289,6 +289,7 @@ module Sketchup
     attr_writer :transformation
   end
   class Model
+    include Attr # Modell-Attribute (z. B. Schrank-Beschriftung ein/aus)
     attr_reader :werkzeug
     def select_tool(t) = @werkzeug = t
   end
@@ -308,6 +309,7 @@ end
 # Symbolleiste (kuechenplaner-symbolleiste): Befehle und Symbolleisten aufzeichnen
 MF_ENABLED = 0 unless defined?(MF_ENABLED)
 MF_GRAYED = 1 unless defined?(MF_GRAYED)
+MF_CHECKED = 8 unless defined?(MF_CHECKED)
 TB_NEVER_SHOWN = -1 unless defined?(TB_NEVER_SHOWN)
 module Sketchup
   def self.platform = :platform_win

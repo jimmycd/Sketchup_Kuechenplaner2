@@ -44,7 +44,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke andocken frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export stueckliste pdf etiketten guillotine zuschnitt].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke andocken frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export stueckliste pdf etiketten guillotine zuschnitt beschriftung].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -56,6 +56,7 @@ module JTools
         menu.add_item('Stückliste…') { Stueckliste.dialog }
         menu.add_item('Etiketten…') { Etiketten.dialog }
         menu.add_item('Zuschnittplan…') { Zuschnitt.dialog }
+        menu.add_item('Schrank-Beschriftung ein/aus') { Beschriftung.umschalten }
         menu.add_item('Materialien…') { Materialdialog.dialog }
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
@@ -64,5 +65,6 @@ module JTools
       end
       file_loaded(__FILE__)
     end
+    Beschriftung.app_beobachten # einmal je SketchUp-Sitzung, auch nach dem Neuladen
   end
 end

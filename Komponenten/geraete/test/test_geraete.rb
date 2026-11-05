@@ -202,6 +202,20 @@ end
 G.szenen_anlegen(model)
 check(model.pages.size == 3, 'Szenen werden beim zweiten Mal aktualisiert, nicht verdoppelt')
 
+# Schrank-Beschriftung (Tag Beschriftung): in Planung/Zuschnitt nur, wenn eingeschaltet; in Kunde nie
+class Sketchup::Model
+  def get_attribute(d, k, std = nil) = (@attr ||= {}).fetch([d, k], std)
+  def set_attribute(d, k, v) = (@attr ||= {})[[d, k]] = v
+end
+model.layers.add(G::TAG_BESCHRIFTUNG)
+[false, true].each do |an|
+  model.set_attribute(G::BESCHRIFTUNG, 'an', an)
+  G.szenen_anlegen(model)
+  { 'Planung' => an, 'Kunde' => false, 'Zuschnitt' => an }.each do |n, soll|
+    check(model.pages[n].sichtbar[G::TAG_BESCHRIFTUNG] == soll, "Beschriftung #{an ? 'ein' : 'aus'}: Szene #{n} zeigt sie #{soll ? '' : 'nicht'}")
+  end
+end
+
 # Ohne Schränke: Hinweis, nichts passiert
 leer = Sketchup::Model.new
 check(G.in_schraenke_setzen(leer) == 0 && $meldungen.last.include?('Keine Schränke'), 'Hinweis ohne Schränke')
