@@ -112,8 +112,10 @@ module Sketchup
 
   class Page
     attr_reader :layers
+    attr_accessor :camera, :shadow_info
     def initialize(versteckt) = @layers = versteckt
     def use_hidden_layers? = true
+    def use_shadow_info? = !@shadow_info.nil?
   end
 
   class Pages
@@ -266,6 +268,48 @@ Dir.mktmpdir do |tmp|
   d = JSON.parse(File.read(json))
   check(d['flaechen'] == 19 && !d['materialien'].key?('Raum_Boden'), "Szene Kunde: Boden versteckt, Gerätemodell sichtbar: #{d['flaechen']}")
   check(d['licht']['raumlicht'] == false, 'Raumlicht abschaltbar')
+  check(d['licht']['sonne'] == [0.4, -0.6, 0.7], 'Szene ohne eigene Schatten: Sonne des Modells')
+  kunde = model.pages['Kunde']
+  kunde.shadow_info = { 'SunDirection' => Geom::Vector3d.new(0.1, -0.2, 0.9) }
+  kunde.camera = Sketchup::Camera.new([0, -200, 50], [0, 0, 30], [0, 0, 1], 40.0)
+  d = JSON.parse(File.read(R.exportieren(model, ordner, bild, breite: 640, samples: 16)))
+  check(d['licht']['sonne'] == [0.1, -0.2, 0.9], 'Szene Kunde mit eigenen Schatten: deren Sonne')
+  check(d['kamera']['fov'] == 35.0, 'Kamera standardmäßig aus der Ansicht')
+  d = JSON.parse(File.read(R.exportieren(model, ordner, bild, breite: 640, samples: 16, kamera_kunde: true)))
+  check(d['kamera']['fov'] == 40.0 && d['kamera']['auge'] == [0.0, -5.08, 1.27], 'wahlweise Kamera der Szene Kunde')
+
+  # --- Fenster: Felder, Prüfung, Start -----------------------------------------------------------
+  aufruf = nil
+  gestartet = nil
+  Kuechenplaner::Eingabe.define_singleton_method(:abfragen) { |*a, **o, &b| aufruf = [a, o, b] }
+  R.define_singleton_method(:starten) { |*a| gestartet = a }
+  model.path = File.join(tmp, 'Mueller.skp')
+  R.dialog(model)
+  prompts, werte, listen, titel = aufruf[0]
+  check(titel == 'Küche rendern (Blender)' && aufruf[1][:ok] == 'Rendern', 'Fenster „Küche rendern“')
+  check(listen == ['', 'Entwurf|Normal|Hoch', 'aktuelle Ansicht|Szene Kunde', 'ja|nein', ':speichern', ':programm'], "Felder: #{listen}")
+  check(werte[4] == File.join(tmp, 'Mueller_Render.png'), "Bild neben dem Modell: #{werte[4]}")
+  begin
+    aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'ja', werte[4], File.join(tmp, 'gibtsnicht.exe')])
+    check(false, 'fehlendes Blender wird gemeldet')
+  rescue ArgumentError => e
+    check(e.message.include?('blender.org'), 'Blender fehlt: Hinweis auf blender.org')
+  end
+  exe = File.join(tmp, 'blender.exe')
+  File.write(exe, '')
+  aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'nein', File.join(tmp, 'bild'), exe])
+  check(gestartet == [model, exe, File.join(tmp, 'bild.png'), 1920, 512, false, true], "Start mit den Eingaben: #{gestartet.inspect}")
+  check(Sketchup.read_default('JT_Rendern', 'blender') == exe, 'Blender-Pfad gemerkt')
+  begin
+    aufruf[2].call(['50', 'Hoch', 'Szene Kunde', 'ja', 'x.png', exe])
+    check(false, 'zu kleine Breite')
+  rescue ArgumentError
+    check(true, 'zu kleine Breite wird abgelehnt')
+  end
+  v = $VERBOSE
+  $VERBOSE = nil
+  load File.join(__dir__, '../src/jt_schrank_cnc/rendern.rb') # starten wiederherstellen
+  $VERBOSE = v
 
   # --- leeres Modell ---------------------------------------------------------------------------
   leer = Sketchup::Model.new
@@ -280,7 +324,7 @@ Dir.mktmpdir do |tmp|
   # --- echter Render mit Blender (bpy), falls vorhanden -----------------------------------------
   py = ENV['BPY_PYTHON'] || 'python3'
   if system(py, '-c', 'import bpy', out: File::NULL, err: File::NULL)
-    model.pages.add('Kunde', Sketchup::Page.new([tag_plan])) # mit Boden
+    model.pages.add('Kunde', Sketchup::Page.new([tag_plan])) # mit Boden, Kamera der Ansicht
     json = R.exportieren(model, ordner, bild, breite: 320, samples: 8)
     log = File.join(ordner, 'blender.log')
     ok = system(py, R.skript, '--', json, out: log, err: %i[child out])

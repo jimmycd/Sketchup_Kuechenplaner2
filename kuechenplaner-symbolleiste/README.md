@@ -14,6 +14,7 @@ Erweiterung `kuechenplaner_symbolleiste.rbz` (steckt auch in `Kuechenplaner_alle
 | ![](src/kuechenplaner_symbolleiste/icons/stueckliste.svg) | Stückliste | Stückliste aller Teile (Fertig-, Fräs- und Rohmaß, Material, Kanten) als CSV/HTML. |
 | ![](src/kuechenplaner_symbolleiste/icons/etiketten.svg) | Etiketten | Etiketten für die Teile drucken, Bogen A4 oder Endlos. |
 | ![](src/kuechenplaner_symbolleiste/icons/zuschnitt.svg) | Zuschnittplan | Druckbarer Zuschnittplan je Platte für die Formatsäge. |
+| ![](src/kuechenplaner_symbolleiste/icons/rendern.svg) | Rendern | Fotorealistisches Bild der Küche mit Blender (Cycles), Sichtbarkeit und Sonne wie Szene *Kunde*, Kamera wie Ansicht; siehe [Rendern](../sketchup-tcn-export-plugin/README.md#rendern-blender). |
 | ![](src/kuechenplaner_symbolleiste/icons/materialien.svg) | Materialien | Material-Konfigurator wie im Menü *Materialien…*: Platten und Anleimer anlegen, bearbeiten, löschen; Maserrichtung. |
 | ![](src/kuechenplaner_symbolleiste/icons/einstellungen.svg) | Einstellungen | Generelle Einstellungen wie im Menü *Einstellungen…*: oben Küche (Sockelhöhe, Wandabstand, Abstand Arbeitsplatte–Oberschrank), unten CNC (Übermaß, Zuschnitt). |
 

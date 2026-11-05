@@ -100,7 +100,7 @@ module JTools
       # --- Sichtbarkeit wie in der Szene Kunde --------------------------------------
       # Liefert ein Lambda tag -> sichtbar?
       def sichtbarkeit(model)
-        seite = model.respond_to?(:pages) && model.pages ? model.pages[SZENE] : nil
+        seite = seite_kunde(model)
         versteckt = nil
         if seite && (!seite.respond_to?(:use_hidden_layers?) || seite.use_hidden_layers?)
           versteckt = seite.layers.to_a.map(&:name) if seite.respond_to?(:layers)
@@ -115,7 +115,7 @@ module JTools
       end
 
       def szene_kunde?(model)
-        model.respond_to?(:pages) && model.pages && model.pages[SZENE] ? true : false
+        seite_kunde(model) ? true : false
       end
 
       # --- Export ---------------------------------------------------------------------
@@ -185,7 +185,7 @@ module JTools
           mat = eigenes || erbe
           name = mtl_name(mat)
           tex = mat && mat.respond_to?(:texture) ? mat.texture : nil
-          mesh = f.mesh(tex ? 5 : 0) # 1 Punkte + 4 UV vorne
+          mesh = f.mesh(tex ? 1 : 0) # 0 nur Punkte, 1 mit UVQ vorne
           n = mesh.count_points
           gespiegelt = Rendern.gespiegelt?(tr)
           (1..n).each do |i|
@@ -265,9 +265,13 @@ module JTools
         (kreuz[0] * z[0] + kreuz[1] * z[1] + kreuz[2] * z[2]) < 0
       end
 
-      # Kamera der Ansicht in Metern; fov in Grad
-      def kamera(view)
-        c = view.camera
+      def seite_kunde(model)
+        model.respond_to?(:pages) && model.pages ? model.pages[SZENE] : nil
+      end
+
+      # Kamera in Metern; fov in Grad. Aus der Ansicht oder (kamera_kunde) aus der Szene Kunde
+      def kamera(view, seite = nil)
+        c = seite && seite.respond_to?(:camera) && seite.camera ? seite.camera : view.camera
         perspektive = c.perspective?
         {
           'auge' => c.eye.to_a.map { |v| (v.to_f * M).round(5) },
@@ -280,9 +284,15 @@ module JTools
         }
       end
 
-      # Richtung zur Sonne aus den Schatten-Einstellungen
+      # Richtung zur Sonne: Schatten-Einstellungen der Szene Kunde (falls sie eigene hat),
+      # sonst die des Modells
       def sonne(model)
-        si = model.shadow_info
+        seite = seite_kunde(model)
+        si = if seite && seite.respond_to?(:shadow_info) && (!seite.respond_to?(:use_shadow_info?) || seite.use_shadow_info?)
+               seite.shadow_info
+             else
+               model.shadow_info
+             end
         d = si['SunDirection']
         d ? d.to_a.map { |v| v.to_f.round(5) } : nil
       rescue StandardError
@@ -298,7 +308,7 @@ module JTools
       end
 
       # Exportiert Modell und Szene; liefert den Pfad der szene.json
-      def exportieren(model, ordner, bild, breite:, samples:, raumlicht: true, blend: true)
+      def exportieren(model, ordner, bild, breite:, samples:, raumlicht: true, blend: true, kamera_kunde: false)
         FileUtils.mkdir_p(ordner)
         s = Sammler.new(sichtbarkeit(model))
         s.entities(model.entities, Geom::Transformation.new, nil)
@@ -310,7 +320,7 @@ module JTools
           'obj' => 'szene.obj',
           'blend' => blend ? 'szene.blend' : nil,
           'bild' => { 'datei' => bild, 'breite' => breite, 'hoehe' => bildhoehe(view, breite), 'samples' => samples },
-          'kamera' => kamera(view),
+          'kamera' => kamera(view, kamera_kunde ? seite_kunde(model) : nil),
           'licht' => { 'sonne' => sonne(model), 'raumlicht' => raumlicht },
           'box' => s.box.map { |p| p.map { |v| v.round(4) } },
           'materialien' => s.materialien.transform_values do |m|
@@ -372,35 +382,38 @@ module JTools
       # --- Fenster -----------------------------------------------------------------------
       def dialog(model = Sketchup.active_model)
         blender = blender_suchen
-        prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Raumlicht von oben',
+        kunde = szene_kunde?(model)
+        prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Kamera', 'Bild: Raumlicht von oben',
                    'Bild: Bilddatei (PNG)', 'Blender: Programm (blender.exe)']
-        werte = [vorgabe('breite', '1920').to_s, vorgabe('qualitaet', 'Normal').to_s,
+        kameras = kunde ? 'aktuelle Ansicht|Szene Kunde' : 'aktuelle Ansicht'
+        werte = [vorgabe('breite', '1920').to_s, vorgabe('qualitaet', 'Normal').to_s, 'aktuelle Ansicht',
                  vorgabe('raumlicht', 'ja').to_s, standard_bild(model), blender]
-        listen = ['', QUALITAET.keys.join('|'), 'ja|nein', ':speichern', ':programm']
-        untertitel = szene_kunde?(model) ? 'Sichtbarkeit wie Szene Kunde, Kamera wie Ansicht' : 'Kamera wie Ansicht (Szene Kunde fehlt)'
+        listen = ['', QUALITAET.keys.join('|'), kameras, 'ja|nein', ':speichern', ':programm']
+        untertitel = kunde ? 'Sichtbarkeit und Sonne wie Szene Kunde' : 'Szene Kunde fehlt: aktuelle Sichtbarkeit'
         Kuechenplaner::Eingabe.abfragen(prompts, werte, listen, 'Küche rendern (Blender)',
                                         untertitel: untertitel, ok: 'Rendern') do |neu|
           breite = neu[0].to_s.strip.to_i
           raise ArgumentError, 'Breite bitte zwischen 200 und 8000 Pixel.' unless breite.between?(200, 8000)
-          bild = neu[3].to_s.strip.tr('\\', '/')
+          bild = neu[4].to_s.strip.tr('\\', '/')
           raise ArgumentError, 'Bitte eine Bilddatei angeben.' if bild.empty?
           bild += '.png' unless bild =~ /\.png\z/i
-          exe = neu[4].to_s.strip.tr('\\', '/')
+          exe = neu[5].to_s.strip.tr('\\', '/')
           unless File.file?(exe)
             raise ArgumentError, 'Blender nicht gefunden. Bitte Blender installieren (kostenlos, blender.org) ' \
                                  'und hier blender.exe wählen.'
           end
           merken('breite', breite.to_s)
           merken('qualitaet', neu[1])
-          merken('raumlicht', neu[2])
+          merken('raumlicht', neu[3])
           merken('blender', exe)
-          starten(model, exe, bild, breite, QUALITAET.fetch(neu[1], 128), neu[2] != 'nein')
+          starten(model, exe, bild, breite, QUALITAET.fetch(neu[1], 128), neu[3] != 'nein', neu[2] == 'Szene Kunde')
         end
       end
 
-      def starten(model, exe, bild, breite, samples, raumlicht)
+      def starten(model, exe, bild, breite, samples, raumlicht, kamera_kunde = false)
         ordner = bild.sub(/\.png\z/i, '_blender')
-        json = exportieren(model, ordner, bild, breite: breite, samples: samples, raumlicht: raumlicht)
+        json = exportieren(model, ordner, bild, breite: breite, samples: samples, raumlicht: raumlicht,
+                                                kamera_kunde: kamera_kunde)
         File.delete(bild) if File.exist?(bild)
         log = File.join(ordner, 'blender.log')
         pid = Process.spawn(*befehl(exe, json), out: log, err: %i[child out])
