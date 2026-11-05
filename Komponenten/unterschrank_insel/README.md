@@ -24,6 +24,8 @@ Unterschrank für eine Kücheninsel. Weil die Rückseite einer Insel zu sehen is
 
 Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `Materialstaerke_Verkleidung` 19 mm (auch Wangen), `Staerke_Theke` 38 mm, `Sockelhoehe` 100 mm, `BreiteStreben` 100 mm, `Spaltbreite` 2 mm, `Rueckversatz_Einlegeboden` 10 mm, LEGRABOX wie beim Unterschrank mit Schubladen.
 
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
+
 Mit *Interagieren* öffnen sich Türen und Schubladen.
 
 ## Aufbau

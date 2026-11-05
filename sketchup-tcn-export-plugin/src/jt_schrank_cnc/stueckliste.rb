@@ -79,11 +79,15 @@ module JTools
         zs.each_with_index { |z, i| z.nr = i + 1 }
       end
 
+      # Ergebnis: [Zeilen, Meldungen, Beschläge (Beschlaege::Posten)]
       def erzeugen(model, auswahl: nil)
-        dateien, = Export.erzeugen(model, auswahl: auswahl)
+        ws = []
+        dateien, export_meldungen = Export.erzeugen(model, auswahl: auswahl, alle_ws: ws)
         zs = zeilen(dateien)
         meldungen = zs.select { |z| z.material.empty? }.map { |z| "#{z.tag}: kein Material" }
-        [zs, meldungen]
+        # Höhen-/Tiefenprobleme der Schubladen gehören auch auf die Stückliste
+        meldungen += export_meldungen.select { |m| m.include?('LEGRABOX') }
+        [zs, meldungen, Beschlaege.liste(ws)]
       end
 
       # Gruppen je [Material, Stärke] mit Summen
@@ -159,7 +163,7 @@ module JTools
       # Stückliste als PDF (Pdf-Objekt): Kopf mit Erklärung, Legende und Hinweisen, dann je
       # Material und Stärke eine Tabelle mit Summenzeile; Tabellen laufen über mehrere Seiten
       # (Spaltenköpfe auf jeder Seite wiederholt), Fuß mit Titel und „Seite x von n“.
-      def pdf(zs, titel: 'Stückliste', meldungen: [])
+      def pdf(zs, titel: 'Stückliste', meldungen: [], beschlaege: [])
         kz = kuerzel(zs)
         doc = Pdf.new(titel: titel)
         doc.seite(*SEITE)
@@ -200,6 +204,7 @@ module JTools
           doc.text(RAND, y + 3.6, summe_text(g, kz), groesse: 2.8, farbe: [0.2, 0.2, 0.2], max: 277)
           y += 9
         end
+        beschlagseite(doc, beschlaege) unless beschlaege.empty?
         n = doc.seiten.size
         n.times do |i|
           doc.auf_seite(i) do
@@ -210,14 +215,46 @@ module JTools
         doc
       end
 
-      # pfad = PDF-Datei; die CSV kommt mit gleichem Namen daneben. Gibt [pdf, csv] zurück.
-      def schreiben(pfad, zs, meldungen = [], titel: nil)
+      BESCHLAG_SPALTEN = [['Pos', 10, :rechts], ['Anzahl', 16, :rechts], ['Einheit', 14, :links], ['Beschlag', 92, :links],
+                          ['Größe / Hinweis', 70, :links], ['Schränke', 75, :links]].freeze
+
+      # Eigene Seite(n) mit der Beschlagliste: je Gruppe (Schubladen, Schrauben, Türen, Klappen) eine Tabelle
+      def beschlagseite(doc, posten)
+        doc.seite(*SEITE)
+        doc.text(RAND, 16, 'Beschläge', groesse: 6, fett: true, max: 277)
+        ['Schubladen: Blum LEGRABOX free nach Montageanleitung MD-015/4 – Zarge C (177 mm), wenn die Schublade hoch genug ist, ' \
+         'sonst M (90,5 mm); Nennlänge NL wie die Bohrungen in den Seiten.',
+         'Türen: Blum-Topfbänder Ø35 mit Montageplatte. Alle Anzahlen aus den Bohrbildern der TCN-Dateien; Artikelnummern nach Blum-Katalog.']
+          .each_with_index { |t, i| doc.text(RAND, 23 + 4.2 * i, t, groesse: 2.8, max: 277) }
+        y = 31.0
+        pos = 0
+        posten.group_by(&:gruppe).each do |gruppe, ps|
+          zeilen = ps.map { |p| [pos += 1, p.anzahl, p.einheit, p.beschlag, p.hinweis, p.schraenke.join(', ')] }
+          erste = true
+          until zeilen.empty? && !erste
+            if y + 6 + 2 * ZH > Y_MAX
+              doc.seite(*SEITE)
+              y = 14.0
+            end
+            doc.text(RAND, y + 4, erste ? gruppe : "#{gruppe} (Fortsetzung)", groesse: 3.8, fett: true, max: 277)
+            y, n = doc.tabelle(RAND, y + 6, BESCHLAG_SPALTEN, zeilen, Y_MAX, groesse: GR, zeilenhoehe: ZH, fett: [1])
+            zeilen = zeilen.drop(n)
+            erste = false
+          end
+          y += 5
+        end
+      end
+
+      # pfad = PDF-Datei; die CSV kommt mit gleichem Namen daneben, die Beschläge als <Name>_Beschlaege.csv.
+      # Gibt [pdf, csv] zurück.
+      def schreiben(pfad, zs, meldungen = [], titel: nil, beschlaege: [])
         pfad = pfad.to_s
         pfad += '.pdf' unless pfad.downcase.end_with?('.pdf')
         csv_pfad = pfad.sub(/\.pdf\z/i, '.csv')
         titel ||= "Stückliste #{File.basename(pfad.tr('\\', '/'), '.*').sub(/\AStueckliste_?/i, '')}".strip
-        pdf(zs, titel: titel, meldungen: meldungen).schreiben(pfad)
+        pdf(zs, titel: titel, meldungen: meldungen, beschlaege: beschlaege).schreiben(pfad)
         Tcn.write(csv_pfad, csv(zs))
+        Tcn.write(pfad.sub(/\.pdf\z/i, '_Beschlaege.csv'), Beschlaege.csv(beschlaege)) unless beschlaege.empty?
         [pfad, csv_pfad]
       end
 
@@ -235,7 +272,7 @@ module JTools
 
       def dialog(model = Sketchup.active_model)
         auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
-        zs, meldungen = erzeugen(model, auswahl: auswahl)
+        zs, meldungen, beschlaege = erzeugen(model, auswahl: auswahl)
         if zs.empty?
           UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
           return
@@ -244,13 +281,14 @@ module JTools
         return unless pfad
         t = model.respond_to?(:title) && !model.title.to_s.strip.empty? ? "Stückliste #{model.title.to_s.strip}" : nil
         begin
-          p, c = schreiben(pfad, zs, meldungen, titel: t)
+          p, c = schreiben(pfad, zs, meldungen, titel: t, beschlaege: beschlaege)
         rescue SystemCallError => e
           UI.messagebox("Stückliste konnte nicht gespeichert werden (ist die PDF noch geöffnet?):\n#{e.message}")
           return
         end
         UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-        text = "Stückliste mit #{zs.sum(&:anzahl)} Teilen#{auswahl ? ' (nur Auswahl)' : ''}:\n#{p}\n#{c} (für Excel)" \
+        text = "Stückliste mit #{zs.sum(&:anzahl)} Teilen#{auswahl ? ' (nur Auswahl)' : ''}" \
+               "#{beschlaege.empty? ? '' : ' und Beschlagliste (letzte Seite)'}:\n#{p}\n#{c} (für Excel)" \
                "\n\nDrucken mit „Tatsächliche Größe“ oder „An Seite anpassen“ (A4 quer)."
         text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
         UI.messagebox(text)

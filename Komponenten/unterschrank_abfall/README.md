@@ -2,6 +2,8 @@
 
 Unterschrank mit einem Müllauszug: Die Front fährt mit einem Blum-LEGRABOX-Kasten heraus, darin stehen 1–4 Abfallbehälter. Wahlweise sitzt darüber eine Schublade.
 
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
+
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_abfall.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
 2. *Erweiterungen → Küchenplaner → Unterschränke → Unterschrank Mülltrennung…* (oder Symbolleiste *Schrank einfügen*) fragt Breite, Höhe und Tiefe ab (Vorschlag 600 × 700 × 520 mm) und baut den Schrank. Danach dockt er wie die anderen Schränke an.

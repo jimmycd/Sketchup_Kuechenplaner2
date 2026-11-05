@@ -170,8 +170,14 @@ def pruefe(w, p, label)
       f, kb, kr = q.("#{g}/Front"), q.("#{g}/KastenBoden"), q.("#{g}/KastenRueckwand")
       check(nahe(kb[3] - kb[2], nl - 1) && nahe(kb[1] - kb[0], b - 2 * mk - 3.5), "#{label}: #{g} Kastenboden #{kb}")
       rn = (kb[4] - p['Lochraster_Start']) / p['Lochraster']
-      check(kb[4] >= f[4] + 3 - EPS && (rn - rn.round).abs < 1e-6 && kb[4] < f[4] + 3 + 3.2, "#{label}: #{g} Kasten im Lochraster #{kb[4]}")
-      check(kr[5] <= f[5] - 3 + EPS && nahe(kr[4], kb[5]), "#{label}: #{g} Kastenrückwand unter der Frontoberkante")
+      # mindestens 30 mm über der Front-Unterkante und Schiene mind. 38 mm über dem Korpusboden (LEGRABOX)
+      min_ab = [f[4] + 3, mk + 3.8].max
+      check(kb[4] >= min_ab - EPS && (rn - rn.round).abs < 1e-6 && kb[4] < min_ab + 3.2, "#{label}: #{g} Kasten im Lochraster #{kb[4]}")
+      # Zarge C (Rückwand 148) oder M (62): oberste Schublade 30 mm unter der Frontoberkante, sonst bis an die Front
+      ao = i == 1 ? 3.0 : 0.0
+      zarge = kr[5] - kr[4] > 14.0 ? 17.7 : 9.05
+      check((kb[4] + zarge <= f[5] - ao + EPS || f[5] - ao - kb[4] < 9.05) && nahe(kr[4], kb[5]),
+            "#{label}: #{g} Kasten unter der Frontoberkante")
     end
     check(sichtbar.none? { |x| x[:name].start_with?('Einlegeboden') }, "#{label}: keine Einlegeböden bei Schubladen")
   else

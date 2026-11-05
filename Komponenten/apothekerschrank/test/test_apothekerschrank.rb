@@ -110,7 +110,7 @@ def pruefe(w, p, label)
   mk, sp = 1.9, 0.2
   nf = p['Anz_Fronten'].to_i
   ht = p['H_Teilung']
-  au, ao = p['Kasten_Abstand_unten'], p['Kasten_Abstand_oben']
+  au, ao = [p['Kasten_Abstand_unten'], 3.8].max, p['Kasten_Abstand_oben'] # LEGRABOX: Schiene mind. 38 über dem Boden
   alle = teile(w)
   sichtbar = alle.reject { |t2| t2[:hidden] }
 
@@ -184,7 +184,12 @@ def pruefe(w, p, label)
     end
     # Rückwand so hoch wie möglich, höchstens Hoehe_Kastenrueckwand
     check(sichtbar.select { |t2| t2[:name] == 'KastenRueckwand' && t2[:bereich].start_with?(f) }
-                  .all? { |x| (x[:q][5] - x[:q][4] - [p['Hoehe_Kastenrueckwand'], abst.first - ao - (f == 'A' && nf == 1 && p['Mittelboden'].to_i == 1 ? au + mk : 0) - mbd].min).abs < EPS },
+                  .all? do |x|
+                    # Zarge C (Rückwand 148), wenn der Kasten 177 mm hoch sein kann, sonst M (Rückwand 62)
+                    kh = abst.first - ao - (f == 'A' && nf == 1 && p['Mittelboden'].to_i == 1 ? au + mk : 0)
+                    soll = [p['Hoehe_Kastenrueckwand'], kh - mbd, kh >= 17.7 - 1e-4 ? p['Hoehe_Kastenrueckwand'] : 6.2].min
+                    (x[:q][5] - x[:q][4] - [soll, 1.0].max).abs < EPS
+                  end,
           "#{label}: Front #{f}: Höhe Kastenrückwand")
   end
   check(sichtbar.count { |t2| t2[:name] == 'KastenBoden' } == %w[A B].first(nf).sum { |f| p["Anz_Kaesten_#{f}"].to_i },

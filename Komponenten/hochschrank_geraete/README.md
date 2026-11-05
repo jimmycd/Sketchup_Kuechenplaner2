@@ -35,6 +35,7 @@ Die Reihenfolge ist egal: Beide Nischen können jedes Gerät aufnehmen. Die meis
 * Drei feste Zwischenböden: unter Nische 1 (`ZwischenbodenUnten`, Oberkante = Höhe unten), unter Nische 2 (`ZwischenbodenMitte`) und über der obersten Nische (`ZwischenbodenOben`). Bei Nische 2 = *keine* entfällt der mittlere Boden.
 * Die Gerätefronten decken die Nischen ab; die oberste Schubladenfront endet 2 mm unter Nische 1, die Tür beginnt an der Oberkante des oberen Zwischenbodens.
 * Schubladen wie beim Hochschrank: **Blum LEGRABOX free**, aus Holz nur Boden (LW − 35 × NL − 10, 16 mm) und Holzrückwand (LW − 38 × 148). Der Kasten sitzt im Lochraster der Seite (35 mm, dann alle 32 mm).
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
 * Einlegeböden oben 10 mm von vorne zurückgesetzt, gleichmäßig verteilt.
 * Material: alle Platten „Melamin weiss“ (*Plattenwerkstoff*).
 

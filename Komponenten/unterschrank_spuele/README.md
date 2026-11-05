@@ -21,6 +21,8 @@ Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf
 
 Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `Nuttiefe` 9 mm, `BreiteStreben` 100 mm, `Spaltbreite` 2 mm und die LEGRABOX-Werte wie im Unterschrank mit Schubladen (`Materialstaerke_Kastenboden`, `Hoehe_Kastenrueckwand`, `Lochraster_Start`, `Lochraster`, `Kasten_Abstand_unten`, `Hoehenoffset_Schiene`).
 
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
+
 Mit *Interagieren* öffnen sich die Türen bzw. fährt der Auszug heraus.
 
 ## Aufbau

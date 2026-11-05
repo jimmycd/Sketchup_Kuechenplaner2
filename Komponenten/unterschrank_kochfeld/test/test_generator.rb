@@ -135,8 +135,16 @@ def pruefe(wurzel, anz, h, b, t, label)
     unten = z0 + kb.wert('z')
     loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
     check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster")
-    check(kz1 <= z0 + f.wert('lenz') - wurzel.wert('Kasten_Abstand_oben') + EPS || kr.wert('lenz') <= 2.0 + EPS,
+    # LEGRABOX free: Zarge C (Rückwand 148) oder M (Rückwand 62); oberste Schublade Kasten_Abstand_oben
+    # unter der Frontoberkante, darunter bis an die Frontoberkante
+    ao = i == 1 ? wurzel.wert('Kasten_Abstand_oben') : 0.0
+    kc = f.wert('lenz') - kb.wert('z') - ao
+    zarge_c = kc >= 17.7 - 1e-4
+    soll_h = zarge_c ? wurzel.wert('Hoehe_Kastenrueckwand') : [6.2, [kc - wurzel.wert('Kasten_Abstand_oben') + ao, 2.0].max + wurzel.wert('Kasten_Abstand_oben') - ao - mb].min
+    check((kr.wert('lenz') - soll_h).abs < EPS, "#{label}: Rückwandhöhe #{kr.wert('lenz')} statt #{soll_h} S#{i}")
+    check(z0 + kb.wert('z') + (zarge_c ? 17.7 : 9.05) <= z0 + f.wert('lenz') - ao + EPS || kc < 9.05 - EPS,
           "#{label}: Kasten S#{i} Abstand oben")
+    check(unten + wurzel.wert('Hoehenoffset_Schiene') >= mk + 3.8 - EPS, "#{label}: Schiene S#{i} mind. 38 mm über dem Boden")
   end
   fronten.sort!
   check(fronten.first[0].abs < EPS, "#{label}: unterste Front bei 0 (#{fronten.first[0]})")
