@@ -98,5 +98,37 @@ check(!d2.visible?, 'neues Fenster schließt das vorige')
 d3.callbacks['abbrechen'].call(nil)
 check(!d3.visible? && !gerufen, 'Abbrechen schließt ohne Block')
 
+# Farbwähler und Dateiauswahl
+module UI
+  class << self
+    attr_accessor :openpanel_antwort
+    def openpanel(*) = openpanel_antwort
+  end
+end
+farbe = nil
+d4 = E.abfragen(['Name', 'Farbe', 'Texturbild (leer = nur Farbe)'], ['x', '#B08850', ''], ['', ':farbe', ':datei'], 'Neue Platte') { |w| farbe = w }
+h4 = d4.html
+check(h4.include?('class="farbwahl"') && h4.include?('id="f1_rad"') && h4.include?('id="f1_hell"') && h4.include?('id="f1_muster"'),
+      'Farbfeld mit Farbrad, Helligkeitsregler und Vorschau')
+check(h4.include?('sketchup.datei(2)') && !h4.include?('sketchup.datei(1)'), 'Dateifeld mit Knopf')
+check(EingabeHelfer.felder(h4) == [%w[Name x], ['Farbe', '#B08850'], ['Texturbild', '']], "Farb-/Dateifeld lesbar: #{EingabeHelfer.felder(h4).inspect}")
+check(!h4.include?(':farbe') && !h4.include?('<select id="f1"'), 'keine Auswahlliste für :farbe')
+check(d4.optionen[:height] > E.hoehe(E.felder(['Name', 'Farbe', 'T'], %w[x y z], [], nil)) + 100, 'Fenster höher für das Farbrad')
+UI.openpanel_antwort = 'C:\\Bilder\\eiche.jpg'
+d4.callbacks['datei'].call(nil, '2')
+check(d4.skripte.last == 'KP.setze(2, "C:/Bilder/eiche.jpg")', "gewählte Datei ins Feld: #{d4.skripte.last}")
+UI.openpanel_antwort = nil
+n_skripte = d4.skripte.size
+d4.callbacks['datei'].call(nil, '2')
+check(d4.skripte.size == n_skripte, 'Datei-Abbrechen ändert nichts')
+EingabeHelfer.ok(d4, 'Farbe' => '#2F6FB3')
+check(farbe == ['x', '#2F6FB3', ''], 'Farbe kommt als Text an')
+# ohne HtmlDialog: Feldarten werden zu Eingabefeldern
+hd = UI.send(:remove_const, :HtmlDialog)
+UI.inputbox_antwort = %w[x #FFFFFF]
+E.abfragen(['Name', 'Farbe'], %w[x #FFFFFF], ['', ':farbe'], 'T') { |_| }
+check(UI.inputbox_aufrufe.last == [%w[Name Farbe], %w[x #FFFFFF], ['', ''], 'T'], "ohne HtmlDialog: :farbe wird Eingabefeld (#{UI.inputbox_aufrufe.last.inspect})")
+UI.const_set(:HtmlDialog, hd)
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
