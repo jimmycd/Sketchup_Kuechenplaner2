@@ -9,11 +9,14 @@
 # mit Cycles (GPU, falls vorhanden, sonst CPU), speichert das PNG und auf Wunsch
 # die .blend-Datei zum Weiterbearbeiten.
 #
-# Ausgaben für das Plugin (eine Zeile je Meldung, in der Log-Datei):
+# Ausgaben für das Plugin, eine Zeile je Meldung, in kp_status.txt neben szene.json
+# (und auf der Konsole). Blender 5 unter Windows schreibt seine Ausgabe in ein eigenes
+# Konsolenfenster statt in die umgeleitete Log-Datei, deshalb eine eigene Datei:
+#   KP_PID <Prozessnummer>  dieser Blender-Prozess (zum Abbrechen)
 #   KP_STATUS <Text>        Schritt
+#   KP_SAMPLE <n>/<gesamt>  Render-Fortschritt
 #   KP_FERTIG <Bilddatei>   erfolgreich gerendert
 #   KP_FEHLER <Text>        abgebrochen
-# Den Render-Fortschritt („Sample 12/128“) schreibt Blender selbst.
 
 import json
 import math
@@ -22,8 +25,31 @@ import sys
 import traceback
 
 
+STATUS = {"datei": None, "sample": None}
+
+
 def melden(art, text):
-    print("KP_%s %s" % (art, text), flush=True)
+    zeile = "KP_%s %s" % (art, text)
+    print(zeile, flush=True)
+    if STATUS["datei"]:
+        with open(STATUS["datei"], "a", encoding="utf-8") as f:
+            f.write(zeile + "\n")
+
+
+def stats_beobachten(bpy):
+    """Render-Fortschritt („Sample 12/128“) aus den Statistiken in die Statusdatei."""
+    import re
+
+    def stats(text, *_):
+        m = re.search(r"Sample (\d+)/(\d+)", str(text))
+        if m and m.group(0) != STATUS["sample"]:
+            STATUS["sample"] = m.group(0)
+            melden("SAMPLE", "%s/%s" % (m.group(1), m.group(2)))
+
+    try:
+        bpy.app.handlers.render_stats.append(stats)
+    except AttributeError:
+        pass
 
 
 def argumente(argv):
@@ -269,8 +295,11 @@ def rendern(bpy, daten, ordner):
 def main(argv=None):
     argv = sys.argv if argv is None else argv
     pfad = argumente(argv)
+    STATUS["datei"] = os.path.join(os.path.dirname(os.path.abspath(pfad)), "kp_status.txt")
+    melden("PID", os.getpid())
     try:
         import bpy
+        stats_beobachten(bpy)
         with open(pfad, encoding="utf-8") as f:
             daten = json.load(f)
         return rendern(bpy, daten, os.path.dirname(os.path.abspath(pfad)))
