@@ -25,6 +25,10 @@ load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
 load File.join(komp, 'hochschrank_kuehlschrank/src/hochschrank_kuehlschrank/main.rb')
 load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
+# Blenden & Wangen bringt eine eigene (gleiche) Kopie der Küchen-Einstellungen mit
+v, $VERBOSE = $VERBOSE, nil
+load File.join(komp, 'blenden/src/blenden/main.rb')
+$VERBOSE = v
 
 S = JTools::SchrankCnc
 BEISPIELE = File.expand_path('../beispiele', __dir__)
@@ -910,6 +914,47 @@ rm = Sketchup.active_model = Sketchup::Model.new
 RegalAbschluss.erstellen
 rd, = S::Export.erzeugen(rm)
 check(rd.none? { |x| x.text.include?('W#89') }, 'Regal gerade: keine Kontur')
+
+# --- Wange mit Sockelausklinkung (Blenden & Wangen): Ausklinkung als Kontur mit 1004 ---
+# Wange 19 mm, Unterschrank 700 + Sockel 100, Tiefe 520: Ausklinkung 100 hoch, bis 71 mm hinter
+# die Front (Spalt 2 + Korpus 19 + Rücksprung 50). Bahn 10 mm (Fräserradius) neben beiden Kanten,
+# in der Innenecke im Schnittpunkt verbunden, Start unten und Ende vorne außerhalb der Platte.
+[[1.9, 1], [3.8, 2]].each do |st, stufen|
+  wm = Sketchup.active_model = Sketchup::Model.new
+  Blenden.erstellen(:wange, 'Seite' => 'rechts', 'Tiefe' => 52.0, 'Staerke' => st, 'Ausklinkung' => 1.0)
+  wd, wmeld = S::Export.erzeugen(wm)
+  wf = wd.find { |x| x.name == 'WG1_WangeR' }
+  check(wmeld.empty? && wf, "Wange #{st * 10} mm: Datei, keine Meldungen #{wmeld}")
+  next unless wf
+  kd = S::Regeln.kontur_daten(wf.ws)
+  check(kd && kd[:segmente].size == 2 && kd[:umriss].size == 6, "Wange: Kontur aus zwei Geraden #{kd && kd[:segmente].size}")
+  z = bearbeitungen(wf.text, 1).drop_while { |x| !x.include?('W#89') }
+  starts = z.select { |x| x.include?('W#89') }
+  check(starts.size == stufen && starts.all? { |x| x.include?('#205=1004 ') } && z.none? { |x| x.include?('W#2125') },
+        "Wange #{st * 10} mm: #{stufen} Zustellung(en) mit 1004, nur Geraden: #{starts}")
+  tiefen = [0.0] + starts.map { |x| x[/#3=-(\S+)/, 1].to_f }
+  check(tiefen.each_cons(2).all? { |a, b| b - a <= 20.0 + 1e-6 } && (tiefen.last - st * 10 - 1).abs < 1e-6,
+        "Wange #{st * 10} mm: ganz durch, höchstens 20 mm je Zustellung #{tiefen}")
+  pts = bahn_punkte(z)
+  # Lage der Ausklinkung im Werkstück aus der Kontur: Ecke und Kanten
+  ecke = [wf.lage.x(kd[:segmente][0][2]), wf.lage.y(kd[:segmente][0][2])]
+  unten = [wf.lage.x(kd[:segmente][0][1]), wf.lage.y(kd[:segmente][0][1])]
+  vorn = [wf.lage.x(kd[:segmente][1][2]), wf.lage.y(kd[:segmente][1][2])]
+  pts = pts.take(5)
+  check(pts.size == 5, "Wange: Einfahren, zwei Geraden, Ausfahren (#{pts.size} Punkte)")
+  if pts.size == 5
+    # Bahnecke 10 mm von beiden Kanten der Ausklinkung entfernt, auf der Abfallseite
+    innen = [unten[0] + vorn[0] - ecke[0], unten[1] + vorn[1] - ecke[1]] # gegenüberliegende Ecke (Abfall)
+    rx = innen[0] < ecke[0] ? -10 : 10
+    ry = innen[1] < ecke[1] ? -10 : 10
+    check((pts[2][0] - (ecke[0] + rx)).abs < 0.01 && (pts[2][1] - (ecke[1] + ry)).abs < 0.01,
+          "Wange: Innenecke im Schnittpunkt #{pts[2]} (Ecke #{ecke})")
+    aussen = ->(q) { q[0] < -9.99 || q[1] < -9.99 || q[0] > wf.lage.dl + 9.99 || q[1] > wf.lage.dh + 9.99 }
+    check(aussen.(pts[0]) && aussen.(pts[4]), "Wange: Start und Ende außerhalb der Platte #{pts[0]} #{pts[4]}")
+  end
+end
+wz = S::Stueckliste.zeilen(S::Export.erzeugen(Sketchup.active_model).first).find { |x| x.tag == 'WG1_WangeR' }
+check(wz && wz.kanten.values.compact.size == 2 && wz.kontur.empty?, "Wange Ausklinkung: Stückliste Kanten vorne und oben #{wz && wz.kanten}")
 
 # Frontfarbe: Regal mit Farbe Frontfarbe bekommt das Material, aber keine Griffe
 rm = Sketchup.active_model = Sketchup::Model.new

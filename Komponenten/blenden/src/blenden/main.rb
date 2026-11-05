@@ -28,6 +28,8 @@ module Blenden
   MATERIAL = 'Melamin weiss'.freeze
   KANTE    = 'Anleimer Melamin weiss'.freeze
   OCL_DICT = 'ladb_opencutlist'.freeze # Materialtyp (Platte/Kante), liest auch das Plugin Schrank-CNC
+  KONTUR_DICT = 'JT_Kontur'.freeze      # Fräskontur (Ausklinkung) für den TCN-Export
+  BAU_DICT = 'JT_Blende'.freeze         # Werte, mit denen Wange/Sockelblende gebaut ist (Neuaufbau)
 
   # Tag-Schema für den TCN-Export (gleich in allen Komponenten, der Test prüft das):
   # Tag <Kürzel>_<Bereich>_<Teil>, dazu am Teil das Wörterbuch JT_Schrank.
@@ -68,11 +70,12 @@ module Blenden
     wange: {
       kuerzel: 'WG', typ: 'Wange', name: 'Wange',
       defaults: { 'Hoehe' => 70.0, 'Tiefe' => 80.0, 'Staerke' => 1.9, 'Sockelhoehe' => 10.0, 'Ueberstand' => 0.0,
+                  'Ausklinkung' => 0.0, 'Ruecksprung_Sockel' => 5.0,
                   'Materialstaerke_Korpus' => 1.9, 'Materialstarke_Rueckwand' => 0.8, 'Spaltbreite' => 0.2 }
     },
     sockelblende: {
       kuerzel: 'SB', typ: 'Sockelblende', name: 'Sockelblende',
-      defaults: { 'Laenge' => 60.0, 'Sockelhoehe' => 10.0, 'Tiefe' => 80.0, 'Art_Seite' => 0.0, 'Staerke' => 1.6,
+      defaults: { 'Laenge' => 60.0, 'Sockelhoehe' => 10.0, 'Tiefe' => 80.0, 'Art_Seite' => 0.0, 'Gehrung' => 0.0, 'Staerke' => 1.6,
                   'Ruecksprung' => 5.0, 'Luft' => 0.3, 'Max_Laenge' => 280.0,
                   'Materialstaerke_Korpus' => 1.9, 'Materialstarke_Rueckwand' => 0.8 }
     }
@@ -124,30 +127,77 @@ module Blenden
     { (links?(p) ? 'WangeL' : 'WangeR') => [x0, x0 + st, y0, y1, -p['Sockelhoehe'], p['Hoehe']] }
   end
 
+  # Sockelausklinkung der Wange (Variante C): unten vorne Sockelhöhe hoch, bis zur
+  # Vorderseite der Sockelblende tief. [y0, y1, z0, z1] im System der Wange oder nil.
+  def self.ausklinkung(p)
+    return nil unless p['Ausklinkung'].to_i == 1 && p['Sockelhoehe'] > 0
+    [-p['Spaltbreite'] - p['Ueberstand'], p['Materialstaerke_Korpus'] + p['Ruecksprung_Sockel'], -p['Sockelhoehe'], 0.0]
+  end
+
+  # Querschnitt der Wange (y, z) relativ zu ihrer Vorder-Unterkante, gegen den Uhrzeigersinn
+  # von +x gesehen; mit Ausklinkung ein L, sonst nil (Quader)
+  def self.wange_profil(p)
+    a = ausklinkung(p) or return nil
+    q = wange_masse(p).values.first
+    ly, lz = q[3] - q[2], q[5] - q[4]
+    ya, zn = a[1] - q[2], a[3] - q[4]
+    [[ya, 0.0], [ly, 0.0], [ly, lz], [0.0, lz], [0.0, zn], [ya, zn]]
+  end
+
   def self.sockel_seiten(p)
     a = p['Art_Seite'].to_i
     [[1, 3].include?(a), [2, 3].include?(a)]
   end
 
+  # Eckstoß auf Gehrung: [links, rechts] (nur wo ein Seitenstück ist)
+  def self.sockel_gehrung(p)
+    g = p['Gehrung'].to_i == 1
+    sockel_seiten(p).map { |s| s && g }
+  end
+
   def self.sockel_stuecke(p)
     l, r = sockel_seiten(p)
-    eff = p['Laenge'] - p['Staerke'] * ((l ? 1 : 0) + (r ? 1 : 0))
+    gl, gr = sockel_gehrung(p)
+    eff = p['Laenge'] - p['Staerke'] * ((l && !gl ? 1 : 0) + (r && !gr ? 1 : 0))
     [(eff / p['Max_Laenge'] - 1e-9).ceil, eff]
   end
 
   def self.sockelblende_masse(p)
     st = p['Staerke']
     l, r = sockel_seiten(p)
+    gl, = sockel_gehrung(p)
     n, eff = sockel_stuecke(p)
     y0 = p['Materialstaerke_Korpus'] + p['Ruecksprung']
     z0 = -p['Sockelhoehe'] + p['Luft']
-    x = l ? st : 0.0
+    x = l && !gl ? st : 0.0
     m = {}
     n.times { |i| m["Sockelblende#{i + 1}"] = [x + i * eff / n, x + (i + 1) * eff / n, y0, y0 + st, z0, 0.0] }
     y1 = p['Materialstaerke_Korpus'] + p['Tiefe'] + p['Materialstarke_Rueckwand']
     m['SockelSeiteL'] = [0.0, st, y0, y1, z0, 0.0] if l
     m['SockelSeiteR'] = [p['Laenge'] - st, p['Laenge'], y0, y1, z0, 0.0] if r
     m
+  end
+
+  # Grundrisse (x, y relativ zur vorderen linken Ecke, gegen den Uhrzeigersinn von oben)
+  # der Teile, die auf Gehrung geschnitten sind; die übrigen sind Quader
+  def self.sockel_profile(p)
+    gl, gr = sockel_gehrung(p)
+    return {} unless gl || gr
+    st = p['Staerke']
+    m = sockelblende_masse(p)
+    n, = sockel_stuecke(p)
+    pr = {}
+    (1..n).each do |i|
+      links, rechts = gl && i == 1, gr && i == n
+      next unless links || rechts
+      q = m["Sockelblende#{i}"]
+      lx = q[1] - q[0]
+      pr["Sockelblende#{i}"] = [[0.0, 0.0], [lx, 0.0], [rechts ? lx - st : lx, st], [links ? st : 0.0, st]]
+    end
+    ly = ->(t) { m[t][3] - m[t][2] }
+    pr['SockelSeiteL'] = [[0.0, 0.0], [st, st], [st, ly.('SockelSeiteL')], [0.0, ly.('SockelSeiteL')]] if gl
+    pr['SockelSeiteR'] = [[st, 0.0], [st, ly.('SockelSeiteR')], [0.0, ly.('SockelSeiteR')], [0.0, st]] if gr
+    pr
   end
 
   # ---------------------------------------------------------------------------
@@ -256,22 +306,41 @@ module Blenden
 
   # Quader in Endmaß zeichnen; die in "kanten" genannten Flächen bekommen das Kantenmaterial
   def self.quader(ents, lx, ly, lz, kanten, kante)
-    f = ents.add_face([0, 0, 0], [inch(lx), 0, 0], [inch(lx), inch(ly), 0], [0, inch(ly), 0])
-    f.reverse! if f.normal.z < 0
-    f.pushpull(inch(lz))
+    prisma(ents, :z, [[0.0, 0.0], [lx, 0.0], [lx, ly], [0.0, ly]], lz, kanten, kante)
+  end
+
+  # Prisma in Endmaß: Umriss (cm, gegen den Uhrzeigersinn) in der xy-Ebene (achse :z) bzw.
+  # yz-Ebene (achse :x), um l entlang der Achse hochgezogen. Kantenmaterial bekommen nur die
+  # äußersten achsparallelen Flächen der genannten Seiten (nicht Ausklinkung oder Gehrung).
+  def self.prisma(ents, achse, umriss, l, kanten, kante)
+    pts = umriss.map { |a, b| achse == :z ? [inch(a), inch(b), 0] : [0, inch(a), inch(b)] }
+    f = ents.add_face(*pts)
+    ax = achse == :z ? 2 : 0
+    f.reverse! if f.normal.to_a[ax] < 0
+    f.pushpull(inch(l))
     return if kanten.empty?
-    ents.grep(Sketchup::Face).each do |face|
+    flaechen = ents.grep(Sketchup::Face)
+    flaechen.each do |face|
       n = face.normal.to_a
-      seite = SEITEN.find { |_, (ax, vz)| n[ax] * vz > 0.5 }
-      face.material = kante if seite && kanten.include?(seite.first)
+      seite = SEITEN.find { |_, (i, vz)| n[i] * vz > 0.99 }
+      next unless seite && kanten.include?(seite.first)
+      i, vz = seite.last
+      aussen = flaechen.map { |g| vz > 0 ? g.bounds.max.to_a[i] : g.bounds.min.to_a[i] }.send(vz > 0 ? :max : :min)
+      lage = vz > 0 ? face.bounds.max.to_a[i] : face.bounds.min.to_a[i]
+      face.material = kante if (lage - aussen).abs < 1e-6
     end
   end
 
   # q = Quader [x0, x1, y0, y1, z0, z1]; formeln = [x, y, z, lenx, leny, lenz] (nil = fest)
-  def self.teil(model, eltern, ctx, teil, art, q, formeln, sichtbar: true, hidden_formel: nil)
+  # profil = [achse, Umriss] für Teile, die kein Quader sind (siehe prisma)
+  def self.teil(model, eltern, ctx, teil, art, q, formeln, sichtbar: true, hidden_formel: nil, profil: nil)
     groesse = [q[1] - q[0], q[3] - q[2], q[5] - q[4]]
     d = model.definitions.add("#{ctx[:typ]} #{teil}")
-    quader(d.entities, *groesse, KANTEN.fetch(art), ctx[:kante])
+    if profil
+      prisma(d.entities, profil[0], profil[1], groesse[profil[0] == :z ? 2 : 0], KANTEN.fetch(art), ctx[:kante])
+    else
+      quader(d.entities, *groesse, KANTEN.fetch(art), ctx[:kante])
+    end
     stempel(d)
     d.set_attribute(DICT, '_name', teil)
     %w[x y z].each_with_index do |ax, i|
@@ -383,15 +452,36 @@ module Blenden
       attribut(d, 'Sockelhoehe', p['Sockelhoehe'], access: 'TEXTBOX', formlabel: 'Sockelhöhe (Wange bis Boden)')
     end
     attribut(d, 'Ueberstand', p['Ueberstand'], access: 'TEXTBOX', formlabel: 'Überstand vor der Front')
-    %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite].each { |n| attribut(d, n, p[n], units: 'STRING') }
+    if kat == 'Oberschrank'
+      attribut(d, 'Ausklinkung', 0.0, laenge: false, units: 'STRING')
+    else
+      attribut(d, 'Ausklinkung', p['Ausklinkung'], laenge: false, access: 'LIST', formlabel: 'Sockelausklinkung',
+               units: 'INTEGER', options: '&Nein=0&Ja=1&')
+    end
+    %w[Ruecksprung_Sockel Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite].each { |n| attribut(d, n, p[n], units: 'STRING') }
 
     name, q = wange_masse(p).first
-    teil(model, d, ctx, name, kat == 'Oberschrank' ? 'WangeOber' : 'Wange', q,
-         [links?(p) ? "-#{u}!Staerke" : nil, "-#{u}!Spaltbreite-#{u}!Ueberstand", "-#{u}!Sockelhoehe",
-          "#{u}!Staerke",
-          "#{u}!Ueberstand+#{u}!Spaltbreite+#{u}!Materialstaerke_Korpus+#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
-          "#{u}!Hoehe+#{u}!Sockelhoehe"])
+    profil = wange_profil(p)
+    w = teil(model, d, ctx, name, kat == 'Oberschrank' ? 'WangeOber' : 'Wange', q,
+             [links?(p) ? "-#{u}!Staerke" : nil, "-#{u}!Spaltbreite-#{u}!Ueberstand", "-#{u}!Sockelhoehe",
+              "#{u}!Staerke",
+              "#{u}!Ueberstand+#{u}!Spaltbreite+#{u}!Materialstaerke_Korpus+#{u}!Tiefe+#{u}!Materialstarke_Rueckwand",
+              "#{u}!Hoehe+#{u}!Sockelhoehe"], profil: profil && [:x, profil])
+    kontur_ausklinkung(w.definition, profil) if profil
+    gebaut_merken(d, :wange, p)
     d
+  end
+
+  # Umriss und Fräskante der Ausklinkung für den TCN-Export (Plugin Schrank-CNC, Wörterbuch
+  # JT_Kontur, Zoll, Ebene yz der Wange): zwei Geraden, die Bahn beginnt unten außerhalb der
+  # Platte, fährt hoch in die Ecke und vorne wieder hinaus. Fräser 1004 (Ø 20 mm) lässt in
+  # der Innenecke einen Radius von 10 mm stehen.
+  def self.kontur_ausklinkung(defn, profil)
+    zoll = profil.map { |a, b| [inch(a), inch(b)] }
+    ya, zn = zoll[0][0], zoll[4][1]
+    defn.set_attribute(KONTUR_DICT, 'ebene', 'yz')
+    defn.set_attribute(KONTUR_DICT, 'umriss', zoll.flatten)
+    defn.set_attribute(KONTUR_DICT, 'kante', [0, ya, 0.0, ya, zn, 0, 0, 0, 0, ya, zn, 0.0, zn, 0, 0, 0])
   end
 
   def self.erzeuge_sockelblende(model, eingabe = {})
@@ -404,17 +494,20 @@ module Blenden
     attribut(d, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe Korpus (für Seitenstücke)')
     attribut(d, 'Art_Seite', p['Art_Seite'], laenge: false, access: 'LIST', formlabel: 'Seitenstücke',
              units: 'INTEGER', options: '&Keine=0&Links=1&Rechts=2&Beide=3&')
+    attribut(d, 'Gehrung', p['Gehrung'], laenge: false, access: 'LIST', formlabel: 'Eckstoß Seitenstücke',
+             units: 'INTEGER', options: '&Stumpf=0&Gehrung=1&')
     attribut(d, 'Staerke', p['Staerke'], access: 'LIST', formlabel: 'Stärke', options: '&16%20mm=1.6&19%20mm=1.9&')
     attribut(d, 'Ruecksprung', p['Ruecksprung'], access: 'TEXTBOX', formlabel: 'Rücksprung hinter Korpusvorderkante')
     %w[Luft Max_Laenge Materialstaerke_Korpus Materialstarke_Rueckwand].each { |n| attribut(d, n, p[n], units: 'STRING') }
 
     li = ->(pre) { "IF(OR(#{pre}Art_Seite=1,#{pre}Art_Seite=3),1,0)" }
     re = ->(pre) { "IF(OR(#{pre}Art_Seite=2,#{pre}Art_Seite=3),1,0)" }
-    eff = ->(pre) { "(#{pre}Laenge-#{pre}Staerke*(#{li.(pre)}+#{re.(pre)}))" }
+    eff = ->(pre) { "(#{pre}Laenge-#{pre}Staerke*(#{li.(pre)}+#{re.(pre)})*(1-#{pre}Gehrung))" }
     n, = sockel_stuecke(p)
     attribut(d, 'N', n.to_f, laenge: false, units: 'STRING', formula: "CEILING(#{eff.('')}/Max_Laenge,1)")
 
     m = sockelblende_masse(p)
+    pr = sockel_profile(p)
     y0 = "#{u}!Materialstaerke_Korpus+#{u}!Ruecksprung"
     z0 = "-#{u}!Sockelhoehe+#{u}!Luft"
     hz = "#{u}!Sockelhoehe-#{u}!Luft"
@@ -425,8 +518,8 @@ module Blenden
       # ausgeblendete Stücke liegen auf dem ersten, damit sie nicht über die Komponente hinausragen
       q = m[name] || q0
       teil(model, d, ctx, name, 'Sockelblende', q,
-           ["#{u}!Staerke*#{li.("#{u}!")}+IF(#{u}!N>=#{i + 1},#{i},0)*#{l_st}", y0, z0, l_st, "#{u}!Staerke", hz],
-           sichtbar: !m[name].nil?, hidden_formel: "IF(#{u}!N>=#{i + 1},0,1)")
+           ["#{u}!Staerke*#{li.("#{u}!")}*(1-#{u}!Gehrung)+IF(#{u}!N>=#{i + 1},#{i},0)*#{l_st}", y0, z0, l_st, "#{u}!Staerke", hz],
+           sichtbar: !m[name].nil?, hidden_formel: "IF(#{u}!N>=#{i + 1},0,1)", profil: pr[name] && [:z, pr[name]])
     end
     l, r = sockel_seiten(p)
     tiefe = "#{u}!Tiefe+#{u}!Materialstarke_Rueckwand-#{u}!Ruecksprung"
@@ -434,11 +527,146 @@ module Blenden
     y = p['Materialstaerke_Korpus'] + p['Ruecksprung']
     y1 = p['Materialstaerke_Korpus'] + p['Tiefe'] + p['Materialstarke_Rueckwand']
     teil(model, d, ctx, 'SockelSeiteL', 'SockelSeite', m['SockelSeiteL'] || [0.0, st, y, y1, q0[4], 0.0],
-         [nil, y0, z0, "#{u}!Staerke", tiefe, hz], sichtbar: l, hidden_formel: "IF(#{li.("#{u}!")}=1,0,1)")
+         [nil, y0, z0, "#{u}!Staerke", tiefe, hz], sichtbar: l, hidden_formel: "IF(#{li.("#{u}!")}=1,0,1)",
+         profil: pr['SockelSeiteL'] && [:z, pr['SockelSeiteL']])
     teil(model, d, ctx, 'SockelSeiteR', 'SockelSeite', m['SockelSeiteR'] || [p['Laenge'] - st, p['Laenge'], y, y1, q0[4], 0.0],
          ["#{u}!Laenge-#{u}!Staerke", y0, z0, "#{u}!Staerke", tiefe, hz], sichtbar: r,
-         hidden_formel: "IF(#{re.("#{u}!")}=1,0,1)")
+         hidden_formel: "IF(#{re.("#{u}!")}=1,0,1)", profil: pr['SockelSeiteR'] && [:z, pr['SockelSeiteR']])
+    gebaut_merken(d, :sockelblende, p)
     d
+  end
+
+  # ---------------------------------------------------------------------------
+  # Neuaufbau: Ausklinkung und Gehrung sind keine Quader. Würde die DC sie nach einer
+  # Änderung in den Komponentenoptionen nur strecken, stimmten Ausklinkung und Gehrung
+  # nicht mehr. Deshalb werden diese Teile dann neu gebaut (wie beim Abschlussregal).
+  # ---------------------------------------------------------------------------
+  BAU_MASSE = {
+    wange: %w[Hoehe Tiefe Staerke Sockelhoehe Ueberstand Ausklinkung],
+    sockelblende: %w[Laenge Sockelhoehe Tiefe Art_Seite Gehrung Staerke Ruecksprung]
+  }.freeze
+  KEINE_LAENGE = %w[Ausklinkung Art_Seite Gehrung].freeze
+
+  def self.gebaut_merken(d, art, p)
+    d.set_attribute(BAU_DICT, 'art', art.to_s)
+    d.set_attribute(BAU_DICT, 'gebaut', BAU_MASSE.fetch(art).map { |k| p[k].to_f.round(4) })
+  end
+
+  # Aktuelle Werte am Teil (cm bzw. Auswahlwerte), wie die DC sie sieht
+  def self.bau_werte(inst, art)
+    BAU_MASSE.fetch(art).each_with_object({}) do |k, h|
+      v = if KEINE_LAENGE.include?(k)
+            w = inst.get_attribute(DICT, k.downcase)
+            w = definition(inst).get_attribute(DICT, k.downcase) if w.nil?
+            w
+          else
+            dc_cm(inst, k.downcase)
+          end
+      h[k] = v.to_f unless v.nil?
+    end
+  end
+
+  def self.besonders?(art, p)
+    art == :wange ? !ausklinkung(ARTEN[:wange][:defaults].merge(p)).nil? : sockel_gehrung(ARTEN[:sockelblende][:defaults].merge(p)).any?
+  end
+
+  # Muss das Teil neu gebaut werden? Nur wenn sich etwas geändert hat und vorher oder
+  # nachher eine Ausklinkung bzw. Gehrung im Spiel ist; sonst rechnet die DC wie bisher.
+  def self.neubau?(inst)
+    d = definition(inst)
+    art = d.get_attribute(BAU_DICT, 'art').to_s.to_sym
+    return false unless BAU_MASSE.key?(art)
+    gebaut = BAU_MASSE[art].zip(d.get_attribute(BAU_DICT, 'gebaut') || []).to_h
+    jetzt = bau_werte(inst, art)
+    return false if jetzt.all? { |k, v| (v - gebaut[k].to_f).abs < 0.001 }
+    besonders?(art, gebaut.transform_values(&:to_f)) || besonders?(art, jetzt)
+  end
+
+  def self.pruefen(model)
+    model.entities.to_a.select { |e| e.is_a?(Sketchup::ComponentInstance) && neubau?(e) }.each { |i| neu_aufbauen(model, i) }
+  end
+
+  def self.neu_aufbauen(model, inst)
+    alt = inst.definition
+    art = alt.get_attribute(BAU_DICT, 'art').to_sym
+    p = bau_werte(inst, art).merge('Kuerzel' => alt.get_attribute(JT_DICT, 'schrank'))
+    teil = alt.entities.to_a.find { |e| e.is_a?(Sketchup::ComponentInstance) && e.material }
+    front = nil
+    if art == :wange
+      p['Kategorie'] = alt.get_attribute(JT_DICT, 'kategorie')
+      p['Seite'] = alt.get_attribute(JT_DICT, 'seite')
+      if teil && teil.material.name != MATERIAL
+        kante = teil.definition.entities.grep(Sketchup::Face).map(&:material).compact
+                    .find { |m| m.get_attribute(OCL_DICT, 'type').to_i == 4 }
+        front = [teil.material, kante]
+      end
+    end
+    model.start_operation('Blende ändern', true, false, true)
+    neu = art == :wange ? erzeuge_wange(model, p, front) : erzeuge_sockelblende(model, p)
+    inst.definition = neu
+    groesse_uebernehmen(inst)
+    model.definitions.remove(alt) if alt.instances.empty? && model.definitions.respond_to?(:remove)
+    model.commit_operation
+    $dc_observers.get_latest_class.redraw_with_undo(inst) if defined?($dc_observers) && $dc_observers
+    inst
+  rescue StandardError
+    model.abort_operation
+    raise
+  end
+
+  # Die DC merkt sich die Größe an der Instanz und würde den neuen Inhalt darauf strecken:
+  # Skalierung zurücknehmen und die neue Größe eintragen (wie beim Abschlussregal)
+  def self.groesse_uebernehmen(inst)
+    t = inst.transformation.to_a
+    achsen = [t[0, 3], t[4, 3], t[8, 3]]
+    if achsen.any? { |a| (Math.sqrt(a.sum { |v| v * v }) - 1.0).abs > 1e-6 }
+      n = achsen.map { |a| l = Math.sqrt(a.sum { |v| v * v }); l > 1e-9 ? a.map { |v| v / l } : a }
+      inst.transformation = Geom::Transformation.new(n[0] + [0.0] + n[1] + [0.0] + n[2] + [0.0] + t[12, 3] + [1.0])
+    end
+    bb = inst.definition.bounds
+    return unless bb.respond_to?(:width)
+    %w[lenx leny lenz].zip([bb.width, bb.height, bb.depth].map(&:to_f)).each do |k, v|
+      [inst, inst.definition].each do |e|
+        e.set_attribute(DICT, k, v)
+        e.set_attribute(DICT, "_#{k}_nominal", v)
+      end
+    end
+  end
+
+  # Nach jedem Vorgang (z. B. „Übernehmen“ im Fenster Komponentenoptionen) prüfen;
+  # verzögert, weil das Modell im Beobachter nicht geändert werden soll
+  if defined?(Sketchup::ModelObserver)
+    class Beobachter < Sketchup::ModelObserver
+      def onTransactionCommit(model)
+        return if @laeuft
+        @laeuft = true
+        # Timer sofort anhalten, sonst feuert er erneut, solange eine Meldung offen ist
+        id = UI.start_timer(0, false) do
+          UI.stop_timer(id)
+          begin
+            Blenden.pruefen(model)
+          ensure
+            @laeuft = false
+          end
+        end
+      end
+    end
+
+    class AppBeobachter < Sketchup::AppObserver
+      def onNewModel(model)
+        Blenden.beobachten(model)
+      end
+
+      def onOpenModel(model)
+        Blenden.beobachten(model)
+      end
+    end
+  end
+
+  def self.beobachten(model)
+    return unless model && defined?(Beobachter)
+    @beobachter ||= Beobachter.new
+    model.add_observer(@beobachter)
   end
 
   # ---------------------------------------------------------------------------
@@ -575,6 +803,12 @@ module Blenden
     end
   end
 
+  # Inselschrank: Rückseite sichtbar, die Sockelblende läuft ringsum
+  def self.insel?(e)
+    d = definition(e)
+    !!d.get_attribute(JT_DICT, 'insel') || d.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Insel'
+  end
+
   def self.gleiche_flucht?(ref, e)
     a = ref.transformation.xaxis.to_a
     b = e.transformation.xaxis.to_a
@@ -609,7 +843,7 @@ module Blenden
       stuecke.map do |s|
         korpus = s[:teile].reject { |e| eigener_typ?(e) }
         { ref: g[:ref], x0: s[:x0], x1: s[:x1], tiefe: korpus.map { |e| dc_cm(e, 'tiefe') }.compact.max,
-          sockel: korpus.map { |e| dc_cm(e, 'sockelhoehe') }.compact.first }
+          sockel: korpus.map { |e| dc_cm(e, 'sockelhoehe') }.compact.first, insel: korpus.any? { |e| insel?(e) } }
       end
     end
   end
@@ -621,6 +855,7 @@ module Blenden
     y_vorn = inch(p['Materialstaerke_Korpus'] + p['Ruecksprung'])
     st = inch(p['Staerke'])
     neu = zeilen.map { |z| [z[:x0], z[:x1]] }
+    ecke = zeilen.map { [false, false] }
     zeilen.each_with_index do |r, i|
       rt = r[:ref].transformation
       ri = rt.inverse
@@ -639,12 +874,113 @@ module Blenden
         lo, hi = [cf, cb].minmax
         if vorn > 0.5 && (r[:x0] - mitte).abs < ECKE_TOL
           neu[i][0] = r[:x0] < mitte ? lo : hi
+          ecke[i][0] = true
         elsif vorn < -0.5 && (r[:x1] - mitte).abs < ECKE_TOL
           neu[i][1] = r[:x1] > mitte ? hi : lo
+          ecke[i][1] = true
         end
       end
     end
-    zeilen.each_with_index.map { |z, i| z.merge(x0: neu[i][0], x1: neu[i][1], laenge: (neu[i][1] - neu[i][0]) * 2.54) }
+    zeilen.each_with_index.map do |z, i|
+      z.merge(x0: neu[i][0], x1: neu[i][1], laenge: (neu[i][1] - neu[i][0]) * 2.54, ecke: ecke[i])
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Zeilenenden (Jürgen 2026-11-05): an der Wand endet die Blende an der Schrankkante,
+  # an einer Wange an deren Innenseite, an einer Innenecke an der Querblende (ecken).
+  # Ein freies Ende bekommt auf Wunsch den Sockel ums Eck: Die Blende springt auch seitlich
+  # um den Rücksprung zurück, ein Seitenstück läuft bis zur Wand (Korpusrückseite +
+  # Wandabstand), Stoß stumpf oder auf Gehrung. Inseln: Sockel ringsum, hinten eine
+  # zweite Blende zwischen den Seitenstücken.
+  # ---------------------------------------------------------------------------
+  WAND_TOL = 2.0 / 25.4 # mm -> Zoll
+
+  def self.einstellung_mm(name, model, standard)
+    return standard unless defined?(Kuechenplaner::Einstellungen) && Kuechenplaner::Einstellungen.respond_to?(name)
+    Kuechenplaner::Einstellungen.public_send(name, model).to_f
+  rescue StandardError
+    standard
+  end
+
+  # Wände des Raums (Erweiterung Raum): je [Transformation Welt -> Wand (x entlang, y in die
+  # Wand hinein), Länge, Dicke] in Zoll
+  def self.waende(model)
+    raum = model.entities.to_a.find do |e|
+      (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && e.get_attribute('JT_Raum', 'typ') == 'Raum'
+    end
+    return [] unless raum
+    require 'json'
+    daten = JSON.parse(raum.get_attribute('JT_Raum', 'daten', '{}').to_s) rescue {}
+    dicke = (daten['dicke'] || 240).to_f / 25.4
+    definition(raum).entities.to_a.select { |w| w.respond_to?(:transformation) && w.get_attribute('JT_Raum', 'typ') == 'Wand' }.map do |w|
+      [(raum.transformation * w.transformation).inverse, w.get_attribute('JT_Raum', 'laenge').to_f / 25.4, dicke]
+    end
+  end
+
+  # Steht neben dem Zeilenende (seite :l / :r) eine Wand? Geprüft wird ein Punkt
+  # Wandabstand + 20 mm neben dem Ende auf halber Korpustiefe.
+  def self.an_wand?(z, seite, waende, abstand_mm)
+    d = (abstand_mm + 20.0) / 25.4
+    x = seite == :l ? z[:x0] - d : z[:x1] + d
+    welt = punkt(z[:ref].transformation, x, inch(1.9 + (z[:tiefe] || 52.0) / 2.0))
+    waende.any? do |inv, laenge, dicke|
+      q = inv * welt
+      q.x.between?(-WAND_TOL, laenge + WAND_TOL) && q.y.between?(-WAND_TOL, dicke + WAND_TOL)
+    end
+  end
+
+  # Steht am Zeilenende eine Wange (Unter- oder Hochschrank, gleiche Flucht)?
+  def self.wange_an?(z, seite, wangen)
+    inv = z[:ref].transformation.inverse
+    wangen.any? do |w|
+      next false unless gleiche_flucht?(z[:ref], w)
+      o = inv * w.transformation.origin
+      a, b = x_bereich(w)
+      seite == :l ? (o.x + b - z[:x0]).abs <= LUECKE : (o.x + a - z[:x1]).abs <= LUECKE
+    end
+  end
+
+  def self.wangen(model)
+    model.entities.to_a.select do |e|
+      (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) &&
+        definition(e).get_attribute(JT_DICT, 'typ') == 'Wange' && %w[Unterschrank Hochschrank].include?(kategorie(e))
+    end
+  end
+
+  # Zeilen mit :enden ([links, rechts] je :ecke, :wange, :wand, :frei), :art_seite, :gehrung,
+  # :tiefe_seite (cm) und bei Inseln :hinten (zweite Blende hinten)
+  def self.enden(model, zeilen, p, ums_eck: true, gehrung: false)
+    ws = waende(model)
+    wg = wangen(model)
+    abstand = einstellung_mm(:wandabstand, model, 0.0)
+    r = inch(p['Ruecksprung'])
+    st = inch(p['Staerke'])
+    zeilen.map do |z|
+      enden = %i[l r].each_with_index.map do |s, i|
+        next :ecke if z[:ecke] && z[:ecke][i]
+        next :wange if wange_an?(z, s, wg)
+        next :wand if !z[:insel] && an_wand?(z, s, ws, abstand)
+        :frei
+      end
+      seiten = enden.map { |e| e == :frei && ums_eck }
+      x0 = z[:x0] + (seiten[0] ? r : 0.0)
+      x1 = z[:x1] - (seiten[1] ? r : 0.0)
+      tiefe = z[:tiefe] || TIEFE_STANDARD['Unterschrank']
+      neu = z.merge(enden: enden, x0: x0, x1: x1, laenge: (x1 - x0) * 2.54,
+                    art_seite: (seiten[0] ? 1 : 0) + (seiten[1] ? 2 : 0), gehrung: gehrung ? 1 : 0,
+                    tiefe_seite: z[:insel] ? tiefe - p['Ruecksprung'] : tiefe + abstand / 10.0)
+      if z[:insel]
+        # Rückseite: im System des ersten Schranks um 180° gedreht, x läuft von rechts nach links
+        a = x0 + (seiten[0] ? st : 0.0)
+        b = x1 - (seiten[1] ? st : 0.0)
+        y = inch(2 * p['Materialstaerke_Korpus'] + tiefe + p['Materialstarke_Rueckwand'])
+        tr = z[:ref].transformation * Geom::Transformation.translation(Geom::Vector3d.new(b, y, 0)) *
+             Geom::Transformation.rotation(Geom::Point3d.new(0, 0, 0), Geom::Vector3d.new(0, 0, 1), Math::PI)
+        neu[:hinten] = { ref: Struct.new(:transformation).new(tr), x0: 0.0, laenge: (b - a) * 2.54 }
+      end
+      neu
+    end
   end
 
   # Sockelblende unter den gewählten Unter- und Hochschränken, ohne Auswahl unter allen
@@ -683,12 +1019,19 @@ module Blenden
     model.start_operation('Sockelblenden', true)
     model.entities.erase_entities(alte) unless alte.empty?
     max = ARTEN[:sockelblende][:defaults]['Max_Laenge'] * MAX_STUECKE
-    neu = zeilen.flat_map do |z|
+    laeufe = zeilen.flat_map do |z|
+      vorn = z.merge(tiefe_seite: z[:tiefe_seite] || z[:tiefe] || TIEFE_STANDARD['Unterschrank'])
+      z[:hinten] ? [vorn, z[:hinten].merge(art_seite: 0)] : [vorn]
+    end
+    neu = laeufe.flat_map do |z|
       n = (z[:laenge] / max - 1e-9).ceil
+      a = z[:art_seite].to_i
       Array.new(n) do |k|
         l = z[:laenge] / n
-        defn = erzeuge_sockelblende(model, eingabe.merge('Laenge' => l, 'Tiefe' => z[:tiefe] || TIEFE_STANDARD['Unterschrank']))
-        einfuegen(model, defn, 'Sockelblende', z[:ref], z[:x0] + inch(k * l))
+        seite = (k.zero? ? a & 1 : 0) + (k == n - 1 ? a & 2 : 0)
+        e = eingabe.merge('Laenge' => l, 'Tiefe' => z[:tiefe_seite] || TIEFE_STANDARD['Unterschrank'],
+                          'Art_Seite' => seite.to_f, 'Gehrung' => z[:gehrung].to_f)
+        einfuegen(model, erzeuge_sockelblende(model, e), 'Sockelblende', z[:ref], z[:x0] + inch(k * l))
       end
     end
     model.commit_operation
@@ -721,6 +1064,9 @@ module Blenden
     s.size == 1 ? s.first : nil
   end
 
+  FREIE_ENDEN = ['Sockel ums Eck', 'nur Blende'].freeze
+  ECKSTOSS = %w[stumpf Gehrung].freeze
+
   def self.dialog_passblende
     model = Sketchup.active_model
     n = einzelner_nachbar(model)
@@ -745,16 +1091,18 @@ module Blenden
     n = einzelner_nachbar(model)
     v = vorschlag(n)
     Kuechenplaner::Eingabe.abfragen(['Schranktyp', 'Seite am Schrank', 'Stärke (mm)', 'Höhe Korpus (mm, leer = wie Schrank)',
-                                     'Tiefe Korpus (mm, leer = wie Schrank)', 'Sockelhöhe (mm)', 'Überstand vorne (mm)'],
+                                     'Tiefe Korpus (mm, leer = wie Schrank)', 'Sockelhöhe (mm)', 'Überstand vorne (mm)',
+                                     'Sockelausklinkung (Unter-/Hochschrank)'],
                                     [v['Kategorie'] || 'Unterschrank', 'rechts', '19', mm(v['Hoehe']), mm(v['Tiefe']),
-                                     mm(v['Sockelhoehe'] || sockel_standard(model)), '0'],
-                                    [KATEGORIEN.join('|'), 'rechts|links', '19|25|38', '', '', '', ''], 'Wange',
+                                     mm(v['Sockelhoehe'] || sockel_standard(model)), '0', 'nein'],
+                                    [KATEGORIEN.join('|'), 'rechts|links', '19|25|38', '', '', '', '', 'nein|ja'], 'Wange',
                                     untertitel: n ? 'Neue Wange am gewählten Schrank' : 'Neue Wange', ok: 'Einfügen') do |res|
       kat = res[0]
       eingabe = { 'Kategorie' => kat, 'Seite' => res[1], 'Staerke' => zahl(res[2]),
                   'Hoehe' => zahl(res[3]) || v['Hoehe'] || HOEHE_STANDARD[kat],
                   'Tiefe' => zahl(res[4]) || v['Tiefe'] || TIEFE_STANDARD[kat],
-                  'Sockelhoehe' => zahl(res[5]) || 0.0, 'Ueberstand' => zahl(res[6]) || 0.0 }
+                  'Sockelhoehe' => zahl(res[5]) || 0.0, 'Ueberstand' => zahl(res[6]) || 0.0,
+                  'Ausklinkung' => res[7] == 'ja' && kat != 'Oberschrank' ? 1.0 : 0.0 }
       raise ArgumentError, 'Höhe und Tiefe müssen größer als 0 sein' unless eingabe['Hoehe'] > 0 && eingabe['Tiefe'] > 0
       raise ArgumentError, 'Sockelhöhe 0 bis 300 mm' unless eingabe['Sockelhoehe'].between?(0, 30)
       raise ArgumentError, 'Überstand 0 bis 50 mm' unless eingabe['Ueberstand'].between?(0, 5)
@@ -771,9 +1119,11 @@ module Blenden
     return dialog_sockelblende_frei if k[:teile].empty?
     zl = zeilen(k[:teile])
     alte = k[:auswahl] ? [] : k[:alte]
-    prompts = ['Sockelhöhe (mm)', 'Stärke (mm)']
-    defaults = [mm(sockel_standard(model)), '16']
-    listen = ['', '16|19']
+    p0 = ARTEN[:sockelblende][:defaults]
+    frei = enden(model, ecken(zl, p0), p0).sum { |z| z[:enden].count(:frei) }
+    prompts = ['Sockelhöhe (mm)', 'Stärke (mm)', "Freie Enden (#{frei})", 'Eckstoß Seitenstücke']
+    defaults = [mm(sockel_standard(model)), '16', FREIE_ENDEN[0], ECKSTOSS[0]]
+    listen = ['', '16|19', FREIE_ENDEN.join('|'), ECKSTOSS.join('|')]
     unless alte.empty?
       prompts << "Vorhandene Sockelblenden (#{alte.size}) ersetzen"
       defaults << 'ja'
@@ -786,8 +1136,9 @@ module Blenden
       p = ARTEN[:sockelblende][:defaults].merge('Sockelhoehe' => zahl(res[0]), 'Staerke' => zahl(res[1]))
       raise ArgumentError, 'Sockelhöhe 30 bis 300 mm' unless p['Sockelhoehe'] && p['Sockelhoehe'].between?(3.0, 30.0)
       raise ArgumentError, 'Stärke 16 oder 19 mm' unless [1.6, 1.9].include?(p['Staerke'])
-      erstellen_sockelblenden(p.select { |n, _| %w[Sockelhoehe Staerke].include?(n) }, ecken(zl, p),
-                              res[2] == 'nein' ? [] : alte)
+      zeilen_neu = enden(model, ecken(zl, p), p, ums_eck: res[2] == FREIE_ENDEN[0], gehrung: res[3] == ECKSTOSS[1])
+      erstellen_sockelblenden(p.select { |n, _| %w[Sockelhoehe Staerke].include?(n) }, zeilen_neu,
+                              res[4] == 'nein' ? [] : alte)
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
@@ -795,13 +1146,14 @@ module Blenden
 
   def self.dialog_sockelblende_frei
     model = Sketchup.active_model
-    Kuechenplaner::Eingabe.abfragen(['Länge (mm)', 'Sockelhöhe (mm)', 'Tiefe Korpus (mm)', 'Seitenstücke'],
-                                    ['600', mm(sockel_standard(model)), '520', 'keine'],
-                                    ['', '', '', 'keine|links|rechts|beide'], 'Sockelblende',
+    Kuechenplaner::Eingabe.abfragen(['Länge (mm)', 'Sockelhöhe (mm)', 'Tiefe Korpus (mm)', 'Seitenstücke', 'Eckstoß Seitenstücke'],
+                                    ['600', mm(sockel_standard(model)), '520', 'keine', ECKSTOSS[0]],
+                                    ['', '', '', 'keine|links|rechts|beide', ECKSTOSS.join('|')], 'Sockelblende',
                                     untertitel: 'Neue Sockelblende (keine Unter- oder Hochschränke gefunden)',
                                     ok: 'Einfügen') do |res|
       eingabe = { 'Laenge' => zahl(res[0]), 'Sockelhoehe' => zahl(res[1]), 'Tiefe' => zahl(res[2]),
-                  'Art_Seite' => %w[keine links rechts beide].index(res[3]).to_f }
+                  'Art_Seite' => %w[keine links rechts beide].index(res[3]).to_f,
+                  'Gehrung' => res[4] == ECKSTOSS[1] ? 1.0 : 0.0 }
       max = ARTEN[:sockelblende][:defaults]['Max_Laenge'] * MAX_STUECKE
       raise ArgumentError, "Länge 10 bis #{(max * 10).round} mm" unless eingabe['Laenge'] && eingabe['Laenge'].between?(1.0, max)
       raise ArgumentError, 'Sockelhöhe 30 bis 300 mm' unless eingabe['Sockelhoehe'] && eingabe['Sockelhoehe'].between?(3.0, 30.0)
@@ -848,6 +1200,10 @@ module Kuechenplaner
 end # gemeinsames Untermenü
 
 unless file_loaded?(__FILE__)
+  if defined?(Blenden::AppBeobachter)
+    Sketchup.add_observer(Blenden::AppBeobachter.new)
+    Blenden.beobachten(Sketchup.active_model)
+  end
   Kuechenplaner.schrank('Blenden & Wangen', 'Passblende…') { Blenden.dialog_passblende }
   Kuechenplaner.schrank('Blenden & Wangen', 'Wange…') { Blenden.dialog_wange }
   Kuechenplaner.schrank('Blenden & Wangen', 'Sockelblende…') { Blenden.dialog_sockelblende }
