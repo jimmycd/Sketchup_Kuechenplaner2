@@ -230,6 +230,23 @@ DcGroesseHelfer.mit_dc(R::DICT) do
   end
 end
 
+# Gestauchter Inhalt (Jürgen 2026-11-05: Deckel 307 statt 350 mm) oder Regal von vor der
+# Größenprüfung: beim nächsten Prüfen neu aufbauen; feste Formel lenx/leny/lenz = gebaute Größe
+m = neu_model
+inst = R.erstellen('Tiefe' => 35.0, 'Form' => 1.0, 'Zeilenende' => 1.0)
+check(nah(inst.get_attribute(R::DICT, '_leny_formula').to_f, 35.8) && nah(inst.definition.get_attribute(R::DICT, '_lenx_formula').to_f, 30.0),
+      "Formel lenx/leny = gebaute Größe (#{inst.get_attribute(R::DICT, '_leny_formula')})")
+d0 = inst.definition
+R.pruefen(m)
+check(inst.definition == d0, 'Größe stimmt: kein Neuaufbau')
+teile(inst).each_value { |x| d = x[:inst].definition; d.box = [d.box[0], d.box[1] * 307.0 / 350.0, d.box[2]] } # wie von der DC gestaucht
+R.pruefen(m)
+check(inst.definition != d0 && nah(teile(inst)['Deckel'][:inst].definition.box[1] * 2.54, 35.0), 'gestauchtes Regal neu aufgebaut')
+d1 = inst.definition
+d1.attribute_dictionary('JT_Groesse').delete('zoll')
+R.pruefen(m)
+check(inst.definition != d1 && inst.definition.get_attribute('JT_Groesse', 'zoll'), 'altes Regal ohne Größe: einmal neu aufgebaut')
+
 # --- zweites Regal bekommt RA2 ---
 m = neu_model
 R.erstellen

@@ -8,18 +8,21 @@
 module DcGroesseHelfer
   ACHSEN = { 'lenx' => :width, 'leny' => :height, 'lenz' => :depth }.freeze
 
-  # Ersatz für $dc_observers.get_latest_class
+  # Ersatz für $dc_observers.get_latest_class. Ohne Formula für lenx/leny/lenz bleibt die
+  # Zielgröße die beim ersten Neuzeichnen gemerkte (so verhielt sich die echte DC 2026-11-05:
+  # Tiefe 350 gebaut, lenx/leny/lenz neu eingetragen, trotzdem auf 314 mm gestaucht).
   class Dc
-    def initialize(dict) = @dict = dict
+    def initialize(dict) = (@dict, @gemerkt = dict, {})
     def get_latest_class = self
 
     def redraw_with_undo(inst)
       bb = inst.definition.bounds
-      s = ACHSEN.map do |k, m|
-        n = bb.send(m)
-        v = inst.get_attribute(@dict, k)
-        inst.set_attribute(@dict, k, n) if v.nil? # erstes Neuzeichnen: Größe merken
-        v && n > 1e-9 ? v.to_f / n : 1.0
+      ist = ACHSEN.values.map { |m| bb.send(m) }
+      alt = (@gemerkt[inst] ||= ist)
+      s = ACHSEN.keys.each_with_index.map do |k, i|
+        f = inst.get_attribute(@dict, "_#{k}_formula") || inst.definition.get_attribute(@dict, "_#{k}_formula")
+        ziel = f ? Float(f) / 2.54 : alt[i]
+        ist[i] > 1e-9 ? ziel / ist[i] : 1.0
       end
       o = inst.transformation.to_a[12, 3]
       inst.transformation = Geom::Transformation.new([s[0], 0, 0, 0, 0, s[1], 0, 0, 0, 0, s[2], 0, *o, 1])

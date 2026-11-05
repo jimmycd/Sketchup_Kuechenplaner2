@@ -431,7 +431,7 @@ module EckOberschrank
       gebaut = d.get_attribute(L_DICT, L_GEBAUT)
       d.instances.to_a.each do |inst|
         neu = L_MASSE.map { |k| dc_cm(inst, k).round(2) }
-        neu_aufbauen(model, inst, neu) unless neu.zip(gebaut).all? { |x, y| (x - y).abs < 0.01 }
+        neu_aufbauen(model, inst, neu) unless neu.zip(gebaut).all? { |x, y| (x - y).abs < 0.01 } && !groesse_falsch?(inst)
       end
     end
   end
@@ -446,15 +446,35 @@ module EckOberschrank
       l = Math.sqrt(a.sum { |v| v * v })
       l > 1e-9 ? a.map { |v| v / l } : a
     end
-    inst.transformation = Geom::Transformation.new(achsen[0] + [0.0] + achsen[1] + [0.0] + achsen[2] + [0.0] + t[12, 3] + [1.0])
+    skaliert = [t[0, 3], t[4, 3], t[8, 3]].any? { |a| (Math.sqrt(a.sum { |v| v * v }) - 1.0).abs > 1e-6 }
+    if skaliert
+      inst.transformation = Geom::Transformation.new(achsen[0] + [0.0] + achsen[1] + [0.0] + achsen[2] + [0.0] + t[12, 3] + [1.0])
+    end
     bb = inst.definition.bounds
-    return unless bb
-    { 'lenx' => bb.width, 'leny' => bb.height, 'lenz' => bb.depth }.each do |k, v|
+    return unless bb.respond_to?(:width)
+    groesse = [bb.width, bb.height, bb.depth].map(&:to_f)
+    # Feste Formel = gebaute Größe (cm): die DC rechnet die Zielgröße bei jedem Neuzeichnen
+    # daraus und schrumpft den Inhalt nicht auf eine irgendwo gemerkte alte Größe
+    # (Fehler 2026-11-05: Tiefe 350 gebaut, Inhalt danach auf 314 mm gestaucht)
+    %w[lenx leny lenz].zip(groesse).each do |k, v|
       [inst, inst.definition].each do |e|
-        e.set_attribute(DICT, k, v.to_f)
-        e.set_attribute(DICT, "_#{k}_nominal", v.to_f)
+        e.set_attribute(DICT, k, v)
+        e.set_attribute(DICT, "_#{k}_nominal", v)
+        e.set_attribute(DICT, "_#{k}_formula", format('%.4f', v * 2.54))
       end
     end
+    inst.definition.set_attribute(GROESSE_DICT, 'zoll', groesse)
+  end
+
+  # Inhalt passt nicht (mehr) zur gebauten Größe, z. B. von der DC gestaucht, oder ein
+  # Schrank von vor dieser Prüfung -> neu aufbauen
+  GROESSE_DICT = 'JT_Groesse'.freeze
+  def self.groesse_falsch?(inst)
+    soll = inst.definition.get_attribute(GROESSE_DICT, 'zoll')
+    bb = inst.definition.bounds
+    return false unless bb.respond_to?(:width)
+    return true unless soll.is_a?(Array) && soll.size == 3
+    [bb.width, bb.height, bb.depth].zip(soll).any? { |a, b| (a.to_f - b.to_f).abs > 0.02 }
   end
 
   def self.neu_aufbauen(model, inst, masse_neu)
@@ -565,6 +585,7 @@ module EckOberschrank
     inst = model.entities.add_instance(defn, Geom::Transformation.translation([x, 0, 0]))
     inst.name = NAME
     inst.set_attribute(DICT, '_name', NAME)
+    groesse_uebernehmen(inst)
     model.commit_operation
 
     if defined?($dc_observers) && $dc_observers
