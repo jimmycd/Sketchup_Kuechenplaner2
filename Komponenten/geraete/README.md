@@ -14,11 +14,11 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 
 | Szene | `Geraete_Plan` | `Geraete_Render` | wofür |
 |---|---|---|---|
-| Planung | an | aus | farbige, halbtransparente Blöcke mit Beschriftung (Gerät und Nischenmaß) |
+| Planung | an | aus | Gerätemodell mit Beschriftung (Gerät und Nischenmaß) |
 | Kunde | aus | an | Rendering: Schwarzglas, Edelstahl, Gehäuse |
 | Zuschnitt | aus | aus | Stückliste/Etiketten, keine Geräte |
 
-Farben im Planblock: orange = Kochen (Backofen, Kompakt, Kochfeld, Haube), türkis = Wasser (Spüler, Spüle), blau = sonstige (Mikrowelle, Wärmeschublade).
+In der Planung steht das Gerät selbst in der Nische (kein farbiger Kasten mehr: der sah aus wie eine leere Nische), dazu die Beschriftung mit Nischenmaß.
 
 ## Welcher Schrank bekommt welches Gerät
 | Schrank | Nische | Gerät |
