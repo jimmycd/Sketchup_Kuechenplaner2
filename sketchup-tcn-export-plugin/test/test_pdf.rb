@@ -30,6 +30,7 @@ check(PdfHelfer.texte(s).include?('Klammern (a) und \\'), 'Klammern und Backslas
 check(s.include?('/Title (Pr'), 'Titel im PDF')
 check(s.include?('0 1 -1 0 '), 'gedrehter Text')
 check(P.cp1252('a→b') == 'a?b'.encode('Windows-1252'), 'nicht darstellbare Zeichen als ?')
+check(P.cp1252('a − b') == 'a - b'.encode('Windows-1252'), 'Minuszeichen als -')
 
 # Textbreite Helvetica: "Hallo" = H 722 + a 556 + l 222 + l 222 + o 556 = 2278/1000 je mm Schriftgröße
 check((P.textbreite('Hallo', 10) - 22.78).abs < 1e-6, "Textbreite: #{P.textbreite('Hallo', 10)}")
@@ -47,6 +48,17 @@ qr = JTools::SchrankCnc::RQRCodeCore::QRCode.new('HS1_Boden.tcn', level: :m)
 check(qr.module_count == 21, "QR Version 1 (21 Module): #{qr.module_count}")
 # Suchmuster oben links: 7 × 7 Rahmen
 check((0..6).all? { |i| qr.checked?(0, i) && qr.checked?(i, 0) && qr.checked?(6, i) } && !qr.checked?(1, 1), 'QR-Suchmuster')
+
+# auf_seite: nachträglich auf eine frühere Seite zeichnen; tabelle bricht bei y_max ab
+d = P.new
+d.seite(100, 50).seite(100, 80)
+d.auf_seite(0) { d.text(5, 10, 'Fuss eins', groesse: 3) }
+d.text(5, 10, 'zwei', groesse: 3)
+check(PdfHelfer.texte(d.to_s, 0) == ['Fuss eins'] && PdfHelfer.texte(d.to_s, 1) == ['zwei'], 'auf_seite zeichnet auf Seite 1, danach wieder auf die letzte')
+check((d.auf_seite(5) {} rescue :fehler) == :fehler, 'auf_seite: unbekannte Seite')
+y, n = d.tabelle(5, 10, [['A', 20, :links], ['B', 20, :rechts]], (1..20).map { |i| [i, i * 2] }, 40)
+check(n == 5 && (y - 10 - 6 * 4.6).abs < 1e-9, "tabelle: 5 Zeilen bis y_max (#{n}, #{y})")
+check(PdfHelfer.texte(d.to_s, 1).first(3) == %w[zwei A B], 'tabelle: Kopfzeile')
 
 puts $fehler.zero? ? 'OK: PDF' : "#{$fehler} Fehler"
 exit($fehler.zero? ? 0 : 1)

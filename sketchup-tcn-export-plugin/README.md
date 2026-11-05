@@ -89,11 +89,13 @@ Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küche
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
 
 ## Stückliste
-*Erweiterungen › Küchenplaner › Stückliste…* Sie fragt nach einem Ordner, schreibt `Stueckliste.csv` (Semikolon, Dezimalkomma, Windows-1252 für Excel) und `Stueckliste.html` und öffnet die Druckseite im Browser (A4 quer, je Material und Stärke eine Tabelle mit Stückzahl, Rohfläche und Anleimer-Laufmetern). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+*Erweiterungen › Küchenplaner › Stückliste…* Ein Dateidialog fragt, wo die PDF gespeichert wird (Vorschlag `Stueckliste_<Modellname>.pdf` im Ordner des Modells). Geschrieben werden die **PDF** (A4 quer, je Material und Stärke eine Tabelle mit Stückzahl, Rohfläche und Anleimer-Laufmetern, Rohmaß fett, lange Tabellen laufen mit wiederholtem Spaltenkopf über mehrere Seiten, Fuß „Seite x von n“) und daneben mit gleichem Namen die **CSV** (Semikolon, Dezimalkomma, Windows-1252 für Excel). Danach öffnet sich die PDF im PDF-Leser zum Drucken („Tatsächliche Größe“ oder „An Seite anpassen“). Ist die Datei noch im PDF-Leser offen und kann nicht überschrieben werden, kommt ein Hinweis. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+
+Die PDF schreibt das Plugin selbst mit `pdf.rb` (kein Browser, kein Druckertreiber, keine fremde Bibliothek), wie Etiketten und Zuschnittplan; Tabellen zeichnet `Pdf#tabelle`, den Seitenfuß `Pdf#auf_seite`. Die frühere HTML-Druckseite gibt es nicht mehr.
 
 * Eine Zeile je TCN-Datei wie beim TCN-Export (gleiche Teile zusammengefasst, Spalte Anzahl), mit laufender Nummer, Tag und TCN-Dateiname. So passen Stückliste, TCN und Fräsliste immer zusammen.
 * **Fertigmaß** = Maß im Modell, **Fräsmaß** = Fertigmaß minus Anleimer an jeder Kante mit Anleimer (= DL/DH der TCN), **Rohmaß** = Fräsmaß plus Übermaß (Zuschnitt an der Formatsäge). L ist die längere, B die kürzere Seite.
-* Kanten: L1/L2 die beiden Längskanten, B1/B2 die Querkanten, jeweils mit dem Anleimer-Material (auf der Druckseite als Kürzel A, B … mit Legende).
+* Kanten: L1/L2 die beiden Längskanten, B1/B2 die Querkanten, jeweils mit dem Anleimer-Material (in der PDF als Kürzel A, B … mit Legende).
 * Maserung: aus dem Material (*Materialien…*). Mit Maserung ist L die Seite in Faserrichtung (Fronten senkrecht, siehe Maserrichtung), sonst die längere Seite.
 * Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
 

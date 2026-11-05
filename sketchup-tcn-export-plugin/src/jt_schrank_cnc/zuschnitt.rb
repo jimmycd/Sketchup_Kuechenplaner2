@@ -277,28 +277,9 @@ module JTools
         end
       end
 
-      # Einfache Tabelle; gibt die y-Position unter der letzten Zeile zurück
+      # Einfache Tabelle (Pdf#tabelle); gibt die y-Position unter der letzten Zeile zurück
       def tabelle(doc, x, y, spalten, zeilen, y_max)
-        zh = 4.6
-        breite = spalten.sum { |s| s[1] }
-        doc.rechteck(x, y, breite, zh, fuellung: [0.92, 0.92, 0.92], rand: nil)
-        sx = x
-        spalten.each do |t, w, a|
-          doc.text(a == :rechts ? sx + w - 1 : sx + 1, y + 3.3, t, groesse: 2.8, fett: true, ausrichtung: a, max: w - 2)
-          sx += w
-        end
-        y += zh
-        zeilen.each do |z|
-          break if y + zh > y_max
-          sx = x
-          spalten.each_with_index do |(_, w, a), i|
-            doc.text(a == :rechts ? sx + w - 1 : sx + 1, y + 3.3, z[i].to_s, groesse: 2.8, ausrichtung: a, max: w - 2)
-            sx += w
-          end
-          doc.linie(x, y + zh, x + breite, y + zh, staerke: 0.1, farbe: [0.7, 0.7, 0.7])
-          y += zh
-        end
-        y
+        doc.tabelle(x, y, spalten, zeilen, y_max).first
       end
 
       def kopf(doc, g, p, nrn, zusatz = nil)
