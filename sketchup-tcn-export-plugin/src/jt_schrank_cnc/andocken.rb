@@ -175,8 +175,9 @@ module JTools
         end
 
         # --- freier Platz ------------------------------------------------------------
-        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art], …] (Wände: nil = ganze
-        # Höhe, art :wand; andere Schränke: :schrank). Platz, wenn der Kasten k in Lage l
+        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art, frontwinkel], …] (Wände:
+        # nil = ganze Höhe, art :wand; andere Schränke: :schrank; frontwinkel = Richtung der Front
+        # des Rechtecks, ohne ihn gilt der Winkel der Lage). Platz, wenn der Kasten k in Lage l
         # keines davon um mehr als tol überlappt (Berühren ist erlaubt). Gerechnet im System
         # des Hindernisses.
         def platz?(k, l, hindernisse, tol = TOLERANZ)
@@ -225,17 +226,21 @@ module JTools
           fangpunkt = kanten.min_by { |c| (c - xs).abs }
           xs = fangpunkt if fangpunkt && (fangpunkt - xs).abs <= fang
           xs = [[xs, 0.0].max, laenge - b].min if laenge && laenge >= b # nicht über das Wandende hinaus
+          richtung = winkel(wl[0] + q * VIERTEL)
           huellen = hindernisse.select { |_, _, hz| z_ueberlappt?(z, hz, tol) }
-                               .map { |hl, hb, _, art| [huelle(hl, hb, wl), art] }
+                               .map { |hl, hb, _, art, fw| [huelle(hl, hb, wl), art, gleich_gerichtet?(fw || hl[0], richtung)] }
           gesperrt = lambda do |y0|
             huellen.select { |h, _| h[3] > y0 + r[2] + tol && h[2] < y0 + r[3] - tol }
                    .map { |h, _| [h[0] - b, h[1]] }
           end
           xs = naechster_freier(xs, gesperrt.call(oy))
           return nil unless xs
-          # Vorderkante bündig mit einem anliegenden Schrank, wenn dieser weiter vorne steht
-          nachbar = huellen.find do |h, art|
-            art == :schrank && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
+          # Vorderkante bündig mit einem anliegenden Schrank, wenn dieser weiter vorne steht und
+          # seine Front in dieselbe Richtung zeigt (gleiche Zeile). Steht der neue Schrank quer vor
+          # der Front eines Eckschranks (Blindeck: die Nachbarzeile deckt den Blindteil ab), bleibt
+          # seine Rückseite an der Wand (Jürgen 2026-11-05: Hinterkante bündig).
+          nachbar = huellen.find do |h, art, gleich|
+            art == :schrank && gleich && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
               ((h[1] - xs).abs <= tol || (h[0] - xs - b).abs <= tol)
           end
           if nachbar
@@ -244,6 +249,21 @@ module JTools
           end
           x, y = welt(wl, xs - r[0], oy)
           [winkel(wl[0] + q * VIERTEL), x, y, xs]
+        end
+
+        # zeigen zwei Fronten (Winkel) in dieselbe Richtung?
+        def gleich_gerichtet?(a, b)
+          d = (winkel(a) - winkel(b)).abs
+          d < 1e-6 || (d - 2 * Math::PI).abs < 1e-6
+        end
+
+        # Richtung der Front je Grundriss-Rechteck in Vierteln gegenüber dem Schrank: normal 0;
+        # L-Form: Schenkel B (zweites Rechteck) zeigt mit seiner Front zur Seite (+x, wenn er
+        # links liegt, sonst -x).
+        def front_viertel(rechtecke)
+          return [0] * rechtecke.size if rechtecke.size < 2
+          a, b = rechtecke
+          [0, (b[0] - a[0]).abs < TOLERANZ ? 1 : 3]
         end
 
         # nächste Wand zum Punkt (Abstand zur Wandstrecke): Index in waende
@@ -531,7 +551,10 @@ module JTools
         waende(model, vorgabe(:wandabstand) * MM) + andere.flat_map do |e|
           b = bezug(e)
           l = lage(e.transformation)
-          grundrisse(e, b).map { |r| [l, r, [l[3] + b[4], l[3] + b[5]], :schrank] }
+          rs = grundrisse(e, b)
+          rs.zip(Rechnung.front_viertel(rs)).map do |r, fv|
+            [l, r, [l[3] + b[4], l[3] + b[5]], :schrank, Rechnung.winkel(l[0] + fv * VIERTEL)]
+          end
         end
       end
 
