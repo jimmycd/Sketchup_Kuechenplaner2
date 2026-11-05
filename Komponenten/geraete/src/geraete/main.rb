@@ -563,9 +563,9 @@ module Geraete
     (0..2).map { |k| (0..2).sum { |r| m[k * 4 + r] * d[r] } }
   end
 
-  # Schränke in der Auswahl, sonst im ganzen Modell (oberste Ebene)
-  def self.schraenke(model)
-    quelle = model.selection.to_a.empty? ? model.entities.to_a : model.selection.to_a
+  # Schränke in der Auswahl, sonst (oder mit alle = true) im ganzen Modell (oberste Ebene)
+  def self.schraenke(model, alle = false)
+    quelle = alle || model.selection.to_a.empty? ? model.entities.to_a : model.selection.to_a
     quelle.grep(Sketchup::ComponentInstance).reject { |i| geraet?(i) }.select { |i| nischen(i.definition).any? }
   end
 
@@ -632,6 +632,51 @@ module Geraete
     anzahl += schraenke.sum { |s| entfernen_aus(s) }
     model.commit_operation
     UI.messagebox("#{anzahl} Geräte entfernt. Mit \"Geräte in Schränke setzen\" lassen sie sich jederzeit wieder einsetzen.")
+    anzahl
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Entfernen: #{e.message}")
+    raise
+  end
+
+  # ---------- Schalter der Symbolleiste (Geräte ein/aus, wie Schrank-Beschriftung) ----------
+
+  # Eingeschaltet (Icon gedrückt), sobald in einem Schrank (oberste Ebene) ein Gerät steckt
+  def self.eingesetzt?(model = Sketchup.active_model)
+    return false unless model
+    model.entities.grep(Sketchup::ComponentInstance).any? do |s|
+      !geraet?(s) && s.definition.entities.grep(Sketchup::ComponentInstance).any? { |k| geraet?(k) }
+    end
+  end
+
+  # Klick auf den Schalter: sind Geräte eingesetzt, alle entfernen, sonst in alle Schränke
+  # setzen – unabhängig von der Auswahl und ohne Erfolgsmeldung. Liefert den neuen Zustand.
+  def self.umschalten(model = Sketchup.active_model)
+    eingesetzt?(model) ? alle_entfernen(model) : alle_einsetzen(model)
+    eingesetzt?(model)
+  end
+
+  def self.alle_einsetzen(model = Sketchup.active_model)
+    liste = schraenke(model, true)
+    if liste.empty?
+      UI.messagebox('Keine Schränke mit Gerätenische gefunden (Geschirrspüler, Kühlschrank, Kochfeld, Herdumbau, Spüle, Hochschrank Geräte, Hochschrank Kühlschrank).')
+      return 0
+    end
+    model.start_operation('Geräte in Schränke setzen', true)
+    anzahl = liste.sum { |s| einsetzen(model, s) }
+    model.commit_operation
+    anzahl
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Einsetzen: #{e.message}")
+    raise
+  end
+
+  def self.alle_entfernen(model = Sketchup.active_model)
+    liste = model.entities.grep(Sketchup::ComponentInstance).reject { |i| geraet?(i) }
+    model.start_operation('Geräte entfernen', true)
+    anzahl = liste.sum { |s| entfernen_aus(s) }
+    model.commit_operation
     anzahl
   rescue StandardError => e
     model.abort_operation

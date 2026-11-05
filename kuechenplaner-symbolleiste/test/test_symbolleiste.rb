@@ -73,7 +73,7 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Frontfarbe und Griffe', 'TCN exportieren',
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Frontfarbe und Griffe', 'TCN exportieren',
                  'Stückliste', 'Etiketten', 'Zuschnittplan', 'Rendern', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
@@ -103,6 +103,17 @@ bs.aktion.call
 check(umgeschaltet == 1 && bs.validation.call == MF_CHECKED, 'Beschriftung: Klick schaltet ein, Icon gedrückt')
 bs.aktion.call
 check(umgeschaltet == 2 && bs.validation.call == MF_ENABLED, 'Beschriftung: zweiter Klick schaltet aus')
+
+# Geräte: Schalter, gedrückt = Geräte eingesetzt
+gs = tb.befehle.find { |c| c.titel == 'Geräte einsetzen/entfernen' }
+geschaltet = 0
+drin = false
+Geraete.define_singleton_method(:umschalten) { |*_a| geschaltet += 1; drin = !drin }
+Geraete.define_singleton_method(:eingesetzt?) { |*_a| drin }
+gs.aktion.call
+check(geschaltet == 1 && gs.validation.call == MF_CHECKED, 'Geräte: Klick setzt ein, Icon gedrückt')
+gs.aktion.call
+check(geschaltet == 2 && gs.validation.call == MF_ENABLED, 'Geräte: zweiter Klick entfernt, Icon nicht gedrückt')
 
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
