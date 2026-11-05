@@ -40,29 +40,13 @@ def bahnen(text, werkzeug)
   text.split("\r\n").each_with_index.select { |z, _| z.include?("#205=#{werkzeug} ") }.map do |z, i|
     x, y, t = z.match(/#1=(\S+) #2=(\S+) #3=(\S+)/).captures.map(&:to_f)
     pts = [[x, y]]
-    text.split("\r\n")[(i + 1)..].take_while { |l| l =~ /\AW#2(201|125)/ }.each do |l|
-      if l.start_with?('W#2125')
-        # tangentialer Bogen: Radius #8017, Winkel #8046 (TPA-Ansicht mit y nach unten:
-        # positiv = in Maschinenkoordinaten im Uhrzeigersinn, daher negiert)
-        r = l[/#8017=(\S+)/, 1].to_f
-        w = -l[/#8046=(\S+)/, 1].to_f * Math::PI / 180
-        a, b = pts[-2], pts[-1]
-        l0 = Math.hypot(b[0] - a[0], b[1] - a[1])
-        e = [(b[0] - a[0]) / l0, (b[1] - a[1]) / l0]
-        sg = w.positive? ? 1 : -1
-        c = [b[0] - sg * e[1] * r, b[1] + sg * e[0] * r]
-        a0 = Math.atan2(b[1] - c[1], b[0] - c[0])
-        $boegen << [r, l[/#8046=(\S+)/, 1].to_f]
-        pts << [(c[0] + r * Math.cos(a0 + w)).round(4), (c[1] + r * Math.sin(a0 + w)).round(4)]
-      else
-        dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
-        pts << [pts.last[0] + dx, pts.last[1] + dy]
-      end
+    text.split("\r\n")[(i + 1)..].take_while { |l| l.start_with?('W#2201') }.each do |l|
+      dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
+      pts << [pts.last[0] + dx, pts.last[1] + dy]
     end
     [pts, t]
   end
 end
-$boegen = []
 def nahe(a, b, eps = 0.01) = (a - b).abs < eps
 
 # L-Küche wie in test_ausgabe.rb: hinten Blindeck 1000 + 600, links 2 × 600, Gehrungsansatz
@@ -117,20 +101,15 @@ pb = kb[0][0]
 check(pb.any? { |x, y| nahe(x, -10) && y > 30 && y < 835 }, "Kontur B: #{pb}")
 check(pb.all? { |x, _| x <= 30 + 10 + 0.01 }, "Kontur B nur am Gehrungsansatz: #{pb.map(&:first).max}")
 
-# Bogen des Gehrungsansatzes als echter Bogen (W#2125) statt kurzer Geraden:
-# R 30 um den Fräserradius versetzt, A innen (R 20), B außen (R 40), je 45°
-check(a.text.scan('W#2125').size == 2 && b.text.scan('W#2125').size == 2, 'je ein Bogen W#2125 pro Zustellung')
-# #8046 wie in der TPA-Ansicht (y nach unten): A biegt von der Stoßkante (nach rechts) zur
-# Vorderkante (y größer) ab, auf dem Bildschirm also nach unten = im Uhrzeigersinn = negativ
-check($boegen.map { |r, w| [r.round(2), w.round(2)] }.uniq.sort == [[20.0, -45.0], [40.0, 45.0]], "Bögen: #{$boegen}")
-# Bahn bleibt stetig: nach dem Bogen geht die Gehrung von dessen Endpunkt aus weiter Richtung Vorderkante
-ia = pa.index { |x, y| nahe(y, 815) && x > 780 }
-check(ia && pa[ia + 1][1] > 815 && pa[ia + 1][0] > pa[ia][0], "Kontur A: Bogen biegt zur Vorderkante ab: #{pa}")
-# Bogenzeile wie in beispiele/bogen.tcn (EW2 Drehrichtung = Automatisch), nur Radius und Winkel anders
-muster = ->(l) { l.sub(/#8017=\S+/, '#8017=R').sub(/#8046=\S+/, '#8046=W') }
-vorlage = File.read(File.join(haupt, 'sketchup-tcn-export-plugin/beispiele/bogen.tcn'))[/^W#2125\{.*\}W/]
-check(vorlage && (a.text + b.text).scan(/^W#2125\{.*\}W/).all? { |l| muster.(l) == muster.(vorlage) }, 'Bogenzeile wie im Beispiel (EW2 automatisch)')
-check(a.text.split("\r\n").count { |l| l.start_with?('W#2201') } < 20, 'keine kurzen Geraden mehr im Bogen')
+# Bogen des Gehrungsansatzes als kurze Geraden wie früher, kein W#2125-Kreisbogen
+# (Jürgen 2026-11-05: Bogen-Änderung zurückgerollt)
+check(!a.text.include?('W#2125') && !b.text.include?('W#2125'), 'kein Kreisbogen W#2125')
+# Bahn bleibt stetig und biegt über mehrere kurze Geraden von der Stoßkante (y = 815) zur Vorderkante ab
+ia = pa.rindex { |x, y| nahe(y, 815) && x > 780 }
+knick = ia && pa[(ia + 1)..].take_while { |x, y| y < 835 }
+check(knick && knick.size >= 4 && knick.each_cons(2).all? { |p0, p1| Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) < 15 || p1 == knick.last },
+      "Kontur A: Bogen aus kurzen Geraden zur Vorderkante: #{pa}")
+check(pa.each_cons(2).all? { |p0, p1| p1[0] >= p0[0] - 0.01 || p0[1] < 815 - 0.01 }, "Kontur A läuft ohne Rücksprung: #{pa}")
 
 # Teileliste mit den Arbeitsplatten
 tl = S::Export.teileliste(dateien)
