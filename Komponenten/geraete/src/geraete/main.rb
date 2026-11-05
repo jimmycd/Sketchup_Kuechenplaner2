@@ -16,7 +16,7 @@
 #
 # Jedes Gerät ist eine Komponente "Geraet <Kennung>" mit dem Wörterbuch
 # "JT_Geraet" (geraet, nische, schrank) und zwei Darstellungen:
-#   Tag "Geraete_Plan":   halbtransparenter Block mit Beschriftung (Planung)
+#   Tag "Geraete_Plan":   Gerätemodell mit Beschriftung (Planung)
 #   Tag "Geraete_Render": Modell aus Schwarzglas, Edelstahl und Gehäuse (Kunde)
 # Geräte sind keine Schrankteile: kein Plattenmaterial, kein JT_Schrank, keine
 # Teil-Tags. Der TCN-Export übergeht sie; für Stückliste/Etiketten die Szene "Zuschnitt"
@@ -462,24 +462,18 @@ module Geraete
     rd = model.definitions.add("Geraet #{nische['geraet']} Render")
     r[:teile].each { |name, mat, pos, groesse| box(model, rd.entities, name, mat, pos, groesse) }
 
-    # Planung: Block in der Planfarbe mit Beschriftung. Ohne Planblock (Spüle) zeigt die
-    # Planung das Modell selbst, ohne Kasten drumherum.
+    # Planung: das Gerätemodell selbst mit Beschriftung (Gerät und Nischenmaß). Ein farbiger Kasten
+    # um das Gerät sah aus wie eine leere Nische (Jürgen 2026-11-05: "Backofen/Kochfeld wird nicht
+    # eingesetzt"), bei der Spüle verdeckte er das Becken (2026-11-02). Die Beschriftung steht vorn
+    # mittig auf dem früheren Planblock (r[:plan]), bei der Spüle auf dem Rand.
     pd = model.definitions.add("Geraet #{nische['geraet']} Plan")
-    if r[:plan]
-      px, py, pz, *pg = r[:plan]
-      quader(pd.entities, *pg)
-      text_pos = [pg[0] / 2, 0, pg[2] / 2]
-    else
-      px = py = pz = 0
-      pd.entities.add_instance(rd, verschiebung([0, 0, 0]))
-      text_pos = r[:text_pos]
-    end
+    pd.entities.add_instance(rd, verschiebung([0, 0, 0]))
+    text_pos = r[:text_pos] || (px, py, pz, lx, _, lz = r[:plan]; [px + lx / 2, py, pz + lz / 2])
     if pd.entities.respond_to?(:add_text)
       pd.entities.add_text(r[:text], Geom::Point3d.new(*text_pos.map { |v| inch(v) }))
     end
-    plan = d.entities.add_instance(pd, verschiebung([px, py, pz]))
+    plan = d.entities.add_instance(pd, verschiebung([0, 0, 0]))
     plan.name = 'Plan'
-    plan.material = material(model, ARTEN[a[0]][1]) if r[:plan]
     plan.layer = tag(model, TAG_PLAN)
 
     render = d.entities.add_instance(rd, verschiebung([0, 0, 0]))

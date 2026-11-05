@@ -137,12 +137,9 @@ erwartet.each_key do |s|
     check(kinder.map { |k| k.layer&.name }.sort == [G::TAG_PLAN, G::TAG_RENDER], "#{g.definition.name}: Tags #{kinder.map { |k| k.layer&.name }}")
     check(g.layer.nil?, "#{g.definition.name}: Gerät selbst ohne Tag")
     plan = kinder.find { |k| k.name == 'Plan' }
-    if g.definition.get_attribute(G::GERAET_DICT, 'geraet') == 'Spuele'
-      check(plan.definition.entities.grep(Sketchup::ComponentInstance).map { |k| k.definition.name } == ['Geraet Spuele Render'] &&
-            plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Spülenmodell, keinen Kasten")
-    else
-      check(plan.material.alpha < 1, "#{g.definition.name}: Planblock halbtransparent")
-    end
+    render = kinder.find { |k| k.name == 'Render' }
+    check(plan.definition.entities.grep(Sketchup::ComponentInstance).map(&:definition) == [render.definition] &&
+          plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Gerätemodell, keinen Kasten (sonst wirkt die Nische leer)")
     check(plan.definition.entities.texte.first&.first&.include?('Nische'), "#{g.definition.name}: Beschriftung")
   end
   platzhalter = s.definition.entities.grep(Sketchup::ComponentInstance).reject { |i| G.geraet?(i) }
