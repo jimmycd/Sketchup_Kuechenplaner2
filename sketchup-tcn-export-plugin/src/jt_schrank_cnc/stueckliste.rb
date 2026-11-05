@@ -11,8 +11,9 @@
 # beiden Längskanten, B1/B2 die beiden Querkanten; im Feld steht das Anleimer-Material.
 # Schräg- und Bogenkanten (Abschlussregal) stehen unter "Kante Kontur" mit ihrer Länge;
 # Roh-, Fräs- und Fertigmaß sind dort das umschließende Rechteck (Kontur fräst die CNC).
-# Ausgabe: Stueckliste.csv (Semikolon, Dezimalkomma, für Excel) und
-# Stueckliste.html (Druckseite, je Material und Stärke eine Tabelle mit Summen).
+# Ausgabe: Stueckliste.pdf (A4 quer, je Material und Stärke eine Tabelle mit Summen, mit
+# dem eigenen PDF-Schreiber pdf.rb wie Etiketten und Zuschnittplan) und daneben
+# Stueckliste.csv (Semikolon, Dezimalkomma, für Excel).
 
 module JTools
   module SchrankCnc
@@ -124,44 +125,112 @@ module JTools
         "#{zahl(a[0])} × #{zahl(a[1])}"
       end
 
-      def html(zs, titel: 'Stückliste', meldungen: [])
-        # Anleimer-Materialien als Kürzel A, B, C … mit Legende
-        kantenmat = zs.flat_map { |z| z.kanten.values + z.kontur.keys }.compact.uniq.sort
-        kz = kantenmat.each_with_index.to_h { |m, i| [m, ('A'.ord + i).chr] }
-        o = +"<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"utf-8\"><title>#{h(titel)}</title>\n<style>\n"
-        o << "@page{size:A4 landscape;margin:10mm}body{font:11px/1.35 Arial,sans-serif;color:#000;margin:0 4mm}\n"
-        o << "h1{font-size:18px;margin:6px 0}h2{font-size:14px;margin:14px 0 4px}table{border-collapse:collapse;width:100%;page-break-inside:auto}\n"
-        o << "th,td{border:1px solid #888;padding:2px 4px;text-align:left;vertical-align:top}th{background:#eee}td.z{text-align:right;white-space:nowrap}\n"
-        o << "tr{page-break-inside:avoid}.roh{font-weight:bold}.sum{margin:3px 0 0;color:#333}.meld{color:#a00}.k{text-align:center}\n"
-        o << "</style></head><body>\n<h1>#{h(titel)}</h1>\n"
-        o << "<p>Rohmaß = Fräsmaß + Übermaß (L #{zahl(Einstellungen.uebermass_laenge)} / B #{zahl(Einstellungen.uebermass_breite)} mm); "
-        o << "Fräsmaß = Fertigmaß − Anleimer. L = längere Seite. Kanten: L1/L2 Längskanten, B1/B2 Querkanten.</p>\n"
-        unless kz.empty?
-          o << '<p>Anleimer: ' + kz.map { |m, k| "<b>#{k}</b> = #{h(m)}" }.join(', ') + "</p>\n"
-        end
-        o << "<p class=\"meld\">#{meldungen.map { |m| h(m) }.join('<br>')}</p>\n" unless meldungen.empty?
-        gruppen(zs).each do |g|
-          o << "<h2>#{h(g[:material].empty? ? '(ohne Material)' : g[:material])} – #{zahl(g[:ds])} mm</h2>\n"
-          o << '<table><tr><th>Nr</th><th>Tag</th><th>Schrank</th><th>Teil</th><th>Anz.</th>'
-          o << '<th>Rohmaß L × B</th><th>Fräsmaß</th><th>Fertigmaß</th><th>L1</th><th>L2</th><th>B1</th><th>B2</th><th>TCN-Datei</th></tr>' + "\n"
-          g[:zeilen].each do |z|
-            o << "<tr><td class=\"z\">#{z.nr}</td><td>#{h(z.tag)}</td><td>#{h(z.schrank)}</td><td>#{h(z.teil)}#{z.hinweis ? " (#{h(z.hinweis)})" : ''}#{z.kontur.empty? ? '' : " (Kontur: #{h(kontur_text(z, kz))})"}</td>"
-            o << "<td class=\"z\">#{z.anzahl}</td><td class=\"z roh\">#{mass(z.roh)}</td><td class=\"z\">#{mass(z.fraes)}</td><td class=\"z\">#{mass(z.fertig)}</td>"
-            %i[l1 l2 b1 b2].each { |k| o << "<td class=\"k\">#{kz[z.kanten[k]]}</td>" }
-            o << "<td>#{h(z.datei)}</td></tr>\n"
-          end
-          o << "</table>\n<p class=\"sum\">#{g[:stueck]} Teile, Rohfläche #{zahl(g[:flaeche].round(2))} m²"
-          g[:kanten_lfm].sort.each { |m, l| o << ", Anleimer #{kz[m]} #{zahl(l.round(1))} m" }
-          o << "</p>\n"
-        end
-        o << "</body></html>\n"
+      SEITE = [297.0, 210.0].freeze # A4 quer
+      RAND = 10.0
+      # Spalten der Tabelle (Summe 277 mm = A4 quer minus 2 × 10 mm Rand); Rohmaß fett
+      SPALTEN = [['Nr', 8, :rechts], ['Tag', 48, :links], ['Schrank', 14, :links], ['Teil', 56, :links],
+                 ['Anz.', 8, :rechts], ['Rohmaß L × B', 26, :rechts], ['Fräsmaß', 24, :rechts],
+                 ['Fertigmaß', 24, :rechts], ['L1', 6, :mitte], ['L2', 6, :mitte], ['B1', 6, :mitte],
+                 ['B2', 6, :mitte], ['TCN-Datei', 45, :links]].freeze
+      GR = 2.5       # Schriftgröße der Tabelle mm (≈ 7 pt)
+      ZH = 4.4       # Zeilenhöhe mm
+      Y_MAX = 198.0  # unterste Tabellenzeile, darunter der Seitenfuß
+
+      # Anleimer-Materialien als Kürzel A, B, C …
+      def kuerzel(zs)
+        zs.flat_map { |z| z.kanten.values + z.kontur.keys }.compact.uniq.sort
+          .each_with_index.to_h { |m, i| [m, ('A'.ord + i).chr] }
       end
 
-      def schreiben(ordner, zs, meldungen = [])
-        Tcn.write(File.join(ordner, 'Stueckliste.csv'), csv(zs))
-        p = File.join(ordner, 'Stueckliste.html')
-        File.binwrite(p, html(zs, titel: "Stückliste #{File.basename(ordner.to_s.tr('\\', '/'))}", meldungen: meldungen).encode('UTF-8').b)
-        p
+      def tabellenzeile(z, kz)
+        teil = z.teil.to_s
+        teil += " (#{z.hinweis})" if z.hinweis
+        teil += " (Kontur: #{kontur_text(z, kz)})" unless z.kontur.empty?
+        [z.nr, z.tag, z.schrank, teil, z.anzahl, mass(z.roh), mass(z.fraes), mass(z.fertig),
+         *%i[l1 l2 b1 b2].map { |k| kz[z.kanten[k]] }, z.datei]
+      end
+
+      def summe_text(g, kz)
+        t = +"#{g[:stueck]} Teile, Rohfläche #{zahl(g[:flaeche].round(2))} m²"
+        g[:kanten_lfm].sort.each { |m, l| t << ", Anleimer #{kz[m]} #{zahl(l.round(1))} m" }
+        t
+      end
+
+      # Stückliste als PDF (Pdf-Objekt): Kopf mit Erklärung, Legende und Hinweisen, dann je
+      # Material und Stärke eine Tabelle mit Summenzeile; Tabellen laufen über mehrere Seiten
+      # (Spaltenköpfe auf jeder Seite wiederholt), Fuß mit Titel und „Seite x von n“.
+      def pdf(zs, titel: 'Stückliste', meldungen: [])
+        kz = kuerzel(zs)
+        doc = Pdf.new(titel: titel)
+        doc.seite(*SEITE)
+        doc.text(RAND, 16, titel, groesse: 6, fett: true, max: 277)
+        y = 23.0
+        erkl = ["Rohmaß = Fräsmaß + Übermaß (L #{zahl(Einstellungen.uebermass_laenge)} / B #{zahl(Einstellungen.uebermass_breite)} mm); " \
+                'Fräsmaß = Fertigmaß − Anleimer. L = längere Seite (mit Maserung: in Faserrichtung).',
+                'Kanten: L1/L2 Längskanten, B1/B2 Querkanten; Buchstabe = Anleimer (Legende). Nummern und Tags wie auf Etiketten und Zuschnittplan.']
+        erkl.each { |t| doc.text(RAND, y, t, groesse: 2.8, max: 277); y += 4.2 }
+        unless kz.empty?
+          doc.text(RAND, y, 'Anleimer: ' + kz.map { |m, k| "#{k} = #{m}" }.join(', '), groesse: 2.8, max: 277)
+          y += 4.2
+        end
+        meldungen.first(10).each do |m|
+          doc.text(RAND, y, m, groesse: 2.8, farbe: [0.7, 0, 0], max: 277)
+          y += 4.2
+        end
+        y += 2
+        gruppen(zs).each do |g|
+          ueber = "#{g[:material].empty? ? '(ohne Material)' : g[:material]} – #{zahl(g[:ds])} mm"
+          zeilen = g[:zeilen].map { |z| tabellenzeile(z, kz) }
+          erste = true
+          # Überschrift nur mit Platz für Kopf und mindestens eine Zeile, sonst neue Seite
+          until zeilen.empty? && !erste
+            if y + 6 + 2 * ZH > Y_MAX
+              doc.seite(*SEITE)
+              y = 14.0
+            end
+            doc.text(RAND, y + 4, erste ? ueber : "#{ueber} (Fortsetzung)", groesse: 3.8, fett: true, max: 277)
+            y, n = doc.tabelle(RAND, y + 6, SPALTEN, zeilen, Y_MAX, groesse: GR, zeilenhoehe: ZH, fett: [5])
+            zeilen = zeilen.drop(n)
+            erste = false
+          end
+          if y + 5 > Y_MAX
+            doc.seite(*SEITE)
+            y = 14.0
+          end
+          doc.text(RAND, y + 3.6, summe_text(g, kz), groesse: 2.8, farbe: [0.2, 0.2, 0.2], max: 277)
+          y += 9
+        end
+        n = doc.seiten.size
+        n.times do |i|
+          doc.auf_seite(i) do
+            doc.text(RAND, 205, titel, groesse: 2.4, farbe: [0.4, 0.4, 0.4], max: 200)
+            doc.text(SEITE[0] - RAND, 205, "Seite #{i + 1} von #{n}", groesse: 2.4, farbe: [0.4, 0.4, 0.4], ausrichtung: :rechts)
+          end
+        end
+        doc
+      end
+
+      # pfad = PDF-Datei; die CSV kommt mit gleichem Namen daneben. Gibt [pdf, csv] zurück.
+      def schreiben(pfad, zs, meldungen = [], titel: nil)
+        pfad = pfad.to_s
+        pfad += '.pdf' unless pfad.downcase.end_with?('.pdf')
+        csv_pfad = pfad.sub(/\.pdf\z/i, '.csv')
+        titel ||= "Stückliste #{File.basename(pfad.tr('\\', '/'), '.*').sub(/\AStueckliste_?/i, '')}".strip
+        pdf(zs, titel: titel, meldungen: meldungen).schreiben(pfad)
+        Tcn.write(csv_pfad, csv(zs))
+        [pfad, csv_pfad]
+      end
+
+      # Vorschlag für den Dateinamen: Stueckliste_<Modell>.pdf, ohne Modellnamen Stueckliste.pdf
+      def dateiname(model)
+        t = model.respond_to?(:title) ? model.title.to_s.strip : ''
+        t = t.gsub(/[\\\/:*?"<>|]/, '_')
+        t.empty? ? 'Stueckliste.pdf' : "Stueckliste_#{t}.pdf"
+      end
+
+      def startordner(model)
+        p = model.respond_to?(:path) ? model.path.to_s : ''
+        p.empty? ? nil : File.dirname(p)
       end
 
       def dialog(model = Sketchup.active_model)
@@ -171,11 +240,18 @@ module JTools
           UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
           return
         end
-        ordner = UI.select_directory(title: 'Ordner für die Stückliste')
-        return unless ordner
-        p = schreiben(ordner, zs, meldungen)
+        pfad = UI.savepanel('Stückliste als PDF speichern', startordner(model), dateiname(model))
+        return unless pfad
+        t = model.respond_to?(:title) && !model.title.to_s.strip.empty? ? "Stückliste #{model.title.to_s.strip}" : nil
+        begin
+          p, c = schreiben(pfad, zs, meldungen, titel: t)
+        rescue SystemCallError => e
+          UI.messagebox("Stückliste konnte nicht gespeichert werden (ist die PDF noch geöffnet?):\n#{e.message}")
+          return
+        end
         UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-        text = "Stückliste mit #{zs.sum(&:anzahl)} Teilen#{auswahl ? ' (nur Auswahl)' : ''}: Stueckliste.csv und Stueckliste.html in\n#{ordner}"
+        text = "Stückliste mit #{zs.sum(&:anzahl)} Teilen#{auswahl ? ' (nur Auswahl)' : ''}:\n#{p}\n#{c} (für Excel)" \
+               "\n\nDrucken mit „Tatsächliche Größe“ oder „An Seite anpassen“ (A4 quer)."
         text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
         UI.messagebox(text)
       end

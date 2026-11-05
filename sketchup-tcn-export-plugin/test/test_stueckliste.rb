@@ -1,7 +1,8 @@
-# Test ohne SketchUp: Stückliste (Roh-, Fräs-, Fertigmaß, Kanten, CSV, Druckseite) und
+# Test ohne SketchUp: Stückliste (Roh-, Fräs-, Fertigmaß, Kanten, CSV, PDF) und
 # die allgemeinen Einstellungen (Übermaß) an echten Schränken aus Komponenten/.
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
+require 'pdf_helfer'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
@@ -63,6 +64,8 @@ module UI
     def inputbox(*) = antwort
     def messagebox(m, *) = (self.meldung = m)
     def select_directory(**) = ordner
+    attr_accessor :speichern, :speichern_args
+    def savepanel(*a) = (self.speichern_args = a; speichern)
     def openURL(u) = (self.url = u)
   end
 end
@@ -101,28 +104,63 @@ check(bz[2] == 'HS1_Boden.tcn' && bz[8] == '19' && bz[9, 6] == %w[808 572 798 56
 check(S::Stueckliste.zahl(12.25) == '12,3' || S::Stueckliste.zahl(12.25) == '12,2', 'Dezimalkomma')
 check(S::Stueckliste.zahl(564.0) == '564', 'ganze Zahl ohne Komma')
 
-# --- Druckseite ---
-html = S::Stueckliste.html(zs, titel: 'Stückliste Test', meldungen: ['A<B'])
-check(html.start_with?('<!DOCTYPE html>') && html.include?('<meta charset="utf-8">'), 'HTML-Kopf')
-check(html.include?('@page{size:A4 landscape'), 'Druck A4 quer')
-check(html.include?('<h2>Melamin weiss – 19 mm</h2>'), 'Gruppe Melamin weiss 19 mm')
-check(html.include?('A&lt;B') && !html.include?('A<B'), 'Meldungen escaped')
-check(html.include?('<b>A</b> = '), 'Legende der Anleimer')
-check(html.scan('<tr><td class="z">').size == zs.size, 'eine Tabellenzeile je Teil')
+# --- PDF ---
+doc = S::Stueckliste.pdf(zs, titel: 'Stückliste Test', meldungen: ['A<B'])
+pdf = doc.to_s
+texte = PdfHelfer.texte(pdf)
+check(PdfHelfer.gueltig?(pdf), 'gültiges PDF (xref)')
+check(PdfHelfer.formate(pdf).uniq == [[297.0, 210.0]], "A4 quer: #{PdfHelfer.formate(pdf).uniq}")
+check(texte.first == 'Stückliste Test', "Titel mit Umlaut: #{texte.first}")
+check(texte.include?('Melamin weiss – 19 mm'), 'Gruppe Melamin weiss 19 mm')
+check(texte.include?('A<B'), 'Hinweise im Kopf')
+check(texte.any? { |t| t.start_with?('Anleimer: A = ') }, 'Legende der Anleimer')
+%w[Nr Tag Schrank Teil Anz. Fräsmaß Fertigmaß L1 L2 B1 B2 TCN-Datei].each { |k| check(texte.include?(k), "Spaltenkopf #{k}") }
+check(zs.all? { |x| texte.include?(x.tag) }, 'jeder Tag in der Tabelle')
+check(zs.all? { |x| texte.include?(x.datei) }, 'jede TCN-Datei in der Tabelle')
+bt = texte.index('HS1_Boden')
+check(bt && texte[bt + 4] == '808 × 572' && texte[bt + 5] == '798 × 562' && texte[bt + 6] == '800 × 562', "Boden Roh/Fräs/Fertig: #{bt && texte[bt, 8]}")
+check(pdf.b.scan(/\/F(\d) [\d.]+ Tf [^(]*\(808 \xD7 572\) Tj/n).flatten.uniq == ['2'], 'Rohmaß fett')
+check(S::Stueckliste::SPALTEN.sum { |c| c[1] } == 277, 'Spalten füllen A4 quer')
+gr.each { |g| check(texte.any? { |t| t.start_with?("#{g[:stueck]} Teile, Rohfläche") }, "Summenzeile #{g[:material]} #{g[:ds]}") }
+n = PdfHelfer.seiten(pdf)
+check(texte.include?("Seite 1 von #{n}") && texte.include?("Seite #{n} von #{n}"), "Seitenfuß Seite x von #{n}")
 
-# --- Schreiben und Dialog ---
+# viele Teile: Tabelle läuft über mehrere Seiten, Kopf wiederholt, keine Zeile verloren
+viele = (1..120).map { |i| zs.first.dup.tap { |x| x.nr = i; x.tag = "T#{i}" } }
+pv = S::Stueckliste.pdf(viele).to_s
+tv = PdfHelfer.texte(pv)
+sv = PdfHelfer.seiten(pv)
+check(sv >= 3 && PdfHelfer.gueltig?(pv), "120 Zeilen: mehrere Seiten (#{sv})")
+check((1..120).all? { |i| tv.count("T#{i}") == 1 }, '120 Zeilen: jede genau einmal')
+check(tv.count('Rohmaß L × B') == sv, 'Spaltenkopf auf jeder Seite')
+check(tv.count { |t| t.end_with?('(Fortsetzung)') } == sv - 1, 'Fortsetzung auf Folgeseiten')
+(0...sv).each { |i| check(PdfHelfer.texte(pv, i).include?("Seite #{i + 1} von #{sv}"), "Fuß Seite #{i + 1}") }
+# Zeilen liegen über dem Fuß (y in pt von unten: Fuß bei 205 mm, Tabelle bis 198 mm)
+ys = pv.scan(/1 0 0 1 [\d.]+ ([\d.]+) Tm/).flatten.map { |v| 210 - v.to_f * 25.4 / 72 }
+check(ys.all? { |v| v <= 198 || (v - 205).abs < 0.01 }, 'nichts im Fußbereich außer dem Fuß')
+check(S::Stueckliste.dateiname(Sketchup::Model.new) == 'Stueckliste.pdf', 'Dateiname ohne Modell')
+
+# --- Schreiben und Dialog (Speichern per Dateidialog) ---
 Dir.mktmpdir do |dir|
-  UI.ordner = dir
+  UI.speichern = File.join(dir, 'Kueche Meier')
   S::Stueckliste.dialog(model)
-  check(File.exist?(File.join(dir, 'Stueckliste.csv')) && File.exist?(File.join(dir, 'Stueckliste.html')), 'Dialog schreibt CSV und HTML')
-  check(File.binread(File.join(dir, 'Stueckliste.csv')).force_encoding('Windows-1252').encode('UTF-8').include?('Fräs L'), 'CSV in Windows-1252 (Excel)')
-  check(UI.url.to_s.start_with?('file:///') && UI.url.end_with?('Stueckliste.html'), "Druckseite wird geöffnet: #{UI.url}")
+  pp = File.join(dir, 'Kueche Meier.pdf')
+  check(UI.speichern_args && UI.speichern_args[2].to_s.end_with?('.pdf'), "Dateidialog schlägt PDF vor: #{UI.speichern_args.inspect}")
+  check(File.exist?(pp) && File.exist?(File.join(dir, 'Kueche Meier.csv')), 'Dialog schreibt PDF (Endung ergänzt) und CSV daneben')
+  check(PdfHelfer.gueltig?(File.binread(pp)) && PdfHelfer.texte(File.binread(pp)).first == 'Stückliste Kueche Meier', 'PDF mit Titel aus Dateiname')
+  check(Dir.children(dir).none? { |f| f.end_with?('.html') }, 'kein HTML mehr')
+  check(File.binread(File.join(dir, 'Kueche Meier.csv')).force_encoding('Windows-1252').encode('UTF-8').include?('Fräs L'), 'CSV in Windows-1252 (Excel)')
+  check(UI.url.to_s.start_with?('file:///') && UI.url.end_with?('Kueche%20Meier.pdf') || UI.url.to_s.end_with?('Kueche Meier.pdf'), "PDF wird geöffnet: #{UI.url}")
   check(UI.meldung.to_s.start_with?('Stückliste mit'), "Meldung: #{UI.meldung}")
+  # Schreiben scheitert (z. B. PDF noch im Leser offen): Meldung statt Absturz
+  UI.speichern = File.join(dir, 'gibtsnicht', 'x.pdf')
+  S::Stueckliste.dialog(model)
+  check(UI.meldung.to_s.start_with?('Stückliste konnte nicht gespeichert'), "Fehler beim Schreiben: #{UI.meldung}")
 end
-UI.ordner = nil
+UI.speichern = nil
 UI.meldung = nil
 S::Stueckliste.dialog(model)
-check(UI.meldung.nil?, 'Abbrechen bei der Ordnerwahl schreibt nichts')
+check(UI.meldung.nil?, 'Abbrechen im Dateidialog schreibt nichts')
 S::Stueckliste.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 

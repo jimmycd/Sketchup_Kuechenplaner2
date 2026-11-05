@@ -1,6 +1,6 @@
 # encoding: UTF-8
-# Schrank-CNC – kleiner PDF-Schreiber ohne fremde Bibliothek (für Etiketten und
-# Zuschnittplan). Alle Maße in mm, Ursprung links oben (wie auf dem Papier), y nach
+# Schrank-CNC – kleiner PDF-Schreiber ohne fremde Bibliothek (für Stückliste, Etiketten
+# und Zuschnittplan). Alle Maße in mm, Ursprung links oben (wie auf dem Papier), y nach
 # unten. Schrift Helvetica / Helvetica-Bold (in jedem PDF-Leser vorhanden), Text in
 # Windows-1252 (Umlaute, ß, ×, –, …). Kann Linien, Rechtecke, Kreise, Text (auch
 # um 90° gedreht), Ausschneiden (clip) und QR-Codes (rqrcode_core) zeichnen.
@@ -67,19 +67,58 @@ module JTools
         self
       end
 
+      # Im Block auf eine schon angelegte Seite zeichnen (Index ab 0), z. B. nachträglich
+      # „Seite 2 von 5“ in den Fuß, wenn die Seitenzahl erst am Ende feststeht
+      def auf_seite(i)
+        raise ArgumentError, "Pdf: keine Seite #{i}" unless i.is_a?(Integer) && i >= 0 && i < @seiten.size
+        alt = @aktuell
+        @aktuell = i
+        yield
+        self
+      ensure
+        @aktuell = alt
+      end
+
       def breite_seite
-        @seiten.last[:b]
+        aktuelle_seite[:b]
       end
 
       def hoehe_seite
-        @seiten.last[:h]
+        aktuelle_seite[:h]
+      end
+
+      # Einfache Tabelle: spalten = [[Titel, Breite mm, :links/:rechts/:mitte], …], zeilen =
+      # Arrays mit Text je Spalte. fett = Spaltenindizes, die fett gedruckt werden. Zeichnet
+      # bis y_max und gibt [y unter der letzten Zeile, Anzahl gezeichneter Zeilen] zurück.
+      def tabelle(x, y, spalten, zeilen, y_max, groesse: 2.8, zeilenhoehe: 4.6, fett: [], kopf: true)
+        breite = spalten.sum { |s| s[1] }
+        zelle = lambda do |sx, w, a, t, b|
+          tx = { links: sx + 1, rechts: sx + w - 1, mitte: sx + w / 2.0 }.fetch(a || :links)
+          text(tx, y + zeilenhoehe * 0.72, t.to_s, groesse: groesse, fett: b, ausrichtung: a || :links, max: w - 2)
+        end
+        if kopf
+          rechteck(x, y, breite, zeilenhoehe, fuellung: [0.92, 0.92, 0.92], rand: nil)
+          sx = x
+          spalten.each { |t, w, a| zelle.(sx, w, a, t, true); sx += w }
+          y += zeilenhoehe
+        end
+        n = 0
+        zeilen.each do |z|
+          break if y + zeilenhoehe > y_max
+          sx = x
+          spalten.each_with_index { |(_, w, a), i| zelle.(sx, w, a, z[i], fett.include?(i)); sx += w }
+          linie(x, y + zeilenhoehe, x + breite, y + zeilenhoehe, staerke: 0.1, farbe: [0.7, 0.7, 0.7])
+          y += zeilenhoehe
+          n += 1
+        end
+        [y, n]
       end
 
       # --- Text ---
 
-      # Text nach Windows-1252 (nicht darstellbare Zeichen als ?)
+      # Text nach Windows-1252 (Minuszeichen − als -, sonst nicht darstellbare Zeichen als ?)
       def self.cp1252(s)
-        s.to_s.encode('Windows-1252', invalid: :replace, undef: :replace, replace: '?')
+        s.to_s.tr('−', '-').encode('Windows-1252', invalid: :replace, undef: :replace, replace: '?')
       end
 
       # Textbreite in mm bei Schriftgröße groesse (mm)
@@ -235,9 +274,13 @@ module JTools
 
       private
 
-      def op
+      def aktuelle_seite
         raise 'Pdf: zuerst seite(...) aufrufen' if @seiten.empty?
-        @seiten.last[:ops]
+        @aktuell ? @seiten[@aktuell] : @seiten.last
+      end
+
+      def op
+        aktuelle_seite[:ops]
       end
 
       def f(v)

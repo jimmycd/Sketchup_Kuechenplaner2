@@ -2,6 +2,7 @@
 # Komponenten/ (mit der Mock-API erzeugt), verglichen mit Jürgens Beispiel-TCN.
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
+require 'pdf_helfer'
 require 'tmpdir'
 komp = File.expand_path('../../Komponenten', __dir__)
 load File.join(komp, 'hochschrank/src/hochschrank/main.rb')
@@ -883,7 +884,7 @@ check(rz && rz.fraes.map(&:round) == [520, 262] && rz.kanten.values.compact.empt
       "Regal schräg: Stückliste Boden #{rz && [rz.fraes, rz.kanten, rz.kontur]}")
 rc = S::Stueckliste.csv(S::Stueckliste.zeilen(rd)).split("\r\n").find { |l| l.start_with?('') && l.include?('RA1_Boden;') }
 check(rc.to_s.end_with?(';Anleimer Melamin weiss 453,4 mm'), "Regal: CSV Kante Kontur #{rc}")
-check(S::Stueckliste.html(S::Stueckliste.zeilen(rd)).include?('(Kontur: A 453,4 mm)'), 'Regal: Druckseite Kontur')
+check(PdfHelfer.texte(S::Stueckliste.pdf(S::Stueckliste.zeilen(rd))).any? { |t| t.end_with?('(Kontur: A 453,4 mm)') }, 'Regal: Stückliste-PDF Kontur')
 
 # Rund, Seite außen links: Viertelkreis R 262, Bahn R 270 (Radius + 10 - 2) als kurze Geraden,
 # kein W#2125 (Jürgen 2026-11-05: TPA meldete beim Deckel "Radius ungültig")
