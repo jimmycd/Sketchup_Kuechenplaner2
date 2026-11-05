@@ -6,9 +6,11 @@
 # aktuellen Modell. Maße und Optionen danach in den Komponentenoptionen einstellen.
 #
 # Aufbau: Korpus wie der Unterschrank mit Tür (Seiten, Boden, Streben oben),
-# aber mit Installationsebene: die Rückwand steht 50 mm vor der Hinterkante in
+# aber mit Installationsebene: die Rückwand steht 50 mm vor der Rückseite in
 # einer Nut der Seiten, auf dem Boden, und hat einen rechteckigen Ausschnitt für
-# die Wasser- und Abwasseranschlüsse. Keine Einlegeböden.
+# die Wasser- und Abwasseranschlüsse. Keine Einlegeböden. Die Rückseite liegt immer in
+# einer Flucht mit dem Unterschrank (Tiefe + Rückwand): Seiten und Boden sind dann um die
+# Rückwandstärke länger. Installationsebene 0 = Rückwand wie beim Unterschrank hinter dem Korpus.
 # Fronten: Türen (eine oder zwei) oder oben eine feste Blende (Spülbecken) und
 # darunter ein Auszug Blum LEGRABOX für den Abfallsammler. Über dem Kasten
 # bleibt unter der Blende Platz für den Siphon (Siphon_Freiraum).
@@ -66,7 +68,7 @@ module Spuelenschrank
     'Art_Tuer'                  => 2.0,   # 1 = eine Tür (Anschlag links), 2 = zwei Türen
     'Hoehe_Blende'              => 20.0,
     'Siphon_Freiraum'           => 20.0,  # Unterkante Blende -> Oberkante Kasten, mindestens
-    'Rueckwand_Versatz'         => 5.0,   # Installationsebene: Hinterkante Seite -> Rückseite Rückwand
+    'Rueckwand_Versatz'         => 5.0,   # Installationsebene: Rückseite Schrank -> Rückseite Rückwand (0 = hinter dem Korpus)
     'Ausschnitt_Unten'          => 25.0,  # Rückwand-Ausschnitt: Unterkante über Unterkante Korpus
     'Ausschnitt_Hoehe'          => 40.0,  # 0 = kein Ausschnitt
     'Ausschnitt_Rand'           => 5.0,   # Steg links, rechts und oben
@@ -91,18 +93,45 @@ module Spuelenschrank
   HILFE_KURZ = 'Spülenschrank mit Türen oder Blende + Auszug (Abfallsammler), Installationsebene'.freeze
 
   # ---------------------------------------------------------------------------
+  # Installationsebene (Jürgen 2026-11-05: die Rückseite muss mit den anderen Unterschränken
+  # durchgehen). Die Rückseite des Schranks liegt wie beim Unterschrank bei Tiefe + Rückwand
+  # hinter dem Korpusanfang.
+  #   Versatz 0: Rückwand wie beim Unterschrank, volle Breite und Höhe hinter Seiten und Boden.
+  #   Versatz > 0: Seiten und Boden reichen bis zur Rückseite (Tiefe + Rückwand), die Rückwand
+  #   steckt in der Seitennut, ihre Rückseite liegt Versatz vor der Rückseite des Schranks.
+  #   Hinter der Nut bleiben mindestens VERSATZ_MIN (kleinere Werte werden darauf angehoben).
+  # ---------------------------------------------------------------------------
+  VERSATZ_MIN = 1.0 # cm
+
+  def self.versatz(p)
+    v = p['Rueckwand_Versatz']
+    v > 0 ? [v, VERSATZ_MIN].max : 0.0
+  end
+
+  # dieselbe Regel als DC-Formel (pre = "Name!" für Teile im Schrank)
+  def self.f_versatz(pre = '')
+    "IF(#{pre}Rueckwand_Versatz>0,MAX(#{pre}Rueckwand_Versatz,#{VERSATZ_MIN}),0)"
+  end
+
+  # Seiten und Boden: Tiefe, mit Installationsebene + Rückwandstärke
+  def self.f_korpus_tiefe(pre = '')
+    "#{pre}Tiefe+IF(#{pre}Rueckwand_Versatz>0,#{pre}Materialstarke_Rueckwand,0)"
+  end
+
+  # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
   def self.berechne(p)
     mk, rw, sp = p['Materialstaerke_Korpus'], p['Materialstarke_Rueckwand'], p['Spaltbreite']
     b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
-    t_innen = t - p['Rueckwand_Versatz'] - rw
+    t_innen = t - versatz(p)
     rand = p['Ausschnitt_Rand']
     a_unten = [p['Ausschnitt_Unten'], mk + rand].max
     ab = kasten_unten(p)
     z_max = h - p['Hoehe_Blende'] - p['Siphon_Freiraum'] # höchste Oberkante Kasten
     {
       t_innen: t_innen,                                  # Vorderkante Korpus -> Vorderseite Rückwand
+      t_korpus: p['Rueckwand_Versatz'] > 0 ? t + rw : t, # Länge Seiten und Boden
       b_tuer1: b - sp,
       b_tuer2: b / 2.0 - sp,
       h_auszug: h - p['Hoehe_Blende'] - sp,              # Front des Auszugs
@@ -349,7 +378,7 @@ module Spuelenschrank
     attribut(haupt, 'Siphon_Freiraum', p['Siphon_Freiraum'], access: 'TEXTBOX',
              formlabel: 'Siphon-Freiraum unter der Blende (bei Auszug)')
     attribut(haupt, 'Rueckwand_Versatz', p['Rueckwand_Versatz'], access: 'TEXTBOX',
-             formlabel: 'Installationsebene (Rückwand vor der Hinterkante)')
+             formlabel: 'Installationsebene (Rückwand vor der Rückseite, 0 = hinten)')
     attribut(haupt, 'Ausschnitt_Unten', p['Ausschnitt_Unten'], access: 'TEXTBOX',
              formlabel: 'Rückwand-Ausschnitt: Unterkante über Korpus-Unterkante')
     attribut(haupt, 'Ausschnitt_Hoehe', p['Ausschnitt_Hoehe'], access: 'TEXTBOX',
@@ -366,14 +395,14 @@ module Spuelenschrank
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
 
     # --- Abgeleitete Werte ---
-    attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: 'Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand')
+    attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: "Tiefe-#{f_versatz}")
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
     attribut(haupt, 'H_Auszug', r[:h_auszug], units: 'STRING', formula: 'Hoehe-Hoehe_Blende-Spaltbreite')
     # Nennlänge der LEGRABOX-Schiene aus der lichten Tiefe bis zur Rückwand
     # (Formeln am selben Bauteil nie auf andere Formel-Attribute stützen: SketchUp rechnet sie nur
     # einmal und der Reihe nach, NL käme sonst vor T_Innen dran und bliebe nach einer Tiefenänderung alt)
     attribut(haupt, 'NL', r[:nl], units: 'STRING',
-             formula: f_nennlaenge('(Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand)'))
+             formula: f_nennlaenge("(Tiefe-#{f_versatz})"))
     attribut(haupt, 'A_Unten', r[:a_unten], units: 'STRING',
              formula: 'MAX(Ausschnitt_Unten,Materialstaerke_Korpus+Ausschnitt_Rand)')
     attribut(haupt, 'A_Hoehe', r[:a_hoehe], units: 'STRING',
@@ -386,13 +415,14 @@ module Spuelenschrank
     innen_b = "#{u}!Breite-2*#{u}!Materialstaerke_Korpus"
 
     # --- Korpus (beginnt wie die anderen Schränke bei y = Materialstärke) ---
-    seite = platte(model, 'Seite', 'Seite', [mk, t, h],
-                   ["#{u}!Materialstaerke_Korpus", "#{u}!Tiefe", "#{u}!Hoehe"])
+    tk, f_tk = r[:t_korpus], f_korpus_tiefe("#{u}!")
+    seite = platte(model, 'Seite', 'Seite', [mk, tk, h],
+                   ["#{u}!Materialstaerke_Korpus", f_tk, "#{u}!Hoehe"])
     einsetzen(e, seite, 'SeiteL', [0, mk, 0], [nil, nil, nil], mat: mat, kz: t_.('SeiteL'))
     einsetzen(e, seite, 'SeiteR', [b - mk, mk, 0],
               ["#{u}!Breite-#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('SeiteR'))
 
-    boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk], [innen_b, "#{u}!Tiefe", "#{u}!Materialstaerke_Korpus"])
+    boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, tk, mk], [innen_b, f_tk, "#{u}!Materialstaerke_Korpus"])
     einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('Boden'))
 
     strebe_formeln = [innen_b, "#{u}!BreiteStreben", "#{u}!Materialstaerke_Korpus"]
@@ -412,24 +442,31 @@ module Spuelenschrank
     haupt
   end
 
-  # Rückwand in der Nut beider Seiten, steht auf dem Boden, oben bündig.
+  # Installationsebene: Rückwand in der Nut beider Seiten, steht auf dem Boden, oben bündig.
+  # Versatz 0: wie beim Unterschrank volle Breite und Höhe hinter dem Korpus (keine Nut).
   # Der Ausschnitt steht als Attribut an der Rückwand (Lage in der Rückwand, cm),
   # daraus fräst der TCN-Export die Kontur; sichtbar ist er als Umriss davor.
   def self.rueckwand(model, e, p, r, mat, kz)
     u = NAME
     mk, rw, nut, rand = p['Materialstaerke_Korpus'], p['Materialstarke_Rueckwand'], p['Nuttiefe'], p['Ausschnitt_Rand']
     b, h = p['Breite'], p['Hoehe']
-    d = platte(model, 'Rückwand', 'Rückwand', [b - 2 * mk + 2 * nut, rw, h - mk],
-               ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus+2*#{u}!Nuttiefe", "#{u}!Materialstarke_Rueckwand",
-                "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"])
-    attribut(d, 'Ausschnitt_X', nut + rand, units: 'STRING', formula: "#{u}!Nuttiefe+#{u}!Ausschnitt_Rand")
-    attribut(d, 'Ausschnitt_Z', r[:a_unten] - mk, units: 'STRING', formula: "#{u}!A_Unten-#{u}!Materialstaerke_Korpus")
+    nutz = p['Rueckwand_Versatz'] > 0 # Rückwand in der Nut
+    ein = ->(ja, nein) { "IF(#{u}!Rueckwand_Versatz>0,#{ja},#{nein})" }
+    x0, z0 = nutz ? [mk - nut, mk] : [0.0, 0.0]
+    d = platte(model, 'Rückwand', 'Rückwand', [b - 2 * x0, rw, h - z0],
+               [ein.("#{u}!Breite-2*#{u}!Materialstaerke_Korpus+2*#{u}!Nuttiefe", "#{u}!Breite"),
+                "#{u}!Materialstarke_Rueckwand",
+                ein.("#{u}!Hoehe-#{u}!Materialstaerke_Korpus", "#{u}!Hoehe")])
+    attribut(d, 'Ausschnitt_X', mk + rand - x0, units: 'STRING',
+             formula: ein.("#{u}!Nuttiefe+#{u}!Ausschnitt_Rand", "#{u}!Materialstaerke_Korpus+#{u}!Ausschnitt_Rand"))
+    attribut(d, 'Ausschnitt_Z', r[:a_unten] - z0, units: 'STRING',
+             formula: ein.("#{u}!A_Unten-#{u}!Materialstaerke_Korpus", "#{u}!A_Unten"))
     attribut(d, 'Ausschnitt_B', r[:a_breite], units: 'STRING', formula: "#{u}!Breite-2*#{u}!Materialstaerke_Korpus-2*#{u}!Ausschnitt_Rand")
     attribut(d, 'Ausschnitt_H', r[:a_hoehe], units: 'STRING', formula: "#{u}!A_Hoehe")
     y_rw = mk + r[:t_innen]
-    einsetzen(e, d, 'Rückwand', [mk - nut, y_rw, mk],
-              ["#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe", "#{u}!Materialstaerke_Korpus+#{u}!T_Innen",
-               "#{u}!Materialstaerke_Korpus"], mat: mat, kz: [model, kz, 'Rueckwand'])
+    einsetzen(e, d, 'Rückwand', [x0, y_rw, z0],
+              [ein.("#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe", '0'), "#{u}!Materialstaerke_Korpus+#{u}!T_Innen",
+               ein.("#{u}!Materialstaerke_Korpus", '0')], mat: mat, kz: [model, kz, 'Rueckwand'])
 
     # Umriss des Ausschnitts (nur Kanten, keine Fläche: kein Teil für die Stückliste)
     a = model.definitions.add('Rückwand Ausschnitt')
@@ -576,7 +613,7 @@ module Spuelenschrank
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
   def self.tiefe_min
-    35.3 + DEFAULTS['Rueckwand_Versatz'] + DEFAULTS['Materialstarke_Rueckwand']
+    35.3 + versatz(DEFAULTS)
   end
 
   def self.dialog
