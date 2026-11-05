@@ -175,9 +175,10 @@ module JTools
         end
 
         # --- freier Platz ------------------------------------------------------------
-        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art, frontwinkel], …] (Wände:
+        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art, frontwinkel, korpus], …] (Wände:
         # nil = ganze Höhe, art :wand; andere Schränke: :schrank; frontwinkel = Richtung der Front
-        # des Rechtecks, ohne ihn gilt der Winkel der Lage). Platz, wenn der Kasten k in Lage l
+        # des Rechtecks, ohne ihn gilt der Winkel der Lage; korpus = Rechteck ohne Fronten zum
+        # Ausrichten, das Kollisions-Rechteck davor enthält die Fronten). Platz, wenn der Kasten k in Lage l
         # keines davon um mehr als tol überlappt (Berühren ist erlaubt). Gerechnet im System
         # des Hindernisses.
         def platz?(k, l, hindernisse, tol = TOLERANZ)
@@ -228,7 +229,9 @@ module JTools
           xs = [[xs, 0.0].max, laenge - b].min if laenge && laenge >= b # nicht über das Wandende hinaus
           richtung = winkel(wl[0] + q * VIERTEL)
           huellen = hindernisse.select { |_, _, hz| z_ueberlappt?(z, hz, tol) }
-                               .map { |hl, hb, _, art, fw| [huelle(hl, hb, wl), art, gleich_gerichtet?(fw || hl[0], richtung)] }
+                               .map do |hl, hb, _, art, fw, kb|
+                                 [huelle(hl, hb, wl), art, gleich_gerichtet?(fw || hl[0], richtung), huelle(hl, kb || hb, wl)]
+                               end
           gesperrt = lambda do |y0|
             huellen.select { |h, _| h[3] > y0 + r[2] + tol && h[2] < y0 + r[3] - tol }
                    .map { |h, _| [h[0] - b, h[1]] }
@@ -239,12 +242,13 @@ module JTools
           # seine Front in dieselbe Richtung zeigt (gleiche Zeile). Steht der neue Schrank quer vor
           # der Front eines Eckschranks (Blindeck: die Nachbarzeile deckt den Blindteil ab), bleibt
           # seine Rückseite an der Wand (Jürgen 2026-11-05: Hinterkante bündig).
-          nachbar = huellen.find do |h, art, gleich|
+          # Gerechnet am Korpus (ohne Fronten), die Kollision dagegen mit Fronten.
+          nachbar = huellen.find do |_, art, gleich, h|
             art == :schrank && gleich && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
               ((h[1] - xs).abs <= tol || (h[0] - xs - b).abs <= tol)
           end
           if nachbar
-            oy2 = nachbar[0][2] - r[2]
+            oy2 = nachbar[3][2] - r[2]
             oy = oy2 if naechster_freier(xs, gesperrt.call(oy2)) == xs
           end
           x, y = welt(wl, xs - r[0], oy)
@@ -264,6 +268,17 @@ module JTools
           return [0] * rechtecke.size if rechtecke.size < 2
           a, b = rechtecke
           [0, (b[0] - a[0]).abs < TOLERANZ ? 1 : 3]
+        end
+
+        # Kollisions-Rechteck je Grundriss-Rechteck: Rechtecke mit Front nach vorne (y0), die bis
+        # an die Vorderkante des Bezugs b reichen, wachsen nach vorne bis vor die Fronten (vorne =
+        # kleinstes y0 der Türen/Fronten, z. B. Blindtür und Blende des Blindecks; Jürgen
+        # 2026-11-05: Andocken am Korpus, Kollision mit Fronten).
+        def kollision(rechtecke, fviertel, b, vorne)
+          rechtecke.zip(fviertel).map do |r, fv|
+            next r unless vorne && fv.zero? && (r[2] - b[2]).abs < TOLERANZ && vorne < r[2]
+            [r[0], r[1], vorne, r[3]]
+          end
         end
 
         # nächste Wand zum Punkt (Abstand zur Wandstrecke): Index in waende
@@ -552,8 +567,10 @@ module JTools
           b = bezug(e)
           l = lage(e.transformation)
           rs = grundrisse(e, b)
-          rs.zip(Rechnung.front_viertel(rs)).map do |r, fv|
-            [l, r, [l[3] + b[4], l[3] + b[5]], :schrank, Rechnung.winkel(l[0] + fv * VIERTEL)]
+          fv = Rechnung.front_viertel(rs)
+          ks = Rechnung.kollision(rs, fv, b, vorne(e))
+          rs.each_index.map do |i|
+            [l, ks[i], [l[3] + b[4], l[3] + b[5]], :schrank, Rechnung.winkel(l[0] + fv[i] * VIERTEL), rs[i]]
           end
         end
       end
@@ -614,19 +631,31 @@ module JTools
         Rechnung.grundrisse(b, seiten)
       end
 
-      def self.sammeln(ents, m, seiten, wangen, hinten)
+      # Vorderkante (kleinstes y) der sichtbaren Türen und Fronten im Schranksystem, sonst nil
+      def self.vorne(inst)
+        fronten = []
+        sammeln(Schraenke.definition(inst).entities, EINS, [], [], [], fronten)
+        fronten.empty? ? nil : fronten.map { |q| q[2] }.min
+      end
+
+      FRONT_ROLLEN = %w[Front Tuer].freeze
+
+      def self.sammeln(ents, m, seiten, wangen, hinten, fronten = nil)
         Schraenke.instanzen(ents).each do |e|
           next if e.respond_to?(:hidden?) && e.hidden?
           mm = Rechnung.matmul(m, e.transformation.to_a.map(&:to_f))
           rolle = e.get_attribute(JT_DICT, 'rolle')
-          if %w[Seite Wange].include?(rolle)
+          if fronten && FRONT_ROLLEN.include?(rolle)
+            bb = Schraenke.definition(e).bounds
+            fronten << Rechnung.box_trafo(mm, bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f))
+          elsif %w[Seite Wange].include?(rolle)
             bb = Schraenke.definition(e).bounds
             (rolle == 'Seite' ? seiten : wangen) << Rechnung.box_trafo(mm, bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f))
           elsif rolle == 'Rueckwand'
             bb = Schraenke.definition(e).bounds
             hinten << Rechnung.box_trafo(mm, bb.min.to_a.map(&:to_f), bb.max.to_a.map(&:to_f))
           elsif !e.get_attribute(JT_DICT, 'teil')
-            sammeln(Schraenke.definition(e).entities, mm, seiten, wangen, hinten)
+            sammeln(Schraenke.definition(e).entities, mm, seiten, wangen, hinten, fronten)
           end
         end
       end
