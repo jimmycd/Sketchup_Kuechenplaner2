@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden eckschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden eckschrank eck_oberschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -429,6 +429,47 @@ check(nah(e.map { |q2| q2[1] }.max, 298.cm, 1e-6) && nah(e.map { |q2| q2[0] }.ma
 wl.taste_tab
 check(wl.wand == 1 && wl.q.zero?, 'Eckschrank: zweiter Tab wechselt die Wand')
 check(A.eckschrank?(el) && !A.eckschrank?(t40), 'Eckschrank erkannt')
+
+# Nachbar der L-Form (Jürgen 2026-11-05): an der vorderen Korpusecke des Schenkels (A),
+# nicht an der Vorderkante des ganzen Ecks (B)
+check(R.grundrisse([0, 90, -40, 50, 0, 70], [[0, 2, -40, 50, 0, 70]]) == [[0, 90, -40, 50]], 'gerader Schrank: ein Rechteck')
+g = R.grundrisse([0, 90, -40, 50, 0, 70], [[88, 90, 0, 50, 0, 70], [0, 50, -40, -38, 0, 70], [0, 2, 0, 50, 0, 70]])
+check(g == [[0, 90, 0, 50], [0, 50, -40, 50]], "L-Form: zwei Schenkel (#{g})")
+check(R.an_seite([0, 90, -40, 50], g, :rechts)[2].zero?, 'rechts am L: Vorderkante von Schenkel A')
+model.selection.clear
+[[el, 'Eckschrank L-Form', 2], [EckOberschrank.erstellen, 'Eck-Oberschrank', 1]].each do |eck, name, mit|
+  model.entities.instances.delete(eck)
+  model.entities.instances << eck
+  we = A::Werkzeug.new(eck)
+  we.setze_punkt(30.cm, 290.cm)
+  we.onLButtonDown(0, 0, 0, fake_view)
+  ge = A.grundrisse(eck)
+  check(ge.size == 2, "#{name}: zwei Schenkel")
+  seiten_e = []
+  A.sammeln(JTools::SchrankCnc::Schraenke.definition(eck).entities, A::EINS, seiten_e, [], [])
+  vorn_a = o(eck)[1] + seiten_e.select { |q2| q2[1] - q2[0] < q2[3] - q2[2] }.max_by { |q2| q2[1] }[2] # Seite am Ende von A
+  check(nah(vorn_a, o(eck)[1] + ge[0][2], 1e-6), "#{name}: Schenkel A vorne an seiner Seite")
+  check(vorn_a > o(eck)[1] + A.bezug(eck)[2] + 10.cm, "#{name}: Schenkel A endet vor dem ganzen Eck")
+  ende_a = o(eck)[0] + ge[0][1]
+  # Werkzeug: neben das Eck schieben → liegt am Ende von A an, Vorderkanten bündig
+  nb = mit == 2 ? UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 40.0)) : Oberschrank.erstellen(Oberschrank::DEFAULTS.merge('Tiefe' => 25.0))
+  model.entities.instances.delete(nb)
+  model.select_tool(nil)
+  bn2 = A.bezug(nb)
+  wn = A::Werkzeug.new(nb)
+  wn.setze_punkt(ende_a + 10.cm, 280.cm)
+  check(nah(wn.ziel[1] + bn2[0], ende_a, 1e-6), "#{name}: Nachbar liegt am Ende von Schenkel A an")
+  check(nah(wn.ziel[2] + bn2[2], vorn_a, 1e-6) || nah(wn.ziel[2] + bn2[3], 298.cm, 1e-6) && wn.ziel[2] + bn2[2] > vorn_a,
+        "#{name}: Vorderkante bündig mit Schenkel A, nicht mit dem Eck (#{(wn.ziel[2] + bn2[2]) * 2.54} / #{vorn_a * 2.54})")
+  # Einfügen mit markiertem Eck: rechts daneben, untere vordere Korpusecke von A
+  model.selection.clear
+  model.selection.add(eck)
+  nb2 = mit == 2 ? UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 40.0)) : Oberschrank.erstellen(Oberschrank::DEFAULTS.merge('Tiefe' => 25.0))
+  check(nah(o(nb2)[0] + A.bezug(nb2)[0], ende_a, 1e-6) && nah(o(nb2)[1] + A.bezug(nb2)[2], vorn_a, 1e-6),
+        "#{name}: eingefügt rechts an Schenkel A, Vorderkanten bündig (#{o(nb2).map { |v| v * 2.54 }})")
+  model.selection.clear
+  [nb2, eck].each { |i| model.entities.instances.delete(i) }
+end
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'wandabstand'])
 
 # Werkzeug: Tasten

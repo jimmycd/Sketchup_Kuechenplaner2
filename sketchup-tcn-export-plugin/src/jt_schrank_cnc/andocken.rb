@@ -294,6 +294,30 @@ module JTools
           b
         end
 
+        # Grundriss als Rechtecke [x0, x1, y0, y1] im Schranksystem. Normal ein Rechteck (Bezug).
+        # L-Form (Eckschrank, Eck-Oberschrank; Jürgen 2026-11-05): eine Seite steht quer
+        # (Ende von Schenkel B), eine längs (Ende von Schenkel A) → zwei Schenkel, jeder mit
+        # seiner eigenen Vorderkante, damit Nachbarn an der richtigen Korpusecke anliegen.
+        def grundrisse(b, seiten)
+          laengs = seiten.select { |s| s[1] - s[0] <= s[3] - s[2] }
+          quer = seiten - laengs
+          return [b[0, 4]] if laengs.empty? || quer.empty?
+          a = laengs.max_by { |s| s[1] }
+          q = quer.min_by { |s| s[2] }
+          [[b[0], b[1], a[2], b[3]], [b[0], q[1], b[2], b[3]]]
+        end
+
+        # Bezug n mit der Vorderkante des Schenkels, der an der Seite (:rechts/:links) liegt
+        def an_seite(n, rechtecke, seite)
+          return n if rechtecke.size < 2
+          i = seite == :rechts ? 1 : 0
+          r = rechtecke.select { |q| (q[i] - n[i]).abs < TOLERANZ }.max_by { |q| q[2] }
+          return n unless r
+          m = n.dup
+          m[2] = r[2]
+          m
+        end
+
         def vereinigen(kaesten)
           (0..5).map { |i| kaesten.map { |q| q[i] }.send(i.even? ? :min : :max) }
         end
@@ -504,10 +528,10 @@ module JTools
         andere = Schraenke.instanzen(model.entities).select do |e|
           e != inst && schrank?(e) && !KEINE_ZEILE.include?(kategorie(e))
         end
-        waende(model, vorgabe(:wandabstand) * MM) + andere.map do |e|
+        waende(model, vorgabe(:wandabstand) * MM) + andere.flat_map do |e|
           b = bezug(e)
           l = lage(e.transformation)
-          [l, [b[0], b[1], b[2], b[3]], [l[3] + b[4], l[3] + b[5]], :schrank]
+          grundrisse(e, b).map { |r| [l, r, [l[3] + b[4], l[3] + b[5]], :schrank] }
         end
       end
 
@@ -558,6 +582,13 @@ module JTools
         hinten = []
         sammeln(Schraenke.definition(inst).entities, EINS, seiten, wangen, hinten)
         Rechnung.bezug(seiten, wangen, seiten.empty? ? virtuelle_seite(inst) : nil, kasten(inst), hinten)
+      end
+
+      # Grundriss-Rechtecke (L-Form: zwei Schenkel), b = bezug(inst)
+      def self.grundrisse(inst, b = bezug(inst))
+        seiten = []
+        sammeln(Schraenke.definition(inst).entities, EINS, seiten, [], [])
+        Rechnung.grundrisse(b, seiten)
       end
 
       def self.sammeln(ents, m, seiten, wangen, hinten)
@@ -681,6 +712,7 @@ module JTools
                   end
         plaetze.uniq.each do |i, seite|
           n, nl = liste[i]
+          n = Rechnung.an_seite(n, grundrisse(zeile[i], n), seite)
           z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(zeile[i]), 0, v)
           %i[vorne hinten].each do |buendig|
             w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0, buendig)
