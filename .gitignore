@@ -1,3 +1,4 @@
 Hochschrank.skp
 *.skb
 .DS_Store
+__pycache__/

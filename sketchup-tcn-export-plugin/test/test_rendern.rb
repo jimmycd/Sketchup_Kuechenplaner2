@@ -364,7 +364,8 @@ end
 check(R.befehl('C:/B/blender.exe', 'C:/x/szene.json')[0, 5] == ['C:/B/blender.exe', '-b', '--factory-startup', '-P', R.skript] &&
       R.befehl('b', 'j').last(2) == ['--', 'j'], 'Aufruf: blender -b --factory-startup -P rendern.py -- szene.json')
 check(File.exist?(R.skript), 'rendern.py liegt neben rendern.rb')
-check(system('python3', '-m', 'py_compile', R.skript), 'rendern.py ist gültiges Python')
+# nur prüfen, nichts schreiben (kein __pycache__ in src/, sonst passt die .rbz nicht mehr)
+check(system('python3', '-c', 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read())', R.skript), 'rendern.py ist gültiges Python')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
