@@ -28,7 +28,7 @@ Ein neues Werkzeug im Menü **Küchenplaner** legt die Arbeitsplatte über die s
 
 Gelesen werden nur Instanzen mit `JT_Schrank`; Vorderkante lokal auf `ymin`. Daraus: Rechteck im Grundriss, Blickrichtung, Oberkante.
 
-- Unter der Platte: `kategorie = Unterschrank` (UST, USS, USG, USK, USP, USH, UES).
+- Unter der Platte: `kategorie = Unterschrank` (UST, USD, USS, USG, USK, USP, USH, UES).
 - Hochschränke (HS, HG, AP) beenden eine Zeile, Platte endet mit Fuge ohne Überstand.
 - Zeile: gleiche Blickrichtung, gleiche Oberkante (±1 mm), gleiche Frontlinie, nebeneinander. Lücken bis 650 mm werden überbrückt (einstellbar).
 - Ecke: zwei Zeilen im rechten Winkel, deren Enden sich berühren. UES gehört zu der Zeile, an deren Rückwand er steht; beim L-Eckschrank liegt die Ecke über ihm. Zwei Ecken an einer Mittelzeile = U.

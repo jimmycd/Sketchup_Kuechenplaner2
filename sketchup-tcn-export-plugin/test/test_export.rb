@@ -12,6 +12,7 @@ load File.join(komp, 'apothekerschrank/src/apothekerschrank/main.rb')
 load File.join(komp, 'hochschrank_geraete/src/hochschrank_geraete/main.rb')
 load File.join(komp, 'unterschrank_schubladen/src/unterschrank_schubladen/main.rb')
 load File.join(komp, 'unterschrank_spuele/src/unterschrank_spuele/main.rb')
+load File.join(komp, 'unterschrank_doppeltuer/src/unterschrank_doppeltuer/main.rb')
 load File.join(komp, 'unterschrank_kochfeld/src/unterschrank_kochfeld/main.rb')
 load File.join(komp, 'unterschrank_backofen/src/unterschrank_backofen/main.rb')
 load File.join(komp, 'unterschrank_geschirrspueler/src/unterschrank_geschirrspueler/main.rb')
@@ -1035,6 +1036,7 @@ end
  ['Oberschrank eine Tür', -> { Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 }) }, %w[OS1_Tuer]],
  ['Hochschrank', -> { Hochschrank.erstellen({}) }, %w[HS1_O_Tuer]],
  ['Spüle', -> { Spuelenschrank.erstellen({ 'Frontvariante' => 0.0 }) }, %w[USP1_TuerL USP1_TuerR]],
+ ['Unterschrank Doppeltür', -> { UnterschrankDoppeltuer.erstellen({}) }, %w[USD1_TuerL USD1_TuerR]],
  ['Insel', -> { UnterschrankInsel.erstellen({ 'Frontart' => 0.0 }) }, %w[USI1_TuerL USI1_TuerR]],
  ['Dunstabzug', -> { OberschrankDunstabzug.erstellen({}) }, %w[OSD1_TuerL OSD1_TuerR]],
  ['Eckschrank', -> { Eckschrank.erstellen({}) }, %w[UES1_Tuer]],
@@ -1065,6 +1067,19 @@ end
     check(mp.empty?, "#{titel} #{s.name}: Montageplatte in der vorhandenen Lochreihe, keine Extralöcher (#{mp.size})")
   end
 end
+
+# Unterschrank mit Doppeltür: alle Platten als Datei (ausgeblendete Einlegeböden nicht), keine Meldungen,
+# linke Tür links, rechte rechts angeschlagen, Topf auf der Innenseite
+td, tm, = tb_export('USD') { UnterschrankDoppeltuer.erstellen({ 'Anz_Einlegeboeden' => 2.0 }) }
+check(td.keys.sort == %w[USD1_Boden USD1_Einlegeboden1 USD1_Einlegeboden2 USD1_Rueckwand USD1_SeiteL USD1_SeiteR
+                         USD1_StrebeHinten USD1_StrebeVorn USD1_TuerL USD1_TuerR], "Doppeltür: Dateien #{td.keys.sort}")
+check(tm.empty?, "Doppeltür: keine Meldungen: #{tm}")
+%w[USD1_TuerL USD1_TuerR].each do |n|
+  op = td[n].ws.ops.find { |o| o.art == :topfband }
+  check(op && op.daten[:kante] == (n.end_with?('L') ? :xmin : :xmax), "Doppeltür #{n}: Anschlag #{op&.daten&.[](:kante)}")
+  check(op && op.seite == :ymax, "Doppeltür #{n}: Topf auf der Innenseite")
+end
+check(%w[USD1_SeiteL USD1_SeiteR].all? { |n| td[n].text.include?('#8522=5 ') }, 'Doppeltür: Lochreihen in beiden Seiten')
 
 # Ober- und Unterschrank: Anschlag links bzw. rechts, Topf auf der Innenseite an der Anschlagkante
 td, = tb_export('OS') { Oberschrank.erstellen({}) }

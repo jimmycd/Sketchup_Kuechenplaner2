@@ -18,6 +18,7 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 |---|---|
 | [`Komponenten/`](Komponenten/) | eine Komponente je Unterordner: `src/` (Erweiterung), `<name>.rbz`, Tests, Kurzdoku (`README.md`) |
 | [`Komponenten/unterschrank_tuer/`](Komponenten/unterschrank_tuer/) | Unterschrank mit Tür (`Unterschrank.skp`, Ausgangskomponente; `.rbz` fügt sie ein und richtet sie ein) |
+| [`Komponenten/unterschrank_doppeltuer/`](Komponenten/unterschrank_doppeltuer/) | Unterschrank mit Doppeltür: zwei Türen (links/rechts angeschlagen), 0–3 Einlegeböden (`.rbz`) |
 | [`Komponenten/unterschrank_schubladen/`](Komponenten/unterschrank_schubladen/) | Unterschrank mit 1–6 Schubladen (`.rbz`) |
 | [`Komponenten/unterschrank_spuele/`](Komponenten/unterschrank_spuele/) | Spülenschrank mit Türen oder Blende + Auszug, Installationsebene (`.rbz`) |
 | [`Komponenten/unterschrank_kochfeld/`](Komponenten/unterschrank_kochfeld/) | Unterschrank für Kochfeld mit Abzug: Blende, 1–3 Schubladen, Kanal (`.rbz`) |
