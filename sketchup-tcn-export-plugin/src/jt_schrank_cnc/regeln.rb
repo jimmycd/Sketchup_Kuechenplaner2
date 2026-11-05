@@ -658,7 +658,7 @@ module JTools
         w.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, w.mass(k) + DURCH, nil, nil, 'Kanalausschnitt')
       end
 
-      # --- Schräg- und Bogenkanten (Abschlussregal) ------------------------------------
+      # --- Schräg- und Bogenkanten (Abschlussregal), Sockelausklinkung (Wange) --------------
       # Die Platte wird als Rechteck zugeschnitten; die Schräge bzw. den Bogen fräst der
       # Konturfräser 1004 (Ø 20, wie bei der Arbeitsplatte) ganz durch, um den Anleimer
       # zurückversetzt. Umriss und Kante stehen im Wörterbuch JT_Kontur an der Definition
@@ -673,7 +673,13 @@ module JTools
         umriss = d.get_attribute(KONTUR_DICT, 'umriss')
         return if kante.nil? || umriss.nil? || kante.empty?
         m = Geometrie.welt(w.teil.pfad)
-        welt = ->(x, y) { Geometrie.punkt(m, [x.to_f, y.to_f, 0.0]).map { |v| v * Geometrie::MM } }
+        # Ebene des Umrisses im Teil: xy (Böden, Standard) oder yz (Wange mit Sockelausklinkung)
+        lokal = if d.get_attribute(KONTUR_DICT, 'ebene').to_s == 'yz'
+                  ->(a, b) { [0.0, a.to_f, b.to_f] }
+                else
+                  ->(a, b) { [a.to_f, b.to_f, 0.0] }
+                end
+        welt = ->(x, y) { Geometrie.punkt(m, lokal.(x, y)).map { |v| v * Geometrie::MM } }
         segmente = kante.each_slice(8).map do |art, x0, y0, x1, y1, cx, cy, _|
           art.to_f.round == 1 ? [:bogen, welt.(x0, y0), welt.(x1, y1), welt.(cx, cy)] : [:linie, welt.(x0, y0), welt.(x1, y1)]
         end

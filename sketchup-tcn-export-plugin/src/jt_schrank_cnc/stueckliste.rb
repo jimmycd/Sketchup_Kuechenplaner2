@@ -55,8 +55,9 @@ module JTools
           ue = Einstellungen.uebermass(*z.fraes)
           z.roh = [z.fraes[0] + ue[0], z.fraes[1] + ue[1]]
         else
-          # Arbeitsplatte: Maße aus dem Arbeitsplatten-Export, Zuschnitt von Hand
-          l, b = [d.lage.dl, d.lage.dh].sort.reverse
+          # Arbeitsplatte: Maße aus dem Arbeitsplatten-Export, Zuschnitt von Hand; Länge immer
+          # längs der Küchenzeile (auch bei kurzen Teilplatten nach einem Längsstoß)
+          l, b = d.lage.dl, d.lage.dh
           z.fertig = z.fraes = z.roh = [l, b]
           z.kanten = {}
           z.hinweis = 'Arbeitsplatte'

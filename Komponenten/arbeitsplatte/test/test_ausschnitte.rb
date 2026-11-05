@@ -77,11 +77,11 @@ check(d.between?(95, 110), "Abstand Spüle–Stoß schräg zum inneren Eckpunkt 
 lang = (0...5).map { |i| hinten("USS#{i + 1}", i * 600, (i + 1) * 600) } +
        [hinten('USP1', 3000, 3900, typ: 'Spuelenschrank'), hinten('USS9', 3900, 4500)]
 lay = layout(lang)
-# Schrankseiten 3000 und 3900 liegen 50 mm neben der Spüle: Stoß weiter vorn bei 2400
-check(lay[:stoesse][0][:pfad][0][1][0] == 2400.0 && lay[:platten][1][:ausschnitte].size == 1, "Längsstoß bei 2400, nicht neben der Spüle: #{lay[:stoesse][0][:pfad]}")
+# Stoß mitten auf einem Schrank, nicht auf dem Spülenschrank: Mitte von USS5 bei 2700
+check(lay[:stoesse][0][:pfad][0][1][0] == 2700.0 && lay[:platten][1][:ausschnitte].size == 1, "Längsstoß bei 2700, nicht neben der Spüle: #{lay[:stoesse][0][:pfad]}")
 lang2 = (0...6).map { |i| hinten("USS#{i + 1}", i * 600, (i + 1) * 600) } + [hinten('USP1', 3600, 4500, typ: 'Spuelenschrank')]
 lay = layout(lang2)
-check(lay[:stoesse][0][:pfad][0][1][0] == 3000.0 && lay[:platten][1][:ausschnitte].size == 1, "Spüle auf dem zweiten Stück: #{lay[:stoesse][0][:pfad]}")
+check(lay[:stoesse][0][:pfad][0][1][0] == 3300.0 && lay[:platten][1][:ausschnitte].size == 1, "Spüle auf dem zweiten Stück: #{lay[:stoesse][0][:pfad]}")
 
 # --- Dialog: Felder und Antworten ---
 erg = E.erkenne(zeile)

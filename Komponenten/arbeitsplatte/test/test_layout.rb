@@ -59,15 +59,43 @@ lay = layout([hinten('USS1', 0, 600), el('HS1', [610.0, -5.0, 1210.0, 820.0], ka
 p = lay[:platten].first
 check(p[:punkte][0] == [608.0, -20.0] && p[:kanten][0] == :hochschrank, "Fuge zum Hochschrank: #{p[:punkte][0]} #{p[:kanten][0]}")
 
-# --- Überlänge: 7 × 600 = 4200 > 4100 - 2 × 10 -> Stoß über der Schrankseite bei 3600 ---
+# --- Überlänge: 7 × 600 = 4200 > Rohling 4100 - 50 -> Stoß mitten auf einem Schrank ---
 lay = layout((0...7).map { |i| hinten("USS#{i + 1}", i * 600, (i + 1) * 600) })
-check(lay[:platten].size == 2 && lay[:platten].map { |x| x[:laenge] } == [3600, 600], "geteilt: #{lay[:platten].map { |x| x[:laenge] }}")
+check(lay[:platten].size == 2 && lay[:platten].map { |x| x[:laenge] } == [3900, 300], "geteilt: #{lay[:platten].map { |x| x[:laenge] }}")
 s = lay[:stoesse].first
-check(s && s[:art] == :laengs && s[:platten] == [1, 2] && s[:pfad] == [[:linie, [3600.0, -20.0], [3600.0, 815.0]]], "Längsstoß: #{s}")
+check(s && s[:art] == :laengs && s[:platten] == [1, 2] && s[:pfad] == [[:linie, [3900.0, -20.0], [3900.0, 815.0]]], "Längsstoß Mitte USS7: #{s}")
 check(lay[:platten][0][:kanten][0] == :stoss && lay[:platten][1][:kanten][2] == :stoss, 'Längsstoß-Kanten')
-# ohne Schrankseite in Reichweite: Warnung
+check(lay[:warnungen].empty?, "keine Warnung: #{lay[:warnungen]}")
+# nie über der Fuge zwischen zwei Schränken
+grenzen = (0..7).map { |i| i * 600.0 }
+check(lay[:stoesse].none? { |x| grenzen.include?(x[:pfad][0][1][0]) }, 'Stoß nicht zwischen zwei Schränken')
+# Grenze Rohling − 50: 4050 bleibt ganz, 4060 wird geteilt
+check(layout([hinten('USS1', 0, 2000), hinten('USS2', 2000, 4050)])[:platten].size == 1, '4050 = Rohling - 50 bleibt ganz')
+lay = layout([hinten('USS1', 0, 2000), hinten('USS2', 2000, 4060)])
+check(lay[:platten].size == 2 && lay[:stoesse][0][:pfad][0][1][0] == 3030.0, "4060 geteilt, Mitte USS2: #{lay[:stoesse].map { |x| x[:pfad] }}")
+# eigener Rohling über das Format
+check(layout((0...5).map { |i| hinten("USS#{i + 1}", i * 600, (i + 1) * 600) }, {}, format: [3000, 900])[:platten].size == 2, 'Format 3000 -> geteilt')
+# ein langer Schrank: Stoß in seiner Mitte
 lay = layout([hinten('USS1', 0, 4500)])
-check(lay[:platten].size == 2 && lay[:warnungen].any? { |w| w.include?('nicht über einer Schrankseite') }, "Teilung ohne Schrankseite: #{lay[:warnungen]}")
+check(lay[:platten].size == 2 && lay[:stoesse][0][:pfad][0][1][0] == 2250.0 && lay[:warnungen].empty?, "Mitte des langen Schranks: #{lay[:stoesse][0][:pfad]} #{lay[:warnungen]}")
+# Geschirrspüler und Unterbau-Kühlschrank tragen keinen Stoß: Mitte 3900 wäre der Spüler -> USS6 bei 3300
+lay = layout((0...6).map { |i| hinten("USS#{i + 1}", i * 600, (i + 1) * 600) } + [hinten('USG1', 3600, 4200, typ: 'Unterschrank_Geschirrspueler')])
+check(lay[:stoesse][0][:pfad][0][1][0] == 3300.0, "nicht über dem Geschirrspüler: #{lay[:stoesse][0][:pfad]}")
+# kein Schrank passt (nur schmale Geräte-Nischen): Warnung
+lay = layout([hinten('USS1', 0, 300), hinten('USG1', 300, 4400, typ: 'Unterschrank_Geschirrspueler')])
+check(lay[:platten].size == 2 && lay[:warnungen].any? { |w| w.include?('nicht mitten auf einem Schrank') }, "Warnung ohne passenden Schrank: #{lay[:warnungen]}")
+# Mitte gesperrt (Kochfeld 560 mittig über 4400, 150 Abstand): Stoß rückt auf dem Schrank zur Seite
+lay = layout([hinten('USS1', 0, 4400)], {}, ausschnitte: { 'USS1' => { art: :kochfeld, breite: 560.0, tiefe: 490.0, abstand_vorn: 50.0 } })
+check(nah(lay[:stoesse][0][:pfad][0][1][0], 2630.0) && lay[:warnungen].empty?, "zur Seite gerückt: #{lay[:stoesse][0][:pfad]} #{lay[:warnungen]}")
+
+# vor der Ecke bleiben mindestens 300 mm (innerer Eckpunkt bei x = 840): Mitte USS1 bei 1100 ist zu nah
+lay = layout([hinten('UES1', 0, 1000, typ: 'Eckschrank'), hinten('USS1', 1000, 1200),
+              hinten('USG1', 1200, 4600, typ: 'Unterschrank_Geschirrspueler'), links('USS2', -650, -50)])
+xs = lay[:stoesse].select { |x| x[:art] == :laengs }.map { |x| x[:pfad][0][1][0] }
+check(xs.size == 1 && xs[0] >= 840 + 300 && xs[0] != 1100.0, "300 mm vor der Ecke: #{xs}")
+lay = layout([hinten('UES1', 0, 1000, typ: 'Eckschrank'), hinten('USS1', 1000, 1600), hinten('USS3', 1600, 4600), links('USS2', -650, -50)])
+xs = lay[:stoesse].select { |x| x[:art] == :laengs }.map { |x| x[:pfad][0][1][0] }
+check(xs == [3100.0], "L: Stoß mitten auf USS3: #{xs}")
 
 # --- L mit Blindeck, Standard Gehrungsansatz ---
 l_els = [hinten('UES1', 0, 1000, typ: 'Eckschrank'), hinten('USS1', 1000, 1600), links('USS2', -650, -50), links('UST1', -1250, -650)]

@@ -117,6 +117,20 @@ module JTools
             [:bogen, f.(a), f.(b), c, r2, w]
           end
         end
+        # Zwei Geraden mit gemeinsamer Ecke (Ausklinkung): die versetzten Bahnen im Schnittpunkt
+        # verbinden, sonst schneidet die Verbindung in der Innenecke ins Werkstück
+        op.daten[:segmente].each_cons(2).with_index do |(s0, s1), i|
+          next unless s0[0] == :linie && s1[0] == :linie && Math.hypot(*ab.(p2.(s0[2]), p2.(s1[1]))) < 0.001
+          a0, a1 = bahn[i][1], bahn[i][2]
+          b0, b1 = bahn[i + 1][1], bahn[i + 1][2]
+          d0, d1 = ab.(a1, a0), ab.(b1, b0)
+          kreuz = d0[0] * d1[1] - d0[1] * d1[0]
+          next if kreuz.abs < 1e-9
+          t = ((b0[0] - a0[0]) * d1[1] - (b0[1] - a0[1]) * d1[0]) / kreuz
+          x = auf.(a0, d0, t)
+          bahn[i][2] = x
+          bahn[i + 1][1] = x
+        end
         tangente = lambda do |seg, q|
           return ein.(ab.(seg[2], seg[1])) if seg[0] == :linie
           v = ab.(q, seg[3])

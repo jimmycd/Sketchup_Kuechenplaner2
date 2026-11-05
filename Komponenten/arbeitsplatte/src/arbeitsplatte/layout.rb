@@ -5,7 +5,7 @@
 # Reine Rechnung ohne SketchUp, alle Maße in mm, Weltkoordinaten. Eingabe ist das
 # Ergebnis von Erkennung.erkenne.
 #
-# Je Zeile eine Platte (bei Überlänge mehrere mit Längsstoß). Tiefe: von der Wand
+# Je Zeile eine Platte (bei Überlänge mehrere mit stumpfem Längsstoß mitten auf einem Schrank). Tiefe: von der Wand
 # (minus Wandabstand) bis vor die Fronten (plus Überstand vorn). Enden:
 #   frei         Überstand seitlich
 #   Hochschrank  Fuge zum Hochschrank
@@ -47,8 +47,10 @@ module Arbeitsplatte
       bogen_teile: 8,            # Bogen im Umriss als so viele gerade Stücke
       formate: STANDARDFORMATE,  # Auswahl, die schmalste passende gewinnt
       format: nil,               # festes Format [Länge, Breite] statt Auswahl
-      besaeumen: 10.0,           # je Plattenende vom Rohformat ab
+      rohling_abzug: 50.0,       # Teilen, wenn länger als Rohling (Formatlänge) − rohling_abzug
       min_stueck: 300.0,         # kürzestes Stück beim Teilen
+      eck_abstand: 300.0,        # Längsstoß mindestens so weit vom inneren Eckpunkt
+      stoss_rand: 150.0,         # Längsstoß mindestens so weit von den Seiten des Schranks darunter
       ecken: {}                  # je Ecke: { nr => { stoss:, durchlaufend: Zeilennummer } }
     }.merge(Ausschnitte::OPTIONEN).freeze
 
@@ -233,24 +235,71 @@ module Arbeitsplatte
     end
 
     # -------------------------------------------------------------------------
-    # Teilen bei Überlänge: Stoß über einer Schrankseite, nicht neben einem Ausschnitt
-    # (sperren: Bereiche längs der Zeile)
+    # Teilen bei Überlänge (Jürgen 2026-11-05): länger als Rohling − rohling_abzug (50 mm)
+    # -> stumpfer Längsstoß mit Hundeknochen (Lamellos von Hand). Der Stoß sitzt mitten
+    # auf einem Schrank, nie über der Fuge zwischen zwei Schränken und nie über einer
+    # Geräte-Nische (Geschirrspüler, Unterbau-Kühlschrank: oben offen); vor einer Ecke
+    # (innerer Eckpunkt der Vorderkanten) bleiben mindestens eck_abstand (300 mm) stehen,
+    # jedes Stück ist mindestens min_stueck lang, und Ausschnitte halten Abstand (sperren).
+    # Geht die Mitte nicht, rückt der Stoß auf dem Schrank zur Seite, aber höchstens bis
+    # stoss_rand (150 mm) an dessen Seiten; geht auch das nicht, Warnung.
     # -------------------------------------------------------------------------
-    def self.teilungen(z, s_a, s_e, nutzbar, o, warnungen, sperren = [])
-      frei = ->(g) { sperren.none? { |a, b| g > a && g < b } }
-      grenzen = z[:elemente].flat_map { |e| [e[:s0], e[:s1]] }.uniq.sort.select(&frei)
+    OHNE_AUFLAGE = %w[Unterschrank_Geschirrspueler Unterschrank_Kuehlschrank].freeze
+
+    # s-Lage des inneren Eckpunkts an einem Ecken-Ende der Zeile (nil = keine Ecke)
+    def self.eck_s(z, seite, o, ecken)
+      e = z[:enden][seite]
+      return nil unless e && e[:art] == :ecke
+      k = ecken.find { |x| x[:nr] == e[:ecke] } or return nil
+      andere = k[:durch][:nr] == z[:nr] ? k[:anst] : k[:durch]
+      q_vorn(andere, o)
+    end
+
+    # Bereiche [a, b] minus Sperren
+    def self.abziehen(bereiche, sperren)
+      sperren.reduce(bereiche) do |bs, (sa, sb)|
+        bs.flat_map { |a, b| [[a, [b, sa].min], [[a, sb].max, b]].select { |x, y| y >= x - 1e-6 } }
+      end
+    end
+
+    def self.teilungen(z, s_a, s_e, nutzbar, o, warnungen, sperren = [], ecken = [])
+      lo_min = s_a + o[:min_stueck]
+      hi_max = s_e - o[:min_stueck]
+      if (ea = eck_s(z, :start, o, ecken))
+        lo_min = [lo_min, ea + o[:eck_abstand]].max
+      end
+      if (ee = eck_s(z, :ende, o, ecken))
+        hi_max = [hi_max, ee - o[:eck_abstand]].min
+      end
+      schraenke = z[:elemente].reject { |e| OHNE_AUFLAGE.include?(e[:typ]) }
       schnitte = []
       cur = s_a
       while s_e - cur > nutzbar
-        kand = grenzen.select { |g| g > cur + o[:min_stueck] && g <= cur + nutzbar && g < s_e - o[:min_stueck] }
-        s = kand.max
-        unless s
-          s = cur + nutzbar
+        lo = [cur + o[:min_stueck], lo_min].max
+        hi = [cur + nutzbar, hi_max].min
+        # je Schrank: Mitte, sonst der mittennächste erlaubte Punkt mit stoss_rand zu den Seiten
+        kand = schraenke.map do |e|
+          mitte = (e[:s0] + e[:s1]) / 2.0
+          a = [e[:s0] + o[:stoss_rand], lo].max
+          b = [e[:s1] - o[:stoss_rand], hi].min
+          b = a = mitte if e[:s1] - e[:s0] < 2 * o[:stoss_rand] && mitte.between?(lo, hi)
+          bereiche = b >= a - 1e-6 ? abziehen([[a, b]], sperren) : []
+          s = bereiche.map { |x, y| mitte.clamp(x, y) }.min_by { |v| [(v - mitte).abs.round(1), -v] }
+          s && [(s - mitte).abs.round(1), -s]
+        end.compact
+        if (best = kand.min)
+          s = -best[1]
+        else
+          s = [cur + nutzbar, hi_max].min
           sp = sperren.find { |a, b| s > a && s < b }
           s = sp[0] if sp && sp[0] > cur + o[:min_stueck]
-          warnungen << "Zeile #{z[:nr]}: Längsstoß bei #{s.round} mm liegt nicht über einer Schrankseite"
+          warnungen << "Zeile #{z[:nr]}: Längsstoß bei #{s.round} mm liegt nicht mitten auf einem Schrank, bitte prüfen"
         end
-        schnitte << s
+        if s <= cur + 1e-6
+          warnungen << "Zeile #{z[:nr]}: Platte lässt sich nicht teilen (zu kurz zwischen Ecke und Ende)"
+          break
+        end
+        schnitte << s.round(1)
         cur = s
       end
       schnitte
@@ -320,7 +369,7 @@ module Arbeitsplatte
       nutzbar_fuer = lambda do |breite|
         l = o[:format] ? o[:format][0] : o[:formate].map { |x| x.map(&:to_f) }.select { |_, b| b >= breite - 1e-6 }
                                                     .map(&:first).max || o[:formate].map(&:first).max
-        l.to_f - 2 * o[:besaeumen]
+        l.to_f - o[:rohling_abzug]
       end
 
       alle_ausschnitte = []
@@ -330,7 +379,7 @@ module Arbeitsplatte
         s_a = end_s(z, :start, o, ecken)
         s_e = end_s(z, :ende, o, ecken)
         breite = (q_wand(z, o) - q_vorn(z, o)).abs
-        schnitte = teilungen(z, s_a, s_e, nutzbar_fuer.(breite), o, warnungen, Ausschnitte.sperren(ausschnitte, o))
+        schnitte = teilungen(z, s_a, s_e, nutzbar_fuer.(breite), o, warnungen, Ausschnitte.sperren(ausschnitte, o), ecken)
         grenzen = [z[:enden][:start]] + schnitte.map { |s| { art: :laengs, s: s } } + [z[:enden][:ende]]
         stuecke = grenzen.each_cons(2).map { |s0, s1| [s0, s1] }
         stuecke.each_with_index do |(st, en), i|

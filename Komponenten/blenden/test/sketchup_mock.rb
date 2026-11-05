@@ -41,6 +41,11 @@ module Geom
     def initialize(w = 0.0, o = [0.0, 0.0, 0.0]) = (@w, @o = w.to_f, o.map(&:to_f))
     def self.translation(v) = new(0.0, v.is_a?(Vector3d) ? v.a : v.to_a.map(&:to_f))
     def self.drehung(grad, o) = new(grad * Math::PI / 180, o)
+    def self.rotation(_punkt, _achse, w) = new(w, [0.0, 0.0, 0.0])
+    def to_a
+      c, s = Math.cos(@w), Math.sin(@w)
+      [c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, *@o, 1.0]
+    end
     def origin = @o.dup
     def xaxis = Vector3d.new(Math.cos(@w), Math.sin(@w), 0)
     def anwenden(p)
@@ -89,18 +94,57 @@ module Sketchup
   class Face
     include Attr
     attr_accessor :material
-    attr_reader :normal
-    def initialize(ents, pts, normal = [0, 0, -1.0])
-      @ents, @pts = ents, pts
+    attr_reader :normal, :pts
+    # pts: Eckpunkte (Zoll); ohne normal: Normale aus dem Umlaufsinn (Newell), wie SketchUp
+    # liegt eine Fläche in der Ebene z = 0, zeigt ihre Normale nach unten
+    def initialize(ents, pts, normal = nil)
+      @ents, @pts = ents, pts.map { |q| q.to_a.map(&:to_f) }
+      normal ||= begin
+        n = Face.newell(@pts)
+        n[2] > 0.5 && @pts.all? { |q| q[2].abs < 1e-9 } ? n.map(&:-@) : n
+      end
       @normal = Geom::Vector3d.new(*normal)
     end
-    def reverse! = @normal = Geom::Vector3d.new(*@normal.to_a.map(&:-@))
+    def self.newell(pts)
+      n = [0.0, 0.0, 0.0]
+      pts.each_with_index do |a, i|
+        b = pts[(i + 1) % pts.size]
+        n[0] += (a[1] - b[1]) * (a[2] + b[2])
+        n[1] += (a[2] - b[2]) * (a[0] + b[0])
+        n[2] += (a[0] - b[0]) * (a[1] + b[1])
+      end
+      l = Math.sqrt(n.sum { |v| v * v })
+      n.map { |v| v / l }
+    end
+    def reverse!
+      @pts.reverse!
+      @normal = Geom::Vector3d.new(*@normal.to_a.map(&:-@))
+    end
+    def bounds
+      lo = (0..2).map { |i| @pts.map { |q| q[i] }.min }
+      hi = (0..2).map { |i| @pts.map { |q| q[i] }.max }
+      Struct.new(:min, :max).new(Geom::Point3d.new(*lo), Geom::Point3d.new(*hi))
+    end
+    # Prisma: Umriss entlang der Normalen um d hochziehen (nur positiv, wie in den Komponenten)
     def pushpull(d)
-      raise 'pushpull falsche Richtung' unless @normal.z > 0 && d > 0
-      @ents.definition.box = [@pts[1][0], @pts[2][1], d]
+      raise 'pushpull falsche Richtung' unless d > 0 && @normal.to_a.map(&:abs).max > 0.99 && @normal.to_a.sum > 0
+      n = @normal.to_a
+      oben = @pts.map { |q| q.zip(n).map { |a, b| a + b * d } }
+      alle = @pts + oben
+      raise 'Umriss beginnt nicht bei 0' unless (0..2).all? { |i| alle.map { |q| q[i] }.min.abs < 1e-9 }
+      @ents.definition.box = (0..2).map { |i| alle.map { |q| q[i] }.max }
       @ents.faces.clear
-      [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]].each do |n|
-        @ents.faces << Face.new(@ents, @pts, n)
+      @ents.faces << Face.new(@ents, @pts, n.map(&:-@)) << Face.new(@ents, oben, n)
+      # Seiten außen: Umlauf gegen den Uhrzeigersinn um die Normale
+      ccw = Face.newell(@pts)
+      ring = ccw.zip(n).sum { |a, b| a * b } > 0 ? @pts : @pts.reverse
+      oben = ring.map { |q| q.zip(n).map { |a, b| a + b * d } }
+      ring.each_with_index do |a, i|
+        b = ring[(i + 1) % ring.size]
+        e = b.zip(a).map { |x, y| x - y }
+        s = [e[1] * n[2] - e[2] * n[1], e[2] * n[0] - e[0] * n[2], e[0] * n[1] - e[1] * n[0]]
+        l = Math.sqrt(s.sum { |v| v * v })
+        @ents.faces << Face.new(@ents, [a, b, oben[(i + 1) % ring.size], oben[i]], s.map { |v| v / l })
       end
     end
   end
@@ -141,8 +185,7 @@ module Sketchup
 
   class ComponentInstance
     include Attr
-    attr_accessor :name, :material, :layer, :hidden, :transformation
-    attr_reader :definition
+    attr_accessor :name, :material, :layer, :hidden, :transformation, :definition
     def initialize(d, tr) = (@definition, @transformation = d, tr)
     def hidden? = !!hidden
     # Bounds im Eltern-System (nur Verschiebung, wie die Teile in den Komponenten)
