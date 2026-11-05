@@ -60,8 +60,10 @@ module Arbeitsplatte
       UI.messagebox('Keine Unterschränke gefunden. Unterschränke markieren oder nichts markieren (dann alle im Modell).')
       return nil
     end
-    return bauen(model, erg, optionen) if optionen
-    Dialog.abfragen(erg) { |o| bauen(model, erg, o) }
+    # markierte Schränke: Lücken/Rücken an Rücken überbrücken, auch beim Neuberechnen (wird mit gespeichert)
+    extra = Modell.auswahl?(model) ? Modell::AUSWAHL : {}
+    return bauen(model, erg, optionen.merge(extra)) if optionen
+    Dialog.abfragen(erg) { |o| bauen(model, erg, o.merge(extra)) }
   end
 
   # Abstand Schrankrückseite – Wand aus Küchenplaner › Einstellungen (immer der aktuelle Wert)
@@ -117,7 +119,7 @@ module Arbeitsplatte
         next nil
       end
       sel = els.select { |e| kzs.include?(e[:kz]) || e[:kategorie] == Erkennung::HOCHSCHRANK }
-      erg = Erkennung.erkenne(sel)
+      erg = Erkennung.erkenne(sel, o.select { |k, _| Modell::AUSWAHL.key?(k) })
       erg[:warnungen] = warn.uniq + erg[:warnungen]
       # Ecken-Einstellungen gelten nur, solange die Ecken gleich nummeriert sind
       o[:ecken] = o[:ecken].select { |nr, _| erg[:ecken].any? { |e| e[:nr] == nr } }

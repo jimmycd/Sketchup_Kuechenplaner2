@@ -231,5 +231,21 @@ check(el.size == 1 && el[0][:z1] == 720.0 && el[0][:rechteck] == [600.0, 0.0, 12
 eg = A::Modell.erkenne(gm)
 check(eg[:zeilen].size == 1 && eg[:zeilen][0][:elemente].map { |e| e[:kz] } == %w[US1 USP1], "eine Zeile mit Spüle: #{eg[:zeilen].map { |z| z[:elemente].map { |e| e[:kz] } }}")
 
+# --- Insel: markierte Schränke Rücken an Rücken mit Abstand → eine Platte, bleibt beim Neuberechnen ---
+im = Sketchup::Model.new
+Sketchup.active_model = im
+gedreht180 = ->(ox, oy) { Tr.new([-1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, mm(ox), mm(oy), 0, 1]) }
+ia = schrank(im, 'US1', 600, gerade(0, 3000))
+ib = schrank(im, 'US2', 600, gedreht180.(600, 3000 + 800 + 100 + 800)) # Rückseiten 100 mm auseinander
+check(A::Modell.erkenne(im)[:zeilen].size == 2, 'ohne Markierung zwei Zeilen')
+im.selection << ia << ib
+ai = A.erzeugen(im, optionen: {})
+im.selection.clear
+pi = ai.definition.entities.instances
+check(pi.size == 1 && pi[0].get_attribute('JT_Arbeitsplatte', 'breite') == 1780.0,
+      "Insel eine Platte: #{pi.map { |i| i.get_attribute('JT_Arbeitsplatte', 'breite') }}")
+ri = A.neu_berechnen(im)
+check(ri[0].definition.entities.instances.size == 1, 'Neuberechnen behält die Insel als eine Platte')
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

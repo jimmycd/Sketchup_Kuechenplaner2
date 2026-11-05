@@ -30,7 +30,10 @@ module Arbeitsplatte
       toleranz_hoehe: 1.0,     # Oberkanten, die so nah liegen, gehören zu einer Zeile
       toleranz_ecke: 100.0,    # so weit darf ein Zeilenende von der anderen Zeile entfernt sein (Passleiste)
       toleranz_hochschrank: 30.0, # Abstand Zeilenende – Hochschrank, damit die Zeile dort endet
-      sitz_stuetzen: 350.0       # Insel: ab diesem Sitzüberstand Warnung (Stützen/Konsolen)
+      sitz_stuetzen: 350.0,      # Insel: ab diesem Sitzüberstand Warnung (Stützen/Konsolen)
+      rueckenverbund: false,     # Zeilen Rücken an Rücken zu einer Platte verbinden (markierte Insel)
+      max_rueckenabstand: 650.0, # so weit dürfen die Rückseiten dafür auseinander stehen
+      toleranz_ruecken: 50.0     # ohne Markierung: Rücken an Rücken nur, wenn die Rückseiten so nah stehen
     }.freeze
 
     UNTERSCHRANK = 'Unterschrank'.freeze
@@ -59,6 +62,7 @@ module Arbeitsplatte
       unter = elemente.select { |e| e[:kategorie] == UNTERSCHRANK }
       hoch  = elemente.select { |e| e[:kategorie] == HOCHSCHRANK }
       zeilen = zeilen_bilden(unter, o, warnungen)
+      zeilen = ruecken_verbinden(zeilen, o)
       zeilen.each { |z| hochschraenke_an_enden(z, hoch, o) }
       ecken = ecken_finden(zeilen, o, warnungen)
       hoehen_pruefen(zeilen, ecken, warnungen)
@@ -120,6 +124,32 @@ module Arbeitsplatte
                        "(#{flach.map { |e| (e[:hinten] - z[:wand]).abs.round(1) }.join(', ')} mm Abstand)"
         end
         z[:enden] = { start: { art: :frei }, ende: { art: :frei } }
+      end
+      zeilen.sort_by { |z| [z[:achse], z[:front_linie], z[:s0]] }.each_with_index { |z, i| z[:nr] = i + 1 }
+    end
+
+    # Insel aus Schränken Rücken an Rücken (Jürgen 2026-11-05): direkt Rücken an Rücken (toleranz_ruecken)
+    # immer, markierte Inselschränke mit Abstand (rueckenverbund) bis max_rueckenabstand. Zwei Zeilen mit entgegengesetzter Front, gleicher Oberkante, die sich
+    # längs überdecken und deren Rückseiten höchstens max_rueckenabstand auseinander stehen, werden eine
+    # Zeile. Vorn bleibt die Front der ersten, hinten liegt die Front der zweiten (mit Überstand und
+    # Anleimer, siehe Layout.q_wand); der Abstand zwischen den Rückseiten wird überbrückt.
+    def self.ruecken_verbinden(zeilen, o)
+      zeilen = zeilen.dup
+      loop do
+        paar = zeilen.combination(2).find do |a, b|
+          va, vb = FRONTEN[a[:front]], FRONTEN[b[:front]]
+          next false unless va[0] == vb[0] && va[1] == -vb[1] && (a[:z] - b[:z]).abs <= o[:toleranz_hoehe]
+          next false unless [a[:s1], b[:s1]].min - [a[:s0], b[:s0]].max > 1.0
+          hinter = (b[:wand] - a[:wand]) * -va[1] # wie weit b hinter der Rückseite von a beginnt
+          hinter > -1.0 && hinter <= (o[:rueckenverbund] ? o[:max_rueckenabstand] : o[:toleranz_ruecken])
+        end
+        break unless paar
+        a, b = paar
+        a, b = b, a if FRONTEN[a[:front]][1] > 0 # die Zeile mit Front -x/-y führt (feste Reihenfolge)
+        neu = a.merge(elemente: (a[:elemente] + b[:elemente]).sort_by { |e| e[:s0] },
+                      s0: [a[:s0], b[:s0]].min, s1: [a[:s1], b[:s1]].max, luecken: [],
+                      wand: b[:front_linie], insel: true, rueckenverbund: true, theke: false, sitzueberstand: 0.0)
+        zeilen = zeilen - [a, b] + [neu]
       end
       zeilen.sort_by { |z| [z[:achse], z[:front_linie], z[:s0]] }.each_with_index { |z, i| z[:nr] = i + 1 }
     end
