@@ -778,6 +778,10 @@ module Blenden
   # ---------------------------------------------------------------------------
   FLUCHT_TOL = 2.0 / 2.54   # Versatz der Front, der noch als gleiche Zeile zählt
   LUECKE     = 2.0 / 2.54   # größere Lücke zwischen Schränken = neue Zeile
+  # Tiefere Schränke in der Zeile (z. B. Hochschrank Kühlschrank 560 mm neben 520 mm
+  # Unterschränken) stehen mit der Rückseite an der Wand, ihre Front steht vor. Bis zu
+  # diesem Versatz läuft der Sockel trotzdem durch (Jürgen 2026-11-05).
+  VERSATZ_MAX = 15.0 / 2.54
   ECKE_TOL   = 70.0 / 2.54  # so nah muss das Zeilenende an der Blende der Querzeile liegen
 
   def self.punkt(tr, x, y)
@@ -809,19 +813,31 @@ module Blenden
     !!d.get_attribute(JT_DICT, 'insel') || d.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Insel'
   end
 
-  def self.gleiche_flucht?(ref, e)
+  def self.gleiche_flucht?(ref, e, tol = FLUCHT_TOL)
     a = ref.transformation.xaxis.to_a
     b = e.transformation.xaxis.to_a
     return false if a.zip(b).sum { |u, v| u * v } < 0.999
     o = ref.transformation.inverse * e.transformation.origin
-    o.y.abs < FLUCHT_TOL && o.z.abs < FLUCHT_TOL
+    o.y.abs < tol && o.z.abs < FLUCHT_TOL
+  end
+
+  # Standard-Unterschränke (Tür, Schubladen) geben Flucht und Tiefe der Sockelblende vor
+  STANDARD_TYPEN = %w[Unterschrank_Tuer Unterschrank_Schubladen Unterschrank].freeze
+
+  def self.standard_unterschrank?(e)
+    STANDARD_TYPEN.include?(definition(e).get_attribute(JT_DICT, 'typ'))
   end
 
   # Zeilen [{ref:, x0:, x1: (Zoll, in ref-Koordinaten), tiefe:, sockel: (cm)}]
+  # Schränke gleicher Richtung, deren Fronten bis VERSATZ_MAX auseinander liegen, bilden
+  # eine Zeile mit einer durchgehenden Blende ohne Versatz (Jürgen 2026-11-05). Flucht und
+  # Tiefe kommen von den Standard-Unterschränken der Zeile; Sonderschränke (Kühlschrank-
+  # Hochschrank, Backofen, ...) zählen nur, wenn kein Standard-Unterschrank in der Zeile
+  # steht (z. B. allein um die Ecke), dann gilt die hinterste Front.
   def self.zeilen(teile)
     gruppen = []
     teile.each do |e|
-      g = gruppen.find { |z| gleiche_flucht?(z[:ref], e) }
+      g = gruppen.find { |z| gleiche_flucht?(z[:ref], e, VERSATZ_MAX) }
       g ? g[:teile] << e : gruppen << { ref: e, teile: [e] }
     end
     gruppen.flat_map do |g|
@@ -829,21 +845,31 @@ module Blenden
       bereiche = g[:teile].map do |e|
         o = inv * e.transformation.origin
         x0, x1 = x_bereich(e)
-        [o.x + x0, o.x + x1, e]
+        [o.x + x0, o.x + x1, e, o]
       end.sort_by(&:first)
       stuecke = []
       bereiche.each do |b|
         if stuecke.last && b[0] <= stuecke.last[:x1] + LUECKE
           stuecke.last[:x1] = [stuecke.last[:x1], b[1]].max
-          stuecke.last[:teile] << b[2]
+          stuecke.last[:teile] << b
         else
-          stuecke << { x0: b[0], x1: b[1], teile: [b[2]] }
+          stuecke << { x0: b[0], x1: b[1], teile: [b] }
         end
       end
       stuecke.map do |s|
-        korpus = s[:teile].reject { |e| eigener_typ?(e) }
-        { ref: g[:ref], x0: s[:x0], x1: s[:x1], tiefe: korpus.map { |e| dc_cm(e, 'tiefe') }.compact.max,
-          sockel: korpus.map { |e| dc_cm(e, 'sockelhoehe') }.compact.first, insel: korpus.any? { |e| insel?(e) } }
+        korpus = s[:teile].reject { |b| eigener_typ?(b[2]) }
+        standard = korpus.select { |b| standard_unterschrank?(b[2]) }
+        kandidaten = [standard, korpus, s[:teile]].find { |l| !l.empty? }
+        bezug = kandidaten.find { |b| b[2].equal?(g[:ref]) } || kandidaten.first
+        kandidaten.each { |b| bezug = b if b[3].y > bezug[3].y + FLUCHT_TOL }
+        dx = bezug[3].x
+        dy = bezug[3].y
+        tiefe = (standard.empty? ? korpus : standard).map do |b|
+          t = dc_cm(b[2], 'tiefe')
+          t && t + (b[3].y - dy) * 2.54
+        end.compact.max
+        { ref: bezug[2], x0: s[:x0] - dx, x1: s[:x1] - dx, tiefe: tiefe,
+          sockel: korpus.map { |b| dc_cm(b[2], 'sockelhoehe') }.compact.first, insel: korpus.any? { |b| insel?(b[2]) } }
       end
     end
   end
@@ -934,7 +960,7 @@ module Blenden
   def self.wange_an?(z, seite, wangen)
     inv = z[:ref].transformation.inverse
     wangen.any? do |w|
-      next false unless gleiche_flucht?(z[:ref], w)
+      next false unless gleiche_flucht?(z[:ref], w, VERSATZ_MAX)
       o = inv * w.transformation.origin
       a, b = x_bereich(w)
       seite == :l ? (o.x + b - z[:x0]).abs <= LUECKE : (o.x + a - z[:x1]).abs <= LUECKE

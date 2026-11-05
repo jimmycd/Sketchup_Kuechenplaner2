@@ -10,6 +10,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 **Mit Auswahl geht es schneller:**
 * *Passblende* und *Wange*: Genau einen Schrank auswählen. Der Dialog schlägt dessen Typ, Höhe, Tiefe und Sockelhöhe vor. Das Teil wird links oder rechts direkt an den Schrank gesetzt und bekommt dessen Frontmaterial. Ohne Auswahl startet das Andock-Werkzeug.
 * *Sockelblende*: Ohne Auswahl deckt sie **alle Unter- und Hochschränke der Küche** ab. Mit Auswahl deckt sie nur die gewählten Schränke ab. Je Zeile entsteht eine Blende von der linken bis zur rechten Außenkante. Passblenden zählen mit. An Wangen endet die Blende, weil die Wange bis zum Boden reicht. Eine Lücke über 20 mm beginnt eine neue Zeile. Oberschränke werden ignoriert.
+  * **Unterschiedliche Fronten in der Zeile** (Jürgen 2026-11-05): Schränke gleicher Richtung, deren Fronten bis 150 mm versetzt stehen (z. B. Kühlschrank-Hochschrank 560 mm tief neben 520-mm-Unterschränken, Rückseiten an der Wand), gehören zu einer Zeile. Die Blende läuft ohne Versatz durch. Flucht und Tiefe geben die Standard-Unterschränke (Tür, Schubladen) vor. Sonderschränke zählen nur, wenn kein Standard-Unterschrank in der Zeile steht (z. B. allein um die Ecke).
   * **Innenecke (L- oder U-Küche):** Die Zeile, deren Schränke hinter die Ecke laufen, endet an der Rückseite der Blende der Querzeile. Die Querzeile wird bis an die Vorderseite dieser Blende verlängert. So bleibt keine Lücke und nichts überlappt.
   * **Zeilenenden** (Jürgen 2026-11-05) erkennt der Befehl selbst:
     | Ende | Was passiert |
