@@ -118,7 +118,7 @@ module Arbeitsplatte
         geloescht << kz
         next nil
       end
-      sel = els.select { |e| kzs.include?(e[:kz]) || e[:kategorie] == Erkennung::HOCHSCHRANK }
+      sel = els.select { |e| kzs.include?(e[:kz]) || e[:kategorie] == Erkennung::HOCHSCHRANK || e[:typ] == Erkennung::WANGE }
       erg = Erkennung.erkenne(sel, o.select { |k, _| Modell::AUSWAHL.key?(k) })
       erg[:warnungen] = warn.uniq + erg[:warnungen]
       # Ecken-Einstellungen gelten nur, solange die Ecken gleich nummeriert sind

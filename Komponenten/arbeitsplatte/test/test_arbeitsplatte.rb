@@ -92,6 +92,16 @@ sp = [hinten('IA', 0, 600), el('USP1', [0.0, 840.0, 600.0, 1660.0], :py, typ: 'S
 ae = E.erkenne(sp, rueckenverbund: true)
 au = Arbeitsplatte::Ausschnitte.fuer_zeile(ae[:zeilen][0], Arbeitsplatte::Layout::OPTIONEN.merge(ausschnitte: {}))
 check(au.size == 1 && au[0][:rechteck][3] < 1680.0 && au[0][:rechteck][1] > 840.0, "Spülenausschnitt auf der Rückseite: #{au.map { |x| x[:rechteck] }}")
+# Wangen (19 mm, bündig mit der Front, an beiden Enden): Platte geht durchgehend gleich tief darüber
+wg = [hinten('US1', 0, 600), el('WG1', [-19.0, -2.0, 0.0, 820.0], typ: 'Wange'), el('WG2', [600.0, 5.0, 619.0, 800.0], typ: 'Wange')]
+we = E.erkenne(wg)
+check(we[:zeilen].size == 1 && we[:zeilen][0][:s0] == -19.0 && we[:zeilen][0][:s1] == 619.0 && we[:zeilen][0][:elemente].map { |e| e[:kz] } == %w[US1],
+      "Wangen an den Enden: #{we[:zeilen].map { |x| x.slice(:s0, :s1, :front_linie) }}")
+wl = Arbeitsplatte::Layout.berechne(we, {})[:platten]
+check(wl.size == 1 && wl[0][:punkte].size == 4 && wl[0][:breite] == 835.0, "eine Platte über Wangen: #{wl.map { |p| [p[:laenge], p[:breite]] }}")
+# Insel Rücken an Rücken mit Wange über die ganze Tiefe
+wi = E.erkenne([hinten('IA', 0, 600), el('IB', [0.0, 820.0, 600.0, 1640.0], :py), el('WG3', [-19.0, 0.0, 0.0, 1640.0], typ: 'Wange')])
+check(wi[:zeilen].size == 1 && wi[:zeilen][0][:s0] == -19.0, "Insel mit Wange: #{wi[:zeilen].map { |x| x.slice(:s0, :s1) }}")
 # Rückseiten zu weit auseinander: getrennt
 check(E.erkenne([hinten('IA', 0, 600), el('IB', [0.0, 1600.0, 600.0, 2420.0], :py)], rueckenverbund: true)[:zeilen].size == 2,
       'Rückseiten 780 mm auseinander: zwei Zeilen')

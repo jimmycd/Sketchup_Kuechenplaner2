@@ -38,6 +38,7 @@ module Arbeitsplatte
 
     UNTERSCHRANK = 'Unterschrank'.freeze
     HOCHSCHRANK  = 'Hochschrank'.freeze
+    WANGE        = 'Wange'.freeze # Blenden & Wangen (WG): bildet keine eigene Zeile, die Platte deckt sie ab
 
     # Achse längs der Zeile (0 = x, 1 = y) und Vorzeichen der Front quer dazu
     FRONTEN = { ny: [0, -1], py: [0, 1], nx: [1, -1], px: [1, 1] }.freeze
@@ -59,10 +60,12 @@ module Arbeitsplatte
     def self.erkenne(elemente, optionen = {})
       o = OPTIONEN.merge(optionen)
       warnungen = []
-      unter = elemente.select { |e| e[:kategorie] == UNTERSCHRANK }
+      unter = elemente.select { |e| e[:kategorie] == UNTERSCHRANK && e[:typ] != WANGE }
+      wangen = elemente.select { |e| e[:kategorie] == UNTERSCHRANK && e[:typ] == WANGE }
       hoch  = elemente.select { |e| e[:kategorie] == HOCHSCHRANK }
       zeilen = zeilen_bilden(unter, o, warnungen)
       zeilen = ruecken_verbinden(zeilen, o)
+      zeilen.each { |z| wangen_an_enden(z, wangen, o) }
       zeilen.each { |z| hochschraenke_an_enden(z, hoch, o) }
       ecken = ecken_finden(zeilen, o, warnungen)
       hoehen_pruefen(zeilen, ecken, warnungen)
@@ -192,6 +195,25 @@ module Arbeitsplatte
     end
 
     # Hochschrank gleicher Blickrichtung direkt neben einem Zeilenende
+    # Wangen (Jürgen 2026-11-05): die Platte geht über die Wange am Zeilenende, mit derselben Tiefe wie
+    # über den Schränken (vorher wurde die Wange eine eigene, zurückspringende Zeile). Die Wange steht
+    # längs direkt am Zeilenende und quer innerhalb der Zeile; sie wird kein Element (kein Stoß darauf).
+    def self.wangen_an_enden(z, wangen, o)
+      quer_z = [z[:front_linie], z[:wand]].minmax
+      wangen.select { |w| laengs(w[:front]) == z[:achse] && (w[:z1] - z[:z]).abs <= 50.0 }.each do |w|
+        s0, s1, vorn, hinten = zeilenmass(w)
+        q = [vorn, hinten].minmax
+        next unless q[1] > quer_z[0] + 1.0 && q[0] < quer_z[1] - 1.0 # quer überdeckt
+        if (z[:s0] - s1).between?(-1.0, o[:toleranz_hochschrank])
+          z[:s0] = s0
+          (z[:wangen] ||= []) << w[:kz]
+        elsif (s0 - z[:s1]).between?(-1.0, o[:toleranz_hochschrank])
+          z[:s1] = s1
+          (z[:wangen] ||= []) << w[:kz]
+        end
+      end
+    end
+
     def self.hochschraenke_an_enden(z, hoch, o)
       hoch.select { |h| h[:front] == z[:front] }.each do |h|
         s0, s1, vorn, hinten = zeilenmass(h)
