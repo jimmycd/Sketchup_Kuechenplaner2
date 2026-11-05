@@ -180,6 +180,23 @@ check(v_g.zip([-100, 200, 150]).all? { |a, b| (a - b / 25.4).abs < 1e-6 }, "gedr
 model.entities.instances.delete(gedreht)
 model.beobachter.first.onTransactionCommit(model)
 
+# --- Arbeitsplatte (L-Form, System = Modell): Pfeil oben mittig auf der größten Platte ---
+apd = model.definitions.add('Arbeitsplatte APL1')
+{ 'schrank' => 'APL1', 'typ' => 'Arbeitsplatte', 'kategorie' => 'Arbeitsplatte' }.each { |k2, v| apd.set_attribute(S::JT_DICT, k2, v) }
+[[[0, 0, 36.0], [80.0, 24.0, 1.6]], [[0, 24.0, 36.0], [24.0, 50.0, 1.6]]].each_with_index do |(pos, box), i|
+  pd = model.definitions.add("APL1_Platte#{i + 1}")
+  pd.box = box
+  pl = apd.entities.add_instance(pd, Geom::Transformation.translation(pos))
+  { 'schrank' => 'APL1', 'teil' => "Platte#{i + 1}", 'rolle' => 'Platte' }.each { |k2, v| pl.set_attribute(S::JT_DICT, k2, v) }
+end
+apl = model.entities.add_instance(apd, Geom::Transformation.translation([0, 3000.0, 0]))
+model.beobachter.first.onTransactionCommit(model)
+t_ap = texte(model).find { |t| t.text == 'APL1' }
+soll_ap = [40.0, 3012.0, 37.6 + 1 / 25.4]
+check(t_ap && t_ap.point.zip(soll_ap).all? { |a, b| (a - b).abs < 1e-6 }, "Arbeitsplatte: Pfeil oben mittig auf der größten Platte (#{t_ap&.point} statt #{soll_ap})")
+model.entities.instances.delete(apl)
+model.beobachter.first.onTransactionCommit(model)
+
 # --- ausschalten: Szenen blenden aus, nichts mehr nachziehen ---
 check(B.umschalten(model) == false && !B.an?(model), 'Umschalten: aus')
 check(model.pages['Planung'].sichtbar['Beschriftung'] == false && model.pages['Zuschnitt'].sichtbar['Beschriftung'] == false,
