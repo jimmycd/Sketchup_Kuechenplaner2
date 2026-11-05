@@ -18,7 +18,7 @@ Wer vorher die Version 0.1 installiert hatte: Das alte Untermenü *Schrank-CNC* 
 
 | Platte | |
 |---|---|
-| Name, Farbe, Texturbild | Farbe als `#RRGGBB` oder `R,G,B`; Texturbild optional mit Bildbreite in mm |
+| Name, Farbe, Texturbild | Farbe mit dem Farbwähler (Farbrad, Helligkeitsregler, Vorschau) oder als `#RRGGBB` / `R,G,B` eintippen; Texturbild optional über *…* wählen, mit Bildbreite in mm |
 | Verwendung | Korpus, Front oder Rückwand – Frontfarbe bietet die Front-Platten an, Korpusmaterial die Korpus- bzw. Rückwand-Platten |
 | Stärke, Format | Plattenstärke und Rohplattenformat (Zuschnittplan) |
 | Maserung | Ja: Zuschnitt dreht nicht, L der Stückliste ist die Seite in Faserrichtung |

@@ -118,6 +118,7 @@ module Sketchup
       i
     end
     def instances = @list
+    def erase_entities(l) = @list.reject! { |e| l.include?(e) }
     def length = @list.size
     def each(&) = @list.each(&)
   end

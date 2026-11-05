@@ -9,7 +9,10 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 
 **Mit Auswahl geht es schneller:**
 * *Passblende* und *Wange*: Genau einen Schrank auswählen. Der Dialog schlägt dessen Typ, Höhe, Tiefe und Sockelhöhe vor. Das Teil wird links oder rechts direkt an den Schrank gesetzt und bekommt dessen Frontmaterial. Ohne Auswahl startet das Andock-Werkzeug.
-* *Sockelblende*: Alle Unter- und Hochschränke einer Zeile auswählen (gern samt Wangen und Passblenden). Die Blende läuft von der linken bis zur rechten Außenkante. Die Tiefe kommt von den Schränken, die Sockelhöhe aus den Küchen-Einstellungen. Quer stehende Schränke werden übergangen (Meldung), Oberschränke ignoriert.
+* *Sockelblende*: Ohne Auswahl deckt sie **alle Unter- und Hochschränke der Küche** ab. Mit Auswahl deckt sie nur die gewählten Schränke ab. Je Zeile entsteht eine Blende von der linken bis zur rechten Außenkante. Passblenden zählen mit. An Wangen endet die Blende, weil die Wange bis zum Boden reicht. Eine Lücke über 20 mm beginnt eine neue Zeile. Oberschränke werden ignoriert.
+  * **Innenecke (L- oder U-Küche):** Die Zeile, deren Schränke hinter die Ecke laufen, endet an der Rückseite der Blende der Querzeile. Die Querzeile wird bis an die Vorderseite dieser Blende verlängert. So bleibt keine Lücke und nichts überlappt.
+  * Der Dialog fragt Sockelhöhe (aus den Küchen-Einstellungen) und Stärke. Ohne Auswahl fragt er außerdem, ob vorhandene Sockelblenden ersetzt werden sollen (Standard: ja).
+  * Gibt es keine Unter- oder Hochschränke, entsteht eine freie Blende mit Länge aus dem Dialog.
 
 ## Passblende (Kürzel PB)
 | Option | Standard |
@@ -38,7 +41,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 ## Sockelblende (Kürzel SB)
 | Option | Standard |
 |---|---|
-| Länge | aus der Auswahl, sonst 600 mm |
+| Länge | je Zeile aus den Schränken, sonst 600 mm |
 | Sockelhöhe | aus Küchenplaner › Einstellungen (Standard 100 mm), die Blende ist 3 mm niedriger (Luft zum Boden) |
 | Tiefe Korpus | für die Seitenstücke |
 | Seitenstücke | keine / links / rechts / beide |
@@ -46,7 +49,7 @@ Drei Befehle, um Restmaße und sichtbare Seiten einer Schrankzeile sauber zu sch
 | Rücksprung | 50 mm hinter der Korpusvorderkante |
 
 * Die Blende wird auf die Sockelfüße geclipst, deshalb gibt es keine Bohrungen.
-* Über 2800 mm (`Max_Laenge`) wird sie in gleich lange Stücke geteilt, höchstens 5 (bis 14 m). Die Stücke heißen `Sockelblende1` … `Sockelblende5`.
+* Über 2800 mm (`Max_Laenge`) wird sie in gleich lange Stücke geteilt, höchstens 5 (bis 14 m). Ist eine Zeile länger, bekommt sie mehrere Sockelblenden. Die Stücke heißen `Sockelblende1` … `Sockelblende5`.
 * **Seitenstücke** schließen eine frei stehende Zeile seitlich bis zur Wand. Sie stehen außen, die Blende stößt stumpf dagegen. Kante vorne und oben.
 * Kante an der Blende nur oben. Material „Melamin weiss“, Rolle *Sockel*. Die Sockelblende hat die Kategorie *Sockel*. Sie zählt also nicht als Unterschrank für Arbeitsplatte und Frontfarbe.
 
@@ -56,4 +59,4 @@ Gezeichnet ist immer das **Endmaß**. Den Kantenabzug rechnet das Plugin Schrank
 Tags: `PB1_Blende`, `PB1_Winkelleiste`, `WG1_WangeL`/`WG1_WangeR`, `SB1_Sockelblende1` …, `SB1_SockelSeiteL`/`R`. Jedes weitere Teil bekommt die nächste Nummer (`PB2` …). An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Passblende, Wange, Sockelblende), `kategorie` (Unterschrank/Oberschrank/Hochschrank bzw. Sockel), `bereich`, `teil` und `rolle` (Front, Leiste, Wange, Sockel).
 
 ## Tests
-`ruby test/test_blenden.rb` (oder `./run_tests.sh` im Hauptordner): Maße aller Teile, Neuberechnung nach geänderten Optionen, Tiefe nachträglich, Kanten, Material, Tags, Lage am gewählten Schrank, Zeile für die Sockelblende, Dialoge.
+`ruby test/test_blenden.rb` (oder `./run_tests.sh` im Hauptordner): Maße aller Teile, Neuberechnung nach geänderten Optionen, Tiefe nachträglich, Kanten, Material, Tags, Lage am gewählten Schrank, Zeilen und Innenecken für die Sockelblende (L-Küche), Dialoge.

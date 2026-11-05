@@ -50,14 +50,14 @@ module JTools
                  Materialien.bibliothek.select { |x| x['typ'] == 'kante' }.map { |x| x['name'] }
         kanten = kanten.uniq.sort
         kante = e['kante'].to_s.empty? ? AUTO : e['kante']
-        prompts = ['Name', 'Verwendung', 'Farbe (#RRGGBB oder R,G,B)', 'Texturbild (Datei, leer = nur Farbe)',
+        prompts = ['Name', 'Verwendung', 'Farbe', 'Texturbild (leer = nur Farbe)',
                    'Texturbreite (mm, Bildbreite in der Natur)',
                    'Platte: Stärke (mm)', 'Platte: Format Länge (mm)', 'Platte: Format Breite (mm)',
                    'Platte: Maserung (Faser in Plattenlänge)', 'Platte: Anleimer (automatisch = Anleimer <Dekor>)']
         format = e['format'] || Materialien::STANDARD_FORMAT
         defaults = [e['name'], e['verwendung'] || verwendung, e['farbe'].to_s, e['textur'].to_s, '1000',
                     n(e['staerke'] || 19), n(format[0]), n(format[1]), e['maserung'] ? 'Ja' : 'Nein', kante]
-        listen = ['', Materialien::VERWENDUNGEN.join('|'), '', '', '', '', '', '', 'Ja|Nein', ([AUTO] + kanten).join('|')]
+        listen = ['', Materialien::VERWENDUNGEN.join('|'), ':farbe', ':datei', '', '', '', '', 'Ja|Nein', ([AUTO] + kanten).join('|')]
         titel = name ? "Platte „#{name}“ bearbeiten" : 'Neue Platte'
         Kuechenplaner::Eingabe.abfragen(prompts, defaults, listen, titel, untertitel: 'Materialien',
                                         ok: 'Speichern', gruppe: 'Material') do |w|
@@ -82,10 +82,11 @@ module JTools
 
       def kante_formular(model, name: nil, &danach)
         e = (name && eintrag(model, name)) || { 'name' => 'Anleimer ', 'farbe' => '#FFFFFF', 'dicke' => 2.0, 'breite' => 23.0 }
-        prompts = ['Name', 'Farbe (#RRGGBB oder R,G,B)', 'Dicke (mm, wird in Stückliste und TCN abgezogen)', 'Breite (mm)']
+        prompts = ['Name', 'Farbe', 'Dicke (mm, wird in Stückliste und TCN abgezogen)', 'Breite (mm)']
         defaults = [e['name'], e['farbe'].to_s, n(e['dicke']), n(e['breite'])]
+        listen = ['', ':farbe', '', '']
         titel = name ? "Anleimer „#{name}“ bearbeiten" : 'Neuer Anleimer'
-        Kuechenplaner::Eingabe.abfragen(prompts, defaults, titel, untertitel: 'Materialien', ok: 'Speichern',
+        Kuechenplaner::Eingabe.abfragen(prompts, defaults, listen, titel, untertitel: 'Materialien', ok: 'Speichern',
                                                                   gruppe: 'Anleimer') do |w|
           dicke = zahl(w[2], 'Dicke')
           breite = zahl(w[3], 'Breite')

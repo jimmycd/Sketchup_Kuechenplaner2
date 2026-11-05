@@ -5,8 +5,9 @@
 # Erweiterung (.rbz): Erweiterungen > Küchenplaner > Blenden & Wangen > Passblende… / Wange… /
 # Sockelblende…. Ist ein Schrank ausgewählt, übernehmen Passblende und Wange dessen Typ, Höhe,
 # Tiefe, Sockelhöhe und Frontmaterial und werden links oder rechts direkt angesetzt. Die
-# Sockelblende läuft unter allen ausgewählten Unter- und Hochschränken durch (inklusive
-# ausgewählter Wangen und Passblenden). Maße danach in den Komponentenoptionen ändern.
+# Sockelblende deckt alle Unter- und Hochschränke der Küche ab (mit Auswahl nur die gewählten):
+# je Zeile eine Blende, an Innenecken stoßen sie aneinander, Wangen schließen die Zeile.
+# Maße danach in den Komponentenoptionen ändern.
 #
 # Material, Kanten, Tags: Jede Platte hat ein Material (Passblende und Wange das Frontmaterial
 # des Nachbarschranks, sonst "Melamin weiss"), sichtbare Kanten das Kantenmaterial
@@ -93,7 +94,7 @@ module Blenden
   HILFE_KURZ = {
     passblende: 'Passblende in Frontmaterial für Restmaße, optional mit Winkelleiste',
     wange: 'Seitenwange am Zeilenende, bündig mit der Front, bis zum Boden',
-    sockelblende: 'Sockelblende unter einer Schrankzeile, geteilt ab 2800 mm'
+    sockelblende: 'Sockelblende unter allen Unter- und Hochschränken, je Zeile, geteilt ab 2800 mm'
   }.freeze
 
   # ---------------------------------------------------------------------------
@@ -542,26 +543,126 @@ module Blenden
     raise
   end
 
-  # Sockelblende unter den gewählten Unter- und Hochschränken (gleiche Ausrichtung) oder frei
-  def self.zeile(model)
-    s = schraenke(model).reject { |e| kategorie(e) == 'Oberschrank' }
-    return nil if s.empty?
-    ref = s.first
-    inv = ref.transformation.inverse
-    gleich = s.select { |e| (e.transformation.xaxis.to_a.zip(ref.transformation.xaxis.to_a).sum { |a, b| a * b }) > 0.999 }
-    bereiche = gleich.map do |e|
-      o = inv * e.transformation.origin
-      x0, x1 = x_bereich(e)
-      [o.x + x0, o.x + x1]
+  # ---------------------------------------------------------------------------
+  # Sockelblende für die ganze Küche: Unter- und Hochschränke (und Passblenden)
+  # in Zeilen gleicher Flucht sammeln, Lücken trennen die Zeilen, an Innenecken
+  # stoßen die Blenden zweier Zeilen stumpf aneinander. Rechnen in Zoll.
+  # ---------------------------------------------------------------------------
+  FLUCHT_TOL = 2.0 / 2.54   # Versatz der Front, der noch als gleiche Zeile zählt
+  LUECKE     = 2.0 / 2.54   # größere Lücke zwischen Schränken = neue Zeile
+  ECKE_TOL   = 70.0 / 2.54  # so nah muss das Zeilenende an der Blende der Querzeile liegen
+
+  def self.punkt(tr, x, y)
+    tr * Geom::Point3d.new(x, y, 0)
+  end
+
+  # Punkt (x, y) aus dem Koordinatensystem der Instanz a in das von b (b_inv = Inverse)
+  def self.umrechnen(a_tr, b_inv, x, y)
+    b_inv * punkt(a_tr, x, y)
+  end
+
+  def self.eigener_typ?(e)
+    ARTEN.values.map { |a| a[:typ] }.include?(definition(e).get_attribute(JT_DICT, 'typ'))
+  end
+
+  # Was unter der Sockelblende steht: Unter- und Hochschränke und Passblenden.
+  # Wangen nicht, sie reichen bis zum Boden und schließen die Zeile seitlich.
+  def self.sockel_teile(liste)
+    liste.select do |e|
+      (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) &&
+        definition(e).get_attribute(JT_DICT, 'schrank') && %w[Unterschrank Hochschrank].include?(kategorie(e)) &&
+        definition(e).get_attribute(JT_DICT, 'typ') != 'Wange'
     end
-    x0 = bereiche.map(&:first).min
-    # Tiefe und Sockelhöhe nur von echten Schränken, nicht von Wangen und Passblenden
-    eigene = ARTEN.values.map { |a| a[:typ] }
-    korpus = gleich.reject { |e| eigene.include?(definition(e).get_attribute(JT_DICT, 'typ')) }
-    tiefen = korpus.map { |e| dc_cm(e, 'tiefe') }.compact
-    sockel = korpus.map { |e| dc_cm(e, 'sockelhoehe') }.compact
-    { ref: ref, x0: x0, laenge: (bereiche.map(&:last).max - x0) * 2.54, tiefe: tiefen.max,
-      sockel: sockel.first, uebergangen: s.size - gleich.size }
+  end
+
+  def self.gleiche_flucht?(ref, e)
+    a = ref.transformation.xaxis.to_a
+    b = e.transformation.xaxis.to_a
+    return false if a.zip(b).sum { |u, v| u * v } < 0.999
+    o = ref.transformation.inverse * e.transformation.origin
+    o.y.abs < FLUCHT_TOL && o.z.abs < FLUCHT_TOL
+  end
+
+  # Zeilen [{ref:, x0:, x1: (Zoll, in ref-Koordinaten), tiefe:, sockel: (cm)}]
+  def self.zeilen(teile)
+    gruppen = []
+    teile.each do |e|
+      g = gruppen.find { |z| gleiche_flucht?(z[:ref], e) }
+      g ? g[:teile] << e : gruppen << { ref: e, teile: [e] }
+    end
+    gruppen.flat_map do |g|
+      inv = g[:ref].transformation.inverse
+      bereiche = g[:teile].map do |e|
+        o = inv * e.transformation.origin
+        x0, x1 = x_bereich(e)
+        [o.x + x0, o.x + x1, e]
+      end.sort_by(&:first)
+      stuecke = []
+      bereiche.each do |b|
+        if stuecke.last && b[0] <= stuecke.last[:x1] + LUECKE
+          stuecke.last[:x1] = [stuecke.last[:x1], b[1]].max
+          stuecke.last[:teile] << b[2]
+        else
+          stuecke << { x0: b[0], x1: b[1], teile: [b[2]] }
+        end
+      end
+      stuecke.map do |s|
+        korpus = s[:teile].reject { |e| eigener_typ?(e) }
+        { ref: g[:ref], x0: s[:x0], x1: s[:x1], tiefe: korpus.map { |e| dc_cm(e, 'tiefe') }.compact.max,
+          sockel: korpus.map { |e| dc_cm(e, 'sockelhoehe') }.compact.first }
+      end
+    end
+  end
+
+  # Innenecken: Die Zeile, die hinter die Blende der Querzeile läuft, endet an deren
+  # Rückseite, die andere wird bis an ihre Vorderseite verlängert. So schließen die
+  # Blenden die Ecke ohne Lücke und ohne Überlappung.
+  def self.ecken(zeilen, p)
+    y_vorn = inch(p['Materialstaerke_Korpus'] + p['Ruecksprung'])
+    st = inch(p['Staerke'])
+    neu = zeilen.map { |z| [z[:x0], z[:x1]] }
+    zeilen.each_with_index do |r, i|
+      rt = r[:ref].transformation
+      ri = rt.inverse
+      zeilen.each do |q|
+        next if q.equal?(r)
+        qt = q[:ref].transformation
+        a = umrechnen(qt, ri, 0, 0)
+        b = umrechnen(qt, ri, 1, 0)
+        next unless (b.x - a.x).abs < 0.01 # nur rechtwinklige Zeilen
+        cf = umrechnen(qt, ri, q[:x0], y_vorn).x
+        cb = umrechnen(qt, ri, q[:x0], y_vorn + st).x
+        mitte = (cf + cb) / 2
+        vorn = umrechnen(qt, ri, 0, -1).x - a.x # Blickrichtung der Querzeile in r
+        linie = umrechnen(rt, qt.inverse, mitte, y_vorn + st / 2) # Blendenlinie von r bei der Querzeile
+        next unless linie.x.between?(q[:x0] - ECKE_TOL, q[:x1] + ECKE_TOL)
+        lo, hi = [cf, cb].minmax
+        if vorn > 0.5 && (r[:x0] - mitte).abs < ECKE_TOL
+          neu[i][0] = r[:x0] < mitte ? lo : hi
+        elsif vorn < -0.5 && (r[:x1] - mitte).abs < ECKE_TOL
+          neu[i][1] = r[:x1] > mitte ? hi : lo
+        end
+      end
+    end
+    zeilen.each_with_index.map { |z, i| z.merge(x0: neu[i][0], x1: neu[i][1], laenge: (neu[i][1] - neu[i][0]) * 2.54) }
+  end
+
+  # Sockelblende unter den gewählten Unter- und Hochschränken, ohne Auswahl unter allen
+  def self.kueche(model)
+    gewaehlt = sockel_teile(model.selection.to_a)
+    teile = gewaehlt.empty? ? sockel_teile(model.entities.to_a) : gewaehlt
+    { teile: teile, auswahl: !gewaehlt.empty?, alte: model.entities.to_a.select { |e| sockelblende?(e) } }
+  end
+
+  def self.sockelblende?(e)
+    (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) &&
+      definition(e).get_attribute(JT_DICT, 'typ') == ARTEN[:sockelblende][:typ]
+  end
+
+  # Erste Zeile (für Aufrufer, die nur eine Zeile brauchen)
+  def self.zeile(model)
+    z = zeilen(sockel_teile(model.selection.to_a)).first
+    z && z.merge(laenge: (z[:x1] - z[:x0]) * 2.54)
   end
 
   def self.erstellen_sockelblende(eingabe = {}, z = nil)
@@ -570,6 +671,33 @@ module Blenden
     defn = erzeuge_sockelblende(model, eingabe)
     inst = einfuegen(model, defn, 'Sockelblende', z && z[:ref], z ? z[:x0] : 0)
     fertig(model, inst, false)
+  rescue StandardError => e
+    model.abort_operation
+    UI.messagebox("Fehler beim Erzeugen: #{e.message}")
+    raise
+  end
+
+  # Je Zeile eine Sockelblende (über 14 m in mehrere geteilt); alte Sockelblenden ersetzen
+  def self.erstellen_sockelblenden(eingabe, zeilen, alte = [])
+    model = Sketchup.active_model
+    model.start_operation('Sockelblenden', true)
+    model.entities.erase_entities(alte) unless alte.empty?
+    max = ARTEN[:sockelblende][:defaults]['Max_Laenge'] * MAX_STUECKE
+    neu = zeilen.flat_map do |z|
+      n = (z[:laenge] / max - 1e-9).ceil
+      Array.new(n) do |k|
+        l = z[:laenge] / n
+        defn = erzeuge_sockelblende(model, eingabe.merge('Laenge' => l, 'Tiefe' => z[:tiefe] || TIEFE_STANDARD['Unterschrank']))
+        einfuegen(model, defn, 'Sockelblende', z[:ref], z[:x0] + inch(k * l))
+      end
+    end
+    model.commit_operation
+    if defined?($dc_observers) && $dc_observers
+      neu.each { |inst| $dc_observers.get_latest_class.redraw_with_undo(inst) }
+    end
+    model.selection.clear
+    neu.each { |inst| model.selection.add(inst) }
+    neu
   rescue StandardError => e
     model.abort_operation
     UI.messagebox("Fehler beim Erzeugen: #{e.message}")
@@ -636,14 +764,41 @@ module Blenden
     UI.messagebox("Ungültige Eingabe: #{e.message}")
   end
 
+  # Ohne Unter- und Hochschränke im Modell: eine freie Sockelblende mit Länge
   def self.dialog_sockelblende
     model = Sketchup.active_model
-    z = zeile(model)
-    UI.messagebox("#{z[:uebergangen]} Schränke stehen quer zur Zeile und werden übergangen.") if z && z[:uebergangen] > 0
+    k = kueche(model)
+    return dialog_sockelblende_frei if k[:teile].empty?
+    zl = zeilen(k[:teile])
+    alte = k[:auswahl] ? [] : k[:alte]
+    prompts = ['Sockelhöhe (mm)', 'Stärke (mm)']
+    defaults = [mm(sockel_standard(model)), '16']
+    listen = ['', '16|19']
+    unless alte.empty?
+      prompts << "Vorhandene Sockelblenden (#{alte.size}) ersetzen"
+      defaults << 'ja'
+      listen << 'ja|nein'
+    end
+    wo = k[:auswahl] ? 'unter den gewählten Schränken' : 'unter allen Unter- und Hochschränken'
+    Kuechenplaner::Eingabe.abfragen(prompts, defaults, listen, 'Sockelblende',
+                                    untertitel: "#{zl.size} #{zl.size == 1 ? 'Zeile' : 'Zeilen'} #{wo}",
+                                    ok: 'Einfügen') do |res|
+      p = ARTEN[:sockelblende][:defaults].merge('Sockelhoehe' => zahl(res[0]), 'Staerke' => zahl(res[1]))
+      raise ArgumentError, 'Sockelhöhe 30 bis 300 mm' unless p['Sockelhoehe'] && p['Sockelhoehe'].between?(3.0, 30.0)
+      raise ArgumentError, 'Stärke 16 oder 19 mm' unless [1.6, 1.9].include?(p['Staerke'])
+      erstellen_sockelblenden(p.select { |n, _| %w[Sockelhoehe Staerke].include?(n) }, ecken(zl, p),
+                              res[2] == 'nein' ? [] : alte)
+    end
+  rescue ArgumentError => e
+    UI.messagebox("Ungültige Eingabe: #{e.message}")
+  end
+
+  def self.dialog_sockelblende_frei
+    model = Sketchup.active_model
     Kuechenplaner::Eingabe.abfragen(['Länge (mm)', 'Sockelhöhe (mm)', 'Tiefe Korpus (mm)', 'Seitenstücke'],
-                                    [mm(z ? z[:laenge] : 60.0), mm(sockel_standard(model)), mm((z && z[:tiefe]) || 52.0), 'keine'],
+                                    ['600', mm(sockel_standard(model)), '520', 'keine'],
                                     ['', '', '', 'keine|links|rechts|beide'], 'Sockelblende',
-                                    untertitel: z ? 'Neue Sockelblende unter den gewählten Schränken' : 'Neue Sockelblende',
+                                    untertitel: 'Neue Sockelblende (keine Unter- oder Hochschränke gefunden)',
                                     ok: 'Einfügen') do |res|
       eingabe = { 'Laenge' => zahl(res[0]), 'Sockelhoehe' => zahl(res[1]), 'Tiefe' => zahl(res[2]),
                   'Art_Seite' => %w[keine links rechts beide].index(res[3]).to_f }
@@ -651,7 +806,7 @@ module Blenden
       raise ArgumentError, "Länge 10 bis #{(max * 10).round} mm" unless eingabe['Laenge'] && eingabe['Laenge'].between?(1.0, max)
       raise ArgumentError, 'Sockelhöhe 30 bis 300 mm' unless eingabe['Sockelhoehe'] && eingabe['Sockelhoehe'].between?(3.0, 30.0)
       raise ArgumentError, 'Tiefe muss größer als 0 sein' unless eingabe['Tiefe'] && eingabe['Tiefe'] > 0
-      erstellen_sockelblende(eingabe, z)
+      erstellen_sockelblende(eingabe)
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
