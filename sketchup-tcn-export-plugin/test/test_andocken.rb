@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden eckschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -275,7 +275,7 @@ end
 # Wange (Komponente Blenden) reicht bis zum Boden: angereiht zählt die Korpusunterkante
 model.select_tool(nil)
 model.selection.clear
-model.selection.add(us1)
+model.selection.add(us3) # links vom Zeilenanfang ist frei
 wg = Blenden.erstellen(:wange, {})
 kw = A.kasten(wg)
 check(nah(kw[4], 0) && nah(wg.transformation.origin.to_a[2], us1.transformation.origin.to_a[2], 1e-6),
@@ -293,12 +293,17 @@ w1 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W1'),
                               Geom::Transformation.axes(Geom::Point3d.new(0, 300.cm, 0), Geom::Vector3d.new(1, 0, 0), Geom::Vector3d.new(0, 1, 0), Geom::Vector3d.new(0, 0, 1)))
 w2 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W2'),
                               Geom::Transformation.axes(Geom::Point3d.new(240.cm, 300.cm, 0), Geom::Vector3d.new(0, -1, 0), Geom::Vector3d.new(1, 0, 0), Geom::Vector3d.new(0, 0, 1)))
-[[w1, 1], [w2, 2]].each do |w, nr|
-  { 'typ' => 'Wand', 'wand' => nr, 'laenge' => 2400.0 }.each { |k2, v2| w.set_attribute('JT_Raum', k2, v2) }
+# Wand 3 vorne: von (240, 0) nach -x; Wand 4 links: von (0, 0) nach +y
+w3 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W3'),
+                              Geom::Transformation.axes(Geom::Point3d.new(240.cm, 0, 0), Geom::Vector3d.new(-1, 0, 0), Geom::Vector3d.new(0, -1, 0), Geom::Vector3d.new(0, 0, 1)))
+w4 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W4'),
+                              Geom::Transformation.axes(Geom::Point3d.new(0, 0, 0), Geom::Vector3d.new(0, 1, 0), Geom::Vector3d.new(-1, 0, 0), Geom::Vector3d.new(0, 0, 1)))
+[[w1, 1, 2400.0], [w2, 2, 3000.0], [w3, 3, 2400.0], [w4, 4, 3000.0]].each do |w, nr, l|
+  { 'typ' => 'Wand', 'wand' => nr, 'laenge' => l }.each { |k2, v2| w.set_attribute('JT_Raum', k2, v2) }
 end
 vr = A.vorgaben(model)
 check(nah(vr[:decke], 2300 / 25.4) && nah(vr[:boden], 0), "Raum: Decke 2300 mm (#{vr[:decke]})")
-check(A.waende(model).size == 2 && nah(A.waende(model)[1][0][0], 3 * V), 'Raum: zwei Wände, Wand 2 gedreht')
+check(A.waende(model).size == 4 && nah(A.waende(model)[1][0][0], 3 * V), 'Raum: vier Wände, Wand 2 gedreht')
 # Schrank in der rechten Ecke an Wand 1 (rechts ist Wand 2) → der nächste kommt links daneben
 r1 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
 b = A.bezug(r1)
@@ -315,26 +320,120 @@ check(nah(o(r3)[0] + b[1], o(r2)[0] + b[0], 1e-6), "ohne Auswahl, rechtes Ende a
 ob = Oberschrank.erstellen({})
 bo = A.bezug(ob)
 check(o(ob)[2] + bo[5] <= vr[:decke] + 1e-6, "Oberschrank unter der Decke (#{((o(ob)[2] + bo[5]) * 25.4).round} mm)")
-# Eckschrank erkennt seine Ecke
-ed = Sketchup::ComponentDefinition.new('Eck')
-ed.set_attribute('JT_Schrank', 'typ', 'Eckschrank')
-ed.set_attribute('dynamic_attributes', 'schenkel_a', 90.cm)
-ei = Sketchup::ComponentInstance.new(ed, Geom::Transformation.translation([0, 0, 0]))
-check(A.ecke(ei) == :links, 'Eckschrank L-Form: linke Ecke')
-ed.dicts['dynamic_attributes'].delete('schenkel_a')
-ed.set_attribute('dynamic_attributes', 'blindseite', 1.0)
-check(A.ecke(ei) == :rechts, 'Blindeck Blindseite rechts: rechte Ecke')
-check(A.ecke(r1).nil?, 'normaler Schrank: keine feste Ecke')
+# markierter Schrank mit beiden Seiten belegt: Werkzeug
+model.select_tool(nil)
+model.selection.clear
+model.selection.add(r2)
+r4 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+check(model.werkzeug.is_a?(A::Werkzeug), 'markiert, keine freie Seite: Schrank hängt an der Maus')
+model.select_tool(nil)
+model.entities.instances.delete(r4)
 
-# Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
-wz = A::Werkzeug.new(us1)
-view = Object.new
-def view.invalidate = nil
-check(wz.onKeyDown(9, false, 0, view) && wz.instance_variable_get(:@drehung) == 1, 'Tab dreht um 90°')
-check(wz.onKeyDown(37, false, 0, view) && wz.instance_variable_get(:@drehung) == 0, 'Pfeil links dreht zurück')
-wz.onKeyDown(38, false, 0, view)
-check(wz.instance_variable_get(:@buendig) == :vorne, 'Pfeil hoch: Fronten bündig')
-check(!wz.onKeyDown(65, false, 0, view), 'andere Tasten gehen an SketchUp')
+# --- Werkzeug in einem leeren Raum (Wandabstand 20 mm) --------------------------------
+Sketchup.write_default('Kuechenplaner_Einstellungen', 'wandabstand', 20.0)
+[r1, r2, r3, ob].each { |i| model.entities.instances.delete(i) }
+model.selection.clear
+neu = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+wz = model.werkzeug
+check(wz.is_a?(A::Werkzeug), 'leerer Raum: erster Schrank hängt an der Maus')
+bn = A.bezug(neu)
+lz = ->(w) { [w.ziel[1], w.ziel[2], w.ziel[3]] }
+wz.setze_punkt(100.cm, 280.cm)
+x, y, z = lz.(wz)
+check(wz.wand.zero? && nah(y + bn[3], 298.cm, 1e-6) && nah(z, vr[:sockel], 1e-6), "an Wand 1: Rückseite 20 mm vor der Wand, auf dem Sockel (#{[x, y, z]})")
+check(nah(x + (bn[0] + bn[1]) / 2, 100.cm, 1e-6), 'an Wand 1: Mitte unter der Maus')
+wz.setze_punkt(150.cm, 50.cm) # Maus weit weg: bleibt an Wand 1
+check(wz.wand.zero? && nah(lz.(wz)[1] + bn[3], 298.cm, 1e-6), 'Wand bleibt, nur entlang verschieben')
+wz.setze_punkt(5.cm, 280.cm)
+check(nah(lz.(wz)[0] + bn[0], 2.cm, 1e-6), "Ecke links: seitlich 20 mm zu Wand 4 (#{lz.(wz)[0]})")
+wz.setze_punkt(-80.cm, 280.cm)
+check(nah(lz.(wz)[0] + bn[0], 2.cm, 1e-6), 'nie in die Nachbarwand: bleibt in der Ecke stehen')
+wz.setze_punkt(238.cm, 280.cm)
+check(nah(lz.(wz)[0] + bn[1], 238.cm, 1e-6), 'Ecke rechts: seitlich 20 mm zu Wand 2')
+# Tab: Wand 2 (rechts), Schrank gedreht, Rückseite 20 mm vor x = 240
+wz.taste_tab
+wz.setze_punkt(200.cm, 150.cm)
+e = R.ecken(bn, wz.ziel)
+check(wz.wand == 1 && nah(e.map { |q2| q2[0] }.max, 238.cm, 1e-6), "Tab: an Wand 2 (#{e.map { |q2| q2[0] }.max * 2.54})")
+wz.shift = true
+wz.taste_tab
+wz.shift = false
+check(wz.wand.zero?, 'Shift+Tab: zurück an Wand 1')
+3.times { wz.taste_tab }
+check(wz.wand == 3, 'Tab läuft durch alle Wände')
+wz.taste_tab
+check(wz.wand.zero?, 'nach der letzten Wand wieder Wand 1')
+# absetzen
+fake_view = Struct.new(:model).new(model)
+wz.setze_punkt(5.cm, 280.cm)
+wz.onLButtonDown(0, 0, 0, fake_view)
+check(nah(o(neu)[0] + bn[0], 2.cm, 1e-6), 'Klick setzt ab')
+
+# zweiter Schrank ohne Markierung: ans freie Zeilenende
+model.selection.clear
+t60 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 90.0))
+bt = A.bezug(t60)
+check(nah(o(t60)[0] + bt[0], o(neu)[0] + bn[1], 1e-6), 'ohne Markierung: ans freie Zeilenende')
+model.entities.instances.delete(t60)
+# tieferer Schrank im Werkzeug: stößt an den ersten und bleibt anliegend stehen
+wz2 = A::Werkzeug.new(t60)
+wz2.setze_punkt(20.cm, 280.cm)
+check(nah(wz2.ziel[1] + bt[0], o(neu)[0] + bn[1], 1e-6), "gleitet nicht in den Nachbarn, liegt an (#{(wz2.ziel[1] + bt[0]) * 2.54})")
+check(nah(wz2.ziel[2] + bt[3], 298.cm, 1e-6), 'tieferer Schrank: Rückseite im Wandabstand')
+# flacherer Schrank (Tiefe 40) neben dem ersten: vordere Korpusecke gleich
+t40 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 40.0))
+model.entities.instances.delete(t40)
+model.select_tool(nil)
+wz3 = A::Werkzeug.new(t40)
+b4 = A.bezug(t40)
+wz3.setze_punkt(90.cm, 280.cm)
+check(nah(wz3.ziel[2] + b4[2], o(neu)[1] + bn[2], 1e-6) && nah(wz3.ziel[1] + b4[0], o(neu)[0] + bn[1], 1e-6),
+      "flacherer Nachbar: Vorderkanten bündig, liegt an (#{wz3.ziel.map { |q2| q2 * 2.54 }})")
+wz3.setze_punkt(160.cm, 280.cm)
+check(nah(wz3.ziel[2] + b4[3], 298.cm, 1e-6), 'frei an der Wand: wieder im Wandabstand')
+
+# Strg = Freihand: folgt der Maus, Höhe mit Pfeil, nur Kollision zählt
+wz3.frei = true
+wz3.setze_punkt(120.cm, 150.cm)
+mx = wz3.ziel[1] + (b4[0] + b4[1]) / 2
+check(nah(mx, 120.cm, 1e-6) && nah(wz3.ziel[3], vr[:sockel], 1e-6), 'Freihand: Mitte unter der Maus')
+fview = Object.new
+def fview.invalidate = nil
+wz3.onKeyDown(38, false, 0, fview)
+check(nah(wz3.ziel[3], vr[:sockel] + 10 / 25.4, 1e-6), 'Freihand: Pfeil hoch hebt um 10 mm')
+alt = wz3.ziel.dup
+wz3.setze_punkt(30.cm, 280.cm) # in den ersten Schrank hinein
+check(wz3.ziel == alt, 'Freihand: Kollision mit Schrank wird verhindert')
+wz3.setze_punkt(120.cm, 310.cm) # in die Wand
+check(wz3.ziel == alt, 'Freihand: Kollision mit Wand wird verhindert')
+wz3.onKeyUp(17, false, 0, fview)
+check(!wz3.frei, 'Strg los: zurück an die Wand')
+
+# Eckschrank L-Form: Bezug mit beiden Rückwänden, Tab erst drehen, dann Wand
+model.selection.clear
+model.entities.instances.delete(neu)
+el = Eckschrank.erstellen({}, l_form: true)
+model.entities.instances.delete(el)
+model.select_tool(nil)
+be = A.bezug(el)
+check(nah(be[0], 0, 1e-6), "L-Form: Rückwand von Schenkel B zählt mit (#{be[0]})")
+wl = A::Werkzeug.new(el)
+wl.setze_punkt(30.cm, 290.cm)
+e = R.ecken(be, wl.ziel)
+check(nah(e.map { |q2| q2[0] }.min, 2.cm, 1e-6) && nah(e.map { |q2| q2[1] }.max, 298.cm, 1e-6), 'L-Form in der Ecke: beide Rückseiten im Wandabstand')
+wl.taste_tab
+check(wl.wand.zero? && wl.q == 3, 'Eckschrank: erster Tab dreht nur')
+wl.setze_punkt(230.cm, 280.cm)
+e = R.ecken(be, wl.ziel)
+check(nah(e.map { |q2| q2[1] }.max, 298.cm, 1e-6) && nah(e.map { |q2| q2[0] }.max, 238.cm, 1e-6), 'gedreht: in der rechten Ecke, beide Rückseiten im Wandabstand')
+wl.taste_tab
+check(wl.wand == 1 && wl.q.zero?, 'Eckschrank: zweiter Tab wechselt die Wand')
+check(A.eckschrank?(el) && !A.eckschrank?(t40), 'Eckschrank erkannt')
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'wandabstand'])
+
+# Werkzeug: Tasten
+check(!wl.onKeyDown(65, false, 0, fview), 'andere Tasten gehen an SketchUp')
+check(!wl.onKeyDown(38, false, 0, fview), 'Pfeil hoch ohne Strg geht an SketchUp')
 
 # alle Schrank-Komponenten rufen den Haken nach dem Erzeugen auf
 Dir[File.join(komp, '*/src/*/main.rb')].each do |f|
