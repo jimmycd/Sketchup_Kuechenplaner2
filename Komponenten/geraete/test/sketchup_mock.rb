@@ -127,14 +127,55 @@ module Sketchup
     def to_a = @h.values
   end
 
+  # Optionen wie RenderingOptions/ShadowInfo: feste Schlüsselliste
+  class Optionen
+    def initialize(werte) = @h = werte.dup
+    def keys = @h.keys
+    def [](k) = @h[k]
+    def []=(k, v)
+      raise ArgumentError, "unbekannt: #{k}" unless @h.key?(k)
+      @h[k] = v
+    end
+    def to_h = @h.dup
+  end
+
+  class Camera
+    attr_accessor :eye, :target, :up, :fov, :height
+    def initialize(eye, target, up, persp = true, fov = 30.0) = (@eye, @target, @up, @persp, @fov = eye, target, up, persp, fov)
+    def perspective? = @persp
+    def perspective=(v)
+      @persp = v
+    end
+  end
+
+  class View
+    attr_accessor :camera, :bilder
+    def initialize = (@camera, @bilder = Camera.new([0, -100, 50], [0, 0, 0], [0, 0, 1], false, 30.0), [])
+    def write_image(opts) = (@bilder << opts; true)
+  end
+
   class Page
-    attr_reader :name, :sichtbar
-    def initialize(n, model) = (@name, @model = n, model; update(32))
-    def update(_) = @sichtbar = @model.layers.to_a.to_h { |l| [l.name, l.visible] }
+    include Attr
+    attr_reader :name, :sichtbar, :rendering_options, :shadow_info, :camera, :flags
+    attr_accessor :use_camera, :use_rendering_options, :use_shadow_info
+    def initialize(n, model) = (@name, @model, @flags = n, model, []; update(-1))
+    def update(f = -1)
+      @flags << f
+      @sichtbar = @model.layers.to_a.to_h { |l| [l.name, l.visible] } if f & 32 != 0
+      @rendering_options = Optionen.new(@model.rendering_options.to_h) if f & 2 != 0
+      @shadow_info = Optionen.new(@model.shadow_info.to_h) if f & 4 != 0
+      v = @model.active_view.camera
+      @camera = Camera.new(v.eye, v.target, v.up, v.perspective?, v.fov) if f & 1 != 0
+      true
+    end
   end
 
   class Pages
-    attr_accessor :selected_page
+    attr_reader :selected_page
+    def selected_page=(p)
+      @selected_page = p
+      @model.active_view.camera = p.camera
+    end
     def initialize(model) = (@model, @h = model, {})
     def [](n) = @h[n]
     def add(n) = @h[n] = Page.new(n, @model)
@@ -153,8 +194,20 @@ module Sketchup
   end
 
   class Model
-    attr_reader :definitions, :materials, :layers, :entities, :selection, :pages
+    RO = { 'RenderMode' => 2, 'Texture' => true, 'DrawSilhouettes' => true, 'DrawProfilesOnly' => false,
+           'EdgeColorMode' => 1, 'ForegroundColor' => Color.new(0, 0, 0), 'DisplayText' => true,
+           'DisplayDims' => true, 'DisplaySketchAxes' => true, 'DrawHorizon' => true, 'DrawGround' => false,
+           'BackgroundColor' => Color.new(255, 255, 255), 'SkyColor' => Color.new(1, 2, 3),
+           'GroundColor' => Color.new(4, 5, 6), 'DisplayColorByLayer' => false }.freeze
+    SI = { 'DisplayShadows' => false, 'Light' => 80, 'Dark' => 45, 'ShadowTime' => Time.utc(2020, 11, 8, 13, 30),
+           'UseSunForAllShading' => false, 'DisplayOnAllFaces' => true, 'DisplayOnGroundPlane' => true }.freeze
+    attr_reader :definitions, :materials, :layers, :entities, :selection, :pages,
+                :rendering_options, :shadow_info, :active_view, :options
+    attr_accessor :path
     def initialize
+      @rendering_options, @shadow_info = Optionen.new(RO), Optionen.new(SI)
+      @active_view, @path = View.new, ''
+      @options = { 'PageOptions' => { 'ShowTransition' => true } }
       @definitions, @materials, @layers = Definitions.new, Named.new(Mat), Named.new(Layer)
       @entities = Entities.new(nil)
       @selection = Set.new
