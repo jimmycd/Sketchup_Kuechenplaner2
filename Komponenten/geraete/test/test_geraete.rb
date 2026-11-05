@@ -191,6 +191,18 @@ check(JTools::SchrankCnc::Schraenke.teile(model).size == teile_vorher, 'TCN-Expo
 check(G.entfernen(model).zero? && $meldungen.last.include?('Keine eingesetzten Geräte'), 'Hinweis, wenn nichts zu entfernen ist')
 check(G.in_schraenke_setzen(model) == anzahl && platzhalter.(usg).all?(&:hidden), 'danach wieder einsetzbar')
 
+# Schalter der Symbolleiste: unabhängig von der Auswahl alle Geräte ein bzw. aus, ohne Erfolgsmeldung
+check(G.eingesetzt?(model), 'Schalter: eingeschaltet, solange Geräte stecken')
+model.selection.add(usb)
+meldungen_vorher = $meldungen.size
+check(G.umschalten(model) == false && erwartet.keys.all? { |s| geraete(s).empty? }, 'Schalter aus: alle Geräte entfernt, auch mit Auswahl')
+check(platzhalter.(usg).none?(&:hidden), 'Schalter aus: Platzhalter wieder sichtbar')
+check(G.umschalten(model) == true && erwartet.keys.sum { |s| geraete(s).size } == anzahl, 'Schalter ein: Geräte in alle Schränke, auch mit Auswahl')
+check($meldungen.size == meldungen_vorher, 'Schalter ohne Meldung')
+model.selection.clear
+check(!G.eingesetzt?(Sketchup::Model.new) && G.umschalten(Sketchup::Model.new) == false && $meldungen.last.include?('Keine Schränke'),
+      'leeres Modell: Hinweis, Schalter bleibt aus')
+
 # Szenen (mit Raum: dessen Tags nur in Planung und Kunde sichtbar)
 %w[Raum-Wand Raum-Fenster].each { |t| model.layers.add(t) }
 G.szenen_anlegen(model)

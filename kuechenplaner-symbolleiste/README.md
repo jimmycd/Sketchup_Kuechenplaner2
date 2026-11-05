@@ -9,6 +9,7 @@ Erweiterung `kuechenplaner_symbolleiste.rbz` (steckt auch in `Kuechenplaner_alle
 | ![](src/kuechenplaner_symbolleiste/icons/arbeitsplatte.svg) | Arbeitsplatte | Ist eine Arbeitsplatte gewählt, wird sie neu berechnet, sonst wird eine neue erzeugt. |
 | ![](src/kuechenplaner_symbolleiste/icons/raum.svg) | Raum | Auswahl der Raum-Befehle: Raum anlegen, Wände aus Linien, Fenster/Tür einsetzen, Öffnung bearbeiten, Raum bearbeiten (Erweiterung [`Komponenten/raum/`](../Komponenten/raum/)). |
 | ![](src/kuechenplaner_symbolleiste/icons/beschriftung.svg) | Schrank-Beschriftung | Schalter: zeigt bzw. verbirgt die Beschriftungen der Geräte und die Kürzel der Schränke (dieselben wie auf den Etiketten, z. B. US1, HS2) in den Szenen *Planung* und *Zuschnitt* als Text mit Pfeil auf die Front; in *Kunde* nie. Eingeschaltet ist das Icon gedrückt. Die Texte folgen dem Modell (verschieben, neues Kürzel, neuer/gelöschter Schrank). Szenen anlegen: *Geräte › Szenen Planung/Kunde/Zuschnitt anlegen*. |
+| ![](src/kuechenplaner_symbolleiste/icons/geraete.svg) | Geräte einsetzen/entfernen | Schalter wie die Beschriftung: Klick setzt die Geräte (Spüle, Kochfeld, Backofen, Kühlschrank, Spüler …) in alle Schränke mit Gerätenische, das Icon ist dann gedrückt; nächster Klick entfernt alle Geräte wieder. Gilt immer für das ganze Modell, die Auswahl spielt keine Rolle. Gedrückt ist das Icon, sobald in irgendeinem Schrank ein Gerät steckt. Einzelne Schränke oder Geräte: *Geräte › Geräte in Schränke setzen / Geräte entfernen* mit Auswahl. |
 | ![](src/kuechenplaner_symbolleiste/icons/frontfarbe.svg) | Frontfarbe und Griffe | Dialog für Frontfarbe und Griffe. |
 | ![](src/kuechenplaner_symbolleiste/icons/tcn.svg) | TCN exportieren | TCN-Export für TpaCAD. |
 | ![](src/kuechenplaner_symbolleiste/icons/stueckliste.svg) | Stückliste | Stückliste aller Teile (Fertig-, Fräs- und Rohmaß, Material, Kanten) als CSV/HTML. |
@@ -18,7 +19,7 @@ Erweiterung `kuechenplaner_symbolleiste.rbz` (steckt auch in `Kuechenplaner_alle
 | ![](src/kuechenplaner_symbolleiste/icons/materialien.svg) | Materialien | Material-Konfigurator wie im Menü *Materialien…*: Platten und Anleimer anlegen, bearbeiten, löschen; Maserrichtung. |
 | ![](src/kuechenplaner_symbolleiste/icons/einstellungen.svg) | Einstellungen | Generelle Einstellungen wie im Menü *Einstellungen…*: oben Küche (Sockelhöhe, Wandabstand, Abstand Arbeitsplatte–Oberschrank), unten CNC (Übermaß, Zuschnitt). |
 
-Seltene Befehle (Geräte in Schränke setzen, Szenen anlegen, Plugins aktualisieren) stehen nur im Menü *Erweiterungen › Küchenplaner*. Fehlt die Erweiterung zu einem Icon, ist es ausgegraut.
+Seltene Befehle (Szenen anlegen, Plugins aktualisieren, Geräte nur für gewählte Schränke) stehen nur im Menü *Erweiterungen › Küchenplaner*. Fehlt die Erweiterung zu einem Icon, ist es ausgegraut.
 
 Neue Schränke erscheinen automatisch in der Auswahl, wenn sie sich mit `Kuechenplaner.schrank('<Gruppe>', '<Titel>…') { … }` ins Menü eintragen.
 
