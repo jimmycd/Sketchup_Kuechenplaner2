@@ -120,17 +120,12 @@ plugin.each do |f|
   end
 end
 
-# Bögen: alle W#2125 wie in bogen.tcn (nur Radius und Winkel anders, EW2 automatisch)
-vorlage = File.read(File.join(haupt, 'sketchup-tcn-export-plugin/beispiele/bogen.tcn'))[/^W#2125\{.*\}W/]
-muster = ->(l) { l.sub(/#8017=\S+/, '#8017=R').sub(/#8046=\S+/, '#8046=W').sub(/WS=\d+ */, '') }
-boegen = dateien.flat_map { |d| d.text.split(/\r?\n/).grep(/\AW#2125\{/) }
-check(!boegen.empty?, 'es gibt Bögen (Abschlussregal rund)')
-check(vorlage && boegen.all? { |l| muster.(l) == muster.(vorlage) }, "Bögen wie bogen.tcn: #{boegen.uniq.first(3)}")
-# Vorzeichen: wer den Winkel mit atan2 rechnet (y nach oben), muss ihn negieren (TPA-Ansicht y nach unten)
+# Bögen nur als kurze Geraden, kein W#2125 (Jürgen 2026-11-05: Arbeitsplatte zurückgerollt,
+# runder Deckel des Abschlussregals meldete in TPA "Radius ungültig")
+boegen = dateien.flat_map { |d| d.text.split(/\r?\n/).grep(/\AW#2125\{/).map { |l| "#{d.name}: #{l}" } }
+check(boegen.empty?, "keine Kreisbögen W#2125 in den TCN: #{boegen.first(3)}")
 plugin.each do |f|
-  File.read(f, encoding: 'UTF-8').scan(/#8046=#\{n\.?\(([^)]*)\)/).flatten.each do |ausdruck|
-    check(ausdruck.strip.start_with?('-'), "#{File.basename(f)}: Bogenwinkel #8046 nicht negiert (#{ausdruck})")
-  end
+  check(!File.read(f, encoding: 'UTF-8').match?(/"W#2125\{/), "#{File.basename(f)}: erzeugt W#2125")
 end
 
 # --- Quelltext aller Module ---
