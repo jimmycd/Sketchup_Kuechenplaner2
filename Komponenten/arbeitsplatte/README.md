@@ -102,10 +102,8 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
   fehlt in der TCN und steht in den Hinweisen.
 - **Stoßkontur** mit dem Fräser Ø 20 (Werkzeug 1004) um den Radius in
   den Abfall versetzt, Stärke + 1 mm tief (in Zustellschritten von höchstens 20 mm), 10 mm über die Plattenkanten hinaus.
-  Der Bogen des Gehrungsansatzes ist ein echter Kreisbogen (`W#2125`, tangential,
-  Radius und Winkel wie in `sketchup-tcn-export-plugin/beispiele/bogen.tcn`).
-  Das Vorzeichen des Winkels gilt wie in der TPA-Ansicht (y nach unten):
-  negativ = im Uhrzeigersinn auf dem Bildschirm.
+  Der Bogen des Gehrungsansatzes wird als kurze Geraden gefräst (Anzahl
+  `bogen_teile`, Standard 8), kein `W#2125`-Kreisbogen (zurückgerollt 2026-11-05).
   Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
   die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).
