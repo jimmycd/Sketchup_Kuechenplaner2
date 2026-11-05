@@ -211,13 +211,10 @@ def zweipunkt(cam, cam_data, auge, blick, breite, hoehe, Vector):
     hoch = rechts.cross(waag).normalized()
     from mathutils import Matrix
     cam.rotation_quaternion = Matrix((rechts, hoch, -waag)).transposed().to_quaternion()
-    # Shift in Bruchteilen der größeren Bildseite; Bildhöhe entspricht 2·tan(fov/2)
-    halb = math.tan(cam_data.angle / 2.0)
-    if cam_data.sensor_fit == "HORIZONTAL":
-        halb *= hoehe / float(breite)  # angle gilt für die Breite
-    hoehe_einheiten = 2.0 * halb
-    groesser = hoehe_einheiten * max(1.0, breite / float(hoehe))
-    cam_data.shift_y = math.tan(neigung) / groesser
+    # Blender misst shift in Einheiten der Sensor-Bezugsseite (AUTO: größere
+    # Bildseite) – derselben Seite, auf die sich cam_data.angle bezieht.
+    # So landet der Zielpunkt genau in der Bildmitte.
+    cam_data.shift_y = math.tan(neigung) / (2.0 * math.tan(cam_data.angle / 2.0))
 
 
 def umgebung_laden(bpy, welt, datei, staerke, hintergrund=None):
