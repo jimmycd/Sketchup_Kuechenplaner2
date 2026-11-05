@@ -13,7 +13,6 @@ module JTools
     module Geometrie
       MM = 25.4 # SketchUp rechnet intern in Zoll
       ACHSEN = %w[x y z].freeze
-      OCL_DICT = 'ladb_opencutlist'.freeze
 
       # 4x4-Matrix (Spaltenform wie Geom::Transformation#to_a)
       def self.matrix(tr)
@@ -52,10 +51,9 @@ module JTools
         seite.to_s.end_with?('max')
       end
 
-      # Anleimerstärke einer Kante in mm ("2mm", "2 mm", "0.08in" wird nicht gelesen -> 2)
+      # Anleimerstärke einer Kante in mm (siehe Materialien)
       def self.kantenstaerke(mat)
-        t = mat.get_attribute(OCL_DICT, 'thickness').to_s
-        t =~ /\A\s*([\d.,]+)\s*mm\s*\z/ ? $1.tr(',', '.').to_f : 2.0
+        Materialien.kantendicke(mat)
       end
 
       # Werkstück: Teil, Quader lo/hi (mm, Welt), Anleimer je Weltseite (mm),
@@ -103,7 +101,7 @@ module JTools
         dicke = (0..2).map { |a| hi[a] - lo[a] }.min
         d.entities.grep(Sketchup::Face).each do |f|
           mat = f.material
-          next unless mat && mat.get_attribute(OCL_DICT, 'type').to_i == 4
+          next unless Materialien.kante?(mat)
           v = richtung(m, f.normal.to_a)
           if v.map(&:abs).max < 0.9999
             # Schräg- oder Bogenkante (Abschlussregal): nicht am Quader abziehen, die Kontur

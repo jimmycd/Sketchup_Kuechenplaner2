@@ -6,7 +6,8 @@
 #   Fertigmaß = Maß im Modell (mit Anleimer)
 #   Fräsmaß   = Fertigmaß minus Anleimer an jeder Kante mit Anleimer (= DL/DH der TCN)
 #   Rohmaß    = Fräsmaß plus Übermaß aus den Einstellungen (Zuschnitt an der Formatsäge)
-# Länge (L) ist die längere, Breite (B) die kürzere Seite. Kanten: L1/L2 sind die
+# Länge (L) ist die längere, Breite (B) die kürzere Seite; bei Platten mit Maserung ist L
+# die Seite in Faserrichtung (Materialien.maser_achse, Fronten senkrecht). Kanten: L1/L2 sind die
 # beiden Längskanten, B1/B2 die beiden Querkanten; im Feld steht das Anleimer-Material.
 # Schräg- und Bogenkanten (Abschlussregal) stehen unter "Kante Kontur" mit ihrer Länge;
 # Roh-, Fräs- und Fertigmaß sind dort das umschließende Rechteck (Kontur fräst die CNC).
@@ -18,7 +19,6 @@ module JTools
     module Stueckliste
       module_function
 
-      OCL_DICT = 'ladb_opencutlist'.freeze
       KOPF = %w[Nr Tag TCN-Datei Anzahl Schrank Teil Rolle Material Stärke Roh\ L Roh\ B
                 Fräs\ L Fräs\ B Fertig\ L Fertig\ B Kante\ L1 Kante\ L2 Kante\ B1 Kante\ B2 Maserung Kante\ Kontur].freeze
 
@@ -30,21 +30,23 @@ module JTools
         end
       end
 
-      def mat_attr(mat, k)
-        mat && mat.get_attribute(OCL_DICT, k)
-      end
-
       def zeile(d)
         ws = d.ws
         t = ws.teil
         mat = t.inst.material
         z = Zeile.new(nil, t.name, "#{d.name}.tcn", d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle,
                       mat ? mat.name.to_s : '', d.lage.ds.round(1))
-        z.maserung = mat_attr(mat, 'grained') ? true : false
+        z.maserung = Materialien.maserung?(mat)
         z.kontur = ws.respond_to?(:kontur_kanten) && ws.kontur_kanten ? ws.kontur_kanten.to_h : {}
         if ws.respond_to?(:kanten)
           ax = Geometrie::ACHSEN
           la, ba = ws.flaechen_achsen.sort_by { |a| [-(ws.hi_f(a) - ws.lo_f(a)).round(3), a] }
+          if z.maserung
+            # mit Maserung ist L die Seite in Faserrichtung (Fronten senkrecht, siehe Materialien)
+            laengen = (0..2).map { |a| ws.hi_f(a) - ws.lo_f(a) }
+            la = Materialien.maser_achse(t, ws.flaechen_achsen, laengen)
+            ba = (ws.flaechen_achsen - [la]).first
+          end
           z.fertig = [ws.mass(la), ws.mass(ba)]
           z.fraes = [ws.hi_f(la) - ws.lo_f(la), ws.hi_f(ba) - ws.lo_f(ba)]
           km = ws.kanten_mat || {}
