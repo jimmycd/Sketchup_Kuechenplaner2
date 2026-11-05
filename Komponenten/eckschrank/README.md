@@ -56,7 +56,13 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 * **Boden** und **Einlegeböden** sind je **eine L-Platte** (in SketchUp als L gezeichnet, Endmaß). Die Einlegeböden sind an beiden Vorderkanten 10 mm zurückgesetzt und liegen auf Bodenträgern in den Lochreihen der Seiten; hinten in der Ecke bei Bedarf eine Auflageleiste.
 * **Streben** oben, liegend (nach Jürgens Skizze): die vordere Strebe von A (`StrebeVorn1`) läuft durch die Ecke bis an die Rückwand von B; die vordere Strebe von B (`StrebeVorn2`) stößt mit dem Ende an sie. Hinten liegt eine Strebe über die ganze Länge von A an der Wand (`StrebeHinten`); Schenkel B hat hinten keine Strebe.
 * **Rückwände:** `Rueckwand1` hinter A geht durch die Ecke, `Rueckwand2` hinter B stößt daran.
-* **Falttür:** `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide sind mit einem Blum-Standardscharnier verbunden; die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export). Keine Animation.
+* **Falttür:** `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide sind mit einem Blum-Standardscharnier verbunden; die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export).
+* **Öffnen mit Interagieren** (Klick auf eine der beiden Türen), nacheinander in fester Reihenfolge, damit sich die Türen nicht durchdringen:
+  1. Klick: die kürzere Tür klappt am Eckscharnier vor die längere (90°).
+  2. Klick: beide zusammen schwenken um das Scharnier an der Seite auf (100°).
+  3. Klick: zurück an den Korpus. 4. Klick: die kürzere Tür klappt wieder auf, die Falttür ist zu.
+
+  Am Korpus hängt die längere Tür: bei Schenkel A ≥ Schenkel B Tür A (`TuerR`, Scharnier an `SeiteR`), sonst Tür B (`TuerL`, Scharnier an `SeiteL`). Im zweiten Fall streift beim Klappen die hintere Kante vom Ende der Tür A in der Animation bis zu 7 mm die Korpusvorderkante (das reale Scharnier führt die Tür anders). Aufbau: Halter `FaltHalter` am Korpusscharnier mit der langen Tür und `FaltHalterInnen` am Eckscharnier mit der kurzen Tür; das onClick sitzt am `FaltHalter`. Der Test spielt die vier Klicks durch und prüft in kleinen Schritten, dass sich die Türen nicht berühren und nicht in den Korpus fahren. Ältere L-Schränke bekommen das Öffnen, sobald Schenkel oder Tiefe einmal geändert (neu aufgebaut) werden oder der Schrank neu angelegt wird.
 
 ## Material und Anleimer
 Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
