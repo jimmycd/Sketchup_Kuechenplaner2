@@ -17,7 +17,7 @@ Wer eine fertige `.skp` für die Komponenten-Bibliothek möchte: Rechtsklick auf
 | Abschlusswange | keine / links / rechts / beide |
 | Sockelhöhe | 100 mm (Füße sind verstellbar); Wangen und Platzhalter reichen bis zum Boden |
 
-Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm (Front, Wangen), `Materialstarke_Rueckwand` 8 mm (für die Wangentiefe), `Spaltbreite` 2 mm, `Geraet_Luft` 2 mm (Nische − Gerätebreite), `Geraet_Tiefe` 550 mm.
+Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm (Front, Wangen), `Materialstarke_Rueckwand` 8 mm (für die Wangentiefe), `Spaltbreite` 2 mm, `Geraet_Luft` 2 mm (Nische − Gerätebreite), `Geraet_Tiefe` 550 mm (der Platzhalter ist höchstens so tief wie der Korpus, bei 520 mm Tiefe also 520 mm).
 
 **Achtung Fronthöhe:** Ob die Front zur Gerätetür passt, hängt vom Gerät und vom Sockel ab (Herstellerangaben zu Fronthöhe und Nischenhöhe, übliche Nische 815–875 mm inkl. Sockel). Das steht auch in der Kurzhilfe.
 
@@ -25,7 +25,7 @@ Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Kor
 * **Front** 19 mm wie die Fronten der Unterschränke: Nischenbreite − 2 mm (1 mm Fuge je Seite), 2 mm vor der Korpusvorderkante. Sie wird vor Ort mit der Schablone des Geräteherstellers auf die Gerätetür geschraubt, deshalb gibt es **keine CNC-Bohrungen** dafür. Mit *Interagieren* klappt sie um die Unterkante auf.
 * **Abschlusswangen** (optional) 19 mm außerhalb der Nische, wie die Seiten der Unterschränke ab der Korpusvorderkante, Tiefe = Korpustiefe + Rückwand, vom Boden (Sockelhöhe) bis Oberkante Korpus. Mit Wange links beginnt die Nische 19 mm weiter rechts; die Gesamtbreite ist Nische + Wangen.
 * **Kein Boden, keine Seiten, keine Streben, keine Rückwand.** Das Gerät wird an Arbeitsplatte und Nachbarseiten befestigt; den Dampfschutz liefert der Hersteller.
-* **Geräte-Platzhalter** 598 (448) × 550 mm, vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`. Er hat kein Plattenmaterial und kein `JT_Schrank`, der TCN-Export übergeht ihn. Für Stückliste und Etiketten den Tag `Geraete_Plan` ausblenden. Er wird später durch die Geräte-Komponenten ersetzt.
+* **Geräte-Platzhalter** 598 (448) × 550 mm (höchstens Korpustiefe), vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`. Er hat kein Plattenmaterial und kein `JT_Schrank`, der TCN-Export übergeht ihn. Für Stückliste und Etiketten den Tag `Geraete_Plan` ausblenden. Er wird später durch die Geräte-Komponenten ersetzt.
 * **Nische für die Geräte-Komponenten:** Wörterbuch `JT_Nische` am Schrank mit `nische` (N1), `geraet` (Geschirrspueler60/45), lichten Maßen `breite`/`hoehe`/`tiefe` und dem Einfügepunkt `x`/`y`/`z` (vorne links auf dem Fußboden an der Korpusvorderkante), alles in mm, Stand beim Erzeugen.
 
 ## Material und Anleimer

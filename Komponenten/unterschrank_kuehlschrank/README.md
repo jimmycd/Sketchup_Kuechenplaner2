@@ -16,7 +16,7 @@ Nische für einen **Unterbau-Kühlschrank oder Weinkühler** in Unterschrankhöh
 | Abschlusswange | keine / links / rechts / beide |
 | Sockelhöhe | 100 mm; Wangen und Platzhalter reichen bis zum Boden |
 
-Feste Maße als Attribute (*Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm (für die Wangentiefe), `Spaltbreite` 2 mm, `Geraet_Luft` 4 mm (Nische − Gerätebreite), `Geraet_Tiefe` 550 mm.
+Feste Maße als Attribute (*Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm (für die Wangentiefe), `Spaltbreite` 2 mm, `Geraet_Luft` 4 mm (Nische − Gerätebreite), `Geraet_Tiefe` 550 mm (der Platzhalter ist höchstens so tief wie der Korpus, bei 520 mm Tiefe also 520 mm).
 
 **Achtung:** Ob Nischenhöhe und Fronthöhe zum Gerät passen, steht in der Einbauanleitung des Herstellers (übliche Nische 820–870 mm inkl. Sockel). Die meisten Geräte brauchen ein **Lüftungsgitter im Sockel** (etwa 200 cm²); das ist kein Bauteil der Komponente, sondern ein Hinweis in der Kurzhilfe.
 
@@ -24,7 +24,7 @@ Feste Maße als Attribute (*Komponentenattribute*): `Materialstaerke_Korpus` 19 
 * **Front** (nur Kühlschrank integriert) 19 mm wie die Fronten der Unterschränke: Nischenbreite − 2 mm, 2 mm vor der Korpusvorderkante. Sie wird vor Ort mit der Schablone des Herstellers auf die Gerätetür geschraubt (Schlepp- oder Festtür), deshalb **keine CNC-Bohrungen**. Mit *Interagieren* öffnet sie um die linke Kante. Bei Weinkühler und unterbaufähigem Kühlschrank ist sie ausgeblendet und erscheint weder im TCN-Export noch in der Stückliste.
 * **Abschlusswangen** (optional) 19 mm außerhalb der Nische, ab der Korpusvorderkante, Tiefe = Korpustiefe + Rückwand, vom Boden bis Oberkante Korpus. Mit Wange links beginnt die Nische 19 mm weiter rechts.
 * **Kein Boden, keine Seiten, keine Streben, keine Rückwand.**
-* **Geräte-Platzhalter** 596 (446/296) × 550 mm, vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`, ohne Plattenmaterial und ohne `JT_Schrank`.
+* **Geräte-Platzhalter** 596 (446/296) × 550 mm (höchstens Korpustiefe), vom Boden bis Oberkante Korpus, halbtransparent auf dem Tag `Geraete_Plan`, ohne Plattenmaterial und ohne `JT_Schrank`.
 * **Nische für die Geräte-Komponenten:** Wörterbuch `JT_Nische` am Schrank mit `nische` (N1), `geraet` (`Kuehlschrank60`, `Weinkuehler30/45/60`, `KuehlschrankFrei60` …), `breite`/`hoehe`/`tiefe`, Einfügepunkt `x`/`y`/`z` (vorne links auf dem Fußboden an der Korpusvorderkante) und `sockel`, alles in mm. *Geräte in Schränke setzen* liest Gerät, Breite, Wange und Sockel aus den aktuellen Komponentenoptionen, ein Umstellen braucht also keinen Neubau.
 
 ## Material, Anleimer, Tags
