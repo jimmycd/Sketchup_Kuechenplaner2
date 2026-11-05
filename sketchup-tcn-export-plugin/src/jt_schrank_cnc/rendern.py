@@ -66,7 +66,7 @@ def argumente(argv):
 # --- Materialien --------------------------------------------------------------
 # Werte für den Principled BSDF je Art (Rauheit, Metall, Klarlack, Transmission)
 ARTEN = {
-    "standard": {"roughness": 0.45, "metallic": 0.0, "coat": 0.0},
+    "standard": {"roughness": 0.32, "metallic": 0.0, "coat": 0.15},  # seidenmatt, leichter Glanz
     "matt": {"roughness": 0.85, "metallic": 0.0, "coat": 0.0},
     "hochglanz": {"roughness": 0.06, "metallic": 0.0, "coat": 0.6},
     "holz": {"roughness": 0.55, "metallic": 0.0, "coat": 0.0},
@@ -279,15 +279,17 @@ def licht_bauen(bpy, daten, Vector):
         ld.shape = "RECTANGLE"
         ld.size = max(1.0, x1 - x0)
         ld.size_y = max(1.0, y1 - y0)
-        ld.energy = float(licht.get("raumlicht_staerke", 60.0)) * ld.size * ld.size_y
+        ld.energy = float(licht.get("raumlicht_staerke", 8.0)) * ld.size * ld.size_y  # nur Aufhellung
         lo = bpy.data.objects.new("Raumlicht", ld)
         lo.location = ((x0 + x1) / 2, (y0 + y1) / 2, hoehe)
         bpy.context.scene.collection.objects.link(lo)
+    if licht.get("fenster", True) and box:
+        fensterlicht(bpy, daten, Vector)
     led_bauen(bpy, licht.get("led") or [], float(licht.get("led_staerke", 120.0)))
     welt = bpy.data.worlds.new("Umgebung")
     welt.use_nodes = True
     hg = welt.node_tree.nodes.get("Background")
-    if licht.get("umgebung") and umgebung_laden(bpy, welt, licht["umgebung"], float(licht.get("umgebung_staerke", 1.0)),
+    if licht.get("umgebung") and umgebung_laden(bpy, welt, licht["umgebung"], float(licht.get("umgebung_staerke", 0.2)),
                                                      licht.get("himmel", [0.9, 0.9, 0.9])):
         pass
     elif hg is not None:
@@ -295,6 +297,60 @@ def licht_bauen(bpy, daten, Vector):
         hg.inputs["Color"].default_value = [srgb_linear(x) for x in c] + [1.0]
         hg.inputs["Strength"].default_value = float(licht.get("himmel_staerke", 1.0))
     bpy.context.scene.world = welt
+
+
+def fensterlicht(bpy, daten, Vector):
+    """Hauptlicht wie durch ein Fenster: groß, kühles Tageslicht, schräg von vorn links
+    (aus Sicht der Kamera). Gibt Richtung, Schatten und Tiefe statt gleichmäßig grauem Licht."""
+    (x0, y0, z0), (x1, y1, z1) = daten["box"]
+    ziel = Vector(((x0 + x1) / 2, (y0 + y1) / 2, z0 + 0.9))
+    auge = Vector(daten["kamera"]["auge"])
+    zur_kamera = Vector((auge.x - ziel.x, auge.y - ziel.y, 0.0))
+    if zur_kamera.length < 1e-6:
+        zur_kamera = Vector((0.0, -1.0, 0.0))
+    zur_kamera.normalize()
+    w = math.radians(70.0)  # gegen den Uhrzeigersinn gedreht = links von der Kamera
+    seite = Vector((zur_kamera.x * math.cos(w) - zur_kamera.y * math.sin(w),
+                    zur_kamera.x * math.sin(w) + zur_kamera.y * math.cos(w), 0.0))
+    abstand = max(2.2, 0.45 * Vector((x1 - x0, y1 - y0)).length)
+    ort = ziel + seite * abstand
+    ort.z = z0 + 2.2
+    raum = (daten.get("raum") or {}).get("decke")
+    if raum:  # im Raum bleiben (unter der Decke, vor den Wänden)
+        (rx0, ry0, rz0), (rx1, ry1, rz1) = raum
+        ort.x = min(max(ort.x, rx0 + 0.4), rx1 - 0.4)
+        ort.y = min(max(ort.y, ry0 + 0.4), ry1 - 0.4)
+        ort.z = min(ort.z, rz1 - 0.25)
+    ld = bpy.data.lights.new("Fensterlicht", "AREA")
+    ld.shape = "RECTANGLE"
+    ld.size, ld.size_y = 0.9, 0.9
+    ld.color = (0.93, 0.96, 1.0)  # Tageslicht, kühler als die LEDs
+    ld.energy = float(daten.get("licht", {}).get("fenster_staerke", 60.0)) * (ort - ziel).length ** 2
+    lo = bpy.data.objects.new("Fensterlicht", ld)
+    lo.location = ort
+    if hasattr(lo, "visible_camera"):
+        lo.visible_camera = False  # die Leuchtfläche selbst nicht im Bild
+    bpy.context.scene.collection.objects.link(lo)
+    ausrichten(lo, ziel - ort, Vector)
+    return lo
+
+
+def farbe_einstellen(szene, licht=None):
+    """AgX mit mehr Kontrast: kräftigere Schatten und Farben statt flachem, grauem Bild."""
+    for transform in ("AgX", "Filmic"):
+        try:
+            szene.view_settings.view_transform = transform
+            break
+        except TypeError:
+            continue
+    licht = licht or {}
+    for look in (licht.get("look", "AgX - Punchy"), "AgX - Medium High Contrast"):
+        try:
+            szene.view_settings.look = look
+            break
+        except TypeError:
+            continue
+    szene.view_settings.exposure = float(licht.get("belichtung", -0.7))
 
 
 def gpu_einschalten(bpy):
@@ -354,12 +410,7 @@ def rendern(bpy, daten, ordner):
         cyc.use_denoising = True
     except AttributeError:
         pass
-    for transform in ("AgX", "Filmic"):
-        try:
-            szene.view_settings.view_transform = transform
-            break
-        except TypeError:
-            continue
+    farbe_einstellen(szene, daten.get("licht"))
     szene.render.resolution_x = int(daten["bild"]["breite"])
     szene.render.resolution_y = int(daten["bild"]["hoehe"])
     szene.render.resolution_percentage = 100

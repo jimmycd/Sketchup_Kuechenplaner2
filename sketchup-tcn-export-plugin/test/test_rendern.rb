@@ -360,10 +360,10 @@ Dir.mktmpdir do |tmp|
     json = R.exportieren(model, ordner, bild, breite: 320, samples: 8)
     log = File.join(ordner, 'blender.log')
     ok = system(py, R.skript, '--', json, out: log, err: %i[child out])
-    text = File.read(log)
+    text = File.read(log, encoding: 'UTF-8')
     check(ok && R.ergebnis(text) == [:fertig, bild] && File.size(bild) > 1000, "Blender rendert das Bild (#{R.ergebnis(text).inspect})")
     check(File.exist?(File.join(ordner, 'szene.blend')), '.blend zum Weiterbearbeiten gespeichert')
-    status = File.read(File.join(ordner, 'kp_status.txt'))
+    status = File.read(File.join(ordner, 'kp_status.txt'), encoding: 'UTF-8')
     check(R.ergebnis(status) == [:fertig, bild] && R.pids(status).size == 1 && status.include?('KP_SAMPLE 8/8'),
           "eigene Statusdatei mit PID, Samples und Fertig-Meldung (ohne Konsolenausgabe): #{status.lines.map(&:strip)}")
     FileUtils.cp(bild, ENV['RENDER_KOPIE']) if ENV['RENDER_KOPIE']
@@ -419,7 +419,7 @@ def instanz(model, kategorie: nil, insel: false, geraet: nil, tag: nil, mat: nil
   i
 end
 
-def testkueche
+def testkueche(mit_boden: true)
   k = Sketchup::Model.new
   weiss = Sketchup::Material.new('Melamin weiss', [240, 240, 236])
   front = Sketchup::Material.new('Front Eiche natur', [176, 132, 86])
@@ -429,7 +429,7 @@ def testkueche
   boden = Sketchup::Material.new('Raum Boden', [150, 140, 125])
   t_wand = Sketchup::Layer.new('Raum-Wand')
   t_boden = Sketchup::Layer.new('Raum-Boden')
-  instanz(k, tag: t_boden, mat: boden) { |d| kasten(d, -500, -3500, -20, 5000, 4100, 20) }
+  instanz(k, tag: t_boden, mat: boden) { |d| kasten(d, -500, -3500, -20, 5000, 4100, 20) } if mit_boden
   instanz(k, tag: t_wand, mat: wand) do |d|
     kasten(d, -500, 600, 0, 5000, 100, 2500)  # Wand hinter der Zeile
     kasten(d, -600, -3500, 0, 100, 4200, 2500) # Wand links
@@ -480,7 +480,7 @@ Dir.mktmpdir do |tmp|
   if system(py, '-c', 'import bpy', out: File::NULL, err: File::NULL)
     json = R.exportieren(k, ordner, bild, breite: 640, samples: 24, boden: 'Parkett Eiche', deko: 'viel', variante: 2)
     ok = system(py, R.skript, '--', json, out: File.join(ordner, 'blender.log'), err: %i[child out])
-    status = File.read(File.join(ordner, 'kp_status.txt'))
+    status = File.read(File.join(ordner, 'kp_status.txt'), encoding: 'UTF-8')
     aus = status[/^KP_STATUS Ausstattung: (.*)$/, 1].to_s
     check(ok && R.ergebnis(status) == [:fertig, bild], "Testküche gerendert: #{status.lines.last(2).join.strip}")
     check(aus.split(', ').size >= 7 && aus.include?('3 Pendelleuchten') && aus.include?('Decke'),
@@ -501,10 +501,24 @@ Dir.mktmpdir do |tmp|
               if not A.platz_frei(x, y, z, r - 0.001, deko["arbeitsflaechen"], deko["geraete"], []):
                   schlecht.append(o.name)
       print("SCHLECHT", schlecht)
+      s = bpy.context.scene
+      f = bpy.data.objects.get("Fensterlicht")
+      print("LICHT", f is not None and f.type == "LIGHT", s.view_settings.view_transform, s.view_settings.look,
+            round(s.view_settings.exposure, 2), A.boden_fehlt(bpy, d["box"]))
     PY
     out = IO.popen([py, '-c', pruef, File.join(ordner, 'szene.blend'), File.dirname(R.skript), json], err: File::NULL, &:read)
     check(out.include?('SCHLECHT []'), "keine Deko über der Kante oder auf der Spüle: #{out[/SCHLECHT.*/]}")
+    check(out[/^LICHT (.*)$/, 1].to_s.split(' ', 2) == ['True', 'AgX AgX - Punchy -0.7 False'],
+          "Fensterlicht, AgX Punchy, Belichtung -0,7; Boden im Modell erkannt: #{out[/LICHT.*/]}")
     FileUtils.cp(bild, ENV['KUECHE_KOPIE']) if ENV['KUECHE_KOPIE']
+    FileUtils.cp_r(ordner, ENV['KUECHE_ORDNER']) if ENV['KUECHE_ORDNER'] # zum Nachstellen in Blender
+
+    # ohne Boden im Modell sähe die Kamera nur den grauen Hintergrund: Boden wird ergänzt
+    ohne = File.join(tmp, 'O_blender')
+    json = R.exportieren(testkueche(mit_boden: false), ohne, File.join(tmp, 'O.png'), breite: 160, samples: 2, deko: 'keine')
+    system(py, R.skript, '--', json, out: File::NULL, err: File::NULL)
+    status = File.read(File.join(ohne, 'kp_status.txt'), encoding: 'UTF-8')
+    check(status.include?('Boden ergänzt') && R.ergebnis(status)&.first == :fertig, "fehlender Boden ergänzt: #{status[/Ausstattung.*/]}")
   end
 end
 
