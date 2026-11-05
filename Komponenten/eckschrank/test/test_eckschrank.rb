@@ -330,6 +330,98 @@ def pruefe_l(w, p, label)
   end
 end
 
+# Interagieren: die Klickfolge wie die DC ausführen (ANIMATE sucht den aktuellen Wert in
+# der Liste und nimmt den nächsten) und jede Bewegung in kleinen Schritten prüfen
+def drehe(pt, winkel)
+  w = winkel * Math::PI / 180
+  [pt[0] * Math.cos(w) - pt[1] * Math.sin(w), pt[0] * Math.sin(w) + pt[1] * Math.cos(w)]
+end
+
+def plus(a, b) = [a[0] + b[0], a[1] + b[1]]
+
+def tuer_rechteck(halter)
+  tuer = halter.kinder.find { |c| c.kinder.empty? }
+  x0, y0 = tuer.pos('x'), tuer.pos('y')
+  lx, ly = %w[lenx leny].map { |a| tuer.formel(a) ? tuer.wert(a) : tuer.defn.box[%w[lenx leny].index(a)] * 2.54 }
+  [tuer.name, [[x0, y0], [x0 + lx, y0], [x0 + lx, y0 + ly], [x0, y0 + ly]]]
+end
+
+# Draufsicht beider Türen bei Winkel außen / innen
+def falt_ecken(aussen, innen, wa, wi)
+  ha = [aussen.pos('x'), aussen.pos('y')]
+  pi = [innen.pos('x'), innen.pos('y')]
+  na, ra = tuer_rechteck(aussen)
+  ni, ri = tuer_rechteck(innen)
+  { na => ra.map { |q| plus(ha, drehe(q, wa)) }, ni => ri.map { |q| plus(ha, drehe(plus(pi, drehe(q, wi)), wa)) } }
+end
+
+# Trennende Achse für zwei konvexe Vierecke (Draufsicht); true = sie überlappen
+def vierecke_ueberlappen?(a, b, luft = 1e-6)
+  [a, b].all? do |poly|
+    poly.each_index.all? do |i|
+      p1, p2 = poly[i], poly[(i + 1) % 4]
+      n = [p1[1] - p2[1], p2[0] - p1[0]]
+      l = Math.sqrt(n[0]**2 + n[1]**2)
+      pa = a.map { |q| (q[0] * n[0] + q[1] * n[1]) / l }
+      pb = b.map { |q| (q[0] * n[0] + q[1] * n[1]) / l }
+      pa.max > pb.min + luft && pb.max > pa.min + luft
+    end
+  end
+end
+
+def rechteck(x0, x1, y0, y1) = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+
+def pruefe_oeffnen(w, p, label)
+  a, bb, t = p['Schenkel_A'], p['Schenkel_B'], p['Tiefe']
+  yw = MK + t + RW
+  aussen = w.kinder.find { |c| c.name == 'FaltHalter' }
+  check(aussen, "#{label}: Falttür-Halter da")
+  innen = aussen.kinder.find { |c| c.name == 'FaltHalterInnen' }
+  check(innen, "#{label}: innerer Halter am Eckscharnier")
+  bf = aussen.defn.get_attribute(E::DICT, 'onclick').to_s
+  check(aussen.defn.get_attribute(E::DICT, '_onclick_label') == 'onClick', "#{label}: onClick-Label")
+  folge = bf.scan(/ANIMATE\("([\w!]+)",([-\d.,]+)\)/).to_h { |n, l| [n, l.split(',').map(&:to_f)] }
+  check(folge.keys.sort == %w[FaltHalterInnen!ROTZ ROTZ], "#{label}: onClick bewegt beide Halter #{bf}")
+  check(folge.values.all? { |l| l.uniq.size == l.size && l.first.zero? }, "#{label}: ANIMATE-Listen ab 0 ohne gleiche Werte")
+  # Die längere Tür hängt am Korpus
+  lang = a >= bb ? 'TürR' : 'TürL'
+  check(tuer_rechteck(aussen)[0] == lang, "#{label}: #{lang} hängt am Korpus")
+  zu = falt_ecken(aussen, innen, 0, 0)
+  q = ->(n) { teile(w).find { |t2| t2[:name] == n }[:q] }
+  zu.each do |n, ecken|
+    soll = q.(n)
+    check(nahe(ecken.map(&:first).min, soll[0]) && nahe(ecken.map(&:first).max, soll[1]) &&
+          nahe(ecken.map(&:last).min, soll[2]) && nahe(ecken.map(&:last).max, soll[3]), "#{label}: #{n} geschlossen wie gezeichnet")
+  end
+  # Korpus (Draufsicht): Schenkel A und Schenkel B ohne Fronten
+  korpus = [rechteck(0, a, MK, yw), rechteck(0, RW + t, yw - bb, yw)]
+  stand = { 'ROTZ' => 0.0, 'FaltHalterInnen!ROTZ' => 0.0 }
+  # nach jedem Klick: [außen offen?, innen geklappt?]
+  erwartet = [[false, true], [true, true], [false, true], [false, false]]
+  erwartet.each_with_index do |(soll_auf, soll_klapp), k|
+    neu = stand.to_h { |n, v| l = folge[n]; i = l.index { |x| (x - v).abs < 1e-9 }; [n, i ? l[(i + 1) % l.size] : l[0]] }
+    (0..60).each do |s|
+      f = s / 60.0
+      wa, wi = stand.keys.map { |n| stand[n] + (neu[n] - stand[n]) * f }
+      e = falt_ecken(aussen, innen, wa, wi)
+      check(!vierecke_ueberlappen?(*e.values), "#{label}: Klick #{k + 1}, Türen durchdringen sich (#{wa.round(1)}°/#{wi.round(1)}°)")
+      # Hängt Tür B am Korpus, steckt das Ende von Tür A hinter Tür B; beim Klappen streift
+      # seine hintere Kante die Vorderkante des Korpus (höchstens 7 mm, nur in der Animation)
+      e.each do |n, ecken|
+        tol = lang == 'TürL' && n == 'TürR' ? 0.7 : 1e-6
+        check(korpus.none? { |kq| vierecke_ueberlappen?(ecken, kq, tol) }, "#{label}: Klick #{k + 1}, #{n} fährt in den Korpus (#{wa.round(1)}°/#{wi.round(1)}°)")
+      end
+    end
+    stand = neu
+    check([stand['ROTZ'].abs > 45, stand['FaltHalterInnen!ROTZ'].abs > 45] == [soll_auf, soll_klapp],
+          "#{label}: nach Klick #{k + 1} #{stand}")
+  end
+  check(stand.values.all?(&:zero?), "#{label}: nach 4 Klicks wieder zu")
+  # Geklappt liegt die kurze Tür vor der langen; offen zeigen beide vom Korpus weg nach vorne
+  e = falt_ecken(aussen, innen, folge['ROTZ'].max_by(&:abs), folge['FaltHalterInnen!ROTZ'].max_by(&:abs))
+  check(e.values.flatten(1).all? { |x, y| y < MK || x > RW + t }, "#{label}: offen vor dem Korpus")
+end
+
 def lauf_l(p, label, umkonf = nil)
   Sketchup.active_model = Sketchup::Model.new
   inst = E.erstellen(p, l_form: true)
@@ -339,6 +431,7 @@ def lauf_l(p, label, umkonf = nil)
   pruefe_l(w, p, label)
   pruefe_geometrie(w, label)
   pruefe_ocl(w, label, 'UES1', KANTEN_SOLL_L, TAGS_L)
+  pruefe_oeffnen(w, p, label)
   d = inst.definition
   check(%w[schenkel_a schenkel_b tiefe].all? { |k| d.get_attribute(E::DICT, "_#{k}_access") == 'TEXTBOX' }, "#{label}: Schenkel und Tiefe änderbar")
   return unless umkonf
@@ -350,6 +443,7 @@ end
 
 lauf_l({}, 'L-Form 900 x 900', { 'Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2 })
 lauf_l({ 'Schenkel_A' => 75.6, 'Schenkel_B' => 75.6, 'Tiefe' => 46.0 }, 'L-Form 756 x 756, Tiefe 460 (Jürgens Skizze)')
+lauf_l({ 'Schenkel_A' => 90.0, 'Schenkel_B' => 120.0 }, 'L-Form 900 x 1200 (Tür B am Korpus)')
 lauf_l({ 'Schenkel_A' => 120.0, 'Schenkel_B' => 100.0, 'Tiefe' => 60.0, 'Anz_Einlegeboeden' => 0.0 }, 'L-Form 1200 x 1000',
        { 'Anz_Einlegeboeden' => 1 })
 # Schenkel und Tiefe im Fenster Komponentenoptionen ändern (die DC schreibt an die Instanz):
@@ -360,7 +454,7 @@ inst = E.erstellen({ 'Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2.0 }, l_form: true
 alt = inst.definition
 front = m.materials.add('Front Eiche 19mm')
 front.set_attribute(E::OCL_DICT, 'type', 2)
-tuer = alt.entities.instances.find { |c| c.name == 'TürR' }
+tuer = E.l_teile(alt).find { |c| c.name == 'TürR' }
 tuer.material = front
 tuer.set_attribute(E::JT_DICT, 'griff_lochmass', 160.0)
 E.l_pruefen(m)
@@ -375,9 +469,9 @@ w.redraw
 pl = E::DEFAULTS_L.merge(neu_p).merge('Hoehe' => 78.0, 'Anz_Einlegeboeden' => 2)
 pruefe_l(w, pl, 'L geändert 1200 x 800, Tiefe 600')
 pruefe_geometrie(w, 'L geändert')
-tags = inst.definition.entities.instances.map { |c| c.layer.name }.sort
+tags = E.l_teile(inst.definition).map { |c| c.layer.name }.sort
 check(tags == TAGS_L.map { |t| "UES1_#{t}" }.sort, "L ändern: gleiches Kürzel, alle Tags: #{tags}")
-tuer = inst.definition.entities.instances.find { |c| c.name == 'TürR' }
+tuer = E.l_teile(inst.definition).find { |c| c.name == 'TürR' }
 check(tuer.material.equal?(front) && tuer.get_attribute(E::JT_DICT, 'griff_lochmass') == 160.0, 'L ändern: Frontmaterial und Griff bleiben')
 E.l_pruefen(m)
 check(inst.definition.get_attribute(E::L_DICT, E::L_GEBAUT) == [120.0, 80.0, 60.0], 'L ändern: zweites Prüfen ändert nichts')
