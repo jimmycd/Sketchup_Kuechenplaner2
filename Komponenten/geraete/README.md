@@ -20,6 +20,22 @@ Geräte sind **keine Schrankteile**: kein Plattenmaterial, kein `JT_Schrank`, ke
 
 In der Planung steht das Gerät selbst in der Nische (kein farbiger Kasten mehr: der sah aus wie eine leere Nische), dazu die Beschriftung mit Nischenmaß.
 
+### Kundensicht (Szene „Kunde“)
+Beim Anlegen/Aktualisieren der Szenen bekommt die Szene **Kunde** ihren eigenen Darstellungsstil (`src/geraete/kundensicht.rb`). Planung und Zuschnitt bleiben, wie sie sind.
+
+| | Kunde |
+|---|---|
+| Flächen | schattiert mit Texturen (Materialien aus dem Material-Konfigurator), keine Farbe nach Tag |
+| Kanten | dezent hellgrau, keine Profile, keine Silhouetten, keine verlängerten Linien |
+| ausgeblendet | Texte (Beschriftungen), Bemaßungen, Achsen, Schnittebenen, Hilfslinien |
+| Hintergrund | warmes Hellgrau mit Himmel und Boden |
+| Schatten | an, Sonne am 21. Juni 12:30, hell 80 / dunkel 50 |
+| Kamera | Perspektive (40°); neue Szene: aktuelle Ansicht, vorhandene Szene: ihre gespeicherte Kamera bleibt |
+
+Den Blickwinkel stellt man wie gewohnt ein und speichert ihn mit Rechtsklick auf den Szenen-Reiter **Kunde › Aktualisieren**. Erneutes Anlegen legt keine zweite Kunden-Szene an, sondern aktualisiert den Stil.
+
+**Kundenbild speichern…** (*Erweiterungen → Küchenplaner → Geräte*): wechselt ohne Überblendung in die Szene Kunde (legt die Szenen an, falls es sie noch nicht gibt) und speichert ein PNG: Full HD, QHD, 4K, A4 quer 300 dpi oder Fenstergröße, mit oder ohne Kantenglättung. Weicht das Seitenverhältnis vom Fenster ab, zeigt das Bild etwas mehr Umgebung.
+
 ## Welcher Schrank bekommt welches Gerät
 | Schrank | Nische | Gerät |
 |---|---|---|

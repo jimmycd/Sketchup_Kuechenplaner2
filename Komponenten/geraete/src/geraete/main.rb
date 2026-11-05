@@ -5,7 +5,9 @@
 # Erweiterung (.rbz): Erweiterungen > Küchenplaner > Geräte.
 #   "Geräte in Schränke setzen" sucht in der Auswahl (oder im ganzen Modell) die
 #   Schränke mit Gerätenische und setzt das passende Gerät hinein.
-#   "Szenen Planung/Kunde/Zuschnitt anlegen" schaltet die Geräte-Tags um.
+#   "Szenen Planung/Kunde/Zuschnitt anlegen" schaltet die Geräte-Tags um und gibt
+#   der Szene "Kunde" ihren Darstellungsstil (kundensicht.rb).
+#   "Kundenbild speichern…" schreibt die Szene "Kunde" als PNG.
 #
 # Schnittstelle zu den Schränken: Wörterbuch "JT_Nische" (oder "JT_Nische_N1",
 # "JT_Nische_N2" …) an der Schrank-Definition mit nische, geraet, lichten Maßen
@@ -26,6 +28,7 @@ require 'sketchup.rb'
 require 'json'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+load File.join(__dir__, 'kundensicht.rb') # Stil der Szene Kunde, Kundenbild speichern
 
 module Geraete
 
@@ -645,6 +648,8 @@ module Geraete
   def self.szenen_anlegen(model = Sketchup.active_model)
     plan, render = tag(model, TAG_PLAN), tag(model, TAG_RENDER)
     model.start_operation('Szenen für Geräte', true)
+    Kundensicht.vorbereiten(model) # neue Szenen nicht im Kundenstil anlegen
+    kunde_neu = model.pages[Kundensicht.szene].nil?
     SZENEN.each do |name, (p, r)|
       plan.visible = p
       render.visible = r
@@ -654,6 +659,8 @@ module Geraete
       seite = model.pages[name]
       seite ? seite.update(32) : model.pages.add(name) # 32 = sichtbare Tags
     end
+    # Kunde: eigener Stil (Texturen, dezente Kanten, Himmel/Boden), Schatten, Perspektive
+    Kundensicht.anwenden(model, model.pages[Kundensicht.szene], kunde_neu)
     model.commit_operation
     model.pages.selected_page = model.pages['Planung']
   end
@@ -698,4 +705,9 @@ unless file_loaded?(__FILE__)
   Kuechenplaner.untermenu('Geräte').add_item('Geräte entfernen') { Geraete.entfernen }
   Kuechenplaner.untermenu('Geräte').add_item('Szenen Planung/Kunde/Zuschnitt anlegen') { Geraete.szenen_anlegen }
   file_loaded(__FILE__)
+end
+# Eigener Schlüssel: erscheint auch nach Neu laden ohne Neustart
+unless file_loaded?("#{__FILE__}:kundenbild")
+  Kuechenplaner.untermenu('Geräte').add_item('Kundenbild speichern…') { Geraete::Kundensicht.dialog }
+  file_loaded("#{__FILE__}:kundenbild")
 end
