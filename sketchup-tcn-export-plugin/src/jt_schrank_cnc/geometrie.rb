@@ -164,6 +164,9 @@ module JTools
         # Seiten immer wie Seite.tcn: x = Höhe (Unterkante bei x = 0), y = Tiefe, auch wenn
         # die Seite tiefer als hoch ist (Jürgen 2026-11-01)
         ax = 2 if ws.rolle == 'Seite' && ws.flaechen_achsen.include?(2)
+        # Türen mit Topfbändern wie T_re_L_Topfband.tcn: x entlang der Anschlagkante, Anschlag bei y = DH
+        tb = ws.ops.find { |o| o.art == :topfband }
+        ax = (ws.flaechen_achsen - [achse(tb.daten[:kante])]).first if tb
         ay = ws.flaechen_achsen.find { |a| a != ax }
         # y = z × x: Vorzeichen aus dem Kreuzprodukt der Einheitsvektoren
         ez = [0, 0, 0]; ez[az] = sz
@@ -172,6 +175,7 @@ module JTools
         # stehende Teile (Fronten, Rückwand): y = 0 an der Unterkante wie in SK_Vorderstueck_Frontbef.tcn,
         # dafür x von der anderen Seite her (bleibt ein Rechtssystem)
         sx = ay == 2 && ey[ay] < 0 ? -1 : 1
+        sx = (max?(tb.daten[:kante]) == (ey[ay] > 0)) ? 1 : -1 if tb
         Lage.new(ws, ax, sx, ay, ey[ay] * sx, az, sz)
       end
     end

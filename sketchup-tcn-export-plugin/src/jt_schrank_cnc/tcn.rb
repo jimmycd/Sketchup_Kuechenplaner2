@@ -2,7 +2,7 @@
 # Schrank-CNC – TCN-Ausgabe für TpaCAD (TPA\ALBATROS\EDICAD 02.00).
 # Kopf wie im Treppenbau (tcn.rb build_prog) und in Jürgens Beispielen,
 # Bearbeitungen mit seinen Makros: squad (Formatieren), fittingx/fittingy
-# (Bohrreihen), W#81 (Einzelbohrung), W#89/W#2201 (Nut, Ausschnitt). Lagen und DL/DH im Fräsmaß.
+# (Bohrreihen), W#81 (Einzelbohrung), W#89/W#2201 (Nut, Ausschnitt), inge100 (Topfband). Lagen und DL/DH im Fräsmaß.
 
 module JTools
   module SchrankCnc
@@ -162,6 +162,15 @@ module JTools
           "#8514=#{n(-op.tiefe)} #8515=100 #8516=0 #8520=1 #8521=1 #8522=1000 #8524=0 #8525=0 }W"
       end
 
+      # Blum-Topfband wie T_re_L_Topfband.tcn: Makro inge100, x entlang der Anschlagkante,
+      # Anschlagkante bei y = DH (Geometrie.lage dreht die Tür so)
+      def topfband(ws, lage, op)
+        x = ausdruck(lage.x(op.p0), lage.dl, 'x')
+        y = ausdruck(lage.y(op.p0), lage.dh, 'y')
+        "W#1506{ ::WT2 WS=#{ws}  #8098=..\\custom\\mcr\\inge100.tmcr #8500=#{n(op.d)} #8501=8 #8502=45 #8503=9,5 " \
+          "#8504=#{n(op.tiefe)} #8505=14 #8506=1 #8507=#{x} #8508=#{y} }W"
+      end
+
       def bohrung(ws, x, y, op)
         "W#81{ ::WTp WS=#{ws}  #8015=0 #1=#{x} #2=#{y} #3=#{n(-op.tiefe)} #1002=#{n(op.d)} #201=1 #203=1 #1001=0 }W"
       end
@@ -179,7 +188,7 @@ module JTools
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
             next
           end
-          if %i[nut tasche ausschnitt].include?(op.art) && side != 1
+          if %i[nut tasche ausschnitt topfband].include?(op.art) && side != 1
             meldungen << "#{lage.ws.name}: #{op.titel} liegt nicht auf Fläche 1 und fehlt in der TCN"
             next
           end
@@ -194,6 +203,7 @@ module JTools
         return ausschnitt('@', lage, op) if op.art == :ausschnitt
         return [tasche('@', lage, op)] if op.art == :tasche
         return kontur('@', lage, op) if op.art == :kontur
+        return [topfband('@', lage, op)] if op.art == :topfband
         if side == 1
           if op.art == :bohrung
             x, y = lage.x(op.p0), lage.y(op.p0)
