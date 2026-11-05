@@ -74,6 +74,7 @@ module Arbeitsplatte
     lay = Layout.berechne(erg, mit_wandabstand(model, optionen))
     model.start_operation('Arbeitsplatte erzeugen', true)
     inst = Ausgabe.bauen(model, erg, lay)
+    geraete_ausrichten(model)
     model.commit_operation
     UI.messagebox(meldung(erg, lay, inst.name))
     inst
@@ -81,6 +82,11 @@ module Arbeitsplatte
     model.abort_operation if inst.nil? && model.respond_to?(:abort_operation)
     UI.messagebox("Fehler beim Erzeugen der Arbeitsplatte: #{e.message}")
     raise
+  end
+
+  # Schon eingesetzte Spülen und Kochfelder in den neuen Ausschnitt setzen (Erweiterung Geräte, falls geladen)
+  def self.geraete_ausrichten(model)
+    Geraete.an_arbeitsplatte_ausrichten(model) if defined?(Geraete) && Geraete.respond_to?(:an_arbeitsplatte_ausrichten)
   end
 
   # Gespeicherte Arbeitsplatte(n) neu aufbauen: gleiche Schränke, gleiche Einstellungen
@@ -107,6 +113,7 @@ module Arbeitsplatte
       model.entities.erase_entities(alt)
       [erg, lay, Ausgabe.bauen(model, erg, lay, kz: kz)]
     end
+    geraete_ausrichten(model)
     model.commit_operation
     UI.messagebox(neu.map { |erg, lay, inst| meldung(erg, lay, inst.name) }.join("\n\n"))
     neu.map(&:last)

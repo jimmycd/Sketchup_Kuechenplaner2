@@ -31,6 +31,7 @@ module Geom
       t.instance_variable_set(:@origin, v.is_a?(Vector3d) ? v.a : v.map(&:to_f))
       t
     end
+    def to_a = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, *origin, 1].map(&:to_f)
   end
 end
 

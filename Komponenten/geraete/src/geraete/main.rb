@@ -23,6 +23,7 @@
 # wählen (beide Geräte-Tags aus).
 
 require 'sketchup.rb'
+require 'json'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
 
@@ -32,6 +33,7 @@ module Geraete
   GERAET_DICT = 'JT_Geraet'.freeze
   NISCHE_DICT = 'JT_Nische'.freeze
   JT_DICT     = 'JT_Schrank'.freeze
+  AP_DICT     = 'JT_Arbeitsplatte'.freeze
   TAG_PLAN    = 'Geraete_Plan'.freeze
   TAG_RENDER  = 'Geraete_Render'.freeze
 
@@ -67,7 +69,17 @@ module Geraete
 
   SPALT        = 2.0    # Fuge vor dem Korpus (wie Spaltbreite der Schränke)
   FRONT_MAX    = 595.0  # Frontbreite der Einbaugeräte
-  ARBEITSPLATTE = 40.0  # wenn die Nische keine Stärke angibt
+  ARBEITSPLATTE = 38.0  # wenn die Nische keine Stärke angibt (Schichtstoff, Standard der Arbeitsplatte)
+
+  # Spüle und Kochfeld sitzen im Ausschnitt der Arbeitsplatte. Liegt im Modell eine Arbeitsplatte
+  # mit Ausschnitt über dem Schrank, gilt dieser (einsetzen liest ihn, siehe ausschnitt_aus_modell).
+  # Sonst die Richtwerte der Arbeitsplatte (Arbeitsplatte::Layout/Ausschnitte::OPTIONEN, der Test
+  # vergleicht beide): Platte steht AP_UEBERSTAND vor der Front, Ausschnitt abstand_vorn dahinter.
+  AP_UEBERSTAND = 20.0
+  AUSSCHNITT_SPUELE = { rand: 100.0, max: 860.0, tiefe: 490.0, abstand_vorn: 60.0 }.freeze
+  AUSSCHNITT_KOCHFELD = { abstand_vorn: 50.0, tiefe: 490.0,
+                          breiten: { 600 => 560.0, 800 => 750.0, 900 => 880.0 } }.freeze
+  SPUELE_AUFLAGE = 10.0 # so weit liegt der Spülenrand rundum auf der Platte
 
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/geraete'.freeze
   HILFE_KURZ = 'Geräte-Platzhalter für Planung und Rendering, für Stückliste und TCN-Export unsichtbar'.freeze
@@ -86,6 +98,31 @@ module Geraete
   def self.zahl(n, k, std = nil)
     v = n[k]
     v.nil? || v.to_s.empty? ? std : v.to_f
+  end
+
+  # Ausschnitt der Arbeitsplatte über der Nische: [x0, y0, x1, y1] in mm relativ zum Einfügepunkt.
+  # Aus dem Modell (n['ausschnitt']), sonst wie die Arbeitsplatte ihn mit den Richtwerten rechnet:
+  # mittig über dem Schrank, abstand_vorn hinter der Plattenvorderkante.
+  def self.ausschnitt(n, art)
+    a = n['ausschnitt']
+    return a.map(&:to_f) if a.is_a?(Array) && a.size == 4
+    b, mk = zahl(n, 'breite'), zahl(n, 'x', 19.0)
+    schrank = b + 2 * mk
+    if art == :spuele
+      m = AUSSCHNITT_SPUELE
+      breite = [schrank - m[:rand], m[:max]].min
+    else
+      m = AUSSCHNITT_KOCHFELD
+      breite = m[:breiten][schrank.round] || schrank - 50.0
+    end
+    vorn = -(zahl(n, 'y', 19.0) + SPALT) - AP_UEBERSTAND + m[:abstand_vorn] # Front liegt SPALT vor dem Korpus
+    [(b - breite) / 2, vorn, (b + breite) / 2, vorn + m[:tiefe]]
+  end
+
+  # Gerät der Größe kb × kt mittig auf den Ausschnitt: [x, y]
+  def self.mittig(n, art, kb, kt)
+    x0, y0, x1, y1 = ausschnitt(n, art)
+    [(x0 + x1 - kb) / 2, (y0 + y1 - kt) / 2]
   end
 
   # Teil: [Name, Material, [x, y, z], [Breite, Tiefe, Höhe]]
@@ -224,8 +261,7 @@ module Geraete
     ap = zahl(n, 'arbeitsplatte', ARBEITSPLATTE)
     kb = [(groesse || 80) * 10.0, b + 2 * mk].min
     kt = 520.0
-    kx = (b - kb) / 2.0
-    ky = 50.0 - zahl(n, 'y', 19.0) - SPALT # 50 mm hinter der Frontebene
+    kx, ky = mittig(n, :kochfeld, kb, kt) # liegt im Ausschnitt der Arbeitsplatte
     it = zahl(n, 'installationstiefe', 150.0)
     kab = zahl(n, 'kanal_breite', 300.0)
     kanal_x = zahl(n, 'kanal_x', mk + (b - kab) / 2.0) - mk
@@ -266,8 +302,7 @@ module Geraete
     ap = zahl(n, 'arbeitsplatte', ARBEITSPLATTE)
     kb = [(groesse || 60) * 10.0 - 10, b + 2 * mk].min
     kt = 520.0
-    kx = (b - kb) / 2.0
-    ky = 50.0 - zahl(n, 'y', 19.0) - SPALT # 50 mm hinter der Frontebene
+    kx, ky = mittig(n, :kochfeld, kb, kt) # liegt im Ausschnitt der Arbeitsplatte
     wanne = 50.0
     { plan: [kx, ky, ap + 6 - wanne, kb, kt, wanne],
       teile: [teil('Kochfeld', 'Geraet Schwarzglas', [kx, ky, ap], [kb, kt, 6]),
@@ -275,15 +310,14 @@ module Geraete
               teil('Bedienfeld', 'Geraet Edelstahl', [kx + kb / 2 - 100, ky + 10, ap + 6], [200, 40, 1])] }
   end
 
-  # Spüle (Edelstahl, ein Becken) mit Armatur, auf der Arbeitsplatte
+  # Spüle (Edelstahl, ein Becken) mit Armatur, auf der Arbeitsplatte. Der Rand liegt rundum
+  # SPUELE_AUFLAGE auf der Platte, das Becken hängt im Ausschnitt.
   def self.berechne_spuele(n, _)
-    b = zahl(n, 'breite')
-    mk = zahl(n, 'x', 19.0)
     ap = zahl(n, 'arbeitsplatte', ARBEITSPLATTE)
-    sw = [b + 2 * mk - 100, 860.0].min
-    st, rand, tiefe = 500.0, 60.0, 180.0
-    sx = (b - sw) / 2.0
-    sy = 50.0 - zahl(n, 'y', 19.0) - SPALT
+    ax0, ay0, ax1, ay1 = ausschnitt(n, :spuele)
+    sx, sy = ax0 - SPUELE_AUFLAGE, ay0 - SPUELE_AUFLAGE
+    sw, st = ax1 - ax0 + 2 * SPUELE_AUFLAGE, ay1 - ay0 + 2 * SPUELE_AUFLAGE
+    rand, tiefe = 60.0, 180.0
     bw, bt = sw - 2 * rand, st - 2 * rand
     bx, by = sx + rand, sy + rand
     z0 = ap - tiefe
@@ -474,12 +508,62 @@ module Geraete
     end
     kz = defn.get_attribute(JT_DICT, 'schrank')
     liste.count do |n|
+      n = n.merge(ausschnitt_aus_modell(model, schrank, n, kz.to_s)) if %w[Spuele Kochfeld KochfeldAbzug].include?(art(n['geraet'])&.first)
       g = erzeuge(model, n) or next false
       inst = ents.add_instance(g, verschiebung(%w[x y z].map { |k| zahl(n, k, 0.0) }))
       inst.name = "Geraet_#{n['nische']}"
       inst.set_attribute(GERAET_DICT, 'schrank', kz.to_s) if kz
       true
     end
+  end
+
+  # Ausschnitt der Arbeitsplatte über dem Schrank (Wörterbuch JT_Arbeitsplatte an den Platten, Rechteck
+  # in Weltkoordinaten mm) umgerechnet auf den Einfügepunkt der Nische, dazu die Höhe der Plattenoberseite
+  # über dem Einfügepunkt: { 'ausschnitt' => [x0, y0, x1, y1], 'arbeitsplatte' => mm }; {} ohne Arbeitsplatte.
+  def self.ausschnitt_aus_modell(model, schrank, n, kz)
+    return {} if kz.empty?
+    model.entities.grep(Sketchup::ComponentInstance).each do |ap|
+      next unless ap.definition.get_attribute(JT_DICT, 'typ') == 'Arbeitsplatte'
+      ap.definition.entities.grep(Sketchup::ComponentInstance).each do |platte|
+        liste = JSON.parse(platte.get_attribute(AP_DICT, 'ausschnitte').to_s) rescue next
+        a = liste.find { |x| x['schrank'] == kz } or next
+        m_ap = ap.transformation.to_a.map(&:to_f)
+        m_s = schrank.transformation.to_a.map(&:to_f)
+        nx, ny, nz = %w[x y z].map { |k| zahl(n, k, 0.0) }
+        x0, y0, x1, y1 = a['rechteck'].map(&:to_f)
+        oben = platte.transformation.to_a[14].to_f * 25.4 + platte.get_attribute(AP_DICT, 'staerke').to_f
+        ecken = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map do |x, y|
+          welt = punkt(m_ap, [x, y, oben].map { |v| v / 25.4 })
+          lokal(m_s, welt).map { |v| v * 25.4 }
+        end
+        xs, ys, zs = ecken.transpose
+        return { 'ausschnitt' => [xs.min - nx, ys.min - ny, xs.max - nx, ys.max - ny].map { |v| v.round(2) },
+                 'arbeitsplatte' => (zs.first - nz).round(2) }
+      end
+    end
+    {}
+  end
+
+  # Nach dem Erzeugen/Neuberechnen einer Arbeitsplatte: Spüle und Kochfeld in Schränken, die schon
+  # Geräte haben, neu einsetzen, damit sie im (neuen) Ausschnitt sitzen. Liefert die Anzahl Schränke.
+  def self.an_arbeitsplatte_ausrichten(model)
+    model.entities.grep(Sketchup::ComponentInstance).count do |s|
+      g = s.definition.entities.grep(Sketchup::ComponentInstance).select { |i| geraet?(i) }
+      next false unless g.any? { |i| %w[Spuele Kochfeld KochfeldAbzug].include?(art(i.definition.get_attribute(GERAET_DICT, 'geraet'))&.first) }
+      einsetzen(model, s)
+      true
+    end
+  end
+
+  # Punkt mit Transformation (Spaltenform wie Geom::Transformation#to_a, Zoll)
+  def self.punkt(m, p)
+    (0..2).map { |r| (0..2).sum { |k| m[k * 4 + r] * p[k] } + m[12 + r] }
+  end
+
+  # Umkehrung für Drehung + Verschiebung (Schränke werden nicht skaliert)
+  def self.lokal(m, p)
+    d = (0..2).map { |r| p[r] - m[12 + r] }
+    (0..2).map { |k| (0..2).sum { |r| m[k * 4 + r] * d[r] } }
   end
 
   # Schränke in der Auswahl, sonst im ganzen Modell (oberste Ebene)
