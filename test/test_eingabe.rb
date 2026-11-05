@@ -110,7 +110,7 @@ d4 = E.abfragen(['Name', 'Farbe', 'Texturbild (leer = nur Farbe)'], ['x', '#B088
 h4 = d4.html
 check(h4.include?('class="farbwahl"') && h4.include?('id="f1_rad"') && h4.include?('id="f1_hell"') && h4.include?('id="f1_muster"'),
       'Farbfeld mit Farbrad, Helligkeitsregler und Vorschau')
-check(h4.include?('sketchup.datei(2)') && !h4.include?('sketchup.datei(1)'), 'Dateifeld mit Knopf')
+check(h4.include?('sketchup.datei(2,') && !h4.include?('sketchup.datei(1,'), 'Dateifeld mit Knopf')
 check(EingabeHelfer.felder(h4) == [%w[Name x], ['Farbe', '#B08850'], ['Texturbild', '']], "Farb-/Dateifeld lesbar: #{EingabeHelfer.felder(h4).inspect}")
 check(!h4.include?(':farbe') && !h4.include?('<select id="f1"'), 'keine Auswahlliste für :farbe')
 check(d4.optionen[:height] > E.hoehe(E.felder(['Name', 'Farbe', 'T'], %w[x y z], [], nil)) + 100, 'Fenster höher für das Farbrad')
@@ -121,6 +121,13 @@ UI.openpanel_antwort = nil
 n_skripte = d4.skripte.size
 d4.callbacks['datei'].call(nil, '2')
 check(d4.skripte.size == n_skripte, 'Datei-Abbrechen ändert nichts')
+# Programm wählen (z. B. blender.exe) und Speichern unter
+d5 = E.abfragen(['Programm', 'Bild'], ['', 'C:/x/k.png'], [':programm', ':speichern'], 'Rendern') { |_| }
+check(d5.html.include?("sketchup.datei(0, 'programm'") && d5.html.include?("sketchup.datei(1, 'speichern'"), 'Programm- und Speichern-Feld mit Knopf')
+UI.openpanel_antwort = 'C:\\Blender\\blender.exe'
+d5.callbacks['datei'].call(nil, '0', 'programm', '')
+check(d5.skripte.last == 'KP.setze(0, "C:/Blender/blender.exe")', "Programm ins Feld: #{d5.skripte.last}")
+UI.openpanel_antwort = nil
 EingabeHelfer.ok(d4, 'Farbe' => '#2F6FB3')
 check(farbe == ['x', '#2F6FB3', ''], 'Farbe kommt als Text an')
 # ohne HtmlDialog: Feldarten werden zu Eingabefeldern

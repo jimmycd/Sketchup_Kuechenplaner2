@@ -26,7 +26,7 @@ for src in Komponenten/*/src sketchup-tcn-export-plugin/src kuechenplaner-update
   cp gemeinsam/einstellungen.rb "$src/kuechenplaner_gemeinsam/einstellungen.rb"
   cp gemeinsam/neuladen.rb "$src/kuechenplaner_gemeinsam/neuladen.rb"
   rm -f "$dir/$name.rbz"
-  (cd "$src" && zip -q -X -r "$top/$dir/$name.rbz" . && zip -q -X -r "$top/Kuechenplaner_alle.rbz" .)
+  (cd "$src" && zip -q -X -r "$top/$dir/$name.rbz" . -x "*__pycache__*" && zip -q -X -r "$top/Kuechenplaner_alle.rbz" . -x "*__pycache__*")
   echo "$dir/$name.rbz erstellt"
 done
 echo "Kuechenplaner_alle.rbz erstellt"

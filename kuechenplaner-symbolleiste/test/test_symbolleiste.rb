@@ -74,7 +74,7 @@ check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleis
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
 check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Frontfarbe und Griffe', 'TCN exportieren',
-                 'Stückliste', 'Etiketten', 'Zuschnittplan', 'Materialien', 'Einstellungen'],
+                 'Stückliste', 'Etiketten', 'Zuschnittplan', 'Rendern', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
 tb.befehle.each do |c|
