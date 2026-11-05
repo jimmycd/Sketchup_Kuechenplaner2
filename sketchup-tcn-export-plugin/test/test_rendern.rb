@@ -143,7 +143,7 @@ module Sketchup
     attr_reader :entities, :pages, :active_view
     attr_accessor :path
     def initialize = (@entities, @pages, @active_view, @path = Entities.new, Pages.new, View.new, '')
-    def shadow_info = { 'SunDirection' => Geom::Vector3d.new(0.4, -0.6, 0.7) }
+    def shadow_info = (@si ||= { 'SunDirection' => Geom::Vector3d.new(0.4, -0.6, 0.7) })
   end
 
   # 8×8-PNG mit Holzstreifen (hell/dunkel) als Textur
@@ -248,7 +248,8 @@ Dir.mktmpdir do |tmp|
   check(d['licht']['sonne'] == [0.4, -0.6, 0.7] && d['licht']['raumlicht'] == true, 'Sonne aus den Schatten-Einstellungen')
   check(d['box'][0][2].zero? && (d['box'][1][2] - (3.94 + 28.3) * 0.0254).abs < 1e-3, "Begrenzung in Metern: #{d['box']}")
   m = d['materialien']
-  check(m.keys.sort == %w[Front_Eiche_natur Glas_klar Melamin_weiss Raum_Boden Standard], "Materialien: #{m.keys}")
+  check(m.keys.sort == %w[Boden_Raum_Boden Front_Eiche_natur Glas_klar Melamin_weiss Standard] && m['Boden_Raum_Boden']['boden'] &&
+        !m['Melamin_weiss']['boden'], "Materialien, Boden (Tag Raum-Boden) eigens gekennzeichnet: #{m.keys}")
   check(m['Front_Eiche_natur']['art'] == 'holz' && m['Front_Eiche_natur']['textur'] == 'textur_Front_Eiche_natur.jpg' &&
         File.exist?(File.join(ordner, 'textur_Front_Eiche_natur.jpg')), 'Holztextur geschrieben und verknüpft')
   check(mtl.include?("newmtl Glas_klar\nKd 0.7843 0.8627 0.9020\nd 0.300") && m['Glas_klar']['art'] == 'glas', 'Glas mit Transparenz')
@@ -268,7 +269,7 @@ Dir.mktmpdir do |tmp|
   tag_render.visible = false # aktuell aus, in Kunde aber an (nicht in der Liste der versteckten)
   json = R.exportieren(model, ordner, bild, breite: 640, samples: 16, raumlicht: false)
   d = JSON.parse(File.read(json))
-  check(d['flaechen'] == 19 && !d['materialien'].key?('Raum_Boden'), "Szene Kunde: Boden versteckt, Gerätemodell sichtbar: #{d['flaechen']}")
+  check(d['flaechen'] == 19 && !d['materialien'].key?('Boden_Raum_Boden'), "Szene Kunde: Boden versteckt, Gerätemodell sichtbar: #{d['flaechen']}")
   check(d['licht']['raumlicht'] == false, 'Raumlicht abschaltbar')
   check(d['licht']['sonne'] == [0.4, -0.6, 0.7], 'Szene ohne eigene Schatten: Sonne des Modells')
   kunde = model.pages['Kunde']
@@ -291,26 +292,31 @@ Dir.mktmpdir do |tmp|
   check(titel == 'Küche rendern (Blender)' && aufruf[1][:ok] == 'Rendern', 'Fenster „Küche rendern“')
   check(listen == ['', 'Entwurf|Normal|Hoch', 'aktuelle Ansicht|Szene Kunde', 'ja|nein',
                    'Innenraum|Innenhof|Studio|Stadt|Wald|Sonnenuntergang|einfarbig hell', 'ja|nein', 'ja|nein',
-                   ':speichern', ':programm'], "Felder: #{listen}")
-  check(werte[7] == File.join(tmp, 'Mueller_Render.png') && werte[3] == 'ja' && werte[4] == 'Innenraum' && werte[6] == 'ja',
-        "Vorschläge: Bild neben dem Modell, Senkrechte gerade, Innenraum, LED: #{werte.inspect}")
+                   'keine|wenig|mittel|viel', '1|2|3|4|5|6|7|8|9', 'ja|nein',
+                   'wie Modell|Parkett Eiche|Fliesen hell|Fliesen anthrazit|Beton', 'ja|nein', ':speichern', ':programm'],
+        "Felder: #{listen}")
+  check(werte[12] == File.join(tmp, 'Mueller_Render.png') && werte.values_at(3, 4, 6, 7, 8, 9, 10, 11) ==
+        %w[ja Innenraum ja mittel 1 ja wie\ Modell ja], "Vorschläge: #{werte.inspect}")
+  rest = ['mittel', '1', 'ja', 'wie Modell', 'ja']
   begin
-    aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', werte[7], File.join(tmp, 'gibtsnicht.exe')])
+    aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', *rest, werte[12], File.join(tmp, 'gibtsnicht.exe')])
     check(false, 'fehlendes Blender wird gemeldet')
   rescue ArgumentError => e
     check(e.message.include?('blender.org'), 'Blender fehlt: Hinweis auf blender.org')
   end
   exe = File.join(tmp, 'blender.exe')
   File.write(exe, '')
-  aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'nein', 'Studio', 'nein', 'ja', File.join(tmp, 'bild'), exe])
+  aufruf[2].call(['1920', 'Hoch', 'Szene Kunde', 'nein', 'Studio', 'nein', 'ja', 'viel', '7', 'nein', 'Parkett Eiche', 'nein',
+                  File.join(tmp, 'bild'), exe])
   check(gestartet == [model, exe, File.join(tmp, 'bild.png'), 1920, 512,
-                      { raumlicht: false, kamera_kunde: true, senkrecht: false, umgebung: 'Studio', led: true }],
+                      { raumlicht: false, kamera_kunde: true, senkrecht: false, umgebung: 'Studio', led: true,
+                        deko: 'viel', variante: 7, pendel: false, boden: 'Parkett Eiche', decke: false }],
         "Start mit den Eingaben: #{gestartet.inspect}")
   check(Sketchup.read_default('JT_Rendern', 'umgebung') == 'Studio' && Sketchup.read_default('JT_Rendern', 'senkrecht') == 'nein',
         'Auswahl für das nächste Mal gemerkt')
   check(Sketchup.read_default('JT_Rendern', 'blender') == exe, 'Blender-Pfad gemerkt')
   begin
-    aufruf[2].call(['50', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', 'x.png', exe])
+    aufruf[2].call(['50', 'Hoch', 'Szene Kunde', 'ja', 'Innenraum', 'ja', 'ja', *rest, 'x.png', exe])
     check(false, 'zu kleine Breite')
   rescue ArgumentError
     check(true, 'zu kleine Breite wird abgelehnt')
@@ -377,6 +383,120 @@ Dir.mktmpdir do |tmp|
     check(werte[2] == '1' && werte[3] == '1' && werte[4] == 'True', "Blender-Szene mit LED, HDRI-Umgebung und Kantenradius (#{werte.inspect})")
   else
     puts 'Hinweis: Python-Modul bpy fehlt, echter Blender-Render übersprungen (BPY_PYTHON setzen).'
+  end
+end
+
+# --- Testküche: Raum, Zeile mit Arbeitsplatte und Spüle, Oberschränke, Insel -----------------
+def mm(*v) = v.map { |x| x / 25.4 }
+def kasten(defn, x, y, z, b, t, h)
+  e = defn.entities
+  x0, y0, z0 = mm(x, y, z)
+  x1, y1, z1 = mm(x + b, y + t, z + h)
+  e << Sketchup::Face.new(rechteck(x0, y0, x1, y1, z0)) << Sketchup::Face.new(rechteck(x0, y0, x1, y1, z1))
+  e << Sketchup::Face.new([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]])
+  e << Sketchup::Face.new([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]])
+  e << Sketchup::Face.new([[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]])
+  e << Sketchup::Face.new([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]])
+end
+
+def instanz(model, kategorie: nil, insel: false, geraet: nil, tag: nil, mat: nil)
+  d = Sketchup::Definition.new
+  d.set_attribute('JT_Schrank', 'kategorie', kategorie) if kategorie
+  d.set_attribute('JT_Schrank', 'insel', true) if insel
+  d.set_attribute('JT_Geraet', 'geraet', geraet) if geraet
+  yield d
+  i = Sketchup::ComponentInstance.new(d, Geom::Transformation.new, tag)
+  i.material = mat
+  model.entities << i
+  i
+end
+
+def testkueche
+  k = Sketchup::Model.new
+  weiss = Sketchup::Material.new('Melamin weiss', [240, 240, 236])
+  front = Sketchup::Material.new('Front Eiche natur', [176, 132, 86])
+  ap = Sketchup::Material.new('Arbeitsplatte Quarz grau', [120, 120, 118])
+  stahl = Sketchup::Material.new('Geraet Edelstahl', [200, 200, 200])
+  wand = Sketchup::Material.new('Raum Wand', [235, 232, 225])
+  boden = Sketchup::Material.new('Raum Boden', [150, 140, 125])
+  t_wand = Sketchup::Layer.new('Raum-Wand')
+  t_boden = Sketchup::Layer.new('Raum-Boden')
+  instanz(k, tag: t_boden, mat: boden) { |d| kasten(d, -500, -3500, -20, 5000, 4100, 20) }
+  instanz(k, tag: t_wand, mat: wand) do |d|
+    kasten(d, -500, 600, 0, 5000, 100, 2500)  # Wand hinter der Zeile
+    kasten(d, -600, -3500, 0, 100, 4200, 2500) # Wand links
+  end
+  # Zeile: 3 Unterschränke 600 breit, 560 tief, Sockel 100, Korpus 720 (Front davor)
+  3.times do |i|
+    instanz(k, kategorie: 'Unterschrank', mat: weiss) do |d|
+      kasten(d, i * 600, 0, 100, 600, 560, 720)
+      f = Sketchup::Definition.new
+      kasten(f, i * 600 + 2, -19, 102, 596, 19, 716)
+      fi = Sketchup::ComponentInstance.new(f, Geom::Transformation.new)
+      fi.material = front
+      d.entities << fi
+    end
+  end
+  instanz(k, kategorie: 'Arbeitsplatte', mat: ap) { |d| kasten(d, 0, -30, 820, 1800, 630, 40) }
+  instanz(k, geraet: 'Spuele', tag: Sketchup::Layer.new('Geraete_Render'), mat: stahl) { |d| kasten(d, 700, 60, 790, 500, 420, 75) }
+  2.times do |i|
+    instanz(k, kategorie: 'Oberschrank', mat: weiss) do |d|
+      kasten(d, i * 900, 250, 1450, 900, 350, 720)
+    end
+  end
+  # Insel 1800 × 900 mit eigener Platte
+  instanz(k, kategorie: 'Unterschrank', insel: true, mat: weiss) { |d| kasten(d, 300, -2200, 100, 1800, 900, 720) }
+  instanz(k, kategorie: 'Arbeitsplatte', mat: ap) { |d| kasten(d, 280, -2220, 820, 1840, 940, 40) }
+  k.active_view.camera = Sketchup::Camera.new(mm(3800, -3300, 1650), mm(900, 100, 900), [0, 0, 1], 45.0)
+  k.shadow_info['SunDirection'] = Geom::Vector3d.new(-0.3, -0.5, 0.8)
+  k
+end
+
+Dir.mktmpdir do |tmp|
+  k = testkueche
+  ordner = File.join(tmp, 'K_blender')
+  bild = File.join(tmp, 'K.png')
+  d = JSON.parse(File.read(R.exportieren(k, ordner, bild, breite: 480, samples: 16, boden: 'Parkett Eiche')))
+  deko = d['deko']
+  zs = deko['arbeitsflaechen'].map { |t| t.map { |p| p[2] }.uniq }
+  check(deko['arbeitsflaechen'].size == 4 && zs.all? { |z| z == [0.86] }, "nur die Oberseiten der Arbeitsplatten (4 Dreiecke): #{zs.inspect}")
+  check(deko['geraete'].size == 1 && deko['geraete'][0][2] == 'Spuele', "Spüle als Sperrfläche: #{deko['geraete'].inspect}")
+  check(deko['inseln'] == [[[0.3, -2.2, 0.1], [2.1, -1.3, 0.82]]], "Insel erkannt: #{deko['inseln'].inspect}")
+  check(deko['anzahl'] == 6 && deko['variante'] == 1 && deko['pendel'], 'Standard: mittel viel Deko, Pendelleuchten')
+  check(d['raum']['boden'] == 'parkett' && d['raum']['decke'] == [[-0.6, -3.5, 0.0], [4.5, 0.7, 2.5]], "Boden und Decke: #{d['raum']}")
+  check(d['licht']['led'].size == 2, 'zwei LED-Leisten')
+  aus = JSON.parse(File.read(R.exportieren(k, ordner, bild, breite: 480, samples: 16, deko: 'keine', decke: false)))
+  check(aus['deko']['anzahl'].zero? && aus['raum']['decke'].nil? && aus['raum']['boden'].nil?, 'Deko, Decke, Belag abschaltbar')
+
+  py = ENV['BPY_PYTHON'] || 'python3'
+  if system(py, '-c', 'import bpy', out: File::NULL, err: File::NULL)
+    json = R.exportieren(k, ordner, bild, breite: 640, samples: 24, boden: 'Parkett Eiche', deko: 'viel', variante: 2)
+    ok = system(py, R.skript, '--', json, out: File.join(ordner, 'blender.log'), err: %i[child out])
+    status = File.read(File.join(ordner, 'kp_status.txt'))
+    aus = status[/^KP_STATUS Ausstattung: (.*)$/, 1].to_s
+    check(ok && R.ergebnis(status) == [:fertig, bild], "Testküche gerendert: #{status.lines.last(2).join.strip}")
+    check(aus.split(', ').size >= 7 && aus.include?('3 Pendelleuchten') && aus.include?('Decke'),
+          "Deko auf der Arbeitsplatte, 3 Pendelleuchten über der 1,8 m langen Insel, Decke: #{aus}")
+    pruef = <<~PY
+      import bpy, sys
+      bpy.ops.wm.open_mainfile(filepath=sys.argv[1])
+      sys.dont_write_bytecode = True
+      sys.path.insert(0, sys.argv[2])
+      import rendern_ausstattung as A, json
+      d = json.load(open(sys.argv[3]))
+      deko = d["deko"]
+      schlecht = []
+      for o in bpy.data.objects:
+          if o.name.startswith("Deko_") and o.parent is None and o.type == "EMPTY":
+              x, y, z = o.location
+              r = dict((n, r) for n, r, _ in A.DEKO)[o.name[5:].split(".")[0]]
+              if not A.platz_frei(x, y, z, r - 0.001, deko["arbeitsflaechen"], deko["geraete"], []):
+                  schlecht.append(o.name)
+      print("SCHLECHT", schlecht)
+    PY
+    out = IO.popen([py, '-c', pruef, File.join(ordner, 'szene.blend'), File.dirname(R.skript), json], err: File::NULL, &:read)
+    check(out.include?('SCHLECHT []'), "keine Deko über der Kante oder auf der Spüle: #{out[/SCHLECHT.*/]}")
+    FileUtils.cp(bild, ENV['KUECHE_KOPIE']) if ENV['KUECHE_KOPIE']
   end
 end
 
