@@ -57,31 +57,25 @@ Was geändert wird:
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
 
 ## Schrank andocken
-Neue Schränke muss man nicht mehr von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*.
+Neue Schränke muss man nicht von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*. Regeln von Jürgen (2026-11-05):
 
-**Ans freie Ende:** Gibt es schon Schränke, kommt der neue ohne Maus an einen freien Platz. Ist ein Schrank markiert: rechts daneben, wenn dort Platz ist, sonst links daneben; sind beide Seiten belegt, ans rechte bzw. linke Ende seiner Zeile. Ohne Markierung: ans rechte, sonst linke Ende der Zeile des zuletzt eingefügten Schranks derselben Art (Unter-/Hochschränke bilden eine Zeile, Oberschränke mit den Hochschränken eine, Inselschränke eine eigene). „Platz“ heißt: keine Wand des Raums und kein anderer Schrank im Weg. Gleiche Drehung, Rückwände in einer Flucht. Der erste Oberschrank kommt über den Anfang (links) der Unterschrank-Zeile.
+* **Immer an der Wand:** Jeder Schrank steht mit der Rückseite im *Abstand Schrankrückseite – Wand* (*Einstellungen*) an einer Wand des Raums und lässt sich nur an ihr entlang schieben. An den Wandenden rastet er ein (dort auch seitlich mit Wandabstand zur Nachbarwand), ebenso an Tür-/Durchgangslaibungen (Fang 100 mm).
+* **Nie ineinander:** Ein Schrank kann nie in einen anderen Schrank oder in eine Wand gesetzt werden. Beim Schieben bleibt er am Hindernis liegen; passt er nirgends, steht „kein Platz“ in der Statuszeile.
+* **Höhen fest:** Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe, Oberschränke auf Arbeitsplattenhöhe + lichter Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), höchstens bis unter die Decke.
+* **Nachbarn berühren sich:** Unter-/Hochschränke und Oberschränke untereinander berühren sich an der **unteren vorderen Korpusecke** (Korpus, nicht Front). Ist der neue Schrank flacher als der Nachbar, kommt er mit der Vorderkante bündig nach vorn; ist er tiefer, bleibt die Rückseite im Wandabstand. Gemessen wird nur an Seiten, Wangen und Rückwand, nicht an Fronten, Geräten oder Arbeitsplatte. Geräteschränke ohne eigene Seite (Geschirrspüler, Unterbau-Kühlschrank) haben eine virtuelle Seite; ihr Gerät steht auf dem Fußboden.
+* **Inselschränke** folgen der Maus frei im Raum (Kollision wird trotzdem geprüft).
 
-**Sockelhöhe fest** (Jürgen, 2026-11-03): Unter- und Hochschränke stehen immer auf Fußboden + Sockelhöhe aus den *Einstellungen*, auch im Andock-Werkzeug und neben anderen Schränken. Komponenten mit eigenem Parameter Sockelhöhe (Geschirrspüler, Kühlschrank-Nische, Wangen, Sockelblende) bekommen beim Einfügen die Sockelhöhe der Küche. Wird die Sockelhöhe in den *Einstellungen* geändert, wandern alle vorhandenen Unter- und Hochschränke, Arbeitsplatten und Sockelblenden um die Differenz mit; Oberschränke auch, aber höchstens bis unter die Decke des Raums.
+**Einfügen:** Gibt es noch keinen Schrank, hängt der neue an der Maus (Andock-Werkzeug). Ist ein Schrank markiert, kommt der neue an dessen freie Seite (rechts, wenn beide frei sind); ist keine Seite frei, hängt er an der Maus. Ohne Markierung kommt er ans freie Ende der Zeile seiner Art (Unter-/Hochschränke eine Zeile, Oberschränke eine, Inselschränke eine eigene); der erste Oberschrank über den Anfang der Unterschrank-Zeile.
 
-**Wo sich Schränke berühren** (Jürgen, 2026-11-02): Nachbarn berühren sich immer an der **oberen Außenecke der Seiten**. Gemessen wird nur an den Seiten (und sichtbaren Wangen), nicht an Fronten, Geräten oder Arbeitsplatte. Geräteschränke ohne eigene Seite (Geschirrspüler, Unterbau-Kühlschrank) haben eine virtuelle Seite: Nischenbreite × Korpushöhe; ihr Gerät steht damit auf dem Fußboden. Höhen:
+**Sockelhöhe ändern:** Wird die Sockelhöhe in den *Einstellungen* geändert, wandern alle Unter- und Hochschränke, Arbeitsplatten und Sockelblenden um die Differenz mit; Oberschränke auch, aber höchstens bis unter die Decke.
 
-* Unter- und Hochschränke: immer auf dem Sockel (siehe oben).
-* Oberschrank: Höhe immer fest = Seitenoberkante Unterschrank + Arbeitsplattenstärke + Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), auch neben einem Hochschrank. Oberschränke stehen nur an der Wand oder über einem Unterschrank, nie frei im Raum, und höchstens bis unter die Decke.
+**Andock-Werkzeug** (Vorschau: blauer Kasten, Front rot; Statuszeile zeigt Wand und Abstand links/rechts bis zum Wandende):
 
-**Andock-Werkzeug:** Gibt es noch keinen Schrank (oder über *Schrank andocken…* für den ausgewählten), hängt der Schrank als Vorschau an der Maus (blauer Kasten, Front rot):
-
-| Maus über … | Ergebnis |
-|---|---|
-| einem Schrank (Seite, Deckel) | links oder rechts an dessen Seite, je nach Hälfte unter der Maus; übernimmt Drehung, Höhe wie oben |
-| einem Unterschrank (beim Oberschrank) | darüber auf fester Höhe, Rückseiten in einer Flucht, links bzw. rechts bündig |
-| der Front eines Schranks | quer davor, Rückseite in der Flucht von dessen linker bzw. rechter Seite (Ecke einer L- oder U-Küche, z. B. vor die Blindseite eines Eckschranks); nicht beim Oberschrank |
-| einer Wand des Raums ([Erweiterung Raum](../Komponenten/raum/)) | Rückseite mit Wandabstand an die Wand, rastet an Wandenden (dort auch seitlich mit Wandabstand zur Nachbarwand) und Tür-/Durchgangslaibungen ein (Fang 100 mm); ein Eckschrank geht immer in die Ecke (L-Form links, Blindeck zur Blindseite) und steht so an beiden Wänden; Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe (*Einstellungen*), Oberschränke auf der festen Höhe; Anzeige: Abstand links und rechts bis zum Wandende |
-| einer anderen senkrechten Fläche | Rückseite an die Wand, Mitte unter der Maus, Front in den Raum |
-| sonst | folgt der Maus (Unter-/Hochschrank auf dem Sockel); ein Oberschrank lässt sich dort nicht absetzen |
-
-* **Tab** oder **Pfeil rechts/links**: um 90° drehen (am Nachbarn: gegenüber dem Nachbarn, z. B. für den zweiten Schenkel einer L-Küche, Rückwand an der Wand des Nachbarn)
-* **Pfeil hoch/runter**: Rückwände bündig (Vorgabe) oder Fronten bündig, wenn die Schränke verschieden tief sind
-* **Klick**: absetzen (ein Schritt *Rückgängig*), **Esc**: Schrank bleibt, wo er erzeugt wurde
+* **Maus bewegen:** Schrank gleitet an der Wand entlang, die der Maus beim Start am nächsten war; eine andere Wand wählt man mit Tab.
+* **Tab**: Schrank dreht sich und wechselt zur nächsten Wand, **Shift+Tab** zur vorigen. Beim Eckschrank dreht der erste Tab nur in der Ecke (andere Wand als Bezug für die Front), der zweite wechselt die Wand.
+* **Strg gedrückt halten**: Freihand. Der Schrank folgt der Maus frei im Raum, **Pfeil hoch/runter** ändert die Höhe in 10-mm-Schritten, Tab dreht um 90°. Geprüft wird nur noch die Kollision mit Schränken und Wänden. Strg loslassen: wieder an der Wand.
+* **Klick**: absetzen (ein Schritt *Rückgängig*), **Esc**: Schrank bleibt, wo er erzeugt wurde.
+* Ohne Raum (keine Wände) folgt der Schrank der Maus auf fester Höhe, Tab dreht.
 * Ausgeblendete Teile (z. B. abgeschaltete Wangen) zählen für die Maße nicht.
 
 Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küchenplaner › Schrank andocken…*.
