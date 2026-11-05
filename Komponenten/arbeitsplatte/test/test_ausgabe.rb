@@ -136,6 +136,36 @@ neu2 = A.neu_berechnen(model)
 check(neu2.size == 1 && neu2[0].definition.entities.instances.size == 2, 'markierte Arbeitsplatte neu berechnet')
 model.selection.clear
 
+# --- Neu berechnen bezieht neue Schränke ein (alte Platte löschen, komplett neu) ---
+ops = []
+model.define_singleton_method(:start_operation) { |*a| ops << a }
+uss3 = schrank(model, 'USS3', 600, gerade(1700, 20))
+neu3 = A.neu_berechnen(model)
+d3 = neu3[0].definition
+check(neu3.size == 1 && neu3[0].name == 'APL1' && JSON.parse(d3.get_attribute('JT_Arbeitsplatte', 'schraenke')).include?('USS3'),
+      "neuer Schrank USS3 einbezogen: #{d3.get_attribute('JT_Arbeitsplatte', 'schraenke')}")
+check(d3.entities.instances[0].get_attribute('JT_Arbeitsplatte', 'laenge') == 2295.0,
+      "Platte A über USS3 verlängert: #{d3.entities.instances[0].get_attribute('JT_Arbeitsplatte', 'laenge')}")
+check(ops.size == 1, "ein Vorgang = ein Rückgängig: #{ops}")
+check(model.entities.instances.count { |i| i.definition.get_attribute('JT_Schrank', 'typ') == 'Arbeitsplatte' } == 1, 'nur eine Arbeitsplatte im Modell')
+check(model.definitions['Arbeitsplatte APL1'].equal?(d3) && model.definitions['Arbeitsplatte APL1#1'].nil?,
+      'alte Definition entfernt, neue heißt wieder „Arbeitsplatte APL1“')
+check(model.layers.to_a.map(&:name).grep(/^APL1_/).sort == %w[APL1_Platte1 APL1_Platte2], "Tags: #{model.layers.to_a.map(&:name)}")
+# Hochschrank am Zeilenende (neu dazugestellt): Platte endet davor ohne Anleimer
+hs = schrank(model, 'HS1', 600, gerade(2300, 20))
+hs.definition.set_attribute('JT_Schrank', 'kategorie', 'Hochschrank')
+hs.definition.set_attribute('JT_Schrank', 'typ', 'Hochschrank')
+neu4 = A.neu_berechnen(model)
+p4 = neu4[0].definition.entities.instances[0]
+check(JSON.parse(p4.get_attribute('JT_Arbeitsplatte', 'kanten')).include?('hochschrank'),
+      "Hochschrank am Ende erkannt: #{p4.get_attribute('JT_Arbeitsplatte', 'kanten')}")
+# Schrank wieder weg: Platte wird wieder kürzer
+model.entities.erase_entities(uss3, hs)
+neu5 = A.neu_berechnen(model)
+check(neu5[0].definition.entities.instances[0].get_attribute('JT_Arbeitsplatte', 'laenge') == 1695.0 &&
+      !JSON.parse(neu5[0].definition.get_attribute('JT_Arbeitsplatte', 'schraenke')).include?('USS3'), 'USS3 entfernt: Platte wieder 1695')
+model.singleton_class.send(:remove_method, :start_operation)
+
 # --- Massivholz, zweite Arbeitsplatte bekommt APL2 ---
 $eingabe = nil
 inst2 = A.erzeugen(model, optionen: { art: :massivholz })
@@ -151,6 +181,34 @@ check(A.erzeugen(model).nil?, 'Abbruch im Dialog erzeugt nichts')
 # ohne Schränke
 leer = Sketchup::Model.new
 check(A.erzeugen(leer, optionen: {}).nil? && A.neu_berechnen(leer) == [], 'leeres Modell')
+
+# --- Zwei getrennte Arbeitsplatten: neuer Schrank kommt zu seiner Gruppe, die andere bleibt ---
+zwei = Sketchup::Model.new
+Sketchup.active_model = zwei
+a1 = schrank(zwei, 'US1', 600, gerade(0, 20))
+b1 = schrank(zwei, 'US2', 600, gerade(5000, 20))
+zwei.selection << a1
+apl1 = A.erzeugen(zwei, optionen: {})
+zwei.selection.clear
+zwei.selection << b1
+apl2 = A.erzeugen(zwei, optionen: { art: :massivholz })
+zwei.selection.clear
+schrank(zwei, 'US3', 600, gerade(5600, 20))
+r = A.neu_berechnen(zwei)
+sk = ->(i) { JSON.parse(i.definition.get_attribute('JT_Arbeitsplatte', 'schraenke')) }
+check(apl1.name == 'APL1' && apl2.name == 'APL2' && r.map(&:name) == %w[APL1 APL2], "beide neu: #{r.map(&:name)}")
+check(sk.(r[0]) == %w[US1] && sk.(r[1]).sort == %w[US2 US3], "Zuteilung: #{r.map { |i| sk.(i) }}")
+check(r[1].definition.entities.instances[0].material.name == 'Arbeitsplatte Massivholz', 'APL2 behält Massivholz')
+# markiert nur APL1: ein neuer, freier Schrank kommt zu APL1, APL2 bleibt unberührt
+schrank(zwei, 'US4', 600, gerade(10_000, 20))
+zwei.selection << r[0]
+r2 = A.neu_berechnen(zwei)
+zwei.selection.clear
+check(r2.size == 1 && sk.(r2[0]).sort == %w[US1 US4] && zwei.entities.instances.include?(r[1]), "nur APL1: #{r2.map { |i| sk.(i) }}")
+# alle Schränke einer Platte weg: die Platte wird gelöscht
+zwei.entities.erase_entities(zwei.entities.instances.select { |i| %w[US2 US3].include?(i.definition.name) })
+r3 = A.neu_berechnen(zwei)
+check(r3.map(&:name) == %w[APL1] && zwei.entities.instances.none? { |i| i.name == 'APL2' }, "APL2 ohne Schränke gelöscht: #{r3.map(&:name)}")
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
