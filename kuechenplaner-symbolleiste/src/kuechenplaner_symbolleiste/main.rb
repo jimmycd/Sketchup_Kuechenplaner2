@@ -71,7 +71,9 @@ module KuechenplanerSymbolleiste
     ['etiketten', 'Etiketten', 'Etiketten für die Teile drucken (Bogen oder Endlos)',
      -> { defined?(JTools::SchrankCnc::Etiketten) }, -> { JTools::SchrankCnc::Etiketten.dialog }],
     ['zuschnitt', 'Zuschnittplan', 'Zuschnittplan je Platte für die Formatsäge',
-     -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }]
+     -> { defined?(JTools::SchrankCnc::Zuschnitt) }, -> { JTools::SchrankCnc::Zuschnitt.dialog }],
+    ['einstellungen', 'Einstellungen', 'Generelle Einstellungen: Sockelhöhe, Wandabstand, Abstand Arbeitsplatte–Oberschrank und CNC-Werte',
+     -> { defined?(JTools::SchrankCnc::Einstellungen) }, -> { JTools::SchrankCnc::Einstellungen.dialog }]
   ].freeze
 
   class << self
