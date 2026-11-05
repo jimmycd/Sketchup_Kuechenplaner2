@@ -365,9 +365,9 @@ B.dialog_passblende
 m.selection.clear
 B.dialog_wange
 check(m.entities.length == 3, "Dialoge ohne Auswahl erzeugen je ein Teil (#{m.entities.length})")
-check(UI.fragen.map { |f| f[1] } == [['600', '100', '520', 'keine'],
+check(UI.fragen.map { |f| f[1] } == [['600', '100', '520', 'keine', 'stumpf'],
                                      ['Unterschrank', 'rechts', '50', '', 'nein'],
-                                     ['Unterschrank', 'rechts', '19', '', '', '100', '0']], "Dialog-Vorschläge: #{UI.fragen.map { |f| f[1] }.inspect}")
+                                     ['Unterschrank', 'rechts', '19', '', '', '100', '0', 'nein']], "Dialog-Vorschläge: #{UI.fragen.map { |f| f[1] }.inspect}")
 hs = m.entities.instances[1].definition.entities.instances.first
 check(nahe(hs.definition.box[2] * 2.54, 70.0), 'Passblende ohne Auswahl: Standardhöhe Unterschrank')
 UI.antworten = [['Hochschrank', 'links', '25', '', '', '120', '10']]
@@ -394,9 +394,10 @@ m.selection.clear
 alt = B.erstellen_sockelblende('Laenge' => 60.0)
 m.selection.clear
 UI.fragen = []
-UI.antworten = [%w[120 19 ja]]
+UI.antworten = [['120', '19', 'nur Blende', 'stumpf', 'ja']]
 B.dialog_sockelblende
-check(UI.fragen.last == [['Sockelhöhe (mm)', 'Stärke (mm)', 'Vorhandene Sockelblenden (1) ersetzen'], %w[100 16 ja]],
+check(UI.fragen.last == [['Sockelhöhe (mm)', 'Stärke (mm)', 'Freie Enden (2)', 'Eckstoß Seitenstücke', 'Vorhandene Sockelblenden (1) ersetzen'],
+                         ['100', '16', 'Sockel ums Eck', 'stumpf', 'ja']],
       "Dialog Küche: #{UI.fragen.last.inspect}")
 sbs = m.entities.to_a.select { |e| B.sockelblende?(e) }
 q = sbs.size == 1 && sichtbar(knoten(sbs[0]))['Sockelblende1']
@@ -410,16 +411,152 @@ UI.fragen = []
 B.dialog_wange
 m.selection.clear
 B.dialog_sockelblende
-check(UI.fragen.map { |f| f[1][-2] } == %w[150 520] && UI.fragen[0][1][5] == '150', "Sockelhöhe aus Einstellungen im Dialog: #{UI.fragen.map { |f| f[1] }.inspect}")
+check(UI.fragen[1][1][1] == '150' && UI.fragen[0][1][5] == '150', "Sockelhöhe aus Einstellungen im Dialog: #{UI.fragen.map { |f| f[1] }.inspect}")
 q = sichtbar(knoten(m.entities.instances.last))['Sockelblende1']
 check(q && nahe(q[4], -15.0 + 0.3), "Sockelblende mit Sockelhöhe aus Einstellungen: #{q.inspect}")
 Kuechenplaner::Einstellungen.define_singleton_method(:sockelhoehe) { |_m = nil| 100.0 }
+
+# ---------------------------------------------------------------------------
+# Zeilenende (Jürgen 2026-11-05): Sockel ums Eck, Gehrung, Wange mit Sockelausklinkung
+# ---------------------------------------------------------------------------
+kante_seiten = lambda do |c|
+  kmat = Sketchup.active_model.materials[B::KANTE]
+  c.definition.entities.faces.select { |f| f.material.equal?(kmat) }
+   .map { |f| [B::SEITEN.find { |_, (ax, vz)| f.normal.to_a[ax] * vz > 0.99 }&.first, f.bounds.min.to_a.map { |v| (v * 2.54).round(3) }] }
+end
+
+# Gehrung: Blende läuft bis an die Außenkante, Seitenstücke vorne schräg, ohne Kante vorne
+m = neu
+sb = B.erstellen_sockelblende('Laenge' => 100.0, 'Tiefe' => 52.0, 'Art_Seite' => 3.0, 'Gehrung' => 1.0)
+k = knoten(sb)
+k.redraw
+pruefe_gezeichnet(k, 'SB Gehrung')
+q = sichtbar(k)
+check(nahe(q['Sockelblende1'][0], 0) && nahe(q['Sockelblende1'][1], 100.0), "SB Gehrung: Blende über die ganze Länge #{q['Sockelblende1']}")
+check(nahe(q['SockelSeiteL'][2], 6.9) && nahe(q['SockelSeiteR'][1], 100.0), "SB Gehrung: Seitenstücke #{q.inspect}")
+teile = sb.definition.entities.instances.reject(&:hidden).to_h { |c| [c.name, c] }
+bl = teile['Sockelblende1'].definition.entities.faces
+check(bl.any? { |f| (f.normal.to_a[0] + 0.7071).abs < 1e-3 && (f.normal.to_a[1] - 0.7071).abs < 1e-3 } &&
+      bl.any? { |f| (f.normal.to_a[0] - 0.7071).abs < 1e-3 && (f.normal.to_a[1] - 0.7071).abs < 1e-3 }, 'SB Gehrung: Blende an beiden Enden 45°')
+check(kante_seiten.(teile['SockelSeiteL']).map(&:first) == [:zmax], "SB Gehrung: Seitenstück ohne Kante vorne #{kante_seiten.(teile['SockelSeiteL'])}")
+check(B.sockel_profile(B::ARTEN[:sockelblende][:defaults].merge('Art_Seite' => 1.0)).empty?, 'SB stumpf: Quader')
+# Gehrung nur links, 2 Stücke: Gehrung am ersten Stück, rechtes Ende gerade
+pr = B.sockel_profile(B::ARTEN[:sockelblende][:defaults].merge('Laenge' => 400.0, 'Art_Seite' => 1.0, 'Gehrung' => 1.0))
+check(pr.keys.sort == %w[SockelSeiteL Sockelblende1], "SB Gehrung links, 2 Stücke: #{pr.keys}")
+umkonfigurieren(sb, 'Laenge' => 120.0)
+check(B.neubau?(sb), 'SB Gehrung: Länge geändert -> neu bauen')
+alt_def = sb.definition
+B.pruefen(m)
+check(!sb.definition.equal?(alt_def) && nahe(sichtbar(knoten(sb))['Sockelblende1'][1], 120.0) && !B.neubau?(sb),
+      "SB Gehrung neu gebaut: #{sichtbar(knoten(sb))['Sockelblende1']}")
+sb2 = B.erstellen_sockelblende('Laenge' => 100.0)
+umkonfigurieren(sb2, 'Laenge' => 120.0)
+check(!B.neubau?(sb2), 'SB stumpf ohne Gehrung: rechnet die DC, kein Neubau')
+
+# Wange mit Sockelausklinkung: L-Querschnitt, Kante nur vorne oben, Kontur für den TCN-Export
+m = neu
+wg = B.erstellen(:wange, 'Seite' => 'rechts', 'Tiefe' => 52.0, 'Ausklinkung' => 1.0)
+k = knoten(wg)
+k.redraw
+pruefe_gezeichnet(k, 'WG Ausklinkung')
+c = wg.definition.entities.instances.first
+check(nahe(c.definition.box[1] * 2.54, 0.2 + 1.9 + 52.0 + 0.8) && nahe(c.definition.box[2] * 2.54, 80.0), "WG Ausklinkung: Maße #{c.definition.box}")
+ks = kante_seiten.(c)
+check(ks.map(&:first).sort == %i[ymin zmax] && ks.find { |s, _| s == :ymin }[1][2] > 9.9, "WG Ausklinkung: Kanten #{ks.inspect}")
+kd = c.definition
+check(kd.get_attribute(B::KONTUR_DICT, 'ebene') == 'yz' && kd.get_attribute(B::KONTUR_DICT, 'umriss').size == 12 &&
+      kd.get_attribute(B::KONTUR_DICT, 'kante').size == 16, 'WG Ausklinkung: JT_Kontur')
+ya = kd.get_attribute(B::KONTUR_DICT, 'kante')[1] * 2.54
+check(nahe(ya, 0.2 + 1.9 + 5.0), "WG Ausklinkung: bis zur Vorderseite der Sockelblende (#{ya})")
+check(B.ausklinkung(B::ARTEN[:wange][:defaults].merge('Kategorie' => 'Oberschrank', 'Sockelhoehe' => 0.0, 'Ausklinkung' => 1.0)).nil?,
+      'WG Oberschrank: keine Ausklinkung')
+umkonfigurieren(wg, 'Hoehe' => 72.0)
+check(B.neubau?(wg), 'WG Ausklinkung: Höhe geändert -> neu bauen')
+B.pruefen(m)
+c = wg.definition.entities.instances.first
+check(nahe(c.definition.box[2] * 2.54, 82.0) && c.definition.get_attribute(B::KONTUR_DICT, 'umriss'), 'WG Ausklinkung neu gebaut')
+wg2 = B.erstellen(:wange, 'Seite' => 'links')
+umkonfigurieren(wg2, 'Ausklinkung' => 1.0)
+check(B.neubau?(wg2), 'WG: Ausklinkung eingeschaltet -> neu bauen')
+umkonfigurieren(wg2, 'Ausklinkung' => 0.0, 'Hoehe' => 75.0)
+check(!B.neubau?(wg2), 'WG ohne Ausklinkung: rechnet die DC')
+
+# Zeilenenden: links Wand (Raum), rechts frei -> Seitenstück rechts, Blende springt 50 mm zurück
+def raum(m, waende)
+  rd = m.definitions.add('Raum')
+  waende.each_with_index do |(tr, laenge), i|
+    w = rd.entities.add_instance(m.definitions.add('Wand'), tr)
+    { 'typ' => 'Wand', 'wand' => i + 1, 'laenge' => laenge }.each { |k, v| w.set_attribute('JT_Raum', k, v) }
+  end
+  r = m.entities.add_instance(rd, Geom::Transformation.new)
+  r.set_attribute('JT_Raum', 'typ', 'Raum')
+  r.set_attribute('JT_Raum', 'daten', '{"dicke":240}')
+  r
+end
+p = B::ARTEN[:sockelblende][:defaults]
+m = neu
+# linke Wand: Innenseite bei x = 0, läuft entlang +y, Wand liegt bei x < 0
+raum(m, [[Geom::Transformation.drehung(90, [0, -100 / 2.54, 0]), 4000.0]])
+zs = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+zl = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p)
+z = zl.first
+check(z[:enden] == %i[wand frei] && z[:art_seite] == 2 && nahe(z[:x0], 0) && nahe(z[:laenge], 115.0) && nahe(z[:tiefe_seite], 52.0),
+      "Zeilenende Wand/frei: #{z.slice(:enden, :art_seite, :laenge, :tiefe_seite)}")
+sbs = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
+q = sichtbar(knoten(sbs.first))
+check(sbs.size == 1 && q.key?('SockelSeiteR') && !q.key?('SockelSeiteL') && nahe(q['SockelSeiteR'][1], 115.0) &&
+      nahe(q['SockelSeiteR'][3], 1.9 + 52.0 + 0.8), "Sockel ums Eck rechts: #{q.inspect}")
+# nur Blende: freies Ende ohne Seitenstück, volle Länge; Gehrung wird durchgereicht
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p, ums_eck: false).first
+check(z[:art_seite].zero? && nahe(z[:laenge], 120.0), "nur Blende: #{z.slice(:art_seite, :laenge)}")
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p, gehrung: true).first
+check(z[:gehrung] == 1, 'Gehrung durchgereicht')
+# Wandabstand aus den Einstellungen: Seitenstück reicht bis zur Wand
+Kuechenplaner::Einstellungen.define_singleton_method(:wandabstand) { |_m = nil| 30.0 }
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p).first
+check(nahe(z[:tiefe_seite], 55.0), "Seitenstück bis zur Wand (Wandabstand 30 mm): #{z[:tiefe_seite]}")
+Kuechenplaner::Einstellungen.define_singleton_method(:wandabstand) { |_m = nil| 0.0 }
+# Wange rechts: Ende an der Wange, kein Seitenstück
+m.selection.clear
+m.selection.add(zs[1])
+B.erstellen(:wange, { 'Seite' => 'rechts' }, zs[1])
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p).first
+check(z[:enden] == %i[wand wange] && z[:art_seite].zero? && nahe(z[:laenge], 120.0), "Zeilenende Wand/Wange: #{z.slice(:enden, :art_seite)}")
+# ohne Raum: beide Enden frei
+m = neu
+zs = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p).first
+check(z[:enden] == %i[frei frei] && z[:art_seite] == 3 && nahe(z[:laenge], 110.0), "ohne Raum beide frei: #{z.slice(:enden, :laenge)}")
+# Innenecke zählt nicht als freies Ende
+m = neu
+a = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+b = [-60.2].map { |y| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.drehung(90, [55 / 2.54, y / 2.54, 0])) }
+zl = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(a + b)), p), p)
+check(zl.map { |x| x[:enden] }.include?(%i[ecke frei]), "Innenecke: #{zl.map { |x| x[:enden] }.inspect}")
+
+# Insel: Sockel ringsum, hinten zweite Blende zwischen den Seitenstücken
+m = neu
+zs = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+zs[0].definition.set_attribute(B::JT_DICT, 'insel', true)
+raum(m, [[Geom::Transformation.drehung(90, [0, -100 / 2.54, 0]), 4000.0]]) # Wand links zählt bei Inseln nicht
+zl = B.enden(m, B.ecken(B.zeilen(B.sockel_teile(zs)), p), p)
+z = zl.first
+check(z[:enden] == %i[frei frei] && z[:hinten] && nahe(z[:hinten][:laenge], 110.0 - 3.2) && nahe(z[:tiefe_seite], 52.0 - 5.0),
+      "Insel: #{z.slice(:enden, :tiefe_seite)} hinten #{z[:hinten] && z[:hinten][:laenge]}")
+sbs = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
+check(sbs.size == 2, "Insel: vorne und hinten je eine Blende (#{sbs.size})")
+hb = welt.(sbs[1])
+check(q_nahe(hb, [6.6, 113.4, 48.1, 49.7]), "Insel: Blende hinten #{hb.inspect}")
+vs = sichtbar(knoten(sbs[0]))
+check(nahe(vs['SockelSeiteL'][3], 1.9 + 52.0 + 0.8 - 5.0), "Insel: Seitenstück endet an der hinteren Blende #{vs['SockelSeiteL']}")
 
 eintraege = Kuechenplaner.schraenke.select { |g, _, _| g == 'Blenden & Wangen' }.map { |_, t, _| t }
 check(eintraege == ['Passblende…', 'Wange…', 'Sockelblende…'], "Menü Blenden & Wangen: #{eintraege.inspect}")
 check(Kuechenplaner::GRUPPEN.include?('Blenden & Wangen'), 'Gruppe Blenden & Wangen')
 
 # Kurzhilfe und Doku
+neu
+B.erstellen(:wange, 'Seite' => 'rechts')
 d = Sketchup.active_model.definitions['Wange']
 check(d.description == B::HILFE_KURZ[:wange] && d.get_attribute(B::DICT, 'summary') == B::HILFE_KURZ[:wange], 'Hilfe: Summary')
 check(d.get_attribute(B::DICT, 'description').nil?, 'Hilfe: keine lange Beschreibung im Fenster')

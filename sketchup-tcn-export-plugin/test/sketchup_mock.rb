@@ -342,6 +342,7 @@ module Sketchup
       rechteck = pts.size == 4 && pts[0][0].abs < 1e-9 && pts[0][1].abs < 1e-9 &&
                  (pts[1][1]).abs < 1e-9 && (pts[2][0] - pts[1][0]).abs < 1e-9 && pts[3][0].abs < 1e-9
       return pushpull_rechteck(d) if rechteck
+      return pushpull_yz(pts, d) if pts.all? { |q| q[0].abs < 1e-9 } && d > 0
       raise 'pushpull falsche Richtung' unless @normal.z > 0 && d > 0
       @ents.definition.box = [pts.map { |q| q[0] }.max, pts.map { |q| q[1] }.max, d]
       @ents.faces.clear
@@ -354,6 +355,33 @@ module Sketchup
         l = Math.hypot(dx, dy)
         next if l < 1e-9
         f = Face.new(@ents, [a, b], [s * dy / l, -s * dx / l, 0.0])
+        f.area = l * d
+        @ents.faces << f
+      end
+    end
+  end
+end
+
+# --- Umriss in der yz-Ebene, entlang x hochgezogen (Wange mit Sockelausklinkung) ---
+module Sketchup
+  class Face
+    attr_reader :pts
+    def bounds
+      q = @pts.map { |x| x.to_a.map(&:to_f) + [0.0] * (3 - x.to_a.size) }
+      Geom::BoundingBox.new.add(*q)
+    end
+    def pushpull_yz(pts, d)
+      oben = pts.map { |q| [d, q[1], q[2]] }
+      @ents.definition.box = [d, pts.map { |q| q[1] }.max, pts.map { |q| q[2] }.max]
+      @ents.faces.clear
+      @ents.faces << Face.new(@ents, pts, [-1.0, 0.0, 0.0]) << Face.new(@ents, oben, [1.0, 0.0, 0.0])
+      flaeche = (pts + [pts[0]]).each_cons(2).sum { |a, b| a[1] * b[2] - b[1] * a[2] }
+      s = flaeche > 0 ? 1 : -1
+      (pts + [pts[0]]).each_cons(2).with_index do |(a, b), i|
+        dy, dz = b[1] - a[1], b[2] - a[2]
+        l = Math.hypot(dy, dz)
+        next if l < 1e-9
+        f = Face.new(@ents, [a, b, [d, b[1], b[2]], [d, a[1], a[2]]], [0.0, s * dz / l, -s * dy / l])
         f.area = l * d
         @ents.faces << f
       end
