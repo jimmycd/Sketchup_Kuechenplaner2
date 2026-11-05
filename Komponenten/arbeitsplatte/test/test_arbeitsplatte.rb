@@ -61,6 +61,18 @@ check(erg[:warnungen].any? { |w| w.include?('UST1 steht nicht an der Wand (20.0 
 erg = E.erkenne([hinten('USS1', 0, 600), hinten('USS2', 600, 1200, z1: 760.0)])
 check(erg[:zeilen].size == 2, 'andere Oberkante = andere Zeile')
 
+# Abschlussregal ohne Front an derselben Wand (Front 21 mm zurück): gleiche Zeile, Platte gleich tief
+erg = E.erkenne([hinten('USP1', 0, 600), el('RA1', [600, 21.0, 900, 820.0])])
+z = erg[:zeilen]
+check(z.size == 1 && z[0][:elemente].map { |e| e[:kz] } == %w[USP1 RA1] && z[0][:front_linie] == 0 && z[0][:wand] == 820,
+      "Regal ohne Front in der Zeile: #{z.map { |x| [x[:elemente].map { |e| e[:kz] }, x[:front_linie]] }}")
+lay = Arbeitsplatte::Layout.berechne(erg, {})
+check(lay[:platten].size == 1 && lay[:platten][0][:punkte].size == 4 && lay[:platten][0][:breite] == 835.0,
+      "eine Platte, durchgehend gleich tief: #{lay[:platten].map { |p| [p[:laenge], p[:breite]] }}")
+# zurückstehend, aber nicht an derselben Wand (flacher Schrank vorn bündig ist schon eine Zeile): weit zurück = eigene Zeile
+erg = E.erkenne([hinten('USS1', 0, 600), el('X1', [600, 200.0, 1200, 820.0])])
+check(erg[:zeilen].size == 2, 'Front 200 mm zurück bleibt eine eigene Zeile')
+
 # --- L mit Blindeck: Blindeck UES1 an der linken Wand, Zeile B mit Passleiste 50 davor ---
 blind = hinten('UES1', 0, 1000, typ: 'Eckschrank')
 erg = E.erkenne([blind, hinten('USS1', 1000, 1600), links('USS2', -650, -50), links('UST1', -1250, -650)])
