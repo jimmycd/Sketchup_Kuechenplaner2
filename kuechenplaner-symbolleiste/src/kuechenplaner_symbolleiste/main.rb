@@ -9,6 +9,7 @@
 # Erweiterung, ist ihr Icon ausgegraut.
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -16,8 +17,10 @@ require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') #
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
 # 'Hochschränke' | 'Blenden & Wangen', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
 # Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
+# Darf mehrfach laufen (Neuladen ohne Neustart): die Methoden werden ersetzt, die
+# angelegten Menüs bleiben gemerkt.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze unless const_defined?(:GRUPPEN, false)
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
@@ -27,7 +30,7 @@ module Kuechenplaner
   # Ladereihenfolge der Erweiterungen abhängt.
   def self.untermenu(gruppe)
     @untermenues ||= GRUPPEN.each_with_object({}) { |g, h| h[g] = menu.add_submenu(g) }
-    @untermenues.fetch(gruppe)
+    @untermenues[gruppe] ||= menu.add_submenu(gruppe) # neue Gruppe aus einem Update: unten anhängen
   end
 
   # Schrank in seiner Gruppe ins Menü eintragen und für die Symbolleiste merken
@@ -40,7 +43,7 @@ module Kuechenplaner
   def self.schraenke
     @schraenke ||= []
   end
-end unless defined?(Kuechenplaner.schrank)
+end # gemeinsames Untermenü
 
 module KuechenplanerSymbolleiste
   ICONS = File.join(File.dirname(__FILE__), 'icons').freeze
@@ -84,23 +87,39 @@ module KuechenplanerSymbolleiste
       File.join(ICONS, "#{name}.#{Sketchup.platform == :platform_osx ? 'png' : 'svg'}")
     end
 
-    def befehl(icon, titel, hilfe, verfuegbar, aktion)
-      cmd = UI::Command.new(titel) { aktion.call }
-      cmd.small_icon = cmd.large_icon = icon(icon)
+    # Icon i: Aktion und Prüfung holen den Eintrag erst beim Klick aus BEFEHLE, damit
+    # nach dem Neuladen (ohne Neustart) die neue Fassung gilt.
+    def befehl(i)
+      ikon, titel, hilfe, = BEFEHLE[i]
+      cmd = UI::Command.new(titel) { KuechenplanerSymbolleiste.ausfuehren(i) }
+      cmd.small_icon = cmd.large_icon = icon(ikon)
       cmd.tooltip = titel
       cmd.status_bar_text = hilfe
-      cmd.set_validation_proc { verfuegbar.call ? MF_ENABLED : MF_GRAYED }
+      cmd.set_validation_proc { KuechenplanerSymbolleiste.verfuegbar?(i) ? MF_ENABLED : MF_GRAYED }
       cmd
     end
 
+    def ausfuehren(i)
+      BEFEHLE[i][4].call
+    end
+
+    def verfuegbar?(i)
+      BEFEHLE[i][3].call ? true : false
+    end
+
+    # Legt die Symbolleiste einmal an; nach dem Neuladen kommen neue Icons hinten dazu
+    # (entfernen kann SketchUp Icons erst beim nächsten Start).
     def symbolleiste
-      @symbolleiste ||= begin
-        tb = UI::Toolbar.new(NAME)
-        BEFEHLE.each { |b| tb.add_item(befehl(*b)) }
-        # Beim ersten Start einblenden, danach so, wie der Benutzer sie verlassen hat
-        tb.get_last_state == TB_NEVER_SHOWN ? tb.show : tb.restore
-        tb
+      neu = @symbolleiste.nil?
+      @symbolleiste ||= UI::Toolbar.new(NAME)
+      @icons ||= 0
+      while @icons < BEFEHLE.size
+        @symbolleiste.add_item(befehl(@icons))
+        @icons += 1
       end
+      # Beim ersten Start einblenden, danach so, wie der Benutzer sie verlassen hat
+      (@symbolleiste.get_last_state == TB_NEVER_SHOWN ? @symbolleiste.show : @symbolleiste.restore) if neu
+      @symbolleiste
     end
 
     # Ist eine Arbeitsplatte gewählt: neu berechnen, sonst neue erzeugen
@@ -190,8 +209,6 @@ module KuechenplanerSymbolleiste
     end
   end
 
-  unless file_loaded?(__FILE__)
-    symbolleiste
-    file_loaded(__FILE__)
-  end
+  symbolleiste # mehrfach aufrufbar: beim Neuladen nur neue Icons ergänzen
+  file_loaded(__FILE__) unless file_loaded?(__FILE__)
 end

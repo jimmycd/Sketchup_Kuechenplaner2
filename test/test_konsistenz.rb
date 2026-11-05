@@ -158,6 +158,9 @@ quellen.grep(/\.rb\z/).each do |f|
     next unless l =~ /UI\.start_timer\(/
     block = z[(i + 1)..(i + 3)].join
     menue = block.include?('Kuechenplaner.menu') || block.include?('add_item')
+    # Ausnahme: der Neulade-Wächter (gemeinsam/neuladen.rb) läuft absichtlich wiederholt und
+    # sperrt sich selbst (@laeuft), solange er lädt oder eine Fehlermeldung zeigt
+    next if f.end_with?('/neuladen.rb') && l.include?('UI.start_timer(sekunden, true) { pruefen }')
     check(menue || (l =~ /(\w+) = UI\.start_timer/ && z[i + 1].include?("UI.stop_timer(#{Regexp.last_match(1)})")),
           "#{f.delete_prefix("#{haupt}/")}:#{i + 1}: Timer ohne UI.stop_timer als erste Zeile")
   end
