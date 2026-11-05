@@ -2,6 +2,8 @@
 
 Vorrats-Hochschrank: außen eine Tür (ganz oder geteilt), dahinter unten Blum-LEGRABOX-Innenschubkästen mit Innenfront, oben Einlegeböden. Eine Alternative zum Apothekerschrank.
 
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
+
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `hochschrank_vorrat.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner).
 2. *Erweiterungen → Küchenplaner → Hochschränke → Hochschrank Vorrat…* (oder Symbolleiste *Schrank einfügen*) fragt Breite, Höhe und Tiefe ab (Vorschlag 600 × 2100 × 520 mm) und baut den Schrank. Danach dockt er an (siehe Schrank andocken). Alle Maße und Optionen bleiben in den *Komponentenoptionen* änderbar, auch die Tiefe.

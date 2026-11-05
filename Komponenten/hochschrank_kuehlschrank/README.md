@@ -28,6 +28,7 @@ Feste Maße (Materialstärken, Schachttiefe 40 mm, Nuttiefe 9 mm, Fugen 2 mm) st
 * **Türen:** Die Möbeltür deckt die Nische von der Unterkante (bzw. über der obersten Schubladenfront) bis 2 mm unter die Tür des oberen Fachs. Bei der Kombi sind es zwei Türen (`TuerUnten`, `TuerOben`). Jede Tür sitzt in einer Scharnier-Komponente am Anschlag und öffnet mit *Interagieren*.
 * **Schlepptür / Festtür:** steht als Komponentenattribut `Tuertechnik` am Schrank (1 = Schlepptür mit Topfbändern am Korpus, 2 = Festtür auf der Gerätetür). Topfbandbohrungen macht der TCN-Export noch für keinen Schrank.
 * Schubladen wie beim Hochschrank: **Blum LEGRABOX free** im Lochraster der Seite, Nennlänge aus der lichten Tiefe bis zur Rückwand.
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
 * Material: alle Platten „Melamin weiss“.
 
 ## Gerät

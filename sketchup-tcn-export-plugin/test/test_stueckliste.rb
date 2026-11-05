@@ -164,5 +164,39 @@ check(UI.meldung.nil?, 'Abbrechen im Dateidialog schreibt nichts')
 S::Stueckliste.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 
+# --- Beschlagliste (LEGRABOX free, Topfbänder): eigene Seite in der Stückliste ---
+bm = Sketchup.active_model = Sketchup::Model.new
+UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 52.0, 'Anz_Schubladen' => 3,
+                                   'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
+Hochschrank.erstellen({})
+bzs, bmeld, bp = S::Stueckliste.erzeugen(bm)
+such = ->(text, hinweis = nil) { bp.select { |x| x.beschlag.start_with?(text) && (hinweis.nil? || x.hinweis.include?(hinweis)) } }
+# USS1: Fronten 174/174/348 -> oben zwei M, unten C; NL 500 bei 520 Tiefe (40 kg, hinten 224/256)
+check(such.('Zargen C').sum(&:anzahl) == 1 && such.('Zargen M', 'NL 500').sum(&:anzahl) == 2,
+      "Beschläge: Zargen C/M je Schublade #{such.('Zargen').map { |x| [x.beschlag, x.hinweis, x.anzahl] }}")
+check(such.('Korpusschienen', 'NL 500, 40 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 500 (USS1)')
+check(such.('Korpusschienen', 'NL 650, 70 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 650 70 kg (Hochschrank)')
+check(such.('Seiteneinsatz', '138 × 388').sum(&:anzahl) == 2 && such.('Seiteneinsatz', '52 × 388').sum(&:anzahl) == 4,
+      "Beschläge: Seiteneinsätze 138/52 × NL − 112 #{such.('Seiteneinsatz').map { |x| [x.hinweis, x.anzahl] }}")
+check(such.('Seitenstabilisierung').sum(&:anzahl) == 6, 'Beschläge: Seitenstabilisierung ab Korpusbreite 600')
+check(such.('Spanplattenschraube', 'Fronthalter').sum(&:anzahl) == 8 + 5 * 4, 'Beschläge: Schrauben Fronthalter (C 8, M 4)')
+# Schienen-Systemschrauben = Bohrungen in den Seiten
+bws = []
+S::Export.erzeugen(bm, alle_ws: bws)
+loecher = bws.sum { |w| w.ops.count { |o| o.titel.to_s.start_with?('Schiene') } }
+check(such.('Systemschraube', 'Korpusschienen').sum(&:anzahl) == loecher, "Beschläge: Systemschrauben = Schienenbohrungen (#{loecher})")
+baender = bws.sum { |w| w.ops.count { |o| o.art == :topfband } }
+check(baender.positive? && such.('Blum Topfband').sum(&:anzahl) == baender && such.('Blum Montageplatte').sum(&:anzahl) == baender,
+      "Beschläge: Topfbänder und Montageplatten wie im TCN-Export (#{baender})")
+check(bp.all? { |x| x.schraenke.all? { |k| %w[USS1 HS1].include?(k) } }, 'Beschläge: Schrankkürzel')
+Dir.mktmpdir do |dir|
+  pfad, = S::Stueckliste.schreiben(File.join(dir, 'Stueckliste_B.pdf'), bzs, bmeld, beschlaege: bp)
+  check(File.binread(pfad).include?('Beschl') && File.exist?(File.join(dir, 'Stueckliste_B_Beschlaege.csv')),
+        'Beschlagliste im PDF und als CSV')
+  csv = File.read(File.join(dir, 'Stueckliste_B_Beschlaege.csv'))
+  check(csv.lines.first.start_with?('Gruppe;Beschlag') && csv.lines.size == bp.size + 1, 'Beschlag-CSV: eine Zeile je Posten')
+end
+Sketchup.active_model = model
+
 puts $fehler.zero? ? 'OK: Stückliste' : "#{$fehler} Fehler"
 exit($fehler.zero? ? 0 : 1)

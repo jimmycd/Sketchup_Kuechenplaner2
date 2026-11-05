@@ -127,16 +127,24 @@ module UnterschrankBackofen
   # (Lochraster_Start + n * Lochraster, gemessen ab Unterkante Seite). Die Front beginnt hier bei 0.
   def self.kasten_unten(p)
     st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    n = (([p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
     st + ra * n - off
   end
 
   # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
   def self.f_kasten_unten
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
   end
+
+  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
+  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
+  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
+  # der Tabelle S. 8: Einschubelement M 52 / C 138).
+  SCHIENE_UEBER_BODEN = 3.8 # cm
+  ZARGE_C = 17.7            # cm
+  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
 
   # Standardwerte in cm. Gerätemaße sind Richtwerte, je Gerät mit der Einbauanleitung prüfen.
   DEFAULTS = {
@@ -488,7 +496,7 @@ module UnterschrankBackofen
     lw   = b - 2 * mk
     ab   = kasten_unten(p)
     kh   = [r[:z_einbauboden] - mk - p['Kasten_Abstand_oben'] - ab, 2.0].max # Kastenhöhe, mind. 2 cm
-    hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb].min
+    hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb, kh >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : HRW_M].min # Zarge C, sonst M
     st = ->(teil) { [model, kz, teil, 'S1'] }
 
     d = model.definitions.add(s)
@@ -527,7 +535,7 @@ module UnterschrankBackofen
 
     # Holzrückwand LW-38, hinten auf dem Boden
     krw = platte(model, 'Kasten Rueckwand S1', 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{s}!Hrw,#{s}!Kh-#{s}!Mb)"])
+                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(MIN(#{s}!Hrw,#{s}!Kh-#{s}!Mb),IF(#{s}!Kh>=#{ZARGE_C - 0.0001},#{s}!Hrw,#{HRW_M}))"])
     einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
               ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: st.('KastenRueckwand'))

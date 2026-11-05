@@ -123,16 +123,25 @@ def pruefe(wurzel, anz, h, b, t, label)
     kz0 = z0 + kb.wert('z'); kz1 = z0 + kr.wert('z') + kr.wert('lenz')
     check(kz0 >= mk - EPS && kz1 <= h - mk + EPS, "#{label}: Kasten kollidiert mit Boden/Strebe S#{i}")
     check(kb.wert('y') + kb.wert('leny') <= mk + t + EPS, "#{label}: Kasten Tiefe S#{i}")
-    soll_h = [wurzel.wert('Hoehe_Kastenrueckwand'), [f.wert('lenz') - kb.wert('z') - wurzel.wert('Kasten_Abstand_oben'), 2.0].max - mb].min
+    # LEGRABOX free: Zarge C (177, Rückwand 148), wenn der Kasten Platz hat, sonst M (90,5, Rückwand 62);
+    # Platz bis Kasten_Abstand_oben unter der Front (oberste Schublade), sonst bis an die Frontoberkante
+    ao = i == 1 ? wurzel.wert('Kasten_Abstand_oben') : 0.0
+    kc = [f.wert('lenz') - kb.wert('z') - wurzel.wert('Kasten_Abstand_oben'), 2.0].max + wurzel.wert('Kasten_Abstand_oben') - ao
+    zarge_c = kc >= 17.7 - 1e-4
+    soll_h = zarge_c ? wurzel.wert('Hoehe_Kastenrueckwand') : [6.2, kc - mb].min
     check((kr.wert('lenz') - soll_h).abs < EPS && kr.wert('lenz') > 0, "#{label}: Rückwandhöhe #{kr.wert('lenz')} statt #{soll_h} S#{i}")
     # Lochraster: Schienenbohrung (Unterkante Kasten + Höhenoffset) auf Start + n * Raster, ab Unterkante Seite
     unten = z0 + kb.wert('z')
     loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
     check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster (#{unten.round(3)})")
-    check(kb.wert('z') >= wurzel.wert('Kasten_Abstand_unten') - EPS &&
-          kb.wert('z') < wurzel.wert('Kasten_Abstand_unten') + wurzel.wert('Lochraster') - EPS,
+    # mindestens Kasten_Abstand_unten über der Front-Unterkante und Schiene 38 mm über dem Korpusboden
+    min_ab = [wurzel.wert('Kasten_Abstand_unten'), mk + 3.8 - wurzel.wert('Hoehenoffset_Schiene') - z0].max
+    check(unten + wurzel.wert('Hoehenoffset_Schiene') >= mk + 3.8 - EPS, "#{label}: Schiene S#{i} mind. 38 mm über dem Boden")
+    check(kb.wert('z') >= min_ab - EPS &&
+          kb.wert('z') < min_ab + wurzel.wert('Lochraster') - EPS,
           "#{label}: Kasten S#{i} höchstens ein Raster über dem Mindestabstand")
-    check(kz1 <= z0 + f.wert('lenz') - wurzel.wert('Kasten_Abstand_oben') + EPS || kr.wert('lenz') <= 2.0 + EPS,
+    zarge_oben = z0 + kb.wert('z') + (zarge_c ? 17.7 : 9.05)
+    check(zarge_oben <= z0 + f.wert('lenz') - ao + EPS || kc < 9.05 - EPS, # sonst Meldung im TCN-Export
           "#{label}: Kasten S#{i} Abstand oben")
     check((s.wert('Auszug') - nl * 0.8).abs < EPS, "#{label}: Auszug S#{i}")
   end

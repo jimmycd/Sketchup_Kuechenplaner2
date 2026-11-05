@@ -7,6 +7,7 @@ Erweiterung, die einen **Unterschrank für ein Kochfeld mit integriertem Abzug**
 * hinten ein **freier Installationsraum** für den Kanal, der senkrecht in den Sockel läuft,
 * ein **Kanalausschnitt im Boden** zum Sockel (Umluftfilter im Sockel oder Abluft nach außen),
 * **Strebe vorn hochkant**, damit der Kochfeldausschnitt frei bleibt; **keine Strebe hinten** (dort sitzen Lüfter und Kanal).
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
 
 Die Gerätemaße sind **Richtwerte**. Vor dem Bau mit der Einbauanleitung des Geräts prüfen (Einbauhöhe unter der Arbeitsplatte, Kanalmaße, Sockelhöhe, Lüftungsquerschnitt der Sockelblende bei Umluft).
 

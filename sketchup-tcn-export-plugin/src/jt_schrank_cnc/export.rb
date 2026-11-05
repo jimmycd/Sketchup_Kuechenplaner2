@@ -22,10 +22,12 @@ module JTools
         name.to_s.gsub(/[\\\/:*?"<>|\s]+/, '_')
       end
 
-      # Ergebnis: [Dateien, Meldungen]
-      def self.erzeugen(model, auswahl: nil)
+      # Ergebnis: [Dateien, Meldungen]; alle_ws: Array, das alle Werkstücke mit Bearbeitungen bekommt
+      # (gleiche Teile nicht zusammengefasst, z. B. für die Beschlagliste)
+      def self.erzeugen(model, auswahl: nil, alle_ws: nil)
         ws = werkstuecke(model, auswahl: auswahl)
         meldungen = Regeln.anwenden(ws)
+        alle_ws&.concat(ws)
         dateien = []
         ws.each do |w|
           lage = Geometrie.lage(w, Regeln.flaeche1(w))

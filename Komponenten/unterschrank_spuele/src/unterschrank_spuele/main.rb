@@ -59,6 +59,14 @@ module Spuelenschrank
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
+  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
+  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
+  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
+  # der Tabelle S. 8: Einschubelement M 52 / C 138).
+  SCHIENE_UEBER_BODEN = 3.8 # cm
+  ZARGE_C = 17.7            # cm
+  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+
   # Standardwerte in cm
   DEFAULTS = {
     'Breite'                    => 80.0,
@@ -137,7 +145,8 @@ module Spuelenschrank
       h_auszug: h - p['Hoehe_Blende'] - sp,              # Front des Auszugs
       nl: nennlaenge(t_innen),
       ab: ab,                                            # Unterkante Kasten
-      hrw: [[p['Hoehe_Kastenrueckwand'], z_max - ab - p['Materialstaerke_Kastenboden']].min, 2.0].max,
+      hrw: [[p['Hoehe_Kastenrueckwand'], z_max - ab - p['Materialstaerke_Kastenboden'],
+            z_max - ab >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : HRW_M].min, 2.0].max, # Zarge C, sonst M
       a_unten: a_unten,
       a_hoehe: [[p['Ausschnitt_Hoehe'], h - rand - a_unten].min, 0.0].max,
       a_breite: b - 2 * mk - 2 * rand
@@ -162,13 +171,13 @@ module Spuelenschrank
   # und so, dass die Schienenbohrung auf dem Lochraster der Seite liegt (wie Unterschrank mit Schubladen)
   def self.kasten_unten(p)
     st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    n = (([p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
     st + ra * n - off
   end
 
   def self.f_kasten_unten
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
   end
 
@@ -574,9 +583,10 @@ module Spuelenschrank
     attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
     attribut(d, 'Ab_unten', r[:ab], units: 'STRING', formula: f_kasten_unten)
     # Höhe Holzrückwand: höchstens Hoehe_Kastenrueckwand, Oberkante Kasten Siphon_Freiraum unter der Blende
+    kh = "#{u}!Hoehe-#{u}!Hoehe_Blende-#{u}!Siphon_Freiraum-(#{f_kasten_unten})"
     attribut(d, 'Hrw', r[:hrw], units: 'STRING',
-             formula: "MAX(MIN(#{u}!Hoehe_Kastenrueckwand,#{u}!Hoehe-#{u}!Hoehe_Blende-#{u}!Siphon_Freiraum" \
-                      "-(#{f_kasten_unten})-#{u}!Materialstaerke_Kastenboden),2)")
+             formula: "MAX(MIN(MIN(#{u}!Hoehe_Kastenrueckwand,#{kh}-#{u}!Materialstaerke_Kastenboden)," \
+                      "IF(#{kh}>=#{ZARGE_C - 0.0001},#{u}!Hoehe_Kastenrueckwand,#{HRW_M})),2)")
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     sichtbarkeit(d, auszug, formel)
     # Mit "Interagieren" anklicken -> Auszug fährt heraus

@@ -61,6 +61,14 @@ module Hochschrank
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
+  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
+  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
+  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
+  # der Tabelle S. 8: Einschubelement M 52 / C 138).
+  SCHIENE_UEBER_BODEN = 3.8 # cm
+  ZARGE_C = 17.7            # cm
+  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+
   # Standardwerte in cm
   DEFAULTS = {
     'Breite'                      => 60.0,
@@ -137,14 +145,14 @@ module Hochschrank
   # (Lochraster_Start + n * Lochraster, gemessen ab Unterkante Seite).
   def self.kasten_unten(p, z_front)
     st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((z_front + p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    n = (([z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
     st + ra * n - off - z_front
   end
 
   # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
   def self.f_kasten_unten(z_front)
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_front}"
   end
 
@@ -523,7 +531,10 @@ module Hochschrank
     lw   = b - 2 * mk                   # lichte Weite
     ab   = kasten_unten(p, fr[:z])      # Unterkante Kasten im Lochraster
     kh   = [hf - ab - ao, 2.0].max      # Höhe Kasten gesamt, mind. 2 cm
-    hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb].min
+    # Platz für die Zarge: oberste Schublade bis Kasten_Abstand_oben unter die Frontoberkante (Strebe),
+    # darunter bis an die Frontoberkante (die Front muss die Zarge und den Fronthalter abdecken)
+    kc   = i == 1 ? kh : kh + ao
+    hrw  = kc >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : [HRW_M, kc - mb].min # Zarge C, sonst M
     bt   = ->(teil) { [model, kz, teil, "#{bb}#{i}"] }
 
     d = model.definitions.add(s)
@@ -559,8 +570,9 @@ module Hochschrank
     # Holzrückwand LW-38 x 148 (höchstens bis Kasten_Abstand_oben unter die Frontoberkante), hinten auf dem Boden
     roh_kh = "#{s}!Hoehe_Front-#{s}!Ab_unten-#{s}!Ab_oben"
     f_kh   = "IF(#{roh_kh}>2,#{roh_kh},2)"
+    f_kc   = i == 1 ? f_kh : "#{f_kh}+#{s}!Ab_oben"
     krw = platte(model, "Kasten Rueckwand #{bb}#{i}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{s}!Hrw,#{f_kh}-#{s}!Mb)"], kanten: %i[zmax])
+                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "IF(#{f_kc}>=#{ZARGE_C - 0.0001},#{s}!Hrw,MIN(#{HRW_M},#{f_kc}-#{s}!Mb))"], kanten: %i[zmax])
     einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
               ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: bt.('KastenRueckwand'))

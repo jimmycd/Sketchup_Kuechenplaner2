@@ -58,6 +58,14 @@ module UnterschrankAbfall
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
+  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
+  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
+  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
+  # der Tabelle S. 8: Einschubelement M 52 / C 138).
+  SCHIENE_UEBER_BODEN = 3.8 # cm
+  ZARGE_C = 17.7            # cm
+  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+
   # Standardwerte in cm
   DEFAULTS = {
     'Breite'                    => 60.0,
@@ -105,8 +113,8 @@ module UnterschrankAbfall
     nl = nennlaenge(p['Tiefe'])
     {
       h_a: h_a, z_b: z_b, nl: nl, ab_a: ab_a, ab_b: ab_b,
-      hrw_a: hrw(p['Hoehe_Kastenrueckwand'], h_a - ao - ab_a - mb),
-      hrw_b: hrw(p['Hoehe_Kastenrueckwand'], h - ao - ab_b - mb),
+      hrw_a: hrw(p['Hoehe_Kastenrueckwand'], h_a - ao - ab_a - mb, mb),
+      hrw_b: hrw(p['Hoehe_Kastenrueckwand'], h - ao - ab_b - mb, mb),
       n: n,
       b_beh: (lw - 3.5 - (n - 1) * ba) / n,                           # Breite je Behälter
       t_beh: nl - 1.0 - p['Materialstaerke_Kastenrueckwand'] - ba,   # Tiefe bis vor die Kastenrückwand
@@ -114,8 +122,9 @@ module UnterschrankAbfall
     }
   end
 
-  def self.hrw(soll, platz)
-    [[soll, platz].min, 2.0].max
+  # Holzrückwand: Zarge C (148 mm), wenn der Kasten 177 mm hoch sein kann, sonst M (62 mm)
+  def self.hrw(soll, platz, mb)
+    [[soll, platz, platz + mb >= ZARGE_C - 0.0001 ? soll : HRW_M].min, 2.0].max
   end
 
   # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
@@ -135,13 +144,13 @@ module UnterschrankAbfall
   # der Front (z_front) und so, dass die Schienenbohrung auf dem Lochraster der Seite liegt
   def self.kasten_unten(p, z_front)
     st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((z_front + p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    n = (([z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
     st + ra * n - off
   end
 
   def self.f_kasten_unten(z_front)
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
   end
 
@@ -461,7 +470,7 @@ module UnterschrankAbfall
     attribut(d, 'Z_Front', 0.0, units: 'STRING', formula: '0')
     attribut(d, 'Ab_unten', r[:ab_a], units: 'STRING', formula: ab)
     platz = "#{u}!H_Auszug-#{u}!Kasten_Abstand_oben-(#{ab})-#{u}!Materialstaerke_Kastenboden"
-    attribut(d, 'Hrw', r[:hrw_a], units: 'STRING', formula: "MAX(MIN(#{u}!Hoehe_Kastenrueckwand,#{platz}),2)")
+    attribut(d, 'Hrw', r[:hrw_a], units: 'STRING', formula: "MAX(MIN(MIN(#{u}!Hoehe_Kastenrueckwand,#{platz}),IF(#{platz}+#{u}!Materialstaerke_Kastenboden>=#{ZARGE_C - 0.0001},#{u}!Hoehe_Kastenrueckwand,#{HRW_M})),2)")
     # Behälter: n gleich breite nebeneinander auf dem Kastenboden, vor der Kastenrückwand
     attribut(d, 'Anz', r[:n], laenge: false, units: 'STRING',
              formula: "MAX(1,MIN(#{MAX_BEHAELTER},#{u}!Anz_Behaelter))")
@@ -506,9 +515,10 @@ module UnterschrankAbfall
     attribut(d, 'Hoehe_Front', p['Hoehe_Front_Oben'], units: 'STRING', formula: "#{u}!Hoehe_Front_Oben")
     attribut(d, 'Z_Front', r[:z_b], units: 'STRING', formula: "#{u}!Z_Oben")
     attribut(d, 'Ab_unten', r[:ab_b], units: 'STRING', formula: ab)
+    platz = "#{u}!Hoehe-#{u}!Kasten_Abstand_oben-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', r[:hrw_b], units: 'STRING',
-             formula: "MAX(MIN(#{u}!Hoehe_Kastenrueckwand,#{u}!Hoehe-#{u}!Kasten_Abstand_oben-(#{ab})" \
-                      "-#{u}!Materialstaerke_Kastenboden),2)")
+             formula: "MAX(MIN(MIN(#{u}!Hoehe_Kastenrueckwand,#{platz}),IF(#{platz}+#{u}!Materialstaerke_Kastenboden>=#{ZARGE_C - 0.0001}," \
+                      "#{u}!Hoehe_Kastenrueckwand,#{HRW_M})),2)")
     sichtbarkeit(d, sichtbar, "IF(#{u}!Frontvariante=1,0,1)")
     kasten(model, d, s, p, r, mat, kz, 'B', r[:z_b], p['Hoehe_Front_Oben'], r[:ab_b], r[:hrw_b])
     inst = einsetzen(e, d, s, [0, 0, 0], [nil, nil, nil], layer: tag(model, "#{kz}_B_Schublade"))

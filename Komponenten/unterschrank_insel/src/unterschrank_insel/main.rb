@@ -62,6 +62,14 @@ module UnterschrankInsel
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
+  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
+  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
+  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
+  # der Tabelle S. 8: Einschubelement M 52 / C 138).
+  SCHIENE_UEBER_BODEN = 3.8 # cm
+  ZARGE_C = 17.7            # cm
+  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+
   # Standardwerte in cm
   DEFAULTS = {
     'Breite'                    => 60.0,
@@ -105,6 +113,14 @@ module UnterschrankInsel
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
+  # Holzrückwand: Zarge C (148 mm), wenn der Kasten 177 mm hoch sein kann, sonst M (62 mm)
+  # platz: Oberkante Kastenboden bis Grenze oben (oberste Schublade Kasten_Abstand_oben unter der Front,
+  # darunter bis an die Frontoberkante: die Front deckt Zarge und Fronthalter ab)
+  def self.hrw(p, platz)
+    soll = p['Hoehe_Kastenrueckwand']
+    [platz + p['Materialstaerke_Kastenboden'] >= ZARGE_C - 0.0001 ? soll : [HRW_M, platz].min, 2.0].max
+  end
+
   def self.berechne(p)
     mk, sp, h, b = p['Materialstaerke_Korpus'], p['Spaltbreite'], p['Hoehe'], p['Breite']
     n = p['Anz_Schubladen'].to_i.clamp(1, MAX_SCHUBLADEN)
@@ -118,7 +134,7 @@ module UnterschrankInsel
     schub = (1..MAX_SCHUBLADEN).map do |i|
       z = i <= n ? h - i * hf - (i - 1) * sp : 0.0 # ausgeblendete Schubladen unten im Schrank (Komponentengrenze)
       ab = kasten_unten(p, z)
-      { z: z, ab: ab, hrw: [[p['Hoehe_Kastenrueckwand'], z + hf - p['Kasten_Abstand_oben'] - ab - p['Materialstaerke_Kastenboden']].min, 2.0].max }
+      { z: z, ab: ab, hrw: hrw(p, z + hf - (i == 1 ? p['Kasten_Abstand_oben'] : 0) - ab - p['Materialstaerke_Kastenboden']) }
     end
     {
       nl: nennlaenge(p['Tiefe']), n: n, hf: hf, schub: schub,
@@ -149,13 +165,13 @@ module UnterschrankInsel
   # der Front (z_front) und so, dass die Schienenbohrung auf dem Lochraster der Seite liegt
   def self.kasten_unten(p, z_front)
     st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((z_front + p['Kasten_Abstand_unten'] + off - st) / ra - 0.0001).ceil
+    n = (([z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
     st + ra * n - off
   end
 
   def self.f_kasten_unten(z_front)
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene" \
+    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
       "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
   end
 
@@ -562,9 +578,11 @@ module UnterschrankInsel
     attribut(d, 'Z_Front', w[:z], units: 'STRING', formula: f_z(i))
     ab = f_kasten_unten("(#{f_z(i)})")
     attribut(d, 'Ab_unten', w[:ab], units: 'STRING', formula: ab)
+    ao = i == 1 ? "-#{u}!Kasten_Abstand_oben" : ''
+    platz = "#{f_z(i)}+#{f_hf}#{ao}-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', w[:hrw], units: 'STRING',
-             formula: "MAX(MIN(#{u}!Hoehe_Kastenrueckwand,#{f_z(i)}+#{f_hf}-#{u}!Kasten_Abstand_oben-(#{ab})" \
-                      "-#{u}!Materialstaerke_Kastenboden),2)")
+             formula: "MAX(IF(#{platz}+#{u}!Materialstaerke_Kastenboden>=#{ZARGE_C - 0.0001},#{u}!Hoehe_Kastenrueckwand," \
+                      "MIN(#{HRW_M},#{platz})),2)")
     d.set_attribute(DICT, 'onclick', 'ANIMATE("Y",0,-Auszug)')
     d.set_attribute(DICT, '_onclick_label', 'onClick')
     sichtbarkeit(d, sichtbar, "IF(AND(#{u}!Frontart=1,#{u}!Anz_Schubladen>=#{i}),0,1)")
