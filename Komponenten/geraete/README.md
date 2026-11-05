@@ -39,7 +39,7 @@ Den Blickwinkel stellt man wie gewohnt ein und speichert ihn mit Rechtsklick auf
 ## Welcher Schrank bekommt welches Gerät
 | Schrank | Nische | Gerät |
 |---|---|---|
-| Unterschrank Geschirrspüler | `JT_Nische` (N1) | vollintegrierter Spüler 45/60; die Möbelfront bleibt beim Schrank |
+| Unterschrank Geschirrspüler | `JT_Nische` (N1) | vollintegrierter Spüler 45/60; die Möbelfront bleibt beim Schrank. Der Gerätesockel springt zurück und beginnt 85 mm hinter der Korpusvorderkante, hinter der Sockelblende (wie die Füße der Unterbau-Kühlgeräte) |
 | Unterschrank Kochfeld mit Abzug | `JT_Nische` (KF) | Kochfeld 60/80/90 × 520 mm mittig über dem Arbeitsplatten-Ausschnitt (Stärke aus der Arbeitsplatte, sonst 38 mm), Abzugsgitter in der Mitte, Lüftermodul unter der Platte, Kanal im Installationsraum |
 | Unterschrank Backofen (Herdumbau) | `JT_Nische_KF`, `JT_Nische_N1` | Kochfeld 60/80/90 ohne Abzug (Glas 590/790/890 × 520 mm mittig über dem Arbeitsplatten-Ausschnitt, Wanne 50 mm darunter) und Backofen 60 auf dem Einbauboden |
 | Unterschrank Kühlschrank | `JT_Nische` (N1), Gerät/Breite/Wange/Sockel aus den aktuellen Komponentenoptionen | Kühlschrank integriert (Gehäuse und Gerätetür, die Möbelfront bleibt beim Schrank), Kühlschrank unterbaufähig (Edelstahltür mit Griff), Weinkühler (Glastür im schwarzen Rahmen), 30/45/60 |

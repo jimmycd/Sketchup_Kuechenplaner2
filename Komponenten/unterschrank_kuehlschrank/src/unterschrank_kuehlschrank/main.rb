@@ -77,7 +77,9 @@ module UnterschrankKuehlschrank
     'Materialstarke_Rueckwand' => 0.8,
     'Spaltbreite'              => 0.2,
     'Geraet_Luft'              => 0.4,   # Nische 600 -> Gerät 596
-    'Geraet_Tiefe'             => 55.0  # Tiefe des Platzhalters (höchstens Korpustiefe)
+    'Geraet_Tiefe'             => 55.0, # Tiefe des Platzhalters (höchstens Korpustiefe)
+    'Geraet_Sockel_Versatz'    => 8.5   # Gerätesockel springt zurück: ab Korpusvorderkante, hinter der
+                                        # Sockelblende (Korpus 19 + Rücksprung 50 + Blende 16 mm)
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -303,6 +305,11 @@ module UnterschrankKuehlschrank
   # (Wörterbuch JT_Korpus). Kein Schrankteil: kein Material, kein Tag, kein JT_Schrank.
   KORPUS_DICT = 'JT_Korpus'.freeze
 
+  # Tiefe des Gerätesockels im Platzhalter (cm): von Geraet_Sockel_Versatz bis Hinterkante Gerät
+  def self.sockel_tiefe(p)
+    p['Materialstaerke_Korpus'] + [p['Geraet_Tiefe'], p['Tiefe']].min - p['Geraet_Sockel_Versatz']
+  end
+
   def self.korpus_masse(p)
     mk = p['Materialstaerke_Korpus']
     n_wangen = { 0 => 0, 1 => 1, 2 => 1, 3 => 2 }.fetch(p['Art_Wange'].to_i, 0)
@@ -353,7 +360,7 @@ module UnterschrankKuehlschrank
     attribut(haupt, 'Sockelhoehe', p['Sockelhoehe'], access: 'TEXTBOX', formlabel: 'Sockelhöhe (Wange bis Boden)')
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
-    %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite Geraet_Luft Geraet_Tiefe].each do |n|
+    %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite Geraet_Luft Geraet_Tiefe Geraet_Sockel_Versatz].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
@@ -397,13 +404,25 @@ module UnterschrankKuehlschrank
     virtueller_korpus(model, e, p, r, u)
 
     # --- Geräte-Platzhalter (kein Schrankteil: kein Plattenmaterial, kein JT_Schrank) ---
-    g = platte(model, 'Kuehlschrank Platzhalter', 'Geraet',
-               [p['Breite'] - p['Geraet_Luft'], [p['Geraet_Tiefe'], p['Tiefe']].min, r[:h_unten]],
-               ["#{u}!Breite-#{u}!Geraet_Luft", "MIN(#{u}!Geraet_Tiefe,#{u}!Tiefe)", "#{u}!Hoehe+#{u}!Sockelhoehe"])
+    # Gerätekörper hinter der Front von Unterkante bis Oberkante Korpus; darunter der Gerätesockel,
+    # der wie bei echten Unterbaugeräten hinter die Sockelblende zurückspringt (Jürgen 2026-11-05).
     tag = model.layers[GERAET_TAG] || model.layers.add(GERAET_TAG)
-    einsetzen(e, g, 'Geraet', [r[:x_nische] + p['Geraet_Luft'] / 2.0, mk, -p['Sockelhoehe']],
-              ["#{u}!X_Nische+#{u}!Geraet_Luft/2", nil, "-#{u}!Sockelhoehe"],
+    g = platte(model, 'Kuehlschrank Platzhalter', 'Geraet',
+               [p['Breite'] - p['Geraet_Luft'], [p['Geraet_Tiefe'], p['Tiefe']].min, p['Hoehe']],
+               ["#{u}!Breite-#{u}!Geraet_Luft", "MIN(#{u}!Geraet_Tiefe,#{u}!Tiefe)", "#{u}!Hoehe"])
+    einsetzen(e, g, 'Geraet', [r[:x_nische] + p['Geraet_Luft'] / 2.0, mk, 0.0],
+              ["#{u}!X_Nische+#{u}!Geraet_Luft/2", nil, nil],
               mat: geraet_material(model), layer: tag)
+    gs = platte(model, 'Kuehlschrank Platzhalter Sockel', 'Geraetesockel',
+                [p['Breite'] - p['Geraet_Luft'], sockel_tiefe(p), [p['Sockelhoehe'], 0.1].max],
+                ["#{u}!Breite-#{u}!Geraet_Luft",
+                 "#{u}!Materialstaerke_Korpus+MIN(#{u}!Geraet_Tiefe,#{u}!Tiefe)-#{u}!Geraet_Sockel_Versatz",
+                 "#{u}!Sockelhoehe"], art: 'Geraet')
+    sichtbarkeit(gs, p['Sockelhoehe'] > 0, "IF(#{u}!Sockelhoehe>0,0,1)")
+    inst = einsetzen(e, gs, 'Geraetesockel', [r[:x_nische] + p['Geraet_Luft'] / 2.0, p['Geraet_Sockel_Versatz'], -p['Sockelhoehe']],
+                     ["#{u}!X_Nische+#{u}!Geraet_Luft/2", "#{u}!Geraet_Sockel_Versatz", "-#{u}!Sockelhoehe"],
+                     mat: geraet_material(model), layer: tag)
+    inst.hidden = !(p['Sockelhoehe'] > 0)
     haupt
   end
 
