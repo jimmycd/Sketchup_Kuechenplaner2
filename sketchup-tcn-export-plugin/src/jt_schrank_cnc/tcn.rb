@@ -74,11 +74,19 @@ module JTools
       # Schräg- oder Bogenkante (Abschlussregal) mit dem Konturfräser ganz durch: Bahn um den
       # Fräserradius in den Abfall versetzt, abzüglich Anleimer (die Kante ist im Endmaß gezeichnet).
       # Ein- und Auslauf tangential, so weit, dass der Fräser außerhalb der Platte startet und
-      # endet (Jürgen: Fräsbahnen außerhalb beginnen und ins Material fahren). Bögen wie in
-      # bogen.tcn als W#2125 mit Radius und Winkel (EW2 automatisch). Das Vorzeichen gilt wie in der
-      # TPA-Ansicht von Fläche 1 (y nach unten): negativ = im Uhrzeigersinn auf dem Bildschirm.
-      # Gerechnet wird mit y nach oben, deshalb wird der Winkel negiert (wie bei der Arbeitsplatte,
-      # Jürgen 2026-11-02: sonst läuft der Bogen falsch herum).
+      # endet (Jürgen: Fräsbahnen außerhalb beginnen und ins Material fahren). Bögen als kurze
+      # Geraden (W#2201), nicht als W#2125: TPA meldete beim runden Deckel "Radius ungültig"
+      # (Jürgen 2026-11-05, wie bei der Arbeitsplatte). Teilung: höchstens BOGEN_GRAD je Stück
+      # und höchstens BOGEN_SEHNE mm Bogenlänge.
+      BOGEN_GRAD = 5.0
+      BOGEN_SEHNE = 10.0
+
+      def bogen_punkte(a, c, r, w)
+        teile = [(w.abs * 180 / Math::PI / BOGEN_GRAD).ceil, (w.abs * r / BOGEN_SEHNE).ceil, 1].max
+        a0 = Math.atan2(a[1] - c[1], a[0] - c[0])
+        (1..teile).map { |i| [c[0] + r * Math.cos(a0 + w * i / teile), c[1] + r * Math.sin(a0 + w * i / teile)] }
+      end
+
       def kontur(ws, lage, op)
         k = Regeln::KONTUR
         r = k[:d] / 2.0
@@ -127,7 +135,10 @@ module JTools
           if seg[0] == :linie
             out << gerade.(seg[1], seg[2])
           else
-            out << "W#2125{ ::WTa  #8015=0 #8019=0 #8017=#{n(seg[4])} #8048=1 #8046=#{n(-seg[5] * 180 / Math::PI)} #42=0 #49=0 }W"
+            q = seg[1]
+            pts = bogen_punkte(seg[1], seg[3], seg[4], seg[5])
+            pts[-1] = seg[2]
+            pts.each { |x| out << gerade.(q, x); q = x }
           end
           pos = seg[2]
         end

@@ -869,36 +869,35 @@ rc = S::Stueckliste.csv(S::Stueckliste.zeilen(rd)).split("\r\n").find { |l| l.st
 check(rc.to_s.end_with?(';Anleimer Melamin weiss 453,4 mm'), "Regal: CSV Kante Kontur #{rc}")
 check(S::Stueckliste.html(S::Stueckliste.zeilen(rd)).include?('(Kontur: A 453,4 mm)'), 'Regal: Druckseite Kontur')
 
-# Rund, Seite außen links: Viertelkreis R 262 als W#2125, Bahn R 270 (Radius + 10 - 2)
+# Rund, Seite außen links: Viertelkreis R 262, Bahn R 270 (Radius + 10 - 2) als kurze Geraden,
+# kein W#2125 (Jürgen 2026-11-05: TPA meldete beim Deckel "Radius ungültig")
 rm = Sketchup.active_model = Sketchup::Model.new
 RegalAbschluss.erstellen('Form' => 2.0, 'Zeilenende' => 1.0, 'Anz_Einlegeboeden' => 0.0)
 rd, rmeld = S::Export.erzeugen(rm)
 rf = rd.to_h { |x| [x.name, x] }
 check(rmeld.empty?, "Regal rund: keine Meldungen #{rmeld}")
-k2 = bearbeitungen(rf['RA1_Boden'].text, 1).drop_while { |x| !x.include?('W#89') }
-check(k2.size == 4 && k2[2].include?('W#2125') && k2[2].include?('#8017=270 ') && k2[2] =~ /#8046=-?90 /,
-      "Regal rund: Bogen als W#2125 R 270, 90 Grad: #{k2}")
-# Drehrichtung wie in der TPA-Ansicht (y nach unten, #8046 negativ = im Uhrzeigersinn; wie Arbeitsplatte):
-# in Rechenkoordinaten (y nach oben) negiert gelesen, endet der Bogen tangential zur Auslaufgeraden
-def bogen_tangential?(zeilen)
-  dir = nil
-  zeilen.each_with_index.all? do |l, i|
-    if l.start_with?('W#2201')
-      dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
-      neu = [dx, dy].map { |v| v / Math.hypot(dx, dy) }
-      ok = !(zeilen[i - 1].start_with?('W#2125')) || (neu[0] - dir[0]).abs < 1e-3 && (neu[1] - dir[1]).abs < 1e-3
-      dir = neu
-      ok
-    elsif l.start_with?('W#2125')
-      w = -l[/#8046=(\S+)/, 1].to_f * Math::PI / 180
-      dir = [dir[0] * Math.cos(w) - dir[1] * Math.sin(w), dir[0] * Math.sin(w) + dir[1] * Math.cos(w)]
-      true
-    else
-      true
-    end
+def bahn_punkte(zeilen)
+  x, y = zeilen[0].match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
+  pts = [[x, y]]
+  zeilen[1..].take_while { |l| l.start_with?('W#2201') }.each do |l|
+    dx, dy = l.match(/#1=(\S+) #2=(\S+)/).captures.map(&:to_f)
+    pts << [pts.last[0] + dx, pts.last[1] + dy]
   end
+  pts
 end
-check(bogen_tangential?(k2), "Regal rund: Bogen läuft in TPA-Richtung (Vorzeichen wie Arbeitsplatte): #{k2}")
+%w[RA1_Boden RA1_Deckel].each do |teil|
+  z = bearbeitungen(rf[teil].text, 1).drop_while { |x| !x.include?('W#89') }
+  check(z.none? { |x| x.include?('W#2125') }, "Regal rund #{teil}: kein W#2125")
+  pts = bahn_punkte(z)
+  # Stücke höchstens 10 mm lang und Richtungswechsel je Stück höchstens 5 Grad
+  laengen = pts.each_cons(2).map { |p0, p1| Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) }
+  dirs = pts.each_cons(2).map { |p0, p1| Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) }
+  knicke = dirs.each_cons(2).map { |d0, d1| ((d1 - d0 + Math::PI) % (2 * Math::PI) - Math::PI).abs * 180 / Math::PI }
+  check(z.size > 40 && laengen[2..-3].all? { |l| l <= 10.01 } && knicke.all? { |k| k <= 5.01 },
+        "Regal rund #{teil}: Bogen aus kurzen Geraden, glatt (#{z.size} Zeilen, max Knick #{knicke.max&.round(2)})")
+  gesamt = knicke.sum
+  check((gesamt - 90).abs < 0.5, "Regal rund #{teil}: Bahn dreht insgesamt 90 Grad (#{gesamt.round(2)})")
+end
 check(rf['RA1_SeiteL'].lage.dh.round(3) == 256, "Regal rund: Seite außen links 258 tief (#{rf['RA1_SeiteL'].lage.dh})")
 rz = S::Stueckliste.zeilen(rd).find { |x| x.tag == 'RA1_Boden' }
 check(rz && (rz.kontur.values.sum - Math::PI / 2 * 262).abs < 1.0, "Regal rund: Bogenlänge #{rz && rz.kontur}")
