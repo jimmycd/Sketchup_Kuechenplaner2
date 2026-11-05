@@ -78,6 +78,12 @@ Neue Schränke muss man nicht von Hand verschieben und drehen. Gilt für alle Sc
 * Ohne Raum (keine Wände) folgt der Schrank der Maus auf fester Höhe, Tab dreht.
 * Ausgeblendete Teile (z. B. abgeschaltete Wangen) zählen für die Maße nicht.
 
+**Maße ändern** (Komponentenoptionen Breite/Tiefe, Jürgen 2026-11-05):
+
+* **Breite:** Die angedockte Seite bleibt stehen, die freie Seite wandert. Angedockt ist eine Seite, an der ein anderer Schrank oder eine Wand (mit Wandabstand) anliegt. Ist nur die rechte Seite angedockt, wird der Schrank nach links breiter bzw. schmaler; sonst bleibt die linke Seite. Ist der Schrank links **und** rechts angedockt, bleibt die linke Seite; stößt er danach an den rechten Nachbarn, kommt eine Meldung, den Nachbarn bitte von Hand verschieben.
+* **Tiefe:** Die Rückseite bleibt (an der Wand), die Front wandert nach vorn bzw. zurück.
+* Erkannt wird die Änderung am Bezugskasten (Seiten, Wangen, Rückwand), der nach jedem Schritt am Schrank gemerkt wird (`JT_Masse/kasten`). Die Verschiebung gehört zum selben *Rückgängig*-Schritt wie die Maßänderung. Arbeitsplatten und Sockelblenden sind ausgenommen. Rechnung in `src/jt_schrank_cnc/massaenderung.rb`, getestet in `test/test_massaenderung.rb`.
+
 Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küchenplaner › Schrank andocken…*.
 
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.

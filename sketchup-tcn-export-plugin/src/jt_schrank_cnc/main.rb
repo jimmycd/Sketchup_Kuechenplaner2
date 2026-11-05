@@ -44,7 +44,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke andocken frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export stueckliste pdf etiketten guillotine zuschnitt beschriftung rendern].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke andocken massaenderung frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export stueckliste pdf etiketten guillotine zuschnitt beschriftung rendern].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -67,5 +67,6 @@ module JTools
       file_loaded(__FILE__)
     end
     Beschriftung.app_beobachten # einmal je SketchUp-Sitzung, auch nach dem Neuladen
+    Massaenderung.app_beobachten # angedockte Schränke bei Breite/Tiefe richtig verschieben
   end
 end
