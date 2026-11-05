@@ -470,6 +470,44 @@ model.selection.clear
   model.selection.clear
   [nb2, eck].each { |i| model.entities.instances.delete(i) }
 end
+# Quer vor einem Eckschrank an der Nachbarwand (Jürgen 2026-11-05): beim Blindeck bleibt die
+# Hinterkante an der Wand (Rückseite im Wandabstand), der Schrank springt nicht mit der Vorderkante
+# nach vorne an die Seite des Blindecks. Am L-Eck: Vorderkante bündig mit Schenkel B.
+model.selection.clear
+check(R.front_viertel([[0, 90, 0, 50]]) == [0] && R.front_viertel([[0, 90, 0, 50], [0, 50, -40, 50]]) == [0, 1] &&
+      R.front_viertel([[0, 90, 0, 50], [40, 90, -40, 50]]) == [0, 3], 'Frontrichtung je Schenkel')
+[[Eckschrank.erstellen({}), 'Blindeck', false], [Eckschrank.erstellen({}, l_form: true), 'L-Eck', true]].each do |eck, name, l_form|
+  model.entities.instances.delete(eck)
+  model.entities.instances << eck
+  model.select_tool(nil)
+  we = A::Werkzeug.new(eck)
+  we.setze_punkt(30.cm, 290.cm) # Wand 1, linke Ecke
+  we.onLButtonDown(0, 0, 0, fake_view)
+  model.selection.clear
+  be2 = A.bezug(eck)
+  ge = A.grundrisse(eck)
+  front_eck = o(eck)[1] + be2[2] # Vorderkante des Ecks (y)
+  nb = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS.merge('Tiefe' => 40.0))
+  model.entities.instances.delete(nb)
+  model.select_tool(nil)
+  bnb = A.bezug(nb)
+  wn = A::Werkzeug.new(nb)
+  wn.setze_punkt(10.cm, front_eck - 10.cm) # Wand 4, bis an das Eck heran
+  check(wn.wand == 3, "#{name}: Nachbar an Wand 4 (#{wn.wand})")
+  e = R.ecken(bnb, wn.ziel)
+  xs = e.map(&:first)
+  ys = e.map { |q2| q2[1] }
+  check(nah(ys.max, front_eck, 1e-6), "#{name}: Nachbar liegt an der Front des Ecks an (#{ys.max * 2.54} / #{front_eck * 2.54})")
+  if l_form
+    vorn_b = o(eck)[0] + ge[1][1]
+    check(nah(xs.max, vorn_b, 1e-6), "#{name}: Vorderkante bündig mit Schenkel B (#{xs.max * 2.54} / #{vorn_b * 2.54})")
+  else
+    check(nah(xs.min, 2.cm, 1e-6), "#{name}: Hinterkante im Wandabstand, nicht nach vorne gesprungen (#{xs.min * 2.54})")
+    check(xs.max < o(eck)[0] + be2[1] - 10.cm, "#{name}: Vorderkante nicht an der Seite des Blindecks")
+  end
+  model.entities.instances.delete(eck)
+end
+
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'wandabstand'])
 
 # Werkzeug: Tasten
