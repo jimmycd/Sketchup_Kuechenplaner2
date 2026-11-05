@@ -18,6 +18,8 @@
 # Beschriftungen wie bei UI.inputbox: „Breite (mm)“ zeigt „Breite“ mit Einheit mm,
 # „Stärke (mm, 0 = Standard)“ zusätzlich den Hinweis „0 = Standard“. „Ecke 1: Stoß“
 # kommt in die Gruppe „Ecke 1“. listen: 'a|b|c' wird eine Auswahl, '' ein Eingabefeld.
+# Besondere Felder über listen: ':farbe' zeigt einen Farbwähler (Farbrad mit Helligkeitsregler,
+# Vorschau, Wert als #RRGGBB), ':datei' ein Eingabefeld mit Knopf „Datei wählen…“ (Bilder).
 # Abbrechen oder Schließen ruft den Block nicht auf (wie nil/false bei UI.inputbox).
 # Ohne UI::HtmlDialog (sehr alte SketchUp-Versionen) wird UI.inputbox benutzt.
 # main.rb lädt die Datei mit require (einmal je Sitzung); „Plugins aktualisieren“
@@ -30,6 +32,11 @@ module Kuechenplaner
     # Keine Konstanten: „Plugins aktualisieren“ lädt diese Datei neu, ohne Warnungen
     def self.einheiten
       %w[mm cm m ° Stk %]
+    end
+
+    # Feldarten über listen
+    def self.arten
+      { ':farbe' => :farbe, ':datei' => :datei }
     end
 
     # Aussehen wie die Dialoge im Treppenplaner (Farben, Schrift, Gruppen, Fußzeile mit Knöpfen)
@@ -64,6 +71,11 @@ module Kuechenplaner
         button.primary { background:var(--accent); color:#fff; border-color:var(--accent2); }
         button.primary:hover { background:var(--accent2); }
         button:disabled { opacity:.6; cursor:default; }
+        .row .ctl .muster { flex:0 0 22px; height:22px; border:1px solid #c8c2b7; border-radius:4px; }
+        .row .ctl button.datei { padding:3px 8px; white-space:nowrap; }
+        .farbwahl { grid-column:1 / -1; display:flex; gap:12px; align-items:center; padding:4px 0 2px; }
+        .farbwahl canvas { cursor:crosshair; touch-action:none; }
+        .farbwahl .hell { border:1px solid #c8c2b7; border-radius:3px; cursor:ns-resize; }
       CSS
     end
 
@@ -75,6 +87,7 @@ module Kuechenplaner
         titel = rest.pop.to_s
         listen = rest.first || []
         unless defined?(UI::HtmlDialog)
+          listen = listen.map { |l| arten.key?(l.to_s) ? '' : l }
           werte = UI.inputbox(prompts, defaults, *(listen.empty? ? [] : [listen]), titel)
           return werte ? block.call(werte) : nil
         end
@@ -99,6 +112,10 @@ module Kuechenplaner
           end
         end
         d.add_action_callback('abbrechen') { |_ctx| d.close }
+        d.add_action_callback('datei') do |_ctx, n|
+          pfad = UI.openpanel('Datei wählen', '', 'Bilder|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.tga||')
+          d.execute_script("KP.setze(#{n.to_i}, #{JSON.generate(pfad.to_s.tr('\\', '/'))})") if pfad
+        end
         d.center
         d.show
         @dialog = d
@@ -110,8 +127,9 @@ module Kuechenplaner
           g, rest = p.to_s.split(/:\s+/, 2)
           g, rest = nil, p.to_s unless rest && g.size <= 40 && !g.include?('(')
           label, einheit, hilfe = beschriftung(rest)
-          liste = listen[i].to_s.empty? ? nil : listen[i].to_s.split('|')
-          { gruppe: g, label: label, einheit: einheit, hilfe: hilfe, wert: defaults[i].to_s, liste: liste }
+          art = arten[listen[i].to_s]
+          liste = (art || listen[i].to_s.empty?) ? nil : listen[i].to_s.split('|')
+          { gruppe: g, label: label, einheit: einheit, hilfe: hilfe, wert: defaults[i].to_s, liste: liste, art: art }
         end
         standard = gruppe || (roh.all? { |f| f[:einheit] } ? 'Maße' : 'Einstellungen')
         roh.each { |f| f[:gruppe] ||= standard }
@@ -131,7 +149,8 @@ module Kuechenplaner
 
       def hoehe(felder)
         gruppen = felder.map { |f| f[:gruppe] }.uniq.size
-        h = 145 + gruppen * 38 + felder.size * 33 + felder.count { |f| f[:hilfe] } * 16
+        h = 145 + gruppen * 38 + felder.size * 33 + felder.count { |f| f[:hilfe] } * 16 +
+            felder.count { |f| f[:art] == :farbe } * 135
         [[h, 240].max, 820].min
       end
 
@@ -154,7 +173,17 @@ module Kuechenplaner
                   end
             einheit = f[:einheit] ? %(<span class="unit">#{h(f[:einheit])}</span>) : ''
             hilfe = f[:hilfe] ? %(<div class="help">#{h(f[:hilfe])}</div>) : ''
-            %(<div class="row"><label for="f#{n}">#{h(f[:label])}</label><div class="ctl">#{ctl}#{einheit}</div>#{hilfe}</div>)
+            extra = ''
+            case f[:art]
+            when :farbe
+              # Eingabefeld zuerst (Tests lesen den Wert dort), dann Vorschau und Farbrad
+              ctl += %(<span class="muster" id="f#{n}_muster"></span>)
+              extra = %(<div class="farbwahl" data-feld="#{n}"><canvas id="f#{n}_rad" width="124" height="124"></canvas>) +
+                      %(<canvas class="hell" id="f#{n}_hell" width="18" height="124"></canvas></div>)
+            when :datei
+              ctl += %(<button type="button" class="datei" title="Datei wählen" onclick="sketchup.datei(#{n})">…</button>)
+            end
+            %(<div class="row"><label for="f#{n}">#{h(f[:label])}</label><div class="ctl">#{ctl}#{einheit}</div>#{hilfe}#{extra}</div>)
           end
           %(<fieldset><legend>#{h(g)}</legend>#{zeilen.join}</fieldset>)
         end
@@ -176,8 +205,74 @@ module Kuechenplaner
               werte: function () { var w = []; for (var i = 0; i < this.n; i++) w.push($('f' + i).value); return w; },
               ok: function () { if ($('ok').disabled) return; $('ok').disabled = true; $('status').className = '';
                 $('status').textContent = 'bitte warten …'; sketchup.ok(JSON.stringify(this.werte())); },
-              fehler: function (t) { $('ok').disabled = false; $('status').className = 'err'; $('status').textContent = t; }
+              fehler: function (t) { $('ok').disabled = false; $('status').className = 'err'; $('status').textContent = t; },
+              setze: function (n, wert) { var e = $('f' + n); e.value = wert; e.dispatchEvent(new Event('input')); }
             };
+            // Farbwähler: Farbrad (Farbton, Sättigung) und Helligkeitsregler, Wert als #RRGGBB im Feld
+            var hex2 = function (v) { var s = Math.round(v).toString(16).toUpperCase(); return s.length < 2 ? '0' + s : s; };
+            var hsv2rgb = function (h, s, v) {
+              var i = Math.floor(h * 6) % 6, f = h * 6 - Math.floor(h * 6), p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+              var r = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i];
+              return [r[0] * 255, r[1] * 255, r[2] * 255];
+            };
+            var rgb2hsv = function (r, g, b) {
+              r /= 255; g /= 255; b /= 255;
+              var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0;
+              if (d > 0) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+              return [h / 6, mx === 0 ? 0 : d / mx, mx];
+            };
+            var lesen = function (t) {
+              var m = String(t).trim().match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+              if (m) return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+              m = String(t).trim().match(/^(\d{1,3})\s*[,; ]\s*(\d{1,3})\s*[,; ]\s*(\d{1,3})$/);
+              return m ? [+m[1], +m[2], +m[3]].map(function (x) { return Math.min(255, x); }) : null;
+            };
+            Array.prototype.forEach.call(document.querySelectorAll('.farbwahl'), function (box) {
+              var n = box.getAttribute('data-feld'), feld = $('f' + n), rad = $('f' + n + '_rad'), hell = $('f' + n + '_hell');
+              var muster = $('f' + n + '_muster'), cr = rad.getContext('2d'), ch = hell.getContext('2d');
+              var R = rad.width / 2, hsv = [0, 0, 1];
+              var zeichnen = function () {
+                var bild = cr.createImageData(rad.width, rad.height), d = bild.data;
+                for (var y = 0; y < rad.height; y++) for (var x = 0; x < rad.width; x++) {
+                  var dx = x - R + 0.5, dy = y - R + 0.5, r = Math.sqrt(dx * dx + dy * dy), k = (y * rad.width + x) * 4;
+                  if (r > R) continue;
+                  var c = hsv2rgb((Math.atan2(-dy, dx) / (2 * Math.PI) + 1) % 1, r / R, hsv[2]);
+                  d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = r > R - 1 ? 255 * (R - r) : 255;
+                }
+                cr.putImageData(bild, 0, 0);
+                var a = hsv[0] * 2 * Math.PI, mx = R + Math.cos(a) * hsv[1] * R, my = R - Math.sin(a) * hsv[1] * R;
+                cr.strokeStyle = hsv[2] > 0.5 ? '#000' : '#fff'; cr.lineWidth = 1.5; cr.strokeRect(mx - 3.5, my - 3.5, 7, 7);
+                var voll = hsv2rgb(hsv[0], hsv[1], 1), gr = ch.createLinearGradient(0, 0, 0, hell.height);
+                gr.addColorStop(0, 'rgb(' + voll.map(Math.round).join(',') + ')'); gr.addColorStop(1, '#000');
+                ch.fillStyle = gr; ch.fillRect(0, 0, hell.width, hell.height);
+                var hy = (1 - hsv[2]) * (hell.height - 1);
+                ch.fillStyle = hsv[2] > 0.5 ? '#000' : '#fff'; ch.fillRect(0, hy - 1, hell.width, 3);
+                muster.style.background = feld.value;
+              };
+              var schreiben = function () {
+                var c = hsv2rgb(hsv[0], hsv[1], hsv[2]);
+                feld.value = '#' + hex2(c[0]) + hex2(c[1]) + hex2(c[2]); zeichnen();
+              };
+              var ausFeld = function () { var c = lesen(feld.value); if (c) { hsv = rgb2hsv(c[0], c[1], c[2]); } zeichnen(); };
+              var ziehen = function (el, fn) {
+                var aktiv = false;
+                el.addEventListener('pointerdown', function (e) { aktiv = true; el.setPointerCapture(e.pointerId); fn(e); });
+                el.addEventListener('pointermove', function (e) { if (aktiv) fn(e); });
+                el.addEventListener('pointerup', function () { aktiv = false; });
+              };
+              ziehen(rad, function (e) {
+                var b = rad.getBoundingClientRect(), dx = e.clientX - b.left - R, dy = e.clientY - b.top - R;
+                hsv[0] = (Math.atan2(-dy, dx) / (2 * Math.PI) + 1) % 1; hsv[1] = Math.min(1, Math.sqrt(dx * dx + dy * dy) / R);
+                if (hsv[2] < 0.05) hsv[2] = 1;
+                schreiben();
+              });
+              ziehen(hell, function (e) {
+                var b = hell.getBoundingClientRect();
+                hsv[2] = Math.max(0, Math.min(1, 1 - (e.clientY - b.top) / b.height)); schreiben();
+              });
+              feld.addEventListener('input', ausFeld);
+              ausFeld();
+            });
             $('ok').onclick = function () { KP.ok(); };
             $('abbrechen').onclick = function () { sketchup.abbrechen(); };
             document.addEventListener('keydown', function (e) {
