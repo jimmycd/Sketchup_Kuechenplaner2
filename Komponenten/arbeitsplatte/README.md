@@ -69,11 +69,23 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
 | Stoß in der Ecke | Gehrungsansatz (Gehrungstiefe 30 mm, Bogen R 30 mm), Option stumpf oder Gehrung 45°, je Ecke |
 | Durchlaufende Platte | die längere Zeile, je Ecke umschaltbar |
 | Format | schmalstes aus 4100 × 600 / 650 / 900 / 1200, das die Tiefe abdeckt, oder fest |
-| Teilen | länger als Format − 2 × 10 mm Besäumen: Längsstoß über einer Schrankseite |
+| Teilen | länger als Rohling − 50 mm (Rohling = Länge des Formats, Standard 4100): stumpfer Längsstoß mitten auf einem Schrank, siehe unten |
 
 - Gehrungsansatz: die durchlaufende Platte bekommt die weibliche Fräsung (Vorderkante im
   Stoßbereich 30 mm zurück), die anstoßende ragt 30 mm hinein. Der Schnitt läuft vom
   inneren Eckpunkt der Vorderkanten 45° nach innen und im Bogen R in die Gerade zur Wand.
+- **Teilen bei Überlänge** (Jürgen 2026-11-05): ist die Platte länger als der Rohling − 50 mm
+  (Rohling = Länge des gewählten Formats, also 4100 mm oder das eigene Format im Dialog),
+  wird sie in Teilplatten geteilt, die stumpf aneinanderstoßen und mit Hundeknochen
+  (Arbeitsplattenverbinder, TCN) verbunden werden; Lamellos weiterhin von Hand.
+  Der Stoß liegt **mitten auf einem Schrank**, nie über der Fuge zwischen zwei Schränken
+  und nie über einer oben offenen Geräte-Nische (Geschirrspüler, Unterbau-Kühlschrank).
+  Vor einer Ecke bleiben mindestens **300 mm** (gemessen vom inneren Eckpunkt der
+  Vorderkanten), jedes Stück ist mindestens 300 mm lang, Ausschnitte halten 150 mm Abstand.
+  Gewählt wird die Schrankmitte, die das erste Stück am längsten macht. Ist die Mitte
+  gesperrt (z. B. Kochfeld), rückt der Stoß auf dem Schrank zur Seite, aber nicht näher als
+  150 mm an dessen Seiten. Passt gar kein Schrank, kommt eine Warnung.
+  Stückliste und TCN führen jede Teilplatte einzeln (`APL1_Platte1`, `APL1_Platte2` …).
 - Jede Plattenkante hat eine Art: vorne, Wand, frei, Hochschrank, Stoß, Theke (für Anleimer und CNC).
 
 ## Ausschnitte
@@ -107,7 +119,7 @@ und liest Umriss, Kantenarten, Frontrichtung und Stöße aus `JT_Arbeitsplatte`.
   Gehrungsansatz mit Bogen, Gehrung und Längsstoß an beiden Platten; die
   durchlaufende Platte bekommt dazu ihr Ende an der Wand. Beim stumpfen Stoß wird
   die durchlaufende Platte nicht gefräst (die Vorderkante bleibt).
-- **Hundeknochen** je Verbinder: Bohrung Ø 35, 20 tief, 65 mm vom Stoß, und ein
+- **Hundeknochen** je Verbinder (Arbeitsplattenverbinder 150 mm, Ecke und Längsstoß): Bohrung Ø 35, 20 tief (eine Zustellung), 65 mm vom Stoß, und ein
   Steg 12 mm breit, startet ganz außerhalb der Stoßkante (Fräserrand 5 mm davor)
   und fährt ins Material bis zur Bohrung, mit dem VHM Ø 8 (Werkzeug 2200)
   in zwei Bahnen nebeneinander (ein 12er Fräser ist nicht vorhanden).
@@ -131,8 +143,8 @@ Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`
 - `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
 - `test/test_ausgabe.rb`: Zeichnen, Material, Tags, Anleimer, Dialog, Neuberechnen, Schrank-Export übergeht die Platten
-- `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen) und einer Platte mit Spüle, Teileliste
+- `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen), Längsstoß mit Hundeknochen an beiden Teilplatten, Stückliste, Platte mit Spüle, Teileliste
 - `test/test_ausschnitte.rb`: Ausschnitte, Prüfungen, Längsstoß weicht aus, Dialog, Löcher
-- `test/test_layout.rb`: Layout: Überstände, Formate, Teilung, Stoßarten, Bogen, Flächen passen lückenlos
+- `test/test_layout.rb`: Layout: Überstände, Formate, Teilung (Rohling − 50, Schrankmitte, 300 vor der Ecke, keine Geräte-Nische), Stoßarten, Bogen, Flächen passen lückenlos
 
 Nach Änderungen in `src/`: `./build_rbz.sh` im Hauptordner, dann `./run_tests.sh`.
