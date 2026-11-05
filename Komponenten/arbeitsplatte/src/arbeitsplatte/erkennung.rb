@@ -26,6 +26,7 @@ module Arbeitsplatte
     OPTIONEN = {
       max_luecke: 650.0,       # Lücke in einer Zeile, die überbrückt wird (Spüler, Unterbaukühlschrank)
       toleranz_front: 5.0,     # Frontlinien, die so nah liegen, gehören zu einer Zeile
+      max_frontversatz: 60.0,  # an derselben Wand: so weit darf eine Front zurückstehen (Regal ohne Front)
       toleranz_hoehe: 1.0,     # Oberkanten, die so nah liegen, gehören zu einer Zeile
       toleranz_ecke: 100.0,    # so weit darf ein Zeilenende von der anderen Zeile entfernt sein (Passleiste)
       toleranz_hochschrank: 30.0, # Abstand Zeilenende – Hochschrank, damit die Zeile dort endet
@@ -71,12 +72,15 @@ module Arbeitsplatte
       gruppen = []
       unter.each do |el|
         s0, s1, vorn, hinten = zeilenmass(el)
+        # Gleiche Front, oder an derselben Wand mit zurückstehender Front (Abschlussregal ohne Front,
+        # Jürgen 2026-11-05): dann bleibt die Platte über die ganze Zeile gleich tief
         g = gruppen.find do |gr|
           gr[:front] == el[:front] && (gr[:z1] - el[:z1]).abs <= o[:toleranz_hoehe] &&
-            (gr[:vorn] - vorn).abs <= o[:toleranz_front]
+            ((gr[:vorn] - vorn).abs <= o[:toleranz_front] ||
+             (gr[:hinten] - hinten).abs <= o[:toleranz_front] && (gr[:vorn] - vorn).abs <= o[:max_frontversatz])
         end
         unless g
-          g = { front: el[:front], z1: el[:z1], vorn: vorn, elemente: [] }
+          g = { front: el[:front], z1: el[:z1], vorn: vorn, hinten: hinten, elemente: [] }
           gruppen << g
         end
         g[:elemente] << el.merge(s0: s0, s1: s1, vorn: vorn, hinten: hinten)
