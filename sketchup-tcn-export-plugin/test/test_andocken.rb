@@ -72,16 +72,25 @@ KS = [0, 60, -2, 58, 0, 82].freeze # höherer Unterschrank
 VZ = R.vorgaben_zoll(A::VORGABEN) # Sockel 100, Korpus 700, Platte 40, Abstand 550 mm
 mm = 1 / 25.4
 check(nah(VZ[:sockel], 100 * mm) && nah(VZ[:aufbau], 590 * mm) && nah(VZ[:ober], 1390 * mm), "Vorgaben in Zoll: #{VZ}")
-check(R.hoehe(K, 'Unterschrank', K, 0, 'Unterschrank', 99, VZ) == 0, 'Unterschrank neben Unterschrank: Höhe vom Nachbarn')
-check(R.hoehe(KS, 'Unterschrank', K, 0, 'Unterschrank', 99, VZ) == -10, 'Unterschränke: Seitenoberkanten gleich (obere Außenecke)')
+# Unter-/Hochschränke: Sockelhöhe fest (Fußboden + Sockel), egal neben welchem Schrank
+check(nah(R.hoehe(K, 'Unterschrank', K, 0, 'Unterschrank', 99, VZ), VZ[:sockel]), 'Unterschrank neben Unterschrank: auf dem Sockel')
+check(nah(R.hoehe(KS, 'Unterschrank', K, 7, 'Unterschrank', 99, VZ), VZ[:sockel]), 'Unterschrank: Nachbar zu hoch/zu tief ändert den Sockel nicht')
+check(nah(R.hoehe(K, 'Unterschrank', OS, 145, 'Oberschrank', 0, VZ), VZ[:sockel]), 'Unterschrank neben Oberschrank: auf dem Sockel')
+check(nah(R.hoehe(HS, 'Hochschrank', K, 0, 'Unterschrank', 7, VZ), VZ[:sockel]), 'Hochschrank: auf dem Sockel')
+check(nah(R.hoehe(K, 'Unterschrank', K, 0, 'Unterschrank', 0, VZ.merge(boden: 5.0)), 5 + VZ[:sockel]), 'Sockel über dem Fußboden des Raums')
 check(R.hoehe(OS, 'Oberschrank', OS, 145, 'Oberschrank', 0, VZ) == 145, 'Oberschrank neben Oberschrank: gleiche Unterkante')
-check(nah(R.hoehe(OS, 'Oberschrank', HS, 4, 'Hochschrank', 0, VZ), 4 - VZ[:sockel] + VZ[:ober]),
-      'Oberschrank neben Hochschrank: feste Höhe über dem Fußboden')
+check(nah(R.hoehe(OS, 'Oberschrank', HS, 4, 'Hochschrank', 0, VZ), VZ[:ober]), 'Oberschrank neben Hochschrank: feste Höhe über dem Fußboden')
 check(nah(R.hoehe(OS, 'Oberschrank', K, 4, 'Unterschrank', 140, VZ), 4 + 72 + VZ[:aufbau]),
       'Oberschrank bei Unterschrank: Seitenoberkante + Platte + Abstand, nie eigene Höhe')
-check(R.hoehe(K, 'Unterschrank', OS, 145, 'Oberschrank', 0, VZ) == 0, 'Unterschrank neben Oberschrank: eigene Höhe')
-check(R.hoehe(HS, 'Hochschrank', K, 0, 'Unterschrank', 7, VZ) == 0, 'Hochschrank neben Unterschrank: gleiche Unterkante')
-check(R.hoehe(KS, 'Unterschrank', HS, 3, 'Hochschrank', 7, VZ) == 3, 'Unterschrank neben Hochschrank: gleiche Unterkante')
+check(nah(R.hoehe(OS, 'Oberschrank', OS, 145, 'Oberschrank', 0, VZ.merge(decke: 200.0)), 130), 'Oberschrank höchstens bis zur Decke')
+
+# Sockel geändert: alles um d, Oberschrank nur bis zur Decke
+check(nah(R.sockel_neu_z('Unterschrank', 4, K, 2, 230), 6) && nah(R.sockel_neu_z('Arbeitsplatte', 30, K, -2, 230), 28), 'Sockel neu: Unterschrank und Platte mit')
+check(nah(R.sockel_neu_z('Oberschrank', 150, OS, 5, 230), 155), 'Sockel neu: Oberschrank mit, wenn Platz bis zur Decke')
+check(nah(R.sockel_neu_z('Oberschrank', 158, OS, 5, 230), 160), 'Sockel neu: Oberschrank höchstens bis zur Decke')
+check(nah(R.sockel_neu_z('Oberschrank', 170, OS, 5, 230), 170) && nah(R.sockel_neu_z('Oberschrank', 150, OS, -5, 230), 145),
+      'Sockel neu: über der Decke bleibt er, nach unten immer mit')
+check(nah(R.sockel_neu_z('Oberschrank', 150, OS, 5, nil), 155), 'Sockel neu: ohne Raum keine Grenze')
 
 # Oberschrank über Unterschrank: Rückseiten bündig, links/rechts bündig, feste Höhe
 lage = R.ueber_unterschrank(OS, K, [0, 10, 20, 4], false, VZ[:aufbau])
@@ -138,8 +147,21 @@ check(nah(R.an_raumwand(K, wl, 200, [0], [400], 10)[3], 170), 'Raumwand: weit we
 check(nah(R.raum_hoehe('Unterschrank', 10, K, VZ), 10 + VZ[:sockel]), 'Raumwand: Unterschrank auf Fußboden + Sockel')
 check(nah(R.raum_hoehe('Hochschrank', 0, [0, 1, 0, 1, 2, 3], VZ), VZ[:sockel] - 2), 'Raumwand: Seitenunterkante auf dem Sockel')
 check(nah(R.raum_hoehe('Oberschrank', 5, OS, VZ), 5 + VZ[:ober]), 'Raumwand: Oberschrank auf fester Höhe')
+check(nah(R.raum_hoehe('Oberschrank', 0, OS, VZ.merge(decke: 80.0)), 10), 'Raumwand: Oberschrank höchstens bis zur Decke')
 w, x, y, = R.an_raumwand(K, wl, 100, [0], [400], 10, 2)
 check(nah(y, 240), "Raumwand: Wandabstand hinter dem Schrank (#{y})")
+check(nah(R.an_raumwand(K, wl, 37, [0], [400], 10, 2, 400)[3], 2), 'Raumwand: in der linken Ecke auch seitlich Wandabstand')
+check(nah(R.an_raumwand(K, wl, 365, [0], [400], 10, 2, 400)[3], 338), 'Raumwand: in der rechten Ecke auch seitlich Wandabstand')
+check(nah(R.an_raumwand(K, wl, 250, [0, 210], [400, 150], 10, 2, 400)[3], 210), 'Raumwand: Türlaibung ohne Wandabstand')
+check(nah(R.an_raumwand(K, wl, 200, [0], [400], 10, 2, 400, :links)[3], 2), 'Eckschrank: immer in die linke Ecke, an beiden Wänden')
+check(nah(R.an_raumwand(K, wl, 50, [0], [400], 10, 2, 400, :rechts)[3], 338), 'Eckschrank Blindseite rechts: in die rechte Ecke')
+
+# freier Platz: Wände und andere Schränke
+wand = [[0, 0, 300, 0], [0, 400, 0, 24]]
+check(R.platz?(K, [0, 0, 242, 0], [wand]) && !R.platz?(K, [0, 0, 250, 0], [wand]), 'Platz: an der Wand ja, in der Wand nein')
+nachbar = [[0, 60, 0, 0], [K[0], K[1], K[2], K[3]]]
+check(R.platz?(K, [0, 0, 0, 0], [nachbar]) && !R.platz?(K, [0, 30, 0, 0], [nachbar]), 'Platz: daneben ja, überlappend nein')
+check(!R.platz?(K, [0, 0, 0, 0], [[[-V, 50, 300, 0], [0, 300, 0, 24]]]), 'Platz: gedrehte Wand im Weg')
 # Wand 2 (rechts, läuft in -y): Schrank um -90° gedreht, Rückseite an x = 400
 w, x, y, = R.an_raumwand(K, [-V, 400, 300, 0], 30, [0], [300], 10)
 e = R.ecken(K, [w, x, y, 0])
@@ -159,6 +181,9 @@ b1 = A.bezug(us1)
 check(nah([b1[0], b1[1], b1[4], b1[5]], [0, 60.cm, 0, 70.cm], 1e-6), "Bezug = Außenseiten und Oberkante der Seiten (#{b1})")
 
 # Andock-Werkzeug beenden, erster Schrank steht; nächste ohne Auswahl ans freie Ende
+# erster Schrank: mit dem Werkzeug abgesetzt, auf dem Sockel
+sockel = A.vorgaben(model)[:sockel]
+A.setzen(us1, [0, 0, 0, sockel], 'test')
 model.select_tool(nil)
 model.selection.clear
 us2 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
@@ -167,19 +192,19 @@ b2 = A.bezug(us2)
 check(nah(o(us2)[0] + b2[0], o(us1)[0] + b1[1], 1e-6), "angereiht: Seiten berühren sich (#{o(us2)})")
 check(nah(o(us2)[1..2], o(us1)[1..2], 1e-6), 'angereiht: gleiche Flucht und Höhe')
 
-# dritter Schrank, Auswahl auf dem ersten: läuft trotzdem bis zum freien Ende hinter us2
+# dritter Schrank, Auswahl auf dem ersten: rechts ist us2, also links daneben
 model.selection.clear
 model.selection.add(us1)
 us3 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
-check(nah(o(us3)[0], o(us2)[0] + 60.cm, 1e-6), "freies Ende statt auf den Nachbarn (#{o(us3)})")
+check(nah(o(us3), [-60.cm, 0, sockel], 1e-6), "markierter Schrank hat nur links Platz: links daneben (#{o(us3)})")
 
 # Unterbau-Kühlschrank (keine eigene Seite): virtuelle Seite, Gerät steht auf dem Boden
 model.selection.clear
 uk = UnterschrankKuehlschrank.erstellen({})
 bk = A.bezug(uk)
 check(nah([bk[0], bk[1], bk[4], bk[5]], [0, 60.cm, 0, 70.cm], 1e-6), "Kühlschrank: virtuelle Seite = Nische (#{bk})")
-check(nah(o(uk)[0], o(us3)[0] + 60.cm, 1e-6) && nah(o(uk)[2], o(us3)[2], 1e-6),
-      "Kühlschrank: am freien Ende, Korpusoberkante wie Nachbar (#{o(uk)})")
+check(nah(o(uk)[0], o(us2)[0] + 60.cm, 1e-6) && nah(o(uk)[2], o(us3)[2], 1e-6),
+      "Kühlschrank: am freien rechten Ende, auf dem Sockel (#{o(uk)})")
 geraet = uk.definition.entities.instances.find { |i| i.definition.name.include?('Platzhalter') }
 check(geraet && nah(o(uk)[2] + geraet.transformation.origin[2], o(us1)[2] - 10.cm, 1e-6),
       'Kühlschrank: Geräteunterkante auf dem Fußboden (Sockel nicht vergessen)')
@@ -190,7 +215,7 @@ os1 = Oberschrank.erstellen({})
 bo = A.bezug(os1)
 v = A.vorgaben
 check(model.werkzeug.nil?, 'erster Oberschrank: kein Werkzeug, direkt über die Zeile')
-check(nah(o(os1)[0] + bo[0], o(us1)[0] + b1[0], 1e-6), "erster Oberschrank: links bündig mit der Zeile (#{o(os1)})")
+check(nah(o(os1)[0] + bo[0], o(us3)[0] + b1[0], 1e-6), "erster Oberschrank: links bündig mit der Zeile (#{o(os1)})")
 check(nah(o(os1)[2] + bo[4], o(us1)[2] + b1[5] + v[:aufbau], 1e-6), 'erster Oberschrank: Unterkante = Unterschrank + Platte + Abstand')
 check(nah(o(os1)[1] + bo[3], o(us1)[1] + b1[3], 1e-6), 'erster Oberschrank: Rückseite in der Flucht der Unterschränke')
 os2 = Oberschrank.erstellen({})
@@ -210,14 +235,18 @@ os3 = Oberschrank.erstellen({})
 check(nah(o(os3)[0] + bo[0], o(hs)[0] + bh[1], 1e-6), 'Oberschrank rechts am Hochschrank')
 check(nah(o(os3)[2] + bo[4], o(hs)[2] + bh[4] - v[:sockel] + v[:ober], 1e-6), 'Oberschrank am Hochschrank: feste Höhe')
 
-# Einstellungen werden gelesen, wenn vorhanden
-module Kuechenplaner
-  module Einstellungen
-    def self.sockelhoehe(_m = nil) = 150.0
-  end
-end
-check(nah(A.vorgaben[:sockel], 150 / 25.4) && nah(A.vorgaben[:aufbau], 590 / 25.4), 'Kuechenplaner::Einstellungen wird benutzt, fehlende Werte aus VORGABEN')
-Kuechenplaner.send(:remove_const, :Einstellungen)
+# Einstellungen werden gelesen
+Sketchup.write_default('Kuechenplaner_Einstellungen', 'sockelhoehe', 150.0)
+check(nah(A.vorgaben[:sockel], 150 / 25.4) && nah(A.vorgaben[:aufbau], 590 / 25.4), 'Kuechenplaner::Einstellungen wird benutzt')
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'sockelhoehe'])
+
+# Sockelhöhe 100 → 150 mm: Unterschränke, Kühlschrank (Parameter Sockelhöhe) und Oberschränke mit
+zs = [us1, uk, hs, os1].map { |i| o(i)[2] }
+A.sockel_geaendert(model, 100, 150)
+check(nah([us1, uk, hs, os1].map { |i| o(i)[2] }, zs.map { |z| z + 50 / 25.4 }, 1e-6), 'Sockel geändert: alle Schränke 50 mm höher')
+check(nah(JTools::SchrankCnc::Schraenke.dc(uk, 'sockelhoehe'), 150 / 25.4, 1e-6), 'Sockel geändert: Kühlschrank-Nische bekommt die neue Sockelhöhe')
+A.sockel_geaendert(model, 150, 100)
+check(nah(o(us1)[2], sockel, 1e-6), 'Sockel zurück: wieder auf 100 mm')
 
 # Geschirrspüler- und Kühlschrank-Nische: Kasten = virtueller Korpus wie bei einem Unterschrank
 # (Nischenbreite, Front bis Rückwand, Unterkante bis Oberkante Korpus). Geräte-Platzhalter (bis zum
@@ -251,6 +280,51 @@ wg = Blenden.erstellen(:wange, {})
 kw = A.kasten(wg)
 check(nah(kw[4], 0) && nah(wg.transformation.origin.to_a[2], us1.transformation.origin.to_a[2], 1e-6),
       "Wange angereiht: Unterkante Korpus gleich, Wange reicht bis zum Boden (#{wg.transformation.origin.to_a}, #{kw})")
+
+# --- Raum: Wände als Hindernis, Decke, Eckschrank ------------------------------------
+require 'json'
+model = Sketchup.active_model = Sketchup::Model.new
+rd = Sketchup::ComponentDefinition.new('Raum')
+raum = model.entities.add_instance(rd, Geom::Transformation.translation([0, 0, 0]))
+raum.set_attribute('JT_Raum', 'typ', 'Raum')
+raum.set_attribute('JT_Raum', 'daten', JSON.generate('hoehe' => 2300.0, 'dicke' => 240.0))
+# Wand 1 hinten: von (0, 300 cm) nach +x, 240 cm lang; Wand 2 rechts: von (240, 300) nach -y
+w1 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W1'),
+                              Geom::Transformation.axes(Geom::Point3d.new(0, 300.cm, 0), Geom::Vector3d.new(1, 0, 0), Geom::Vector3d.new(0, 1, 0), Geom::Vector3d.new(0, 0, 1)))
+w2 = rd.entities.add_instance(Sketchup::ComponentDefinition.new('W2'),
+                              Geom::Transformation.axes(Geom::Point3d.new(240.cm, 300.cm, 0), Geom::Vector3d.new(0, -1, 0), Geom::Vector3d.new(1, 0, 0), Geom::Vector3d.new(0, 0, 1)))
+[[w1, 1], [w2, 2]].each do |w, nr|
+  { 'typ' => 'Wand', 'wand' => nr, 'laenge' => 2400.0 }.each { |k2, v2| w.set_attribute('JT_Raum', k2, v2) }
+end
+vr = A.vorgaben(model)
+check(nah(vr[:decke], 2300 / 25.4) && nah(vr[:boden], 0), "Raum: Decke 2300 mm (#{vr[:decke]})")
+check(A.waende(model).size == 2 && nah(A.waende(model)[1][0][0], 3 * V), 'Raum: zwei Wände, Wand 2 gedreht')
+# Schrank in der rechten Ecke an Wand 1 (rechts ist Wand 2) → der nächste kommt links daneben
+r1 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+b = A.bezug(r1)
+A.setzen(r1, [0, 180.cm - b[0], 300.cm - b[3], vr[:sockel]], 'test')
+model.select_tool(nil)
+model.selection.clear
+model.selection.add(r1)
+r2 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+check(nah(o(r2)[0] + b[1], o(r1)[0] + b[0], 1e-6), "rechts ist die Wand: links neben den markierten Schrank (#{o(r2)})")
+model.selection.clear
+r3 = UnterschrankSchubladen.erstellen(UnterschrankSchubladen::DEFAULTS)
+check(nah(o(r3)[0] + b[1], o(r2)[0] + b[0], 1e-6), "ohne Auswahl, rechtes Ende an der Wand: ans linke Ende (#{o(r3)})")
+# Oberschrank-Höhe an der Decke begrenzt (Decke 2300, Oberschrank 700 hoch: Unterkante höchstens 1600)
+ob = Oberschrank.erstellen({})
+bo = A.bezug(ob)
+check(o(ob)[2] + bo[5] <= vr[:decke] + 1e-6, "Oberschrank unter der Decke (#{((o(ob)[2] + bo[5]) * 25.4).round} mm)")
+# Eckschrank erkennt seine Ecke
+ed = Sketchup::ComponentDefinition.new('Eck')
+ed.set_attribute('JT_Schrank', 'typ', 'Eckschrank')
+ed.set_attribute('dynamic_attributes', 'schenkel_a', 90.cm)
+ei = Sketchup::ComponentInstance.new(ed, Geom::Transformation.translation([0, 0, 0]))
+check(A.ecke(ei) == :links, 'Eckschrank L-Form: linke Ecke')
+ed.dicts['dynamic_attributes'].delete('schenkel_a')
+ed.set_attribute('dynamic_attributes', 'blindseite', 1.0)
+check(A.ecke(ei) == :rechts, 'Blindeck Blindseite rechts: rechte Ecke')
+check(A.ecke(r1).nil?, 'normaler Schrank: keine feste Ecke')
 
 # Werkzeug: Tab dreht, Pfeil hoch schaltet die Bündigkeit
 wz = A::Werkzeug.new(us1)

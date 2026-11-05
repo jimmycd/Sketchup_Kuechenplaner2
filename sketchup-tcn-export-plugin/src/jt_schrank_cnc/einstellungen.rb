@@ -74,7 +74,10 @@ module JTools
           raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
           model.start_operation('Einstellungen ändern', true) if model.respond_to?(:start_operation)
           begin
+            sockel_alt = kueche.sockelhoehe(model)
             kueche.uebernehmen(neu[0, n], model)
+            # Sockelhöhe geändert: vorhandene Schränke in der Höhe mitnehmen (Andock-Werkzeug)
+            Andocken.sockel_geaendert(model, sockel_alt, kueche.sockelhoehe(model)) if defined?(Andocken)
           ensure
             model.commit_operation if model.respond_to?(:commit_operation)
           end
