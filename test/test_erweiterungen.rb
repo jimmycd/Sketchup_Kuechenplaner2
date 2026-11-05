@@ -147,7 +147,7 @@ schrank_eintraege.each do |titel, blk, gruppe|
   soll = titel.start_with?('Eck-Oberschrank') ? '350' : gruppe == 'Oberschränke' ? '400' : titel == 'Hochschrank Kühlschrank…' ? '560' : '520'
   check(tiefe && tiefe[1] == soll, "#{titel}: Dialog fragt die Tiefe ab, Vorschlag #{soll} mm (#{felder.inspect})")
   check(d.html.include?('<span class="unit">mm</span>'), "#{titel}: Einheit mm neben dem Feld")
-  check(titel == 'Eckschrank L-Form…' || felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
+  check(felder.assoc('Höhe'), "#{titel}: Dialog fragt auch die Höhe ab (#{felder.inspect})")
   check(d.html.include?('#f4f2ee') && d.html.include?('Einfügen</button>') && d.html.include?('Neuer Schrank'),
         "#{titel}: Fenster im Treppenplaner-Stil mit Knopf Einfügen")
   EingabeHelfer.ok(d, 'Tiefe Korpus' => '610', 'Schenkel A, hinten' => '1300', 'Schenkel B, links' => '1300')
@@ -155,7 +155,31 @@ schrank_eintraege.each do |titel, blk, gruppe|
   inst = m.entities.grep(Sketchup::ComponentInstance).last
   t = inst && inst.definition.get_attribute('dynamic_attributes', 'tiefe')
   check(t && (t * 2.54 - 61.0).abs < 1e-9, "#{titel}: Schrank mit eingegebener Tiefe 610 mm gebaut (#{t && t * 25.4})")
+  # Eckschränke: jede Komponentenoption (TEXTBOX/LIST) steht schon im Anlage-Dialog
+  next unless titel.start_with?('Eck')
+  d_attr = inst.definition.attribute_dictionary('dynamic_attributes')
+  optionen = d_attr.keys.select { |k| k.end_with?('_access') && %w[TEXTBOX LIST].include?(d_attr[k]) }
+  check(optionen.size == felder.size, "#{titel}: alle #{optionen.size} Komponentenoptionen im Dialog (#{felder.size} Felder)")
 end
+
+# Blindeck: Auswahlen im Dialog kommen am Schrank an
+m = Sketchup.active_model = Sketchup::Model.new
+UI::HtmlDialog.alle = []
+unterschraenke.assoc('Eckschrank Blindeck…')[1].call
+d = UI::HtmlDialog.alle.last
+EingabeHelfer.ok(d, 'Variante' => 'Le Mans (Kesseböhmer)', 'Blindseite' => 'rechts (Tür links)',
+                    'LeMans-Größe' => 'LeMans 45', 'Passleiste' => '60', 'Wand bis Front Nachbar' => '600', 'Breite' => '1000')
+inst = m.entities.grep(Sketchup::ComponentInstance).last
+w = ->(k) { inst.definition.get_attribute('dynamic_attributes', k) }
+check(w.('variante') == 2.0 && w.('blindseite') == 1.0 && w.('lemans') == 45.0, "Blindeck: Variante/Blindseite/LeMans aus dem Dialog (#{w.('variante')}/#{w.('blindseite')}/#{w.('lemans')})")
+check((w.('passleiste') * 25.4 - 60).abs < 1e-6 && (w.('tiefe_nachbar') * 25.4 - 600).abs < 1e-6, 'Blindeck: Passleiste und Nachbarmaß aus dem Dialog')
+UI::HtmlDialog.alle = []
+unterschraenke.assoc('Eckschrank Blindeck…')[1].call
+d = UI::HtmlDialog.alle.last
+EingabeHelfer.ok(d, 'Variante' => 'Le Mans (Kesseböhmer)', 'LeMans-Größe' => 'LeMans 60', 'Breite' => '900')
+check(d.visible? && d.skripte.last.to_s.include?('mindestens 960 mm'), "Blindeck: LeMans 60 in 900 mm abgelehnt, Fenster bleibt offen (#{d.skripte.inspect})")
+EingabeHelfer.ok(d, 'Türbreite' => '1200')
+check(d.visible? && d.skripte.last.to_s.include?('passt nicht'), 'Blindeck: Türbreite größer als Breite abgelehnt')
 
 # Eingabefenster: in jeder Erweiterung die gleiche Datei aus gemeinsam/eingabe.rb, geladen von main.rb;
 # kein UI.inputbox mehr im Quelltext
