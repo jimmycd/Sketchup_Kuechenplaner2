@@ -141,6 +141,7 @@ erwartet.each_key do |s|
     check(plan.definition.entities.grep(Sketchup::ComponentInstance).map(&:definition) == [render.definition] &&
           plan.definition.box.nil?, "#{g.definition.name}: Planung zeigt das Gerätemodell, keinen Kasten (sonst wirkt die Nische leer)")
     check(plan.definition.entities.texte.first&.first&.include?('Nische'), "#{g.definition.name}: Beschriftung")
+    check(plan.definition.entities.texte.all? { |t| t.layer&.name == G::TAG_BESCHRIFTUNG }, "#{g.definition.name}: Beschriftung auf Tag Beschriftung (Schalter Symbolleiste)")
   end
   platzhalter = s.definition.entities.grep(Sketchup::ComponentInstance).reject { |i| G.geraet?(i) }
                  .select { |i| i.layer&.name == G::TAG_PLAN }
@@ -208,7 +209,7 @@ G.szenen_anlegen(model)
 { 'Planung' => [true, false], 'Kunde' => [false, true], 'Zuschnitt' => [false, false] }.each do |n, (p, r)|
   s = model.pages[n]
   check(s && s.sichtbar[G::TAG_PLAN] == p && s.sichtbar[G::TAG_RENDER] == r, "Szene #{n}: #{s&.sichtbar}")
-  check(s.sichtbar.all? { |k, v| [G::TAG_PLAN, G::TAG_RENDER].include?(k) || k.start_with?('Raum-') || v }, "Szene #{n}: Schrank-Tags sichtbar")
+  check(s.sichtbar.all? { |k, v| [G::TAG_PLAN, G::TAG_RENDER, G::TAG_BESCHRIFTUNG].include?(k) || k.start_with?('Raum-') || v }, "Szene #{n}: Schrank-Tags sichtbar")
   check(s.sichtbar['Raum-Wand'] == (n != 'Zuschnitt') && s.sichtbar['Raum-Fenster'] == (n != 'Zuschnitt'), "Szene #{n}: Raum-Tags")
 end
 G.szenen_anlegen(model)
@@ -257,10 +258,6 @@ K.bild_speichern(neu_model, '/tmp/neu', [1920, 1080])
 check(neu_model.pages.size == 3 && neu_model.pages.selected_page.name == 'Kunde', 'Kundenbild ohne Szenen: Szenen werden angelegt')
 
 # Schrank-Beschriftung (Tag Beschriftung): in Planung/Zuschnitt nur, wenn eingeschaltet; in Kunde nie
-class Sketchup::Model
-  def get_attribute(d, k, std = nil) = (@attr ||= {}).fetch([d, k], std)
-  def set_attribute(d, k, v) = (@attr ||= {})[[d, k]] = v
-end
 model.layers.add(G::TAG_BESCHRIFTUNG)
 [false, true].each do |an|
   model.set_attribute(G::BESCHRIFTUNG, 'an', an)
