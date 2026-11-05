@@ -202,6 +202,48 @@ end
 G.szenen_anlegen(model)
 check(model.pages.size == 3, 'Szenen werden beim zweiten Mal aktualisiert, nicht verdoppelt')
 
+# Kundensicht: Szene Kunde mit eigenem Stil, Schatten und Perspektive; Planung/Zuschnitt unverändert
+K = G::Kundensicht
+kunde, planung, zuschnitt = model.pages['Kunde'], model.pages['Planung'], model.pages['Zuschnitt']
+ro = kunde.rendering_options
+check(ro['Texture'] == true && ro['DrawSilhouettes'] == false && ro['DrawProfilesOnly'] == false &&
+      ro['DisplayText'] == false && ro['DisplayDims'] == false && ro['DrawGround'] == true && ro['DrawHorizon'] == true,
+      "Kunde: Stil (Texturen, keine Profile, kein Text, Himmel/Boden): #{ro.to_h}")
+check(ro['BackgroundColor'].rgb == K.stil['BackgroundColor'] && ro['ForegroundColor'].rgb == K.stil['ForegroundColor'], 'Kunde: Hintergrund und dezente Kantenfarbe')
+check(kunde.shadow_info['DisplayShadows'] == true && kunde.shadow_info['ShadowTime'].month == 6, 'Kunde: Schatten an, Sommersonne')
+check(kunde.camera.perspective? && kunde.camera.fov == K.fov, 'Kunde: Perspektive')
+check(kunde.use_rendering_options && kunde.use_shadow_info && kunde.use_camera, 'Kunde: Szene speichert Stil, Schatten, Kamera')
+[planung, zuschnitt].each do |s|
+  check(s.shadow_info['DisplayShadows'] == false && s.rendering_options['DrawSilhouettes'] == true &&
+        s.rendering_options['DisplayText'] == true, "#{s.name}: erbt den Kundenstil nicht")
+end
+check(model.shadow_info['DisplayShadows'] == false && model.rendering_options['DisplayText'] == true, 'laufende Ansicht wieder wie vorher')
+check(model.pages.selected_page == planung, 'danach Szene Planung gewählt')
+
+# erneut anlegen, während Kunde gewählt ist: Kamera der Szene Kunde bleibt, keine Duplikate
+model.pages.selected_page = kunde
+K.setzen(model.rendering_options, K.stil)
+K.setzen(model.shadow_info, K.schatten)
+auge = kunde.camera.eye
+model.active_view.camera = Sketchup::Camera.new([999, 999, 999], [0, 0, 0], [0, 0, 1], false)
+G.szenen_anlegen(model)
+check(model.pages.size == 3, 'Kundensicht: keine zweite Kunden-Szene')
+check(model.pages['Kunde'].camera.eye == auge && model.pages['Kunde'].camera.perspective?, 'Kunde: gespeicherte Kamera bleibt')
+check(model.shadow_info['DisplayShadows'] == false && model.rendering_options['DisplayText'] == true, 'aus Kunde heraus angelegt: Ansicht wieder im Planungsstil')
+
+# Kundenbild speichern: wechselt ohne Überblendung in die Szene Kunde, PNG in gewählter Auflösung
+pfad = K.bild_speichern(model, '/tmp/kueche_kunde', K.aufloesungen['4K 3840 × 2160'])
+bild = model.active_view.bilder.last
+check(pfad == '/tmp/kueche_kunde.png' && bild[:filename] == pfad && bild[:width] == 3840 && bild[:height] == 2160 && bild[:antialias],
+      "Kundenbild: 4K-PNG (#{bild})")
+check(model.pages.selected_page.name == 'Kunde' && model.active_view.camera.eye == auge, 'Kundenbild: aus Szene Kunde')
+check(model.options['PageOptions']['ShowTransition'] == true, 'Kundenbild: Überblendung wieder wie vorher')
+K.bild_speichern(model, '/tmp/fenster.PNG', nil, false)
+check(!model.active_view.bilder.last.key?(:width) && model.active_view.bilder.last[:filename] == '/tmp/fenster.PNG', 'Kundenbild: Fenstergröße')
+neu_model = Sketchup::Model.new
+K.bild_speichern(neu_model, '/tmp/neu', [1920, 1080])
+check(neu_model.pages.size == 3 && neu_model.pages.selected_page.name == 'Kunde', 'Kundenbild ohne Szenen: Szenen werden angelegt')
+
 # Schrank-Beschriftung (Tag Beschriftung): in Planung/Zuschnitt nur, wenn eingeschaltet; in Kunde nie
 class Sketchup::Model
   def get_attribute(d, k, std = nil) = (@attr ||= {}).fetch([d, k], std)
