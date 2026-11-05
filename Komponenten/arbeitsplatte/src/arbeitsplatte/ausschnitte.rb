@@ -53,8 +53,13 @@ module Arbeitsplatte
         m = standard(art, breite_schrank, o).merge((eigen || {}).reject { |k, _| k == :art })
         mitte = (e[:s0] + e[:s1]) / 2.0
         vz = Layout.vz(z)
-        qa = Layout.q_vorn(z, o) - vz * m[:abstand_vorn]
-        qb = qa - vz * m[:tiefe]
+        if e[:front].nil? || e[:front] == z[:front]
+          qa = Layout.q_vorn(z, o) - vz * m[:abstand_vorn]
+          qb = qa - vz * m[:tiefe]
+        else # Insel Rücken an Rücken: Schrank auf der Rückseite, Ausschnitt von der hinteren Kante gemessen
+          qa = Layout.q_wand(z, o) + vz * m[:abstand_vorn]
+          qb = qa + vz * m[:tiefe]
+        end
         s0, s1 = mitte - m[:breite] / 2.0, mitte + m[:breite] / 2.0
         ecken = [[s0, qa], [s1, qa], [s1, qb], [s0, qb]].map { |s, q| Layout.pt(z, s, q) }
         xs, ys = ecken.transpose

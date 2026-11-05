@@ -130,7 +130,16 @@ module Arbeitsplatte
       end.compact
     end
 
+    # Markierte Schränke: die Platte soll über alle gehen (Jürgen 2026-11-05) – Lücken längs werden
+    # überbrückt und Zeilen Rücken an Rücken (Insel) zu einer Platte verbunden
+    AUSWAHL = { max_luecke: 10_000.0, rueckenverbund: true }.freeze
+
+    def self.auswahl?(model)
+      model.selection.to_a.grep(Sketchup::ComponentInstance).any? { |i| schrank?(i) }
+    end
+
     def self.erkenne(model, optionen = {})
+      optionen = AUSWAHL.merge(optionen) if auswahl?(model)
       warnungen = []
       els = instanzen(model).flat_map { |i| elemente(i, warnungen) }
       erg = Erkennung.erkenne(els, optionen)

@@ -20,6 +20,10 @@ für die Verbinder und den Ausschnitten, siehe [TCN](#tcn).
    einstellen, je Ecke Stoßart und durchlaufende Platte. Danach liegt die Komponente
    `APL1` (bzw. `APL2` …) über den Schränken, und eine Meldung zeigt Zeilen, Ecken,
    Platten, Stöße und Warnungen.
+3a. **Insel:** Schränke, die direkt Rücken an Rücken stehen, bekommen immer eine gemeinsame Platte
+   (vorn und hinten 20 mm Überstand, Anleimer). Sind die Schränke markiert, geht die Platte über
+   alle: Lücken längs werden überbrückt, Rücken an Rücken bis 650 mm Abstand. Das bleibt beim
+   Neuberechnen so.
 4. Schränke verschoben, dazugestellt oder entfernt? **Arbeitsplatte neu berechnen** löscht
    `APL1` (markiert, sonst alle Arbeitsplatten) samt Platten, Ausschnitten und Tags und
    berechnet sie mit denselben Einstellungen über **allen** Schränken, die jetzt im Modell

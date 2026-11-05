@@ -30,11 +30,15 @@ module Arbeitsplatte
       toleranz_hoehe: 1.0,     # Oberkanten, die so nah liegen, gehören zu einer Zeile
       toleranz_ecke: 100.0,    # so weit darf ein Zeilenende von der anderen Zeile entfernt sein (Passleiste)
       toleranz_hochschrank: 30.0, # Abstand Zeilenende – Hochschrank, damit die Zeile dort endet
-      sitz_stuetzen: 350.0       # Insel: ab diesem Sitzüberstand Warnung (Stützen/Konsolen)
+      sitz_stuetzen: 350.0,      # Insel: ab diesem Sitzüberstand Warnung (Stützen/Konsolen)
+      rueckenverbund: false,     # Zeilen Rücken an Rücken zu einer Platte verbinden (markierte Insel)
+      max_rueckenabstand: 650.0, # so weit dürfen die Rückseiten dafür auseinander stehen
+      toleranz_ruecken: 50.0     # ohne Markierung: Rücken an Rücken nur, wenn die Rückseiten so nah stehen
     }.freeze
 
     UNTERSCHRANK = 'Unterschrank'.freeze
     HOCHSCHRANK  = 'Hochschrank'.freeze
+    WANGE        = 'Wange'.freeze # Blenden & Wangen (WG): bildet keine eigene Zeile, die Platte deckt sie ab
 
     # Achse längs der Zeile (0 = x, 1 = y) und Vorzeichen der Front quer dazu
     FRONTEN = { ny: [0, -1], py: [0, 1], nx: [1, -1], px: [1, 1] }.freeze
@@ -56,9 +60,12 @@ module Arbeitsplatte
     def self.erkenne(elemente, optionen = {})
       o = OPTIONEN.merge(optionen)
       warnungen = []
-      unter = elemente.select { |e| e[:kategorie] == UNTERSCHRANK }
+      unter = elemente.select { |e| e[:kategorie] == UNTERSCHRANK && e[:typ] != WANGE }
+      wangen = elemente.select { |e| e[:kategorie] == UNTERSCHRANK && e[:typ] == WANGE }
       hoch  = elemente.select { |e| e[:kategorie] == HOCHSCHRANK }
       zeilen = zeilen_bilden(unter, o, warnungen)
+      zeilen = ruecken_verbinden(zeilen, o)
+      zeilen.each { |z| wangen_an_enden(z, wangen, o) }
       zeilen.each { |z| hochschraenke_an_enden(z, hoch, o) }
       ecken = ecken_finden(zeilen, o, warnungen)
       hoehen_pruefen(zeilen, ecken, warnungen)
@@ -124,6 +131,32 @@ module Arbeitsplatte
       zeilen.sort_by { |z| [z[:achse], z[:front_linie], z[:s0]] }.each_with_index { |z, i| z[:nr] = i + 1 }
     end
 
+    # Insel aus Schränken Rücken an Rücken (Jürgen 2026-11-05): direkt Rücken an Rücken (toleranz_ruecken)
+    # immer, markierte Inselschränke mit Abstand (rueckenverbund) bis max_rueckenabstand. Zwei Zeilen mit entgegengesetzter Front, gleicher Oberkante, die sich
+    # längs überdecken und deren Rückseiten höchstens max_rueckenabstand auseinander stehen, werden eine
+    # Zeile. Vorn bleibt die Front der ersten, hinten liegt die Front der zweiten (mit Überstand und
+    # Anleimer, siehe Layout.q_wand); der Abstand zwischen den Rückseiten wird überbrückt.
+    def self.ruecken_verbinden(zeilen, o)
+      zeilen = zeilen.dup
+      loop do
+        paar = zeilen.combination(2).find do |a, b|
+          va, vb = FRONTEN[a[:front]], FRONTEN[b[:front]]
+          next false unless va[0] == vb[0] && va[1] == -vb[1] && (a[:z] - b[:z]).abs <= o[:toleranz_hoehe]
+          next false unless [a[:s1], b[:s1]].min - [a[:s0], b[:s0]].max > 1.0
+          hinter = (b[:wand] - a[:wand]) * -va[1] # wie weit b hinter der Rückseite von a beginnt
+          hinter > -1.0 && hinter <= (o[:rueckenverbund] ? o[:max_rueckenabstand] : o[:toleranz_ruecken])
+        end
+        break unless paar
+        a, b = paar
+        a, b = b, a if FRONTEN[a[:front]][1] > 0 # die Zeile mit Front -x/-y führt (feste Reihenfolge)
+        neu = a.merge(elemente: (a[:elemente] + b[:elemente]).sort_by { |e| e[:s0] },
+                      s0: [a[:s0], b[:s0]].min, s1: [a[:s1], b[:s1]].max, luecken: [],
+                      wand: b[:front_linie], insel: true, rueckenverbund: true, theke: false, sitzueberstand: 0.0)
+        zeilen = zeilen - [a, b] + [neu]
+      end
+      zeilen.sort_by { |z| [z[:achse], z[:front_linie], z[:s0]] }.each_with_index { |z, i| z[:nr] = i + 1 }
+    end
+
     # Insel-Zeile: nur Inselschränke (Element insel: true). Sie steht frei, hinten gibt es keinen Wandabstand,
     # sondern den Sitzüberstand (kleinster der Schränke); haben alle eine erhöhte Theke, endet die Platte
     # hinten an der Thekenwand (theke). Gemischte Zeilen werden wie Wandzeilen behandelt.
@@ -162,6 +195,25 @@ module Arbeitsplatte
     end
 
     # Hochschrank gleicher Blickrichtung direkt neben einem Zeilenende
+    # Wangen (Jürgen 2026-11-05): die Platte geht über die Wange am Zeilenende, mit derselben Tiefe wie
+    # über den Schränken (vorher wurde die Wange eine eigene, zurückspringende Zeile). Die Wange steht
+    # längs direkt am Zeilenende und quer innerhalb der Zeile; sie wird kein Element (kein Stoß darauf).
+    def self.wangen_an_enden(z, wangen, o)
+      quer_z = [z[:front_linie], z[:wand]].minmax
+      wangen.select { |w| laengs(w[:front]) == z[:achse] && (w[:z1] - z[:z]).abs <= 50.0 }.each do |w|
+        s0, s1, vorn, hinten = zeilenmass(w)
+        q = [vorn, hinten].minmax
+        next unless q[1] > quer_z[0] + 1.0 && q[0] < quer_z[1] - 1.0 # quer überdeckt
+        if (z[:s0] - s1).between?(-1.0, o[:toleranz_hochschrank])
+          z[:s0] = s0
+          (z[:wangen] ||= []) << w[:kz]
+        elsif (s0 - z[:s1]).between?(-1.0, o[:toleranz_hochschrank])
+          z[:s1] = s1
+          (z[:wangen] ||= []) << w[:kz]
+        end
+      end
+    end
+
     def self.hochschraenke_an_enden(z, hoch, o)
       hoch.select { |h| h[:front] == z[:front] }.each do |h|
         s0, s1, vorn, hinten = zeilenmass(h)

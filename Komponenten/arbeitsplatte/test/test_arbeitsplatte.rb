@@ -73,6 +73,41 @@ check(lay[:platten].size == 1 && lay[:platten][0][:punkte].size == 4 && lay[:pla
 erg = E.erkenne([hinten('USS1', 0, 600), el('X1', [600, 200.0, 1200, 820.0])])
 check(erg[:zeilen].size == 2, 'Front 200 mm zurück bleibt eine eigene Zeile')
 
+# Insel Rücken an Rücken (markierte Schränke): eine Zeile, eine Platte über beide, vorn und hinten Überstand
+insel = [hinten('IA', 0, 600), el('IB', [0.0, 840.0, 600.0, 1660.0], :py)]
+check(E.erkenne(insel, toleranz_ruecken: 10.0)[:zeilen].size == 2, 'ohne Markierung, Rückseiten 20 mm auseinander: zwei Zeilen')
+direkt = [hinten('IA', 0, 600), el('IB', [0.0, 820.0, 600.0, 1640.0], :py)]
+dz = E.erkenne(direkt)[:zeilen]
+check(dz.size == 1 && dz[0][:wand] == 1640.0 && Arbeitsplatte::Layout.berechne(E.erkenne(direkt), {})[:platten].map { |p| p[:breite] } == [1680.0],
+      "direkt Rücken an Rücken auch ohne Markierung eine Platte: #{dz.map { |x| x.slice(:front_linie, :wand) }}")
+erg = E.erkenne(insel, rueckenverbund: true)
+z = erg[:zeilen]
+check(z.size == 1 && z[0][:elemente].map { |e| e[:kz] }.sort == %w[IA IB] && z[0][:wand] == 1660.0, "Rücken an Rücken: #{z.map { |x| x.slice(:front_linie, :wand) }}")
+lay = Arbeitsplatte::Layout.berechne(erg, {})
+pl = lay[:platten]
+check(pl.size == 1 && pl[0][:breite] == 1700.0 && pl[0][:kanten].include?(:frei),
+      "eine Platte 1700 tief (20 vorn + 1660 + 20 hinten): #{pl.map { |p| [p[:laenge], p[:breite], p[:kanten]] }}")
+# Spüle im Schrank auf der Rückseite: Ausschnitt von der hinteren Kante gemessen
+sp = [hinten('IA', 0, 600), el('USP1', [0.0, 840.0, 600.0, 1660.0], :py, typ: 'Spuelenschrank')]
+ae = E.erkenne(sp, rueckenverbund: true)
+au = Arbeitsplatte::Ausschnitte.fuer_zeile(ae[:zeilen][0], Arbeitsplatte::Layout::OPTIONEN.merge(ausschnitte: {}))
+check(au.size == 1 && au[0][:rechteck][3] < 1680.0 && au[0][:rechteck][1] > 840.0, "Spülenausschnitt auf der Rückseite: #{au.map { |x| x[:rechteck] }}")
+# Wangen (19 mm, bündig mit der Front, an beiden Enden): Platte geht durchgehend gleich tief darüber
+wg = [hinten('US1', 0, 600), el('WG1', [-19.0, -2.0, 0.0, 820.0], typ: 'Wange'), el('WG2', [600.0, 5.0, 619.0, 800.0], typ: 'Wange')]
+we = E.erkenne(wg)
+check(we[:zeilen].size == 1 && we[:zeilen][0][:s0] == -19.0 && we[:zeilen][0][:s1] == 619.0 && we[:zeilen][0][:elemente].map { |e| e[:kz] } == %w[US1],
+      "Wangen an den Enden: #{we[:zeilen].map { |x| x.slice(:s0, :s1, :front_linie) }}")
+wl = Arbeitsplatte::Layout.berechne(we, {})[:platten]
+check(wl.size == 1 && wl[0][:punkte].size == 4 && wl[0][:breite] == 835.0, "eine Platte über Wangen: #{wl.map { |p| [p[:laenge], p[:breite]] }}")
+# Insel Rücken an Rücken mit Wange über die ganze Tiefe
+wi = E.erkenne([hinten('IA', 0, 600), el('IB', [0.0, 820.0, 600.0, 1640.0], :py), el('WG3', [-19.0, 0.0, 0.0, 1640.0], typ: 'Wange')])
+check(wi[:zeilen].size == 1 && wi[:zeilen][0][:s0] == -19.0, "Insel mit Wange: #{wi[:zeilen].map { |x| x.slice(:s0, :s1) }}")
+# Rückseiten zu weit auseinander: getrennt
+check(E.erkenne([hinten('IA', 0, 600), el('IB', [0.0, 1600.0, 600.0, 2420.0], :py)], rueckenverbund: true)[:zeilen].size == 2,
+      'Rückseiten 780 mm auseinander: zwei Zeilen')
+# markierte Schränke mit großer Lücke längs: eine Zeile
+check(E.erkenne([hinten('IA', 0, 600), hinten('IC', 1600, 2200)], max_luecke: 10_000.0)[:zeilen].size == 1, 'Lücke 1000 überbrückt')
+
 # --- L mit Blindeck: Blindeck UES1 an der linken Wand, Zeile B mit Passleiste 50 davor ---
 blind = hinten('UES1', 0, 1000, typ: 'Eckschrank')
 erg = E.erkenne([blind, hinten('USS1', 1000, 1600), links('USS2', -650, -50), links('UST1', -1250, -650)])

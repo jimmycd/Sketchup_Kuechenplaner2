@@ -77,6 +77,7 @@ module Arbeitsplatte
     # Insel: kein Wandabstand, die Platte steht um den Sitzüberstand über die Rückseite
     # (bei erhöhter Theke ist sitzueberstand 0, die Platte endet an der Thekenwand)
     def self.q_wand(z, o)
+      return z[:wand] - vz(z) * o[:ueberstand_vorn] if z[:rueckenverbund] # Rücken an Rücken: hinten wie vorn
       return z[:wand] - vz(z) * z[:sitzueberstand].to_f if z[:insel]
       z[:wand] + vz(z) * (o[:wandabstand].to_f - o[:schrank_wandabstand].to_f)
     end
