@@ -342,22 +342,19 @@ module JTools
         [blender, '-b', '--factory-startup', '-P', skript, '--', json]
       end
 
-      # Fortschritt aus dem Log: [Anteil 0..1 oder nil, Text]
+      # Fortschritt aus Statusdatei bzw. Log: [Anteil 0..1 oder nil, Text]
       def fortschritt(log)
         zeilen = log.to_s.lines.map(&:strip).reject(&:empty?)
-        sample = nil
         zeilen.reverse_each do |z|
-          if (m = z.match(/Sample (\d+)\/(\d+)/))
-            sample = [m[1].to_f / m[2].to_f, "Rendern: Sample #{m[1]} von #{m[2]}"]
-            break
+          if (m = z.match(/(?:KP_SAMPLE |Sample )(\d+)\/(\d+)/))
+            return [m[1].to_f / m[2].to_f, "Rendern: Sample #{m[1]} von #{m[2]}"]
           end
         end
         status = zeilen.reverse.find { |z| z.start_with?('KP_STATUS ') }
-        return sample if sample
         [nil, status ? status.sub('KP_STATUS ', '') : 'Blender startet …']
       end
 
-      # Ergebnis aus dem Log: [:fertig, bild] | [:fehler, text] | nil (läuft noch)
+      # Ergebnis: [:fertig, bild] | [:fehler, text] | nil (läuft noch)
       def ergebnis(log)
         z = log.to_s.lines.map(&:strip)
         if (f = z.find { |l| l.start_with?('KP_FERTIG ') })
@@ -367,6 +364,18 @@ module JTools
           return [:fehler, f.sub('KP_FEHLER ', '')]
         end
         nil
+      end
+
+      # Prozessnummern aus der Statusdatei (Blender kann sich unter Windows neu starten)
+      def pids(log)
+        log.to_s.scan(/^KP_PID (\d+)/).flatten.map(&:to_i)
+      end
+
+      # Gilt Blender als beendet ohne Ergebnis? Erst wenn der gestartete Prozess weg ist UND
+      # sich Statusdatei und Log seit `ruhe` Sekunden nicht mehr geändert haben: Blender 5
+      # unter Windows meldet den Start-Prozess früh als beendet, rendert aber weiter.
+      def abgebrochen?(beendet, letzte_aenderung, jetzt = Time.now, ruhe = 30)
+        beendet && (jetzt - letzte_aenderung) > ruhe
       end
 
       def standard_bild(model)
@@ -416,16 +425,20 @@ module JTools
                                                 kamera_kunde: kamera_kunde)
         File.delete(bild) if File.exist?(bild)
         log = File.join(ordner, 'blender.log')
+        status = File.join(ordner, 'kp_status.txt')
+        File.delete(status) if File.exist?(status)
         pid = Process.spawn(*befehl(exe, json), out: log, err: %i[child out])
-        Fortschritt.new(pid, log, bild, ordner).zeigen
+        Fortschritt.new(pid, log, bild, ordner, status).zeigen
         pid
       end
 
       # Fenster mit Fortschrittsbalken, Abbrechen und am Ende dem Bild
       class Fortschritt
-        def initialize(pid, log, bild, ordner)
-          @pid, @log, @bild, @ordner = pid, log, bild, ordner
+        def initialize(pid, log, bild, ordner, status = File.join(ordner, 'kp_status.txt'))
+          @pid, @log, @bild, @ordner, @status = pid, log, bild, ordner, status
           @fertig = false
+          @beendet = false
+          @start = Time.now
         end
 
         def zeigen
@@ -451,17 +464,27 @@ module JTools
           end
         end
 
+        def lesen(datei)
+          File.exist?(datei) ? File.read(datei, encoding: 'UTF-8', invalid: :replace, undef: :replace) : ''
+        end
+
+        # Statusdatei des Skripts und Log (Konsolenausgabe, falls umgeleitet)
         def log_text
-          File.exist?(@log) ? File.read(@log, encoding: 'UTF-8', invalid: :replace, undef: :replace) : ''
+          lesen(@status) + "\n" + lesen(@log)
+        end
+
+        def letzte_aenderung
+          [@status, @log, @bild].select { |f| File.exist?(f) }.map { |f| File.mtime(f) }.push(@start).max
         end
 
         def pruefen
           return if @fertig
-          # zuerst nachsehen, ob Blender beendet ist, dann das Log lesen (sonst fehlt evtl. die letzte Zeile)
-          beendet = begin
-            Process.wait(@pid, Process::WNOHANG)
-          rescue StandardError
-            true
+          unless @beendet
+            @beendet = begin
+              Process.wait(@pid, Process::WNOHANG) ? true : false
+            rescue StandardError
+              true
+            end
           end
           text = log_text
           erg = Rendern.ergebnis(text)
@@ -469,7 +492,7 @@ module JTools
             fertig(erg[1])
           elsif erg && erg[0] == :fehler
             fehler(erg[1])
-          elsif beendet
+          elsif Rendern.abgebrochen?(@beendet, letzte_aenderung)
             fehler("Blender wurde beendet, ohne ein Bild zu schreiben. Details: #{@log}")
           else
             anteil, t = Rendern.fortschritt(text)
@@ -492,9 +515,15 @@ module JTools
         def abbrechen
           return if @fertig
           @fertig = true
+          ([@pid] + Rendern.pids(lesen(@status))).uniq.each do |p|
+            begin
+              Process.kill('KILL', p)
+            rescue StandardError
+              nil
+            end
+          end
           begin
-            Process.kill('KILL', @pid)
-            Process.wait(@pid)
+            Process.wait(@pid, Process::WNOHANG)
           rescue StandardError
             nil
           end
