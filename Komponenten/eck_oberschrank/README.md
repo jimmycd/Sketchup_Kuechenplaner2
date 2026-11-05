@@ -4,7 +4,7 @@ L-förmiger Oberschrank für die Ecke, mit Falttür. Gegenstück zur L-Form des 
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `eck_oberschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
-2. *Erweiterungen → Küchenplaner → Oberschränke → Eck-Oberschrank L-Form…* (oder Symbolleiste *Schrank einfügen*) fragt Schenkel A, Schenkel B, Höhe und Tiefe ab und baut den Schrank. Danach hängt er am Andock-Werkzeug.
+2. *Erweiterungen → Küchenplaner → Oberschränke → Eck-Oberschrank L-Form…* (oder Symbolleiste *Schrank einfügen*) fragt Schenkel A, Schenkel B, Höhe, Tiefe und Anzahl Einlegeböden ab und baut den Schrank. Danach hängt er am Andock-Werkzeug.
 3. Alle Maße lassen sich danach im Fenster *Komponentenoptionen* ändern (siehe unten).
 
 ## Komponentenoptionen

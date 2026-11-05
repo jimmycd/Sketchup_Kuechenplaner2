@@ -560,18 +560,25 @@ module EckOberschrank
   # ---------------------------------------------------------------------------
   # Erzeugen
   # ---------------------------------------------------------------------------
-  # Neuer Schrank: Maße beim Anlegen abfragen. Danach bleiben sie im Fenster
-  # Komponentenoptionen änderbar (Schenkel und Tiefe über den Neuaufbau).
+  # Neuer Schrank: alle Werte aus dem Fenster Komponentenoptionen beim Anlegen abfragen. Danach
+  # bleiben sie dort änderbar (Schenkel und Tiefe über den Neuaufbau).
   TIEFE_NEU = 35.0 # cm, Vorschlag im Dialog
+  EB_TEXT = %w[0 1 2].freeze
 
   def self.dialog
     d = DEFAULTS
-    Kuechenplaner::Eingabe.abfragen(['Schenkel A, hinten (mm)', 'Schenkel B, links (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
-                        [d['Schenkel_A'], d['Schenkel_B'], d['Hoehe'], TIEFE_NEU].map { |v| (v * 10).round.to_s },
-                        'Eck-Oberschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
-      a, b, h, t = werte.map { |v| Float(v.to_s.tr(',', '.')) / 10.0 }
+    Kuechenplaner::Eingabe.abfragen(['Maße: Schenkel A, hinten (mm)', 'Maße: Schenkel B, links (mm)', 'Maße: Höhe (mm)',
+                                     'Maße: Tiefe Korpus (mm)', 'Ausführung: Anzahl Einlegeböden'],
+                                    [d['Schenkel_A'], d['Schenkel_B'], d['Hoehe'], TIEFE_NEU].map { |v| (v * 10).round.to_s } +
+                                      [d['Anz_Einlegeboeden'].to_i.to_s],
+                                    ['', '', '', '', EB_TEXT.join('|')],
+                                    'Eck-Oberschrank L-Form', untertitel: 'Neuer Schrank', ok: 'Einfügen') do |werte|
+      a, b, h, t = werte[0, 4].map { |v| Float(v.to_s.tr(',', '.')) / 10.0 }
       raise ArgumentError, 'Maße müssen größer als 0 sein' if [a, b, h, t].any? { |v| v <= 0 }
-      erstellen({ 'Schenkel_A' => a, 'Schenkel_B' => b, 'Hoehe' => h, 'Tiefe' => t })
+      eingabe = { 'Schenkel_A' => a, 'Schenkel_B' => b, 'Hoehe' => h, 'Tiefe' => t,
+                  'Anz_Einlegeboeden' => (EB_TEXT.index(werte[4].to_s) || 0).to_f }
+      masse(DEFAULTS.merge(eingabe)) # prüft die Maße, Fenster bleibt sonst offen
+      erstellen(eingabe)
     end
   rescue ArgumentError => e
     UI.messagebox("Ungültige Eingabe: #{e.message}")
