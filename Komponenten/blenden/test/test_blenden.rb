@@ -294,10 +294,56 @@ w = B.erstellen(:wange, { 'Seite' => 'rechts', 'Staerke' => 1.9 }, s2)
 m.selection.clear
 [s2, s1, w, quer, os].each { |e| m.selection.add(e) }
 z = B.zeile(m)
-check(z[:ref].equal?(s2) && nahe(z[:x0] * 2.54, -60.0) && nahe(z[:laenge], 60.0 + 45.0 + 1.9) && nahe(z[:tiefe], 56.0) &&
-      nahe(z[:sockel], 12.0) && z[:uebergangen] == 1, "Zeile aus der Auswahl: #{z.reject { |k2, _| k2 == :ref }.inspect}")
+check(z[:ref].equal?(s2) && nahe(z[:x0] * 2.54, -60.0) && nahe(z[:laenge], 60.0 + 45.0) && nahe(z[:tiefe], 56.0) &&
+      nahe(z[:sockel], 12.0), "Zeile aus der Auswahl (ohne Wange): #{z.reject { |k2, _| k2 == :ref }.inspect}")
+check(B.zeilen(B.sockel_teile(m.selection.to_a)).size == 2, 'quer stehender Schrank ist eine eigene Zeile')
 sb = B.erstellen_sockelblende({ 'Laenge' => z[:laenge], 'Tiefe' => z[:tiefe], 'Sockelhoehe' => z[:sockel] }, z)
 check(q_nahe(sb.transformation.origin, tr1.origin) && nahe(sb.transformation.w, tr1.w), "Sockelblende beginnt am linken Schrank: #{sb.transformation.origin}")
+
+# Sockelblende für die ganze Küche: L-Küche, Innenecke links hinten, Lücke, Wange, Oberschrank, alte Blende
+m = neu
+a = (0..2).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+schrank(m, 'Oberschrank', 60.0, Geom::Transformation.translation([0, 0, 150 / 2.54]))
+m.selection.add(a[2])
+B.erstellen(:wange, { 'Seite' => 'rechts', 'Staerke' => 1.9 }, a[2])
+abseits = schrank(m, 'Hochschrank', 60.0, Geom::Transformation.translation([250 / 2.54, 0, 0]), hoehe: 210.0)
+# Zeile B an der linken Wand, Front nach +x, beginnt vor der Front von A
+b = [-60.2, -120.2].map { |y| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.drehung(90, [55 / 2.54, y / 2.54, 0])) }
+m.selection.clear
+alt = B.erstellen_sockelblende('Laenge' => 60.0)
+m.selection.clear
+k = B.kueche(m)
+check(k[:teile].size == 6 && !k[:auswahl] && k[:alte] == [alt], "Küche: 6 Schränke, keine Auswahl, alte Blende (#{k[:teile].size})")
+p = B::ARTEN[:sockelblende][:defaults]
+zl = B.ecken(B.zeilen(k[:teile]), p)
+check(zl.size == 3, "drei Zeilen (A, Hochschrank nach Lücke, B): #{zl.size}")
+neu_sb = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl, k[:alte])
+check(neu_sb.size == 3 && !m.entities.to_a.include?(alt) && m.selection.to_a == neu_sb, 'je Zeile eine Sockelblende, alte ersetzt, neue ausgewählt')
+welt = lambda do |inst|
+  q = sichtbar(knoten(inst))
+  pts = q.select { |n, _| n.start_with?('Sockelblende') }.values.flat_map do |c|
+    [[c[0], c[2]], [c[1], c[3]]].map { |x, y| inst.transformation * Geom::Point3d.new(x / 2.54, y / 2.54, 0) }
+  end
+  xs, ys = pts.map { |pt| pt.x * 2.54 }, pts.map { |pt| pt.y * 2.54 }
+  [xs.min, xs.max, ys.min, ys.max].map { |v| v.round(3) }
+end
+boxen = neu_sb.map { |i| welt.(i) }
+# A: endet links an der Rückseite der Blende von B (x = 55 - 6.9 - 1.6), rechts an der Wange (180)
+check(boxen.include?([46.5, 180.0, 6.9, 8.5]), "Zeile A um die Ecke: #{boxen.inspect}")
+# B: läuft bis an die Vorderseite der Blende von A (y = 6.9)
+check(boxen.include?([46.5, 48.1, -120.2, 6.9]), "Zeile B bis an die Blende von A: #{boxen.inspect}")
+check(boxen.include?([250.0, 310.0, 6.9, 8.5]), "Hochschrank nach der Lücke eigene Blende: #{boxen.inspect}")
+# mit Auswahl nur die gewählten Schränke
+m.selection.clear
+m.selection.add(b[0])
+k = B.kueche(m)
+check(k[:auswahl] && k[:teile] == [b[0]], 'mit Auswahl nur die gewählten Schränke')
+# Über 14 m: mehrere Sockelblenden
+m = neu
+lang = (0..25).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+zl = B.ecken(B.zeilen(B.sockel_teile(lang)), p)
+neu_sb = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
+check(neu_sb.size == 2 && neu_sb.all? { |i| nahe(B.dc_cm(i, 'laenge'), 780.0) }, "15,6 m lange Zeile in zwei Blenden: #{neu_sb.map { |i| B.dc_cm(i, 'laenge') }.inspect}")
 
 # ---------------------------------------------------------------------------
 # Dialoge und Menü
@@ -313,16 +359,16 @@ module UI
   end
 end
 m = neu
+B.dialog_sockelblende
+m.selection.clear
 B.dialog_passblende
 m.selection.clear
 B.dialog_wange
-m.selection.clear
-B.dialog_sockelblende
 check(m.entities.length == 3, "Dialoge ohne Auswahl erzeugen je ein Teil (#{m.entities.length})")
-check(UI.fragen.map { |f| f[1] } == [['Unterschrank', 'rechts', '50', '', 'nein'],
-                                     ['Unterschrank', 'rechts', '19', '', '', '100', '0'],
-                                     ['600', '100', '520', 'keine']], "Dialog-Vorschläge: #{UI.fragen.map { |f| f[1] }.inspect}")
-hs = m.entities.instances[0].definition.entities.instances.first
+check(UI.fragen.map { |f| f[1] } == [['600', '100', '520', 'keine'],
+                                     ['Unterschrank', 'rechts', '50', '', 'nein'],
+                                     ['Unterschrank', 'rechts', '19', '', '', '100', '0']], "Dialog-Vorschläge: #{UI.fragen.map { |f| f[1] }.inspect}")
+hs = m.entities.instances[1].definition.entities.instances.first
 check(nahe(hs.definition.box[2] * 2.54, 70.0), 'Passblende ohne Auswahl: Standardhöhe Unterschrank')
 UI.antworten = [['Hochschrank', 'links', '25', '', '', '120', '10']]
 m.selection.clear
@@ -331,8 +377,8 @@ wg = m.entities.instances.last
 q = sichtbar(knoten(wg))['WangeL']
 check(q && nahe(q[1] - q[0], 2.5) && nahe(q[5], 210.0) && nahe(q[4], -12.0) && nahe(q[2], -1.2) && nahe(q[3], 1.9 + 52.0 + 0.8),
       "Wange aus dem Dialog: #{q.inspect}")
+m = neu
 UI.antworten = [%w[3000 100 520 beide]]
-m.selection.clear
 B.dialog_sockelblende
 check(sichtbar(knoten(m.entities.instances.last)).keys.count { |n| n.start_with?('Sockelblende') } == 2, 'Sockelblende 3000 mm aus dem Dialog: 2 Stücke')
 n = m.entities.length
@@ -340,6 +386,22 @@ UI.antworten = [%w[20000 100 520 keine], %w[0 100 520 keine]]
 B.dialog_sockelblende
 B.dialog_passblende
 check(m.entities.length == n, 'zu lange Sockelblende / Breite 0 abgewiesen')
+
+# Dialog mit Schränken im Modell: Sockelblende für die ganze Küche, alte ersetzen
+m = neu
+2.times { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+m.selection.clear
+alt = B.erstellen_sockelblende('Laenge' => 60.0)
+m.selection.clear
+UI.fragen = []
+UI.antworten = [%w[120 19 ja]]
+B.dialog_sockelblende
+check(UI.fragen.last == [['Sockelhöhe (mm)', 'Stärke (mm)', 'Vorhandene Sockelblenden (1) ersetzen'], %w[100 16 ja]],
+      "Dialog Küche: #{UI.fragen.last.inspect}")
+sbs = m.entities.to_a.select { |e| B.sockelblende?(e) }
+q = sbs.size == 1 && sichtbar(knoten(sbs[0]))['Sockelblende1']
+check(!sbs.include?(alt) && q && nahe(q[1] - q[0], 120.0) && nahe(q[3] - q[2], 1.9) && nahe(q[4], -12.0 + 0.3),
+      "Sockelblende aus dem Küchen-Dialog: #{q.inspect}")
 
 # Sockelhöhe aus den Küchen-Einstellungen (hier 150 mm statt Standard 100 mm)
 Kuechenplaner::Einstellungen.define_singleton_method(:sockelhoehe) { |_m = nil| 150.0 }
