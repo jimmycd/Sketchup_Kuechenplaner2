@@ -76,7 +76,9 @@ module Sketchup
     def grep(k) = @list.grep(k)
     def add_face(*pts) = Face.new(self, pts)
     def add_line(*) = nil
-    def add_text(t, p) = @texte << [t, p]
+    # Text wie in SketchUp mit Tag; [0] und [1] liefern Text und Punkt wie bisher
+    Text = Struct.new(:text, :point, :layer) { def first = text }
+    def add_text(t, p) = Text.new(t, p).tap { |x| @texte << x }
     def add_instance(d, tr)
       i = ComponentInstance.new(d, tr)
       i.parent_entities = self
@@ -216,6 +218,9 @@ module Sketchup
     def start_operation(*) = nil
     def commit_operation = nil
     def abort_operation = nil
+    # Modell-Attribute (Schrank-Beschriftung ein/aus)
+    def get_attribute(d, k, std = nil) = (@attr ||= {}).fetch([d, k], std)
+    def set_attribute(d, k, v) = (@attr ||= {})[[d, k]] = v
   end
 
   class << self
