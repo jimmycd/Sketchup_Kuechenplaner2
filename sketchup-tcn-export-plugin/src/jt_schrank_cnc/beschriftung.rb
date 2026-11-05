@@ -6,8 +6,10 @@
 # Kürzel gleichlautend an den Schrank und an jedes Teil, die Etiketten drucken es als
 # „<Kürzel> · <Teil>“ und im Tag „<Kürzel>_…“).
 #
-# Die Texte stehen in einer Gruppe „Schrank-Beschriftung“ auf dem Tag „Beschriftung“
-# (oberste Ebene, nicht im Schrank: der TCN-Export, die Stückliste und das Andocken sehen
+# Der Text steht wie bei den Geräten vorn auf der größten sichtbaren Front, ohne Front
+# schwebt er 100 mm vor dem Schrank (Jürgen 2026-11-05: mitten im Schrank sah man ihn nur
+# bei offener Tür). Die Texte stehen in einer Gruppe „Schrank-Beschriftung“ auf dem Tag
+# „Beschriftung“ (oberste Ebene, nicht im Schrank: der TCN-Export, die Stückliste und das Andocken sehen
 # sie nicht). Ein-/Ausschalten (Symbolleiste oder Menü) zeigt den Tag in den Szenen
 # „Planung“ und „Zuschnitt“ bzw. blendet ihn dort aus; in „Kunde“ ist er nie zu sehen.
 # Solange die Beschriftung an ist, folgt sie nach jedem Vorgang dem Modell (Schrank
@@ -46,16 +48,35 @@ module JTools
         out
       end
 
-      # Punkt des Texts: Mitte des sichtbaren Schrankkastens (Weltkoordinaten)
-      def punkt(inst, w)
-        k = Andocken.kasten(inst)
-        b = Andocken::Rechnung.box_trafo(w, [k[0], k[2], k[4]], [k[1], k[3], k[5]])
-        [(b[0] + b[1]) / 2.0, (b[2] + b[3]) / 2.0, (b[4] + b[5]) / 2.0]
+      VOR_FRONT = 1.0 / 25.4   # Text 1 mm vor der Front, damit die Front ihn nicht verdeckt
+      SCHWEBEN = 100.0 / 25.4  # ohne Front: 100 mm vor dem Schrank
+
+      # Sichtbare Fronten/Türen des Schranks als Kasten [x0, x1, y0, y1, z0, z1] im Schranksystem
+      def fronten(model, inst)
+        Schraenke.teile(model, Schraenke.definition(inst).entities, [], inst).select { |t| t.front? && t.sichtbar? }.map do |t|
+          m = t.pfad.reduce(Andocken::EINS) { |a, i| Andocken::Rechnung.matmul(a, i.transformation.to_a.map(&:to_f)) }
+          b = Schraenke.definition(t.inst).bounds
+          Andocken::Rechnung.box_trafo(m, b.min.to_a.map(&:to_f), b.max.to_a.map(&:to_f))
+        end
+      end
+
+      # Punkt des Texts (Weltkoordinaten): wie bei den Geräten vorn auf der Front – mittig auf der
+      # größten sichtbaren Front (Tür, Klappe, Schubkasten), knapp davor. Ohne Front schwebt er
+      # vor dem Schrank, mittig in Breite und Höhe. Vorn ist im Schranksystem die kleine y-Seite.
+      def punkt(model, inst, w)
+        f = fronten(model, inst).max_by { |b| [(b[1] - b[0]) * (b[5] - b[4]), b[5]] }
+        p = if f
+              [(f[0] + f[1]) / 2.0, f[2] - VOR_FRONT, (f[4] + f[5]) / 2.0]
+            else
+              k = Andocken.kasten(inst)
+              [(k[0] + k[1]) / 2.0, k[2] - SCHWEBEN, (k[4] + k[5]) / 2.0]
+            end
+        (0..2).map { |r| w[r] * p[0] + w[4 + r] * p[1] + w[8 + r] * p[2] + w[12 + r] }
       end
 
       # Soll-Beschriftung: [[Kürzel, [x, y, z]], …] sortiert
       def soll(model)
-        schraenke(model).map { |kz, inst, w| [kz, punkt(inst, w)] }.sort_by { |kz, p| [kz, p] }
+        schraenke(model).map { |kz, inst, w| [kz, punkt(model, inst, w)] }.sort_by { |kz, p| [kz, p] }
       end
 
       def beschriftung?(e)

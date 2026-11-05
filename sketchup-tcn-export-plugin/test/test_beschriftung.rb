@@ -113,8 +113,18 @@ check(texte(model).all? { |t| t.layer.name == 'Beschriftung' }, 'Texte auf Tag B
 t_us = texte(model).find { |t| t.text == 'USS1' }
 k = S::Andocken.kasten(us)
 o = us.transformation.origin
-mitte = [(k[0] + k[1]) / 2 + o[0], (k[2] + k[3]) / 2 + o[1], (k[4] + k[5]) / 2 + o[2]]
-check(t_us.point.zip(mitte).all? { |a, b| (a - b).abs < 1e-6 }, "Text in der Mitte des Schranks: #{t_us.point} statt #{mitte}")
+# ohne sichtbare Front (im Mock sind die Schubkästen ausgeblendet): 100 mm vor dem Schrank, mittig
+mitte = [(k[0] + k[1]) / 2 + o[0], k[2] - 100 / 25.4 + o[1], (k[4] + k[5]) / 2 + o[2]]
+check(t_us.point.zip(mitte).all? { |a, b| (a - b).abs < 1e-6 }, "ohne Front: Text schwebt vor dem Schrank: #{t_us.point} statt #{mitte}")
+# mit Front: wie bei den Geräten vorn mittig auf der größten sichtbaren Front, 1 mm davor
+t_hs = texte(model).find { |t| t.text == 'HS1' }
+fr = B.fronten(model, hs)
+check(!fr.empty? && fr.size == S::Schraenke.teile(model).count { |t| t.schrank == hs && t.front? && t.sichtbar? }, "Hochschrank: sichtbare Fronten #{fr.size}")
+gr = fr.max_by { |b| (b[1] - b[0]) * (b[5] - b[4]) }
+ho = hs.transformation.origin
+soll_hs = [(gr[0] + gr[1]) / 2 + ho[0], gr[2] - 1 / 25.4 + ho[1], (gr[4] + gr[5]) / 2 + ho[2]]
+check(t_hs.point.zip(soll_hs).all? { |a, b| (a - b).abs < 1e-6 }, "mit Front: Text vorn auf der größten Front: #{t_hs.point} statt #{soll_hs}")
+check(t_hs.point[1] < S::Andocken.kasten(hs)[2] + ho[1], 'Text liegt vor der Front, nicht im Schrank')
 check(model.pages['Planung'].sichtbar['Beschriftung'] == true && model.pages['Zuschnitt'].sichtbar['Beschriftung'] == true,
       'ein: Planung und Zuschnitt zeigen die Beschriftung')
 check(model.pages['Kunde'].sichtbar['Beschriftung'] == false, 'Kunde zeigt die Beschriftung nie')
@@ -154,6 +164,15 @@ t_in = texte(model).select { |t| t.text == 'USS7' }.map(&:point).find { |p| p[1]
 check(t_in && (t_in[1] - (1000.0 + mitte[1])).abs < 1e-6, "Schrank in Gruppe: Text an Weltposition (#{t_in})")
 huelle.entities.instances.delete(innen)
 model.entities.instances.delete(huelle)
+model.beobachter.first.onTransactionCommit(model)
+
+# --- gedrehter Schrank (Rückwand nach -y): Text vor der Front auf der anderen Seite ---
+gedreht = model.entities.add_instance(hs.definition, Geom::Transformation.axes(Geom::Point3d.new(0, 2000.0, 0), [-1, 0, 0], [0, -1, 0], [0, 0, 1]))
+model.beobachter.first.onTransactionCommit(model)
+t_g = texte(model).map(&:point).find { |p| p[1] > 1500 }
+check(t_g && (t_g[1] - (2000.0 - soll_hs[1] + ho[1])).abs < 1e-6 && (t_g[0] + (soll_hs[0] - ho[0])).abs < 1e-6,
+      "gedrehter Schrank: Text vor seiner Front (#{t_g})")
+model.entities.instances.delete(gedreht)
 model.beobachter.first.onTransactionCommit(model)
 
 # --- ausschalten: Szenen blenden aus, nichts mehr nachziehen ---
