@@ -6,9 +6,8 @@
 # Kürzel gleichlautend an den Schrank und an jedes Teil, die Etiketten drucken es als
 # „<Kürzel> · <Teil>“ und im Tag „<Kürzel>_…“).
 #
-# Der Text steht wie bei den Geräten vorn auf der größten sichtbaren Front, ohne Front
-# schwebt er 100 mm vor dem Schrank (Jürgen 2026-11-05: mitten im Schrank sah man ihn nur
-# bei offener Tür). Die Texte stehen in einer Gruppe „Schrank-Beschriftung“ auf dem Tag
+# Text mit Pfeil wie das SketchUp-Werkzeug „Text“: immer lesbar, die Pfeilspitze sitzt vorn
+# auf der größten sichtbaren Front, ohne Front vorn am Schrank (Jürgen 2026-11-05). Die Texte stehen in einer Gruppe „Schrank-Beschriftung“ auf dem Tag
 # „Beschriftung“ (oberste Ebene, nicht im Schrank: der TCN-Export, die Stückliste und das Andocken sehen
 # sie nicht). Ein-/Ausschalten (Symbolleiste oder Menü) zeigt den Tag in den Szenen
 # „Planung“ und „Zuschnitt“ bzw. blendet ihn dort aus; in „Kunde“ ist er nie zu sehen.
@@ -48,8 +47,11 @@ module JTools
         out
       end
 
-      VOR_FRONT = 1.0 / 25.4   # Text 1 mm vor der Front, damit die Front ihn nicht verdeckt
-      SCHWEBEN = 100.0 / 25.4  # ohne Front: 100 mm vor dem Schrank
+      VOR_FRONT = 1.0 / 25.4 # Pfeilspitze 1 mm vor der Front
+      # Text mit Pfeil (wie das SketchUp-Werkzeug „Text“): der Text steht immer lesbar zum Betrachter,
+      # die Pfeilspitze sitzt auf der Front. Versatz vom Pfeil zum Text im Schranksystem (mm):
+      # etwas nach rechts, nach vorn und nach oben
+      PFEIL = [100.0, -200.0, 150.0].map { |v| v / 25.4 }.freeze
 
       # Sichtbare Fronten/Türen des Schranks als Kasten [x0, x1, y0, y1, z0, z1] im Schranksystem
       def fronten(model, inst)
@@ -60,21 +62,19 @@ module JTools
         end
       end
 
-      # Punkt des Texts (Weltkoordinaten): wie bei den Geräten vorn auf der Front – mittig auf der
-      # größten sichtbaren Front (Tür, Klappe, Schubkasten), knapp davor. Ohne Front schwebt er
-      # vor dem Schrank, mittig in Breite und Höhe. Vorn ist im Schranksystem die kleine y-Seite.
+      # Pfeilspitze und Pfeil des Texts (Weltkoordinaten): [x, y, z, vx, vy, vz]. Die Spitze sitzt wie
+      # bei den Geräten vorn mittig auf der größten sichtbaren Front (Tür, Klappe, Schubkasten);
+      # ohne Front vorn mittig am Schrankkasten. Vorn ist im Schranksystem die kleine y-Seite.
+      # Ein Text ohne Pfeil auf der Front verschwand, sobald man die Ansicht etwas drehte
+      # (Jürgen 2026-11-05), mitten im Schrank war er nur bei offener Tür zu sehen.
       def punkt(model, inst, w)
-        f = fronten(model, inst).max_by { |b| [(b[1] - b[0]) * (b[5] - b[4]), b[5]] }
-        p = if f
-              [(f[0] + f[1]) / 2.0, f[2] - VOR_FRONT, (f[4] + f[5]) / 2.0]
-            else
-              k = Andocken.kasten(inst)
-              [(k[0] + k[1]) / 2.0, k[2] - SCHWEBEN, (k[4] + k[5]) / 2.0]
-            end
-        (0..2).map { |r| w[r] * p[0] + w[4 + r] * p[1] + w[8 + r] * p[2] + w[12 + r] }
+        f = fronten(model, inst).max_by { |b| [(b[1] - b[0]) * (b[5] - b[4]), b[5]] } || Andocken.kasten(inst)
+        p = [(f[0] + f[1]) / 2.0, f[2] - VOR_FRONT, (f[4] + f[5]) / 2.0]
+        (0..2).map { |r| w[r] * p[0] + w[4 + r] * p[1] + w[8 + r] * p[2] + w[12 + r] } +
+          (0..2).map { |r| w[r] * PFEIL[0] + w[4 + r] * PFEIL[1] + w[8 + r] * PFEIL[2] }
       end
 
-      # Soll-Beschriftung: [[Kürzel, [x, y, z]], …] sortiert
+      # Soll-Beschriftung: [[Kürzel, [x, y, z, vx, vy, vz]], …] sortiert
       def soll(model)
         schraenke(model).map { |kz, inst, w| [kz, punkt(model, inst, w)] }.sort_by { |kz, p| [kz, p] }
       end
@@ -97,7 +97,7 @@ module JTools
 
       # Ist-Beschriftung im selben Format wie #soll
       def ist(model)
-        texte(gruppe(model)).map { |t| [t.text.to_s, t.point.to_a.map(&:to_f)] }.sort_by { |kz, p| [kz, p] }
+        texte(gruppe(model)).map { |t| [t.text.to_s, (t.point.to_a + t.vector.to_a).map(&:to_f)] }.sort_by { |kz, p| [kz, p] }
       end
 
       def gleich?(a, b)
@@ -120,7 +120,8 @@ module JTools
         g.layer = t
         g.set_attribute(DICT, 'gruppe', true)
         s.each do |kz, p|
-          tx = g.entities.add_text(kz, Geom::Point3d.new(*p))
+          tx = g.entities.add_text(kz, Geom::Point3d.new(*p[0, 3]), Geom::Vector3d.new(*p[3, 3]))
+          tx.leader_type = 2 if tx.respond_to?(:leader_type=) # Pfeil fest im Raum (Pin), wie das Werkzeug Text
           tx.layer = t
         end
         s.size

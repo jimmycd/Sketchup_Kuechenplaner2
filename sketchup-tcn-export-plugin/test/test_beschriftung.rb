@@ -17,8 +17,8 @@ module Sketchup
 
   class Text
     include Attr
-    attr_accessor :text, :point, :layer
-    def initialize(t, p) = (@text, @point = t, p)
+    attr_accessor :text, :point, :vector, :layer, :leader_type
+    def initialize(t, p, v) = (@text, @point, @vector = t, p, v)
   end
 
   class Group
@@ -34,7 +34,7 @@ module Sketchup
   class Entities
     def parent = definition
     def add_group = Group.new(self).tap { |g| @list << g }
-    def add_text(t, p) = Text.new(t, p.to_a).tap { |x| @list << x }
+    def add_text(t, p, v = nil) = Text.new(t, p.to_a, v&.to_a).tap { |x| @list << x }
   end
 
   class Page
@@ -114,8 +114,11 @@ t_us = texte(model).find { |t| t.text == 'USS1' }
 k = S::Andocken.kasten(us)
 o = us.transformation.origin
 # ohne sichtbare Front (im Mock sind die Schubkästen ausgeblendet): 100 mm vor dem Schrank, mittig
-mitte = [(k[0] + k[1]) / 2 + o[0], k[2] - 100 / 25.4 + o[1], (k[4] + k[5]) / 2 + o[2]]
-check(t_us.point.zip(mitte).all? { |a, b| (a - b).abs < 1e-6 }, "ohne Front: Text schwebt vor dem Schrank: #{t_us.point} statt #{mitte}")
+mitte = [(k[0] + k[1]) / 2 + o[0], k[2] - 1 / 25.4 + o[1], (k[4] + k[5]) / 2 + o[2]]
+check(t_us.point.zip(mitte).all? { |a, b| (a - b).abs < 1e-6 }, "ohne Front: Pfeil vorn mittig am Schrank: #{t_us.point} statt #{mitte}")
+# Text mit Pfeil wie das Werkzeug „Text“ (immer lesbar): Pin, Text rechts, vorn, oben vom Pfeil
+check(texte(model).all? { |t| t.leader_type == 2 && t.vector }, 'alle Texte mit Pfeil (Pin)')
+check(t_us.vector.zip([100, -200, 150]).all? { |a, b| (a - b / 25.4).abs < 1e-6 }, "Pfeil: Text 100 rechts, 200 vor, 150 über der Spitze (#{t_us.vector})")
 # mit Front: wie bei den Geräten vorn mittig auf der größten sichtbaren Front, 1 mm davor
 t_hs = texte(model).find { |t| t.text == 'HS1' }
 fr = B.fronten(model, hs)
@@ -172,6 +175,8 @@ model.beobachter.first.onTransactionCommit(model)
 t_g = texte(model).map(&:point).find { |p| p[1] > 1500 }
 check(t_g && (t_g[1] - (2000.0 - soll_hs[1] + ho[1])).abs < 1e-6 && (t_g[0] + (soll_hs[0] - ho[0])).abs < 1e-6,
       "gedrehter Schrank: Text vor seiner Front (#{t_g})")
+v_g = texte(model).find { |t| t.point[1] > 1500 }.vector
+check(v_g.zip([-100, 200, 150]).all? { |a, b| (a - b / 25.4).abs < 1e-6 }, "gedrehter Schrank: Pfeil dreht mit (#{v_g})")
 model.entities.instances.delete(gedreht)
 model.beobachter.first.onTransactionCommit(model)
 
