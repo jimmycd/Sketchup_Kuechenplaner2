@@ -368,7 +368,9 @@ Dir.mktmpdir do |tmp|
           "eigene Statusdatei mit PID, Samples und Fertig-Meldung (ohne Konsolenausgabe): #{status.lines.map(&:strip)}")
     FileUtils.cp(bild, ENV['RENDER_KOPIE']) if ENV['RENDER_KOPIE']
     pruef = <<~PY
-      import bpy, math, sys
+      import bpy, json, math, sys
+      from mathutils import Vector
+      from bpy_extras.object_utils import world_to_camera_view
       bpy.ops.wm.open_mainfile(filepath=sys.argv[1])
       cam = bpy.data.objects["Kamera"]
       z = cam.matrix_world.to_3x3().col[2]
@@ -376,8 +378,14 @@ Dir.mktmpdir do |tmp|
       env = [n for n in bpy.context.scene.world.node_tree.nodes if n.type == "TEX_ENVIRONMENT"]
       bevel = any(n.type == "BEVEL" for m in bpy.data.materials if m.node_tree for n in m.node_tree.nodes)
       print("PRUEF", round(abs(z.z), 6), round(cam.data.shift_y, 4), len(leds), len(env), bevel)
+      ziel = json.load(open(sys.argv[2], encoding="utf-8"))["kamera"]["ziel"]
+      p = world_to_camera_view(bpy.context.scene, cam, Vector(ziel))
+      print("MITTE", round(p.x, 4), round(p.y, 4))
     PY
-    out = IO.popen([py, '-c', pruef, File.join(ordner, 'szene.blend')], err: File::NULL, &:read)
+    out = IO.popen([py, '-c', pruef, File.join(ordner, 'szene.blend'), json], err: File::NULL, &:read)
+    mitte = out[/^MITTE (.*)$/, 1].to_s.split.map(&:to_f)
+    check(mitte.size == 2 && mitte.all? { |v| (v - 0.5).abs < 0.02 },
+          "Zweipunktperspektive: Blickziel liegt in der Bildmitte, Küche nicht nach unten verschoben (#{mitte.inspect})")
     werte = out[/^PRUEF (.*)$/, 1].to_s.split
     check(werte[0] == '0.0' && werte[1].to_f < -0.05, "Zweipunktperspektive: Kamera waagrecht, Blick nach unten als Shift nach unten (#{werte.inspect})")
     check(werte[2] == '1' && werte[3] == '1' && werte[4] == 'True', "Blender-Szene mit LED, HDRI-Umgebung und Kantenradius (#{werte.inspect})")
