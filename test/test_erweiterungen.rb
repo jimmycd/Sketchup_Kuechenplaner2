@@ -162,6 +162,17 @@ schrank_eintraege.each do |titel, blk, gruppe|
   check(optionen.size == felder.size, "#{titel}: alle #{optionen.size} Komponentenoptionen im Dialog (#{felder.size} Felder)")
 end
 
+# Oberschrank: Türen (eine links/rechts, zwei, keine) und Einlegeböden im Anlage-Dialog
+m = Sketchup.active_model = Sketchup::Model.new
+UI::HtmlDialog.alle = []
+kp.find { |e| e.is_a?(UI::Menu) && e.titel == 'Oberschränke' }.eintraege.assoc('Oberschrank…')[1].call
+d = UI::HtmlDialog.alle.last
+check(EingabeHelfer.felder(d.html).assoc('Türen') && d.html.include?('Eine Tür, Anschlag rechts'), 'Oberschrank: Dialog fragt die Türen ab')
+EingabeHelfer.ok(d, 'Türen' => 'Eine Tür, Anschlag rechts', 'Anzahl Einlegeböden' => '2')
+inst = m.entities.grep(Sketchup::ComponentInstance).last
+w = ->(k) { inst.definition.get_attribute('dynamic_attributes', k) }
+check(w.('art_tuer') == 3.0 && w.('anz_einlegeboeden') == 2.0, "Oberschrank: eine Tür rechts aus dem Dialog (#{w.('art_tuer')}/#{w.('anz_einlegeboeden')})")
+
 # Blindeck: Auswahlen im Dialog kommen am Schrank an
 m = Sketchup.active_model = Sketchup::Model.new
 UI::HtmlDialog.alle = []
