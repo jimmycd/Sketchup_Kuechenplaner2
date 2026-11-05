@@ -294,7 +294,7 @@ w = B.erstellen(:wange, { 'Seite' => 'rechts', 'Staerke' => 1.9 }, s2)
 m.selection.clear
 [s2, s1, w, quer, os].each { |e| m.selection.add(e) }
 z = B.zeile(m)
-check(z[:ref].equal?(s2) && nahe(z[:x0] * 2.54, -60.0) && nahe(z[:laenge], 60.0 + 45.0) && nahe(z[:tiefe], 56.0) &&
+check(z[:ref].equal?(s1) && nahe(z[:x0], 0.0) && nahe(z[:laenge], 60.0 + 45.0) && nahe(z[:tiefe], 52.0) &&
       nahe(z[:sockel], 12.0), "Zeile aus der Auswahl (ohne Wange): #{z.reject { |k2, _| k2 == :ref }.inspect}")
 check(B.zeilen(B.sockel_teile(m.selection.to_a)).size == 2, 'quer stehender Schrank ist eine eigene Zeile')
 sb = B.erstellen_sockelblende({ 'Laenge' => z[:laenge], 'Tiefe' => z[:tiefe], 'Sockelhoehe' => z[:sockel] }, z)
@@ -344,6 +344,44 @@ lang = (0..25).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.t
 zl = B.ecken(B.zeilen(B.sockel_teile(lang)), p)
 neu_sb = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
 check(neu_sb.size == 2 && neu_sb.all? { |i| nahe(B.dc_cm(i, 'laenge'), 780.0) }, "15,6 m lange Zeile in zwei Blenden: #{neu_sb.map { |i| B.dc_cm(i, 'laenge') }.inspect}")
+# Hochschrank Kühlschrank (560 mm tief, Rückseite an der Wand, Front 40 mm vor den
+# Unterschränken) mitten in der Zeile: der Sockel läuft durch (Jürgen 2026-11-05)
+m = neu
+us = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+hk = schrank(m, 'Hochschrank', 60.0, Geom::Transformation.translation([120 / 2.54, -4 / 2.54, 0]), tiefe: 56.0, hoehe: 210.0)
+us << schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([180 / 2.54, 0, 0]))
+zl = B.ecken(B.zeilen(B.sockel_teile([hk] + us)), p)
+check(zl.size == 1 && !zl.first[:ref].equal?(hk) && nahe(zl.first[:x0], 0) && nahe(zl.first[:laenge], 240.0) &&
+      nahe(zl.first[:tiefe], 52.0), "Kühlschrank-Hochschrank in der Zeile: #{zl.map { |x| x.reject { |k2, _| k2 == :ref } }.inspect}")
+neu_sb = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
+check(neu_sb.size == 1 && welt.(neu_sb.first) == [0.0, 240.0, 6.9, 8.5], "eine durchlaufende Blende hinter den Unterschrank-Fronten: #{neu_sb.map { |i| welt.(i) }.inspect}")
+# Hochschrank am Zeilenende mit Wange: Ende an der Wange, Seitenstück bis zur Wand passt zur Unterschrank-Tiefe
+m.selection.clear
+m.selection.add(hk)
+B.erstellen(:wange, { 'Seite' => 'rechts', 'Kategorie' => 'Hochschrank', 'Hoehe' => 210.0 }, hk)
+z = B.enden(m, B.ecken(B.zeilen(B.sockel_teile([hk] + us[0, 2])), p), p).first
+check(z[:enden] == %i[frei wange] && nahe(z[:tiefe_seite], 52.0), "Wange am Kühlschrank-Hochschrank: #{z.slice(:enden, :tiefe_seite)}")
+# Sonderschrank mit anderer Flucht (Backofen 20 mm zurück) neben Standard-Unterschränken:
+# Flucht und Tiefe von den Standard-Unterschränken, kein Versatz
+m = neu
+st = (0..1).map { |i| schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([i * 60 / 2.54, 0, 0])) }
+bo = schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([120 / 2.54, 2 / 2.54, 0]), tiefe: 50.0)
+bo.definition.set_attribute(B::JT_DICT, 'typ', 'Unterschrank_Backofen')
+hk2 = schrank(m, 'Hochschrank', 60.0, Geom::Transformation.translation([-60 / 2.54, -4 / 2.54, 0]), tiefe: 56.0, hoehe: 210.0)
+hk2.definition.set_attribute(B::JT_DICT, 'typ', 'Hochschrank_Kuehlgeraet')
+zl = B.ecken(B.zeilen(B.sockel_teile([bo, hk2] + st)), p)
+check(zl.size == 1 && st.any? { |e| zl.first[:ref].equal?(e) } && nahe(zl.first[:laenge], 240.0) && nahe(zl.first[:tiefe], 52.0),
+      "Bezug Standard-Unterschrank: #{zl.map { |x| x.reject { |k2, _| k2 == :ref } }.inspect}")
+neu_sb = B.erstellen_sockelblenden({ 'Sockelhoehe' => 10.0, 'Staerke' => 1.6 }, zl)
+check(welt.(neu_sb.first) == [-60.0, 180.0, 6.9, 8.5], "Blende ohne Versatz: #{welt.(neu_sb.first).inspect}")
+# Sonderschrank allein in der Zeile: er selbst ist der Bezug
+zl = B.zeilen(B.sockel_teile([hk2]))
+check(zl.size == 1 && zl.first[:ref].equal?(hk2) && nahe(zl.first[:tiefe], 56.0), 'Sonderschrank allein: eigener Bezug')
+# deutlich weiter vorn (> 150 mm) bleibt es eine eigene Zeile
+m = neu
+a = schrank(m, 'Unterschrank', 60.0, Geom::Transformation.new)
+b = schrank(m, 'Unterschrank', 60.0, Geom::Transformation.translation([60 / 2.54, -20 / 2.54, 0]))
+check(B.zeilen(B.sockel_teile([a, b])).size == 2, 'Front 200 mm versetzt: zwei Zeilen')
 
 # ---------------------------------------------------------------------------
 # Dialoge und Menü
