@@ -175,12 +175,15 @@ module JTools
         end
 
         # --- freier Platz ------------------------------------------------------------
-        # hindernisse = [[lage, [x0, x1, y0, y1]], …] (Wände, andere Schränke) im Grundriss.
-        # Platz, wenn der Grundriss des Kastens k in Lage l keines davon um mehr als tol
-        # überlappt (Berühren ist erlaubt). Gerechnet im System des Hindernisses.
+        # hindernisse = [[lage, [x0, x1, y0, y1], [z0, z1] oder nil, art], …] (Wände: nil = ganze
+        # Höhe, art :wand; andere Schränke: :schrank). Platz, wenn der Kasten k in Lage l
+        # keines davon um mehr als tol überlappt (Berühren ist erlaubt). Gerechnet im System
+        # des Hindernisses.
         def platz?(k, l, hindernisse, tol = TOLERANZ)
           ecken = [[k[0], k[2]], [k[1], k[2]], [k[1], k[3]], [k[0], k[3]]].map { |x, y| welt(l, x, y) }
-          hindernisse.none? do |hl, hb|
+          z = [(l[3] || 0) + k[4], (l[3] || 0) + k[5]]
+          hindernisse.none? do |hl, hb, hz|
+            next false unless z_ueberlappt?(z, hz, tol)
             pts = ecken.map { |x, y| lokal(hl, x, y) }
             xs = pts.map(&:first)
             ys = pts.map(&:last)
@@ -188,17 +191,101 @@ module JTools
           end
         end
 
+        def z_ueberlappt?(z, hz, tol = TOLERANZ)
+          hz.nil? || (hz[0] < z[1] - tol && hz[1] > z[0] + tol)
+        end
+
+        # Grundriss eines Hindernisses im System wl (achsparallele Hülle)
+        def huelle(hl, hb, wl)
+          pts = [[hb[0], hb[2]], [hb[1], hb[2]], [hb[1], hb[3]], [hb[0], hb[3]]].map { |x, y| lokal(wl, *welt(hl, x, y)) }
+          [pts.map(&:first).min, pts.map(&:first).max, pts.map(&:last).min, pts.map(&:last).max]
+        end
+
+        # nächster Wert zu x, der in keinem offenen Intervall (a, b) liegt
+        def naechster_freier(x, gesperrt)
+          frei = ->(v) { gesperrt.none? { |a, b| v > a + 1e-9 && v < b - 1e-9 } }
+          return x if frei.call(x)
+          gesperrt.flatten.select { |v| frei.call(v) }.min_by { |v| (v - x).abs }
+        end
+
+        # --- an der Wand gleiten (Jürgen 2026-11-05) -----------------------------------
+        # Schrank (Kasten k, um q Viertel gegen die Wand gedreht) mit der Rückseite im
+        # abstand vor der Wand wl (x entlang, y in die Wand), Mitte möglichst bei lx.
+        # Rastet an den Wandenden (dort seitlich im abstand) und Laibungen ein (fang),
+        # weicht Hindernissen aus (bleibt anliegend stehen) und stellt die Vorderkante bündig
+        # mit einem anliegenden Nachbarn, der weiter vorne steht (untere vordere Korpusecke gleich).
+        # z = [z0, z1] des Schranks. Liefert [winkel, x, y, linke Kante entlang der Wand] oder nil.
+        def an_wand_gleiten(k, wl, laenge, lx, q, abstand, fang, links, rechts, hindernisse, z, tol = TOLERANZ)
+          r = rechteck(k, q * VIERTEL)
+          b = r[1] - r[0]
+          oy = -abstand - r[3]
+          xs = lx - b / 2.0
+          kanten = links.map { |s| s.abs < 1e-6 ? s + abstand : s } +
+                   rechts.map { |s| (laenge && (s - laenge).abs < 1e-6 ? s - abstand : s) - b }
+          fangpunkt = kanten.min_by { |c| (c - xs).abs }
+          xs = fangpunkt if fangpunkt && (fangpunkt - xs).abs <= fang
+          xs = [[xs, 0.0].max, laenge - b].min if laenge && laenge >= b # nicht über das Wandende hinaus
+          huellen = hindernisse.select { |_, _, hz| z_ueberlappt?(z, hz, tol) }
+                               .map { |hl, hb, _, art| [huelle(hl, hb, wl), art] }
+          gesperrt = lambda do |y0|
+            huellen.select { |h, _| h[3] > y0 + r[2] + tol && h[2] < y0 + r[3] - tol }
+                   .map { |h, _| [h[0] - b, h[1]] }
+          end
+          xs = naechster_freier(xs, gesperrt.call(oy))
+          return nil unless xs
+          # Vorderkante bündig mit einem anliegenden Schrank, wenn dieser weiter vorne steht
+          nachbar = huellen.find do |h, art|
+            art == :schrank && h[2] < oy + r[2] - tol && h[3] > oy + r[2] &&
+              ((h[1] - xs).abs <= tol || (h[0] - xs - b).abs <= tol)
+          end
+          if nachbar
+            oy2 = nachbar[0][2] - r[2]
+            oy = oy2 if naechster_freier(xs, gesperrt.call(oy2)) == xs
+          end
+          x, y = welt(wl, xs - r[0], oy)
+          [winkel(wl[0] + q * VIERTEL), x, y, xs]
+        end
+
+        # nächste Wand zum Punkt (Abstand zur Wandstrecke): Index in waende
+        # (waende = [[wl, laenge], …])
+        def naechste_wand(waende, px, py)
+          return nil if waende.empty?
+          waende.each_index.min_by do |i|
+            wl, laenge = waende[i]
+            lx, ly = lokal(wl, px, py)
+            dx = lx < 0 ? -lx : (lx > laenge ? lx - laenge : 0)
+            Math.sqrt(dx * dx + ly * ly)
+          end
+        end
+
+        # Tab im Werkzeug: [wand, q] → nächster Zustand. Eckschrank: erst drehen (q 0 → 3) an
+        # derselben Wand, beim nächsten Tab die Wand wechseln. rueck = Shift+Tab.
+        def tab(wand, q, n, eck, rueck = false)
+          if rueck
+            return [wand, 0] if eck && q == 3
+            w = (wand - 1) % n
+            return [w, eck ? 3 : 0]
+          end
+          return [wand, 3] if eck && q.zero?
+          [(wand + 1) % n, 0]
+        end
+
         # --- Bezugskasten -------------------------------------------------------------
         # seiten/wangen: Kästen der sichtbaren Seiten bzw. Wangen im Schranksystem,
         # virtuell: Kasten aus den Maßen (Schränke ohne eigene Seite), rest: alle sichtbaren Teile.
         # x und Höhe kommen von den Seiten (sonst virtuell), Wangen verbreitern nur in x und
         # verlängern nach hinten (sie reichen bis zum Fußboden und zählen in z nicht).
-        # hinten: Kästen der Rückwände, sie verlängern nur nach hinten (Rückseite an der Wand).
+        # hinten: Kästen der Rückwände, sie zählen im Grundriss mit (Rückseite an der Wand; die
+        # Rückwand von Schenkel B der L-Form liegt seitlich), nicht in der Höhe.
         def bezug(seiten, wangen, virtuell, rest, hinten = [])
           b = seiten.empty? ? virtuell : vereinigen(seiten)
           return rest if b.nil?
           b = b.dup
-          hinten.each { |r| b[3] = [b[3], r[3]].max }
+          hinten.each do |r|
+            b[0] = [b[0], r[0]].min
+            b[1] = [b[1], r[1]].max
+            b[3] = [b[3], r[3]].max
+          end
           wangen.each do |w|
             b[0] = [b[0], w[0]].min
             b[1] = [b[1], w[1]].max
@@ -384,43 +471,54 @@ module JTools
         {}
       end
 
-      # Wände als Hindernisse [[lage, [0, laenge, 0, dicke]], …] (Wandsystem: y in die Wand)
-      def self.waende(model)
+      # Wände des Raums in ihrer Reihenfolge (Wand 1, 2, …): je { lage:, laenge:, dicke:,
+      # links:, rechts: } in Zoll (Wandsystem: x entlang der Wand, y in die Wand hinein)
+      def self.raumwaende(model)
         r = raum(model)
         return [] unless r
         dicke = (raum_daten(r)['dicke'] || 240).to_f * MM
         m = r.transformation.to_a.map(&:to_f)
-        Schraenke.instanzen(Schraenke.definition(r).entities).select { |w| w.get_attribute(RAUM_DICT, 'typ') == 'Wand' }.map do |w|
+        ws = Schraenke.instanzen(Schraenke.definition(r).entities).select { |w| w.get_attribute(RAUM_DICT, 'typ') == 'Wand' }
+        ws.sort_by { |w| w.get_attribute(RAUM_DICT, 'wand').to_i }.map do |w|
           mm = Rechnung.matmul(m, w.transformation.to_a.map(&:to_f))
-          [[Rechnung.winkel(Math.atan2(mm[1], mm[0])), mm[12], mm[13], mm[14]],
-           [0.0, w.get_attribute(RAUM_DICT, 'laenge').to_f * MM, 0.0, dicke]]
+          laenge = w.get_attribute(RAUM_DICT, 'laenge').to_f * MM
+          { lage: [Rechnung.winkel(Math.atan2(mm[1], mm[0])), mm[12], mm[13], mm[14]], laenge: laenge, dicke: dicke,
+            links: (w.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM },
+            rechts: (w.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM } }
         end
       end
 
-      # Schränke, die nicht in einer Zeile stehen (Arbeitsplatte, Sockelblende)
+      # Wände als Hindernisse [lage, [0, laenge, -abstand, dicke], nil (ganze Höhe), :wand]:
+      # die Zone des Wandabstands vor der Wand gehört dazu, so hält jeder Schrank ihn ein,
+      # hinten wie seitlich in den Ecken
+      def self.waende(model, abstand = 0)
+        raumwaende(model).map { |w| [w[:lage], [0.0, w[:laenge], -abstand, w[:dicke]], nil, :wand] }
+      end
+
+      # Schränke, die nicht in einer Zeile stehen und nicht im Weg sind (Arbeitsplatte, Sockelblende)
       KEINE_ZEILE = %w[Arbeitsplatte Sockel].freeze
 
-      # Hindernisse für einen Schrank der Kategorie kat: Wände und die anderen Schränke
-      # derselben Ebene (Oberschränke: Ober- und Hochschränke; sonst Unter- und Hochschränke)
-      def self.hindernisse(model, inst, kat)
+      # Hindernisse für einen Schrank: alle Wände und alle anderen Schränke mit ihrem Korpus
+      # (Grundriss und Höhe; ob sie im Weg sind, entscheidet die Höhe)
+      def self.hindernisse(model, inst, _kat = nil)
         andere = Schraenke.instanzen(model.entities).select do |e|
-          next false if e == inst || !schrank?(e)
-          ek = kategorie(e)
-          next false if KEINE_ZEILE.include?(ek)
-          kat == 'Oberschrank' ? ek != 'Unterschrank' : ek != 'Oberschrank'
+          e != inst && schrank?(e) && !KEINE_ZEILE.include?(kategorie(e))
         end
-        waende(model) + andere.map do |e|
+        waende(model, vorgabe(:wandabstand) * MM) + andere.map do |e|
           b = bezug(e)
-          [lage(e.transformation), [b[0], b[1], b[2], b[3]]]
+          l = lage(e.transformation)
+          [l, [b[0], b[1], b[2], b[3]], [l[3] + b[4], l[3] + b[5]], :schrank]
         end
       end
 
-      # Eckschrank: in welche Ecke einer Wand er gehört (L-Form: Schenkel B an der linken
-      # Wand; Blindeck: zur Blindseite), sonst nil
-      def self.ecke(inst)
-        return nil unless Schraenke.definition(inst).get_attribute(JT_DICT, 'typ') == 'Eckschrank'
-        return :links if Schraenke.dc(inst, 'schenkel_a')
-        Schraenke.dc(inst, 'blindseite').to_i == 1 ? :rechts : :links
+      # Eckschrank (L-Form, Blindeck, Eck-Oberschrank): Tab dreht erst, dann Wandwechsel
+      def self.eckschrank?(inst)
+        Schraenke.definition(inst).get_attribute(JT_DICT, 'typ') == 'Eckschrank'
+      end
+
+      # feste Höhe (z der Lage) eines Schranks mit Kasten k
+      def self.feste_hoehe(kat, k, v)
+        Rechnung.raum_hoehe(kat, v[:boden] || 0, k, v)
       end
 
       KORPUS_DICT = 'JT_Korpus'.freeze
@@ -534,10 +632,12 @@ module JTools
         kat == 'Oberschrank' ? %w[Oberschrank Hochschrank].include?(sk) : sk != 'Oberschrank'
       end
 
-      # Lage für einen neuen Schrank oder nil (dann Werkzeug). start = ausgewählter Schrank.
-      # Reihenfolge der Plätze: rechts bzw. links neben dem ausgewählten Schrank, dann am
-      # rechten bzw. linken Ende seiner Zeile (ohne Auswahl: Zeile des zuletzt eingefügten).
-      # Genommen wird der erste Platz, an dem keine Wand und kein anderer Schrank im Weg ist.
+      # Lage für einen neuen Schrank oder nil (dann Werkzeug). start = markierter Schrank.
+      # Jürgen 2026-11-05: markiert → an seine freie Seite (rechts bevorzugt), keine frei →
+      # Werkzeug; nichts markiert → freies Ende der Zeile des zuletzt eingefügten Schranks
+      # (rechts, sonst links), sonst Werkzeug. Frei = keine Wand, kein Schrank im Weg.
+      # Nachbarn: untere vordere Korpusecke gleich (Fronten bündig); geht das nicht (neuer
+      # Schrank tiefer, stieße an die Wand), Rückseiten bündig.
       def self.freies_ende(inst, start = nil)
         model = inst.model
         gewaehlt = !start.nil?
@@ -547,36 +647,45 @@ module JTools
         zeile = alle.select { |e| zeile?(kat, insel, e) }
         k = bezug(inst)
         v = vorgaben(model)
-        hind = hindernisse(model, inst, kat)
-        start = nil if start && !zeile.include?(start) && !(kat == 'Oberschrank' && kategorie(start) == 'Unterschrank')
-        start ||= zeile.reverse.find { |e| kategorie(e) == kat } || zeile.last
-        if start.nil? && kat == 'Oberschrank'
-          # erster Oberschrank: über den Anfang (links) der zuletzt gebauten Unterschrank-Zeile
-          start = alle.reverse.find { |e| kategorie(e) == 'Unterschrank' && !insel?(e) }
-        end
-        return nil unless start
-        if kat == 'Oberschrank' && kategorie(start) == 'Unterschrank'
-          unten = alle.select { |e| %w[Unterschrank Hochschrank].include?(kategorie(e)) && insel?(e) == insel }
-          liste = unten.map { |e| [bezug(e), lage(e.transformation)] }
-          plaetze = [[Rechnung.zeilenende(liste, unten.index(start), :links), false],
-                     [Rechnung.zeilenende(liste, unten.index(start), :rechts), true]].map do |i, rechts|
-            n, nl = liste[i]
+        hind = hindernisse(model, inst)
+        if gewaehlt && kat == 'Oberschrank' && kategorie(start) == 'Unterschrank'
+          # Oberschrank über den markierten Unterschrank, links bündig, sonst rechts bündig
+          n = bezug(start)
+          nl = lage(start.transformation)
+          return [false, true].map do |rechts|
             l = Rechnung.ueber_unterschrank(k, n, nl, rechts, v[:aufbau])
-            l[3] = Rechnung.unter_decke(l[3], k, v)
+            l[3] = feste_hoehe(kat, k, v)
             l
-          end
-          return plaetze.find { |l| Rechnung.platz?(k, l, hind) }
+          end.find { |l| Rechnung.platz?(k, l, hind) }
         end
+        return nil if gewaehlt && !zeile.include?(start)
         liste = zeile.map { |e| [bezug(e), lage(e.transformation)] }
-        s = zeile.index(start)
-        plaetze = []
-        plaetze << [s, :rechts] << [s, :links] if gewaehlt && zeile[s] == start
-        plaetze << [Rechnung.zeilenende(liste, s, :rechts), :rechts] << [Rechnung.zeilenende(liste, s, :links), :links]
+        plaetze = if gewaehlt
+                    s0 = zeile.index(start)
+                    [[s0, :rechts], [s0, :links]]
+                  else
+                    s0 = zeile.rindex { |e| kategorie(e) == kat } || (zeile.empty? ? nil : zeile.size - 1)
+                    if s0.nil? && kat == 'Oberschrank'
+                      # erster Oberschrank: über den Anfang (links) der Unterschrank-Zeile
+                      unten = alle.select { |e| %w[Unterschrank Hochschrank].include?(kategorie(e)) && insel?(e) == insel }
+                      u = unten.rindex { |e| kategorie(e) == 'Unterschrank' }
+                      return nil unless u
+                      ul = unten.map { |e| [bezug(e), lage(e.transformation)] }
+                      n, nl = ul[Rechnung.zeilenende(ul, u, :links)]
+                      l = Rechnung.ueber_unterschrank(k, n, nl, false, v[:aufbau])
+                      l[3] = feste_hoehe(kat, k, v)
+                      return Rechnung.platz?(k, l, hind) ? l : nil
+                    end
+                    return nil unless s0
+                    [[Rechnung.zeilenende(liste, s0, :rechts), :rechts], [Rechnung.zeilenende(liste, s0, :links), :links]]
+                  end
         plaetze.uniq.each do |i, seite|
           n, nl = liste[i]
-          w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0)
-          z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(zeile[i]), inst.transformation.origin.to_a[2].to_f, v)
-          return [w, x, y, z] if Rechnung.platz?(k, [w, x, y, z], hind)
+          z = Rechnung.hoehe(k, kat, n, nl[3], kategorie(zeile[i]), 0, v)
+          %i[vorne hinten].each do |buendig|
+            w, x, y = Rechnung.an_nachbar(k, n, nl, seite, 0, buendig)
+            return [w, x, y, z] if Rechnung.platz?(k, [w, x, y, z], hind)
+          end
         end
         nil
       end
@@ -627,22 +736,40 @@ module JTools
         model.select_tool(Werkzeug.new(s.first))
       end
 
+      # Andock-Werkzeug (Jürgen 2026-11-05): Schrank hängt an einer Wand des Raums (Rückseite
+      # im Wandabstand) und gleitet mit der Maus nur an ihr entlang; Tab/Shift+Tab wechselt
+      # die Wand (Eckschrank: erst drehen, dann Wand); nie in Wände oder Schränke hinein;
+      # Höhe fest. Strg (Mac: Option) = Freihand: folgt der Maus frei, Pfeil hoch/runter
+      # ändert die Höhe um 10 mm, Tab dreht; nur die Kollision wird geprüft. Ohne Raum und für
+      # Inselschränke folgt der Schrank der Maus auf fester Höhe (mit Kollisionsprüfung).
       class Werkzeug
         TAB = 9
-        LINKS = defined?(VK_LEFT) ? VK_LEFT : 37
-        RECHTS = defined?(VK_RIGHT) ? VK_RIGHT : 39
+        SHIFT = defined?(VK_SHIFT) ? VK_SHIFT : 16
+        STRG = defined?(COPY_MODIFIER_KEY) ? COPY_MODIFIER_KEY : 17
+        STRG_MASKE = defined?(COPY_MODIFIER_MASK) ? COPY_MODIFIER_MASK : 4
         HOCH = defined?(VK_UP) ? VK_UP : 38
         RUNTER = defined?(VK_DOWN) ? VK_DOWN : 40
+        SCHRITT = 10 * MM
+
+        attr_reader :ziel, :wand, :q, :frei
 
         def initialize(inst)
           @inst = inst
+          model = inst.model
           @kasten = Andocken.bezug(inst)
           @kat = Andocken.kategorie(inst)
-          @v = Andocken.vorgaben(inst.model)
-          @ecke = Andocken.ecke(inst)
+          @v = Andocken.vorgaben(model)
+          @eck = Andocken.eckschrank?(inst)
+          @insel = Andocken.insel?(inst)
           @start = Andocken.lage(inst.transformation)
+          @waende = Andocken.raumwaende(model)
+          @hind = Andocken.hindernisse(model, inst)
+          @z = Andocken.feste_hoehe(@kat, @kasten, @v)
+          @wand = nil
+          @q = 0
           @drehung = 0
-          @buendig = :hinten
+          @frei = false
+          @shift = false
           @ziel = nil
           @info = ''
         end
@@ -662,25 +789,42 @@ module JTools
         end
 
         def status
-          Sketchup.status_text = 'Schrank andocken: über Schrank = daneben, über Front = quer davor, über Wand = an die Wand (rastet in Ecken ein). ' \
-                                 'Tab/Pfeil links-rechts: drehen, Pfeil hoch-runter: Rückwand/Front bündig, Klick: absetzen, Esc: abbrechen'
+          Sketchup.status_text = 'Schrank platzieren: Maus = an der Wand entlang, Tab/Shift+Tab = andere Wand ' \
+                                 '(Eckschrank: erst drehen), Strg halten = Freihand (Pfeil hoch/runter: Höhe), ' \
+                                 'Klick: absetzen, Esc: abbrechen'
         end
 
-        def onMouseMove(_flags, x, y, view)
+        def onMouseMove(flags, x, y, view)
           @ip.pick(view, x, y)
           @maus = [x, y]
-          berechnen(view)
+          @frei = (flags & STRG_MASKE) != 0 if flags.is_a?(Integer)
+          p = bodenpunkt(view, x, y)
+          setze_punkt(p[0], p[1])
           view.invalidate
         end
 
         def onKeyDown(key, _repeat, _flags, view)
           case key
-          when TAB, RECHTS then @drehung = (@drehung + 1) % 4
-          when LINKS then @drehung = (@drehung + 3) % 4
-          when HOCH, RUNTER then @buendig = @buendig == :hinten ? :vorne : :hinten
+          when TAB then taste_tab
+          when SHIFT then @shift = true
+          when STRG then @frei = true
+          when HOCH, RUNTER
+            return false unless @frei
+            hoehe_aendern(key == HOCH ? SCHRITT : -SCHRITT)
           else return false
           end
-          berechnen(view) if @ip
+          neu_rechnen
+          view.invalidate
+          true
+        end
+
+        def onKeyUp(key, _repeat, _flags, view)
+          case key
+          when SHIFT then @shift = false
+          when STRG then @frei = false
+          else return false
+          end
+          neu_rechnen
           view.invalidate
           true
         end
@@ -688,7 +832,7 @@ module JTools
         def onLButtonDown(_flags, _x, _y, view)
           return unless @ziel
           model = view.model
-          model.start_operation('Schrank andocken', true)
+          model.start_operation('Schrank platzieren', true)
           @inst.transformation = Andocken.transformation(@ziel)
           model.commit_operation
           model.selection.clear
@@ -701,18 +845,17 @@ module JTools
         end
 
         def draw(view)
-          view.draw_text(Geom::Point3d.new(@maus[0] + 16, @maus[1] + 16, 0), @info) if !@ziel && @maus && !@info.empty?
+          view.draw_text(Geom::Point3d.new(@maus[0] + 16, @maus[1] + 16, 0), @info) if @maus && !@info.empty?
           return unless @ziel
           e = Rechnung.ecken(@kasten, @ziel).map { |p| Geom::Point3d.new(*p) }
           kanten = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]
           view.line_width = 2
-          view.drawing_color = 'Blue'
+          view.drawing_color = @frei ? 'Orange' : 'Blue'
           view.draw(GL_LINES, kanten.flat_map { |a, b| [e[a], e[b]] })
-          # Front (y0) rot und dick, damit die Drehung zu sehen ist
+          # Vorderseite (y0) rot und dick, damit die Drehung zu sehen ist
           view.line_width = 4
           view.drawing_color = 'Red'
           view.draw(GL_LINE_LOOP, [e[0], e[1], e[5], e[4]])
-          view.draw_text(Geom::Point3d.new(@maus[0] + 16, @maus[1] + 16, 0), @info) if @maus && !@info.empty?
         end
 
         def getExtents
@@ -721,112 +864,80 @@ module JTools
           bb
         end
 
+        # --- ohne SketchUp-Ansicht testbar ----------------------------------------------
+        # Maus über dem Fußbodenpunkt (px, py): neues Ziel rechnen. Kein freier Platz →
+        # das letzte gültige Ziel bleibt.
+        def setze_punkt(px, py)
+          @punkt = [px, py]
+          neu_rechnen
+        end
+
+        def taste_tab
+          if @frei || wandlos?
+            @drehung = (@drehung + (@shift ? 3 : 1)) % 4
+          elsif @wand
+            @wand, @q = Rechnung.tab(@wand, @q, @waende.size, @eck, @shift)
+          end
+        end
+
+        def hoehe_aendern(d)
+          @frei_z = (@frei_z || (@ziel ? @ziel[3] : @z)) + d
+        end
+
+        def frei=(wert)
+          @frei = wert
+          neu_rechnen
+        end
+
+        def shift=(wert)
+          @shift = wert
+        end
+
         private
 
-        # Nachbarschrank im Pfad der Maus: [Instanz, Welt-Transformation]
-        def nachbar(pfad)
-          tr = Geom::Transformation.new
-          pfad.each do |e|
-            break unless e.respond_to?(:transformation)
-            tr *= e.transformation
-            return [e, tr] if Andocken.schrank?(e)
-          end
-          nil
+        def wandlos?
+          @waende.empty? || @insel
         end
 
-        # Wand des Raums im Pfad der Maus: [Instanz, Welt-Transformation]
-        def raumwand(pfad)
-          tr = Geom::Transformation.new
-          pfad.each do |e|
-            break unless e.respond_to?(:transformation)
-            tr *= e.transformation
-            return [e, tr] if e.respond_to?(:get_attribute) && e.get_attribute(RAUM_DICT, 'typ') == 'Wand'
-          end
-          nil
-        end
-
-        # Instanzen unter der Maus von außen nach innen (InputPoint ab SketchUp 2017,
-        # sonst PickHelper)
-        def pfad(view)
-          return @ip.instance_path.to_a if @ip.respond_to?(:instance_path) && @ip.instance_path
-          ph = view.pick_helper
-          ph.do_pick(*@maus)
-          ph.count > 0 ? (ph.path_at(0) || []) : []
-        end
-
-        def berechnen(view)
-          p = @ip.position
-          pf = pfad(view)
-          eigen = pf.include?(@inst) # Maus auf dem Schrank selbst
-          ober = @kat == 'Oberschrank'
-          n = eigen ? nil : nachbar(pf)
-          # Unter- und Hochschränke docken nicht an Oberschränke an
-          n = nil if n && !ober && Andocken.kategorie(n[0]) == 'Oberschrank'
-          n = nil if n && KEINE_ZEILE.include?(Andocken.kategorie(n[0]))
-          if n
-            ninst, ntr = n
-            nl = Andocken.lage(ntr)
-            nk = Andocken.bezug(ninst)
-            nkat = Andocken.kategorie(ninst)
-            name = ninst.respond_to?(:name) && !ninst.name.to_s.empty? ? ninst.name : 'Schrank'
-            lx, = Rechnung.lokal(nl, p.x, p.y)
-            rechts = lx > (nk[0] + nk[1]) / 2.0
-            if ober && nkat == 'Unterschrank'
-              @ziel = Rechnung.ueber_unterschrank(@kasten, nk, nl, rechts, @v[:aufbau])
-            @ziel[3] = Rechnung.unter_decke(@ziel[3], @kasten, @v)
-              @info = "über #{name} (#{rechts ? 'rechts' : 'links'} bündig)"
-              return
+        def neu_rechnen
+          return unless @punkt
+          px, py = @punkt
+          if @frei || wandlos?
+            @frei_z = nil unless @frei
+            z = @frei ? (@frei_z ||= (@ziel ? @ziel[3] : @z)) : @z
+            l = Rechnung.frei(@kasten, [px, py], @start[0] + @drehung * VIERTEL) + [z]
+            if Rechnung.platz?(@kasten, l, @hind)
+              @ziel = l
+              @info = @frei ? "Freihand (Strg), Höhe #{(z / MM).round} mm" : ''
+            else
+              @info = 'Kollision'
             end
-            seite = Rechnung.seite(lx, nk, !ober && front?(nl))
-            w, x, y = Rechnung.an_nachbar(@kasten, nk, nl, seite, Rechnung.viertel(seite, @drehung), @buendig)
-            z = Rechnung.hoehe(@kasten, @kat, nk, nl[3], nkat, @start[3], @v)
-            @ziel = [w, x, y, z]
-            @info = { rechts: 'rechts an', links: 'links an', vorne_rechts: 'quer vor (rechts)', vorne_links: 'quer vor (links)' }[seite] + " #{name}"
-          elsif !eigen && (rw = raumwand(pf))
-            winst, wtr = rw
-            wl = Andocken.lage(wtr)
-            lx, = Rechnung.lokal(wl, p.x, p.y)
-            laenge = winst.get_attribute(RAUM_DICT, 'laenge').to_f * MM
-            links = (winst.get_attribute(RAUM_DICT, 'kanten_links') || [0]).map { |v| v.to_f * MM }
-            rechts = (winst.get_attribute(RAUM_DICT, 'kanten_rechts') || [laenge / MM]).map { |v| v.to_f * MM }
-            w, x, y, xs = Rechnung.an_raumwand(@kasten, wl, lx, links, rechts, FANG, @v[:wand], laenge, @ecke)
-            @ziel = [w, x, y, Rechnung.raum_hoehe(@kat, wl[3], @kasten, @v)]
-            b = @kasten[1] - @kasten[0]
-            @info = "an Wand #{winst.get_attribute(RAUM_DICT, 'wand')}: links #{(xs / MM).round} mm, rechts #{((laenge - xs - b) / MM).round} mm"
-          elsif !eigen && (wn = wand(view))
-            # andere senkrechte Fläche: Fußboden bei z = 0
-            z = Rechnung.raum_hoehe(@kat, @v[:boden], @kasten, @v)
-            @ziel = Rechnung.an_wand(@kasten, [p.x, p.y], wn, @v[:wand]) + [z]
-            @info = 'an die Wand'
-          elsif ober
-            # Oberschränke nie frei im Raum
-            @ziel = nil
-            @info = 'Oberschrank: nur an eine Wand oder über einen Unterschrank'
+            return
+          end
+          @wand ||= Rechnung.naechste_wand(@waende.map { |w| [w[:lage], w[:laenge]] }, px, py)
+          w = @waende[@wand]
+          lx, = Rechnung.lokal(w[:lage], px, py)
+          z = [@z + @kasten[4], @z + @kasten[5]]
+          l = Rechnung.an_wand_gleiten(@kasten, w[:lage], w[:laenge], lx, @q, @v[:wand], FANG, w[:links], w[:rechts], @hind, z)
+          if l
+            @ziel = l[0, 3] + [@z]
+            b = (Rechnung.rechteck(@kasten, @q * VIERTEL)[1] - Rechnung.rechteck(@kasten, @q * VIERTEL)[0])
+            @info = "Wand #{@wand + 1}: links #{(l[3] / MM).round} mm, rechts #{((w[:laenge] - l[3] - b) / MM).round} mm"
           else
-            # Unter-/Hochschränke frei verschiebbar, aber immer auf Fußboden + Sockel
-            @ziel = Rechnung.frei(@kasten, [p.x, p.y], @start[0] + @drehung * VIERTEL) + [Rechnung.sockel_z(@kasten, @v)]
-            @info = ''
+            @info = "Wand #{@wand + 1}: kein Platz"
           end
         end
 
-        # Maus auf der Front des Nachbarn? (Fläche zeigt nach vorn, -y des Schranks)
-        def front?(nl)
-          f = @ip.face
-          return false unless f
-          v = f.normal.transform(@ip.transformation)
-          lx, ly = Rechnung.drehe(-nl[0], v.x, v.y)
-          l = Math.sqrt(lx * lx + ly * ly + v.z * v.z)
-          l > 0 && -ly / l > 0.7
-        end
-
-        # senkrechte Fläche unter der Maus: Normale (zum Betrachter) als [x, y]
-        def wand(view)
-          f = @ip.face
-          return nil unless f
-          v = f.normal.transform(@ip.transformation)
-          return nil if v.length.zero? || v.z.abs > 0.3 * v.length
-          v.reverse! if v % view.camera.direction > 0
-          [v.x, v.y]
+        # Mauspunkt auf der Fußbodenebene (Höhe des Raumbodens)
+        def bodenpunkt(view, x, y)
+          o, d = view.pickray(x, y)
+          boden = @v[:boden] || 0
+          if d && d.z.abs > 1e-9
+            t = (boden - o.z) / d.z
+            return [o.x + t * d.x, o.y + t * d.y] if t > 0
+          end
+          p = @ip.position
+          [p.x, p.y]
         end
       end
     end
