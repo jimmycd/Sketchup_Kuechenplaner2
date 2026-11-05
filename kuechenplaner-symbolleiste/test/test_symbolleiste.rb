@@ -99,7 +99,8 @@ soll = {
   'Unterschränke' => ['Abschlussregal…', 'Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Inselschrank…', 'Spülenschrank…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
   'Oberschränke' => ['Abschlussregal…', 'Eck-Oberschrank L-Form…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Oberschrank…'],
-  'Hochschränke' => ['Abschlussregal…', 'Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Hochschrank…']
+  'Hochschränke' => ['Abschlussregal…', 'Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Hochschrank…'],
+  'Blenden & Wangen' => ['Passblende…', 'Sockelblende…', 'Wange…']
 }
 check(gruppen == soll, "Schränke für die Auswahl: #{gruppen.inspect}")
 
@@ -108,7 +109,7 @@ tb.befehle[0].aktion.call
 d = UI::HtmlDialog.letzter
 check(d && !d.geschlossen, 'Schrank einfügen öffnet die Auswahl')
 html = d.html
-pos = %w[Unterschränke Oberschränke Hochschränke].map { |g| html.index("<legend>#{g}</legend>") }
+pos = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden &amp; Wangen'].map { |g| html.index("<legend>#{g}</legend>") }
 check(pos.all? && pos == pos.sort, "Gruppen in der Reihenfolge Unter, Ober, Hoch: #{pos.inspect}")
 knopf = ->(h, titel) { h[%r{sketchup\.waehlen\((\d+)\)"><svg(?:(?!<button).)*</svg><span>#{Regexp.escape(titel)}</span>}m, 1] }
 schraenke.each { |_, t, _| check(knopf.(html, t.sub(/…\z/, '')), "Auswahl enthält #{t}") }

@@ -14,10 +14,10 @@ require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') #
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
 # das Untermenü nur einmal angelegt wird, egal welche Erweiterungen geladen sind.
 # Schränke kommen über Kuechenplaner.schrank('Unterschränke' | 'Oberschränke' |
-# 'Hochschränke', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
+# 'Hochschränke' | 'Blenden & Wangen', titel) ins Menü und in die Schrank-Auswahl der Symbolleiste,
 # Geräte und Raum in Kuechenplaner.untermenu('Geräte' | 'Raum'), Werkzeuge direkt in Kuechenplaner.menu darunter.
 module Kuechenplaner
-  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Geräte', 'Raum'].freeze
+  GRUPPEN = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 'Geräte', 'Raum'].freeze
 
   def self.menu
     @menu ||= UI.menu('Extensions').add_submenu('Küchenplaner')
@@ -45,7 +45,8 @@ end unless defined?(Kuechenplaner.schrank)
 module KuechenplanerSymbolleiste
   ICONS = File.join(File.dirname(__FILE__), 'icons').freeze
   NAME  = 'Küchenplaner'.freeze
-  SCHRANK_GRUPPEN = { 'Unterschränke' => 'unterschrank', 'Oberschränke' => 'oberschrank', 'Hochschränke' => 'hochschrank' }.freeze
+  SCHRANK_GRUPPEN = { 'Unterschränke' => 'unterschrank', 'Oberschränke' => 'oberschrank', 'Hochschränke' => 'hochschrank',
+                      'Blenden & Wangen' => 'blende' }.freeze
   # Befehle der Erweiterung „Raum“ (Komponenten/raum): [Titel, Methode von ::Raum]
   RAUM = [['Raum anlegen', :raum_anlegen_dialog], ['Wände aus Linien', :waende_aus_linien],
           ['Fenster/Tür einsetzen', :einsetzen_dialog], ['Öffnung bearbeiten', :oeffnung_bearbeiten_dialog],
@@ -53,7 +54,7 @@ module KuechenplanerSymbolleiste
 
   # [Icon, Titel, Hilfetext, verfügbar?, Aktion]
   BEFEHLE = [
-    ['schrank', 'Schrank einfügen', 'Schranktyp auswählen und einfügen (Unter-, Ober- und Hochschränke)',
+    ['schrank', 'Schrank einfügen', 'Schranktyp auswählen und einfügen (Unter-, Ober- und Hochschränke, Blenden und Wangen)',
      -> { !Kuechenplaner.schraenke.empty? }, -> { KuechenplanerSymbolleiste.schrank_auswahl }],
     ['andocken', 'Schrank andocken', 'Gewählten Schrank an einen Nachbarschrank oder eine Wand andocken',
      -> { defined?(JTools::SchrankCnc::Andocken) }, -> { JTools::SchrankCnc::Andocken.starten }],

@@ -38,7 +38,8 @@ end
 varianten = {
   'Eckschrank' => [[{}], [{}, { l_form: true }], [{ 'Variante' => 2.0, 'LeMans' => 50.0, 'Breite' => 100.0 }]],
   'OberschrankKlappe' => [[{}], [{ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 }]],
-  'RegalAbschluss' => [[{ 'Form' => 0.0 }], [{ 'Form' => 1.0 }], [{ 'Form' => 2.0 }]]
+  'RegalAbschluss' => [[{ 'Form' => 0.0 }], [{ 'Form' => 1.0 }], [{ 'Form' => 2.0 }]],
+  'Blenden' => [[:wange], [:passblende]] # erstellen(art, eingabe); Sockelblende über erstellen_sockelblende
 }
 dateien = []
 gebaut = []
