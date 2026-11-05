@@ -134,9 +134,30 @@ module Sketchup
   end
 
   class View
-    attr_accessor :camera
+    attr_accessor :camera, :shift2d # shift2d: 2D-Verschieben wie in SketchUps Zweipunktperspektive (Bildhöhen)
     def vpwidth = 1600
     def vpheight = 900
+
+    # Blickstrahl durch das Pixel (x, y), wie SketchUp: Ursprung Auge, Richtung durchs Bild
+    def pickray(x, y)
+      e, t, up = camera.eye.to_a, camera.target.to_a, camera.up.to_a
+      n = einheit(t.zip(e).map { |a, b| a - b })
+      u = einheit(kreuz(n, up))
+      v = kreuz(u, n)
+      h = 2 * Math.tan(camera.fov * Math::PI / 360)
+      w = h * vpwidth / vpheight.to_f
+      sx, sy = shift2d || [0, 0]
+      px = (x / vpwidth.to_f - 0.5) * w + sx * h
+      py = (0.5 - y / vpheight.to_f) * h + sy * h
+      [camera.eye, Geom::Point3d.new(*(0..2).map { |i| n[i] + px * u[i] + py * v[i] })]
+    end
+
+    def kreuz(a, b) = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+    def einheit(a)
+      l = Math.sqrt(a.sum { |x| x * x })
+      a.map { |x| x / l }
+    end
   end
 
   class Model
@@ -245,6 +266,12 @@ Dir.mktmpdir do |tmp|
   check(d['bild'] == { 'datei' => bild, 'breite' => 640, 'hoehe' => 360, 'samples' => 16 }, "Bildgröße wie Ansicht 16:9: #{d['bild']}")
   check(d['kamera']['auge'] == [-1.524, -2.794, 1.524] && d['kamera']['fov'] == 35.0 && d['kamera']['fov_hoehe'],
         "Kamera in Metern: #{d['kamera']}")
+  check(d['kamera']['shift'] == [0.0, 0.0] && d['kamera']['rechts'] && R.punkt(d['kamera']['rechts'], d['kamera']['oben']).abs < 1e-5,
+        "Bildachsen aus den Blickstrahlen der Ansicht: #{d['kamera'].slice('rechts', 'oben', 'shift')}")
+  model.active_view.shift2d = [0.1, -0.15] # SketchUp: Zweipunktperspektive, Bild verschoben
+  k2 = JSON.parse(File.read(R.exportieren(model, ordner, bild, breite: 640, samples: 16)))['kamera']
+  model.active_view.shift2d = nil
+  check(k2['shift'] == [0.1, -0.15] && k2['fov'] == 35.0, "2D-Verschiebung der Ansicht wird Objektiv-Shift: #{k2.slice('shift', 'fov')}")
   check(d['licht']['sonne'] == [0.4, -0.6, 0.7] && d['licht']['raumlicht'] == true, 'Sonne aus den Schatten-Einstellungen')
   check(d['box'][0][2].zero? && (d['box'][1][2] - (3.94 + 28.3) * 0.0254).abs < 1e-3, "Begrenzung in Metern: #{d['box']}")
   m = d['materialien']
@@ -386,6 +413,32 @@ Dir.mktmpdir do |tmp|
     mitte = out[/^MITTE (.*)$/, 1].to_s.split.map(&:to_f)
     check(mitte.size == 2 && mitte.all? { |v| (v - 0.5).abs < 0.02 },
           "Zweipunktperspektive: Blickziel liegt in der Bildmitte, Küche nicht nach unten verschoben (#{mitte.inspect})")
+
+    # Bildausschnitt genau wie in SketchUp: die Bildecken der Ansicht liegen in Blender auf den Bildecken
+    model.active_view.shift2d = [0.12, -0.2]
+    json = R.exportieren(model, ordner, bild, breite: 160, samples: 1, senkrecht: false, deko: 'keine')
+    v = model.active_view
+    ecken = [[0, 0], [v.vpwidth, 0], [0, v.vpheight], [v.vpwidth, v.vpheight]].map do |x, y|
+      o, r = v.pickray(x, y)
+      o.to_a.zip(r.to_a).map { |a, b| ((a + 3 * b) * 0.0254).round(6) }
+    end
+    model.active_view.shift2d = nil
+    system(py, R.skript, '--', json, out: File::NULL, err: File::NULL)
+    ecken_py = <<~PY
+      import bpy, json, sys
+      from mathutils import Vector
+      from bpy_extras.object_utils import world_to_camera_view
+      bpy.ops.wm.open_mainfile(filepath=sys.argv[1])
+      cam = bpy.data.objects["Kamera"]
+      for p in json.loads(sys.argv[2]):
+          q = world_to_camera_view(bpy.context.scene, cam, Vector(p))
+          print("ECKE", round(q.x, 3), round(q.y, 3))
+    PY
+    out_ecken = IO.popen([py, '-c', ecken_py, File.join(ordner, 'szene.blend'), JSON.generate(ecken)], err: File::NULL, &:read)
+    lage = out_ecken.scan(/^ECKE (\S+) (\S+)$/).map { |a| a.map(&:to_f) }
+    soll = [[0, 1], [1, 1], [0, 0], [1, 0]]
+    check(lage.size == 4 && lage.zip(soll).all? { |(x, y), (sx, sy)| (x - sx).abs < 0.01 && (y - sy).abs < 0.01 },
+          "Bildecken wie in SketchUp, auch mit 2D-Verschiebung (Totale bleibt): #{lage.inspect}")
     werte = out[/^PRUEF (.*)$/, 1].to_s.split
     check(werte[0] == '0.0' && werte[1].to_f < -0.05, "Zweipunktperspektive: Kamera waagrecht, Blick nach unten als Shift nach unten (#{werte.inspect})")
     check(werte[2] == '1' && werte[3] == '1' && werte[4] == 'True', "Blender-Szene mit LED, HDRI-Umgebung und Kantenradius (#{werte.inspect})")
