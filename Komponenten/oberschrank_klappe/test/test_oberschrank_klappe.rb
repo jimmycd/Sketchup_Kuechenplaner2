@@ -224,6 +224,8 @@ check(Sketchup.active_model.layers['OK2_Klappe'], 'zweiter Schrank OK2')
 jd = Sketchup.active_model.definitions[H::NAME]
 check(jd.get_attribute(H::JT_DICT, 'kategorie') == 'Oberschrank', 'JT_Schrank am Schrank: kategorie Oberschrank (Andocken)')
 check(jd.get_attribute(H::JT_DICT, 'beschlag') == 'AVENTOS HK-top', 'JT_Schrank am Schrank: Beschlag')
+check(jd.get_attribute(H::DICT, '_art_klappe_access') == 'NONE', 'Klappenart nicht in den Komponentenoptionen (Beschlag gilt für die ganze Küche)')
+check(H.klappe_hinweis(90.0, 40.0).nil?, 'ohne Plugin kein Hinweis zum Klappenbeschlag')
 
 # Klappe öffnet mit Interagieren nach vorne oben (Drehung um x an der Oberkante)
 ['Klappe Halter', 'Klappe oben Halter'].each do |n|

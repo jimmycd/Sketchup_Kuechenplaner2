@@ -1,0 +1,35 @@
+{
+  "kennung": "haefele-free-slim-1.12",
+  "name": "Häfele Free Slim flap 1.12",
+  "hersteller": "Häfele",
+  "artikel": "372.92.xxx",
+  "art": "klappe",
+  "bauart": "klappe_seite",
+  "einsatz": { "korpushoehe": [225, 650], "breite": [0, 1800] },
+  "quelle": "Häfele Montageanleitung 732.23.046 (Stand 02.10.2025), S. 2–3, 7, Schablone S. 15/16; nicht an einem Probestück geprüft",
+  "seite": {
+    "titel": "Mechanismus Free Slim",
+    "d": 5, "tiefe": 10, "bezug": "deckel",
+    "loecher": [[122.5, 39.5], [122.5, 135.5]]
+  },
+  "front": {
+    "titel": "Frontbeschlag Free Slim",
+    "d": 3, "tiefe": 5, "innen": 12, "bezug": "deckel",
+    "unter": [36, 68, 100, 132]
+  },
+  "liste": {
+    "gruppe": "Klappen (Häfele Free Slim)",
+    "posten": [
+      ["Häfele Free Slim flap 1.12 (372.92.xxx), Mechanismus L + R", "Leistungsfaktor PF = Klappenhöhe × Frontgewicht", 1, "Paar"],
+      ["Häfele Free Slim Frontbeschlag", "", 1, "Paar"],
+      ["Häfele Free Slim Dübel", "Mechanismus (Bohrung Ø5 × 10)", "loecher_seite", "Stück"],
+      ["Spanplattenschraube 4 × 20", "Mechanismus", 8, "Stück"],
+      ["Spanplattenschraube 4 × 15", "Frontbeschlag (vorgebohrt Ø3)", "loecher_front", "Stück"]
+    ]
+  },
+  "koerper": {
+    "seite": { "titel": "Mechanismus Free Slim", "material": "kunststoff", "dicke": 22, "vor": 112.5, "hinter": 122.5, "unter": 34.5, "ueber": 34.5 },
+    "arm": { "titel": "Arm Free Slim", "material": "stahl", "staerke": 10, "ein": 20, "hoehe": 82.5 },
+    "front": { "titel": "Frontbeschlag Free Slim", "material": "stahl", "breite": 20, "dicke": 10, "ueber": 12 }
+  }
+}

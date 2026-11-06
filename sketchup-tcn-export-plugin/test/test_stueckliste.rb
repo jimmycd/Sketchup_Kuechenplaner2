@@ -69,18 +69,23 @@ module UI
     def openURL(u) = (self.url = u)
   end
 end
-UI.antwort = %w[120 20 600 38 720] + ['12,5', '8', '3', '10']
+UI.antwort = %w[120 20 600 38 720] + ['Häfele Free Slim flap 1.12', '12,5', '8', '3', '10']
 check(S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5 && S::Einstellungen.uebermass_breite == 8, 'Einstellungen-Dialog speichert (Komma erlaubt)')
 KE = Kuechenplaner::Einstellungen
 check(KE.sockelhoehe == 120 && KE.wandabstand == 20 && KE.abstand_oberschrank == 600 && KE.arbeitsplatte_staerke == 38 &&
       KE.unterschrank_hoehe == 720, 'Einstellungen-Dialog speichert auch Sockel und Abstände der Küche')
+check(S::Beschlagkatalog.gewaehlt('klappe')['kennung'] == 'haefele-free-slim-1.12', 'Einstellungen-Dialog speichert die Klappe der Küche')
+check(Sketchup.active_model.get_attribute('Kuechenplaner_Einstellungen', 'beschlag_klappe') == 'haefele-free-slim-1.12', 'Klappe im Modell gespeichert')
 check(KE.oberschrank_unterkante == 120 + 720 + 38 + 600, "Unterkante Oberschrank = Sockel + Korpus + Platte + Abstand (#{KE.oberschrank_unterkante})")
-UI.antwort = %w[120 20 600 38 720] + ['x', '8', '3', '10']
-check(!S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5, 'ungültige Eingabe ändert nichts')
-UI.antwort = %w[400 0 550 40 700] + ['10', '10', '3', '10']
+UI.antwort = %w[120 20 600 38 720] + ['Blum AVENTOS HK-top', 'x', '8', '3', '10']
+check(!S::Einstellungen.dialog && S::Einstellungen.uebermass_laenge == 12.5 && S::Beschlagkatalog.gewaehlt('klappe')['kennung'] == 'haefele-free-slim-1.12', 'ungültige Eingabe ändert nichts')
+UI.antwort = %w[120 20 600 38 720] + ['Unbekannt', '12,5', '8', '3', '10']
+check(!S::Einstellungen.dialog && UI.meldung.to_s.include?('Liste'), "unbekannter Beschlag abgelehnt (#{UI.meldung})")
+UI.antwort = %w[400 0 550 40 700] + ['Blum AVENTOS HK-top', '10', '10', '3', '10']
 check(!S::Einstellungen.dialog && KE.sockelhoehe == 120 && S::Einstellungen.uebermass_laenge == 12.5 && UI.meldung.to_s.include?('0–300'),
       "Sockelhöhe über 300 mm abgelehnt, nichts gespeichert (#{UI.meldung})")
 %w[sockelhoehe wandabstand abstand_oberschrank arbeitsplatte_staerke unterschrank_hoehe].each { |k| KE.setzen(k, KE::WERTE[k][1]) }
+S::Beschlagkatalog.waehlen('klappe', 'blum-aventos-hk-top')
 UI.antwort = nil
 check(!S::Einstellungen.dialog, 'Abbrechen ändert nichts')
 S::Einstellungen.setzen('uebermass_laenge', 10)

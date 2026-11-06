@@ -8,7 +8,7 @@
 #               Seiteneinsätze (S. 4: C 138 / M 52, F/K abgeleitet, × NL − 112 × 10), Seitenstabilisierung ab KB 600 (S. 9),
 #               Schrauben 4 × 15 für Fronthalter und Boden (S. 5), Systemschrauben für die Schienen.
 #   Türen       Blum-Topfbänder Ø35 mit Montageplatte (Regeln.topfbaender), Systemschrauben dafür.
-#   Klappen     AVENTOS HK-top, Häfele Free Slim flap (Regeln.aventos, Regeln.free_slim).
+#   Klappen     gewähltes Modell aus dem Beschlag-Katalog (katalog/*.json, Posten unter liste).
 # Blum-Artikelnummern stehen nicht in der Anleitung; die Liste nennt deshalb Typ, Größe und Anzahl.
 
 module JTools
@@ -94,26 +94,21 @@ module JTools
         end
       end
 
+      # Klappen: Posten aus dem Beschlag-Katalog (liste.posten = [Beschlag, Hinweis, Anzahl, Einheit]);
+      # Anzahl „loecher_seite“ / „loecher_front“ / „loecher“ = gezählte Bohrungen des Modells
       def klappen(teile, add)
-        teile.select { |w| w.ops.any? { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' } }.each do |kl|
+        katalog = Beschlagkatalog.eintraege.select { |e| e['bauart'] == 'klappe_seite' }
+        teile.each do |kl|
+          e = katalog.find { |x| kl.ops.any? { |o| o.titel == x['front']['titel'] } } or next
           sk = kl.teil.jt('schrank')
-          g = GRUPPEN[3]
-          add.(g, 'Blum AVENTOS HK-top Kraftspeicher', 'Leistungsfaktor nach Frontgewicht', 1, 'Paar', sk)
-          add.(g, 'Blum AVENTOS HK-top Frontbeschlag', '', 1, 'Paar', sk)
-          add.(g, SYSTEMSCHRAUBE, 'Kraftspeicher + Frontbeschlag', kl.ops.count { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' } +
-               teile.flat_map(&:ops).count { |o| o.titel == 'Kraftspeicher AVENTOS HK-top' }, 'Stück', sk)
-        end
-        # Häfele Free Slim (Montageanleitung 732.23.046, S. 1): je Klappe Mechanismus L + R (A), 4 Dübel (G),
-        # 8 Schrauben Ø4 × 20 (B) für den Mechanismus, 2 Frontbeschläge (E) mit 8 Schrauben Ø4 × 15 (H)
-        teile.select { |w| w.ops.any? { |o| o.titel == 'Frontbeschlag Free Slim' } }.each do |kl|
-          sk = kl.teil.jt('schrank')
-          g = GRUPPEN[4]
-          add.(g, 'Häfele Free Slim flap 1.12 (372.92.xxx), Mechanismus L + R', 'Leistungsfaktor PF = Klappenhöhe × Frontgewicht', 1, 'Paar', sk)
-          add.(g, 'Häfele Free Slim Frontbeschlag', '', 1, 'Paar', sk)
-          add.(g, 'Häfele Free Slim Dübel', 'Mechanismus (Bohrung Ø5 × 10)',
-               teile.flat_map(&:ops).count { |o| o.titel == 'Mechanismus Free Slim' }, 'Stück', sk)
-          add.(g, 'Spanplattenschraube 4 × 20', 'Mechanismus', 8, 'Stück', sk)
-          add.(g, 'Spanplattenschraube 4 × 15', 'Frontbeschlag (vorgebohrt Ø3)', kl.ops.count { |o| o.titel == 'Frontbeschlag Free Slim' }, 'Stück', sk)
+          n = {
+            'loecher_front' => kl.ops.count { |o| o.titel == e['front']['titel'] },
+            'loecher_seite' => teile.flat_map(&:ops).count { |o| o.titel == e['seite']['titel'] }
+          }
+          n['loecher'] = n['loecher_front'] + n['loecher_seite']
+          e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
+            add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
+          end
         end
       end
 

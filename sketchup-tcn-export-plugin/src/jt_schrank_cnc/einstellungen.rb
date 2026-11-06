@@ -1,7 +1,8 @@
 # encoding: UTF-8
 # Schrank-CNC – allgemeine Einstellungen (gelten für alle Modelle auf diesem Rechner,
 # gespeichert mit Sketchup.write_default). Das Fenster zeigt oben zusätzlich die
-# Werte der Küche (Sockelhöhe, Abstände) aus gemeinsam/einstellungen.rb.
+# Werte der Küche (Sockelhöhe, Abstände) aus gemeinsam/einstellungen.rb und die
+# Beschläge der Küche (Beschlagkatalog).
 #
 # Übermaß: Rohmaß (Zuschnitt an der Formatsäge) = Fräsmaß + Übermaß, damit die CNC
 # das Teil rundum formatieren kann (squad). Angabe gesamt je Richtung in mm, also
@@ -57,31 +58,46 @@ module JTools
       end
 
       CNC_GRUPPE = 'CNC und Zuschnitt – alle Modelle'.freeze
+      BESCHLAG_GRUPPE = 'Beschläge – ganze Küche'.freeze
 
-      # Ein Fenster für beide Arten: oben die Werte der Küche (Sockel, Abstände; im
-      # Modell gespeichert, gemeinsam/einstellungen.rb), unten CNC und Zuschnitt
-      # (für alle Modelle auf diesem Rechner).
-      # true = gespeichert, false = abgebrochen oder ungültig
+      # Ein Fenster für alles: oben die Werte der Küche (Sockel, Abstände; im Modell gespeichert,
+      # gemeinsam/einstellungen.rb), dann die Beschläge der Küche (je Beschlagart ein Modell aus dem
+      # Beschlag-Katalog, im Modell gespeichert), unten CNC und Zuschnitt (für alle Modelle auf
+      # diesem Rechner). true = gespeichert, false = abgebrochen oder ungültig
       def dialog(model = Sketchup.active_model)
         kueche = Kuechenplaner::Einstellungen
         keys = WERTE.keys
-        prompts = kueche.prompts + keys.map { |k| "#{CNC_GRUPPE}: #{WERTE[k][0].sub(/\AZuschnitt: /, '')}" }
-        alt = kueche.vorgaben(model) + keys.map { |k| Tcn.n(wert(k)) }
+        arten = Beschlagkatalog::ARTEN
+        modelle = arten.keys.to_h { |a| [a, Beschlagkatalog.zur_art(a)] }
+        prompts = kueche.prompts + arten.map { |_, v| "#{BESCHLAG_GRUPPE}: #{v[:name]}" } +
+                  keys.map { |k| "#{CNC_GRUPPE}: #{WERTE[k][0].sub(/\AZuschnitt: /, '')}" }
+        alt = kueche.vorgaben(model) + arten.keys.map { |a| Beschlagkatalog.vorschlag(a, model)['name'] } +
+              keys.map { |k| Tcn.n(wert(k)) }
+        listen = kueche.prompts.map { '' } + arten.keys.map { |a| modelle[a].map { |e| e['name'] }.join('|') } + keys.map { '' }
         n = kueche::WERTE.size
-        erg = Kuechenplaner::Eingabe.abfragen(prompts, alt, 'Küchenplaner – Einstellungen',
-                                              untertitel: 'Sockel, Abstände, CNC', ok: 'Speichern') do |neu|
-          zahlen = neu[n..-1].map { |s| s.to_s.strip.tr(',', '.') }
+        nb = arten.size
+        erg = Kuechenplaner::Eingabe.abfragen(prompts, alt, listen, 'Küchenplaner – Einstellungen',
+                                              untertitel: 'Sockel, Abstände, Beschläge, CNC', ok: 'Speichern') do |neu|
+          zahlen = neu[(n + nb)..-1].map { |s| s.to_s.strip.tr(',', '.') }
           raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
+          wahl = arten.keys.each_with_index.to_h do |a, i|
+            e = modelle[a].find { |x| x['name'] == neu[n + i].to_s }
+            raise ArgumentError, "#{arten[a][:name]}: bitte ein Modell aus der Liste wählen." unless e
+            [a, e['kennung']]
+          end
           model.start_operation('Einstellungen ändern', true) if model.respond_to?(:start_operation)
           begin
             sockel_alt = kueche.sockelhoehe(model)
             kueche.uebernehmen(neu[0, n], model)
+            wahl.each { |a, k| Beschlagkatalog.waehlen(a, k, model) }
             # Sockelhöhe geändert: vorhandene Schränke in der Höhe mitnehmen (Andock-Werkzeug)
             Andocken.sockel_geaendert(model, sockel_alt, kueche.sockelhoehe(model)) if defined?(Andocken)
           ensure
             model.commit_operation if model.respond_to?(:commit_operation)
           end
           keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
+          # gezeigte Beschläge folgen der neuen Wahl
+          Beschlagmodell.nachziehen(model) if defined?(Beschlagmodell)
           true
         end
         erg ? true : false

@@ -8,10 +8,10 @@
 # Korpus wie der Oberschrank: Seiten über die volle Höhe, Boden und Deckel zwischen den Seiten,
 # Rückwand 8 mm, 25 mm vor der Hinterkante in einer 9 mm tiefen Nut, Deckel vor der Rückwand,
 # 0–2 Einlegeböden. Front ist eine Klappe:
-#   HK-top    – Blum AVENTOS HK-top, eine Klappe, schwenkt um die Oberkante nach oben
-#   HF        – Blum AVENTOS HF, Faltklappe aus zwei gleich hohen Teilen (KlappeO, KlappeU), für hohe Schränke
-#   Free Slim – Häfele Free Slim flap, eine Klappe wie HK-top
-# Die Beschlagsbohrungen setzt der TCN-Export (HK-top und Free Slim; HF noch nicht).
+# eine Klappe, schwenkt um die Oberkante nach oben. Der Beschlag (Blum AVENTOS HK-top, Häfele Free Slim …)
+# gilt für die ganze Küche: Küchenplaner › Einstellungen…, Abschnitt Beschläge; die Bohrungen setzt der
+# TCN-Export nach dem Beschlag-Katalog. Die Faltklappe (HF, KlappeO/KlappeU) ist im Code noch da, aber
+# erst mal nicht wählbar (Art_Klappe 2 nur bei vorhandenen Schränken).
 #
 # Platten haben das Material "Melamin weiss", sichtbare Kanten das Kantenmaterial
 # "Anleimer Melamin weiss" (2 mm, wird erst in Stückliste/Zuschnitt abgezogen; gezeichnet wird
@@ -82,7 +82,7 @@ module OberschrankKlappe
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/oberschrank_klappe'.freeze
-  HILFE_KURZ = 'Oberschrank mit Klappe Blum AVENTOS HK-top, HF (Faltklappe) oder Häfele Free Slim, 0–2 Einlegeböden'.freeze
+  HILFE_KURZ = 'Oberschrank mit Klappe (Beschlag nach Küchen-Einstellungen), 0–2 Einlegeböden'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -304,7 +304,9 @@ module OberschrankKlappe
     attribut(haupt, 'Breite', p['Breite'], access: 'TEXTBOX', formlabel: 'Breite')
     attribut(haupt, 'Hoehe', p['Hoehe'], access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front)')
-    attribut(haupt, 'Art_Klappe', p['Art_Klappe'], laenge: false, access: 'LIST', formlabel: 'Klappe (Beschlag)',
+    # Klappenart: nicht mehr in den Komponentenoptionen (Beschlag gilt für die ganze Küche, Faltklappe
+    # erst mal nicht wählbar); das Attribut bleibt, damit vorhandene Schränke gleich bleiben
+    attribut(haupt, 'Art_Klappe', p['Art_Klappe'], laenge: false, access: 'NONE', formlabel: 'Klappe',
              units: 'INTEGER', options: '&HK-top%20(eine%20Klappe)=1&HF%20(Faltklappe%2C%20zwei%20Teile)=2&' \
                                         'Free%20Slim%20(eine%20Klappe)=3&')
     attribut(haupt, 'Anz_Einlegeboeden', p['Anz_Einlegeboeden'], laenge: false, access: 'LIST',
@@ -438,21 +440,29 @@ module OberschrankKlappe
     20.0
   end
 
+  # Der Klappenbeschlag (HK-top, Free Slim …) gilt für die ganze Küche: Küchenplaner › Einstellungen…,
+  # Abschnitt Beschläge (Beschlag-Katalog im Plugin Schrank-CNC). Die Faltklappe (HF) ist erst mal
+  # nicht wählbar (Jürgen, 2026-11-06); vorhandene HF-Schränke bleiben, wie sie sind.
+  def self.klappe_hinweis(breite, hoehe)
+    return nil unless defined?(JTools::SchrankCnc::Beschlagkatalog)
+    k = JTools::SchrankCnc::Beschlagkatalog
+    e = k.gewaehlt('klappe')
+    e && k.hinweis(e, korpushoehe: hoehe * 10, breite: breite * 10)
+  end
+
   def self.dialog
-    arten = ARTEN.values.map { |a| a[:name] }
-    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Klappe'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s,
-                       (TIEFE_NEU * 10).round.to_s, arten.first],
-                      ['', '', '', arten.join('|')], TITEL, untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
+                       (TIEFE_NEU * 10).round.to_s],
+                      TITEL, untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
       w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2],
-                  'Art_Klappe' => (ARTEN.key(ARTEN.values.find { |a| a[:name] == res[3] }) || 1).to_f }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2], 'Art_Klappe' => 1.0 }
       if eingabe['Tiefe'] < tiefe_min - 0.000001
         raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
       end
       raise ArgumentError, 'Maße müssen größer als 0 sein' if w.any? { |v| v <= 0 }
-      text = hinweis(eingabe['Art_Klappe'], eingabe['Hoehe'])
-      UI.messagebox("Hinweis: #{text}") if text
+      text = klappe_hinweis(eingabe['Breite'], eingabe['Hoehe'])
+      UI.messagebox("Hinweis: Der Klappenbeschlag der Küche passt nicht – #{text}") if text
       erstellen(eingabe)
     end
   rescue ArgumentError => e
