@@ -89,13 +89,17 @@ module JTools
           begin
             sockel_alt = kueche.sockelhoehe(model)
             kueche.uebernehmen(neu[0, n], model)
-            wahl.each { |a, k| Beschlagkatalog.waehlen(a, k, model) }
+            nicht = wahl.flat_map { |a, k| Beschlagkatalog.waehlen(a, k, model) && Beschlagkatalog.nicht_angepasst }
             # Sockelhöhe geändert: vorhandene Schränke in der Höhe mitnehmen (Andock-Werkzeug)
             Andocken.sockel_geaendert(model, sockel_alt, kueche.sockelhoehe(model)) if defined?(Andocken)
           ensure
             model.commit_operation if model.respond_to?(:commit_operation)
           end
           keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
+          unless nicht.empty?
+            UI.messagebox("Diese Schränke sind mit einer älteren Version angelegt und passen sich nicht an den " \
+                          "Schubladenauszug an: #{nicht.uniq.join(', ')}. Bitte neu anlegen.")
+          end
           # gezeigte Beschläge folgen der neuen Wahl
           Beschlagmodell.nachziehen(model) if defined?(Beschlagmodell)
           true

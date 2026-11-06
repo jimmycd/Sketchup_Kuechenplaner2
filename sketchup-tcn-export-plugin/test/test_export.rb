@@ -1166,6 +1166,57 @@ tk.waehlen('topfband', 'blum-clip-top', tm)
 tk.eintraege.delete(probe)
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_topfband'])
 
+# --- Schubladenauszug aus dem Katalog: Werte der Schränke = Katalog, Wechsel passt die Schränke an ---
+SKW = Kuechenplaner::Schubkasten
+lw_w = tk.schubkasten_werte(tk.eintrag('blum-legrabox-free'))
+check(SKW::STANDARD.all? { |k, v| v.is_a?(Numeric) ? (lw_w[k] - v).abs < 1e-9 : lw_w[k] == v },
+      "LEGRABOX im Katalog = Standard der Schränke (gemeinsam/schubkasten.rb): #{lw_w}")
+check(S::Regeln.zargen.keys == %w[F C K M N] && S::Regeln.schiene[:hinten][650] == [224, 256, 320, 416], 'Regeln: LEGRABOX aus dem Katalog')
+ta = JSON.parse(JSON.dump(tk.eintrag('blum-legrabox-free'))).merge('kennung' => 'test-auszug', 'name' => 'Test-Auszug', 'datei' => 'test-auszug.json')
+ta['zargen'] = { 'A' => { 'hoehe' => 200.0, 'rueckwand' => 170.0, 'front' => [0, 32, 64], 'einsatz' => 160 },
+                 'B' => { 'hoehe' => 100.0, 'rueckwand' => 70.0, 'front' => [0], 'einsatz' => nil } }
+ta['standard_zarge'] = 'A'
+ta['kasten'] = { 'boden_b' => 40, 'boden_t' => 12, 'rueckwand_b' => 42, 'einsatz_abzug' => 100 }
+ta['schiene'] = ta['schiene'].merge('abstand_nl' => 5, 'hinten' => { '300' => [160], '400' => [160, 256], '500' => [160, 256, 320] }, 'kg_nl' => {})
+ta['liste'] = ta['liste'].merge('gruppe' => 'Schubladen (Test-Auszug)')
+check(tk.fehler(ta).empty?, "Test-Auszug gültig: #{tk.fehler(ta)}")
+check(tk.fehler(ta.merge('zargen' => ta['zargen'].to_a.reverse.to_h)).include?('Zargen nicht von hoch nach niedrig'), 'Zargen müssen von hoch nach niedrig stehen')
+tk.eintraege << ta
+am = Sketchup.active_model = Sketchup::Model.new
+UnterschrankSchubladen.erstellen({})
+alt_s = UnterschrankSchubladen.erstellen({})
+alt_d = S::Schraenke.definition(alt_s)
+SKW::NAMEN.each { |n| alt_d.attribute_dictionary('dynamic_attributes').delete(n.downcase) } # wie vor dieser Version angelegt
+us = S::Schraenke.instanzen(am.entities).find { |i| S::Schraenke.definition(i) != alt_d }
+ud = S::Schraenke.definition(us)
+tk.waehlen('schubladen', 'test-auszug', am)
+cm = ->(k) { ud.get_attribute('dynamic_attributes', k).to_f * 2.54 }
+check((cm.('ausz_boden_b') - 4.0).abs < 1e-6 && (cm.('ausz_z1') - 20.0).abs < 1e-6 && (cm.('ausz_z3') - 10.0).abs < 1e-6 &&
+      (cm.('ausz_nl_max') - 50.0).abs < 1e-6 && (cm.('ausz_nl_schritt') - 10.0).abs < 1e-6,
+      "Wechsel setzt die Auszugswerte am Schrank (Boden #{cm.('ausz_boden_b')}, Z1 #{cm.('ausz_z1')}, NL max #{cm.('ausz_nl_max')})")
+check((cm.('hoehe_kastenrueckwand') - 17.0).abs < 1e-6, "Hoehe_Kastenrueckwand zieht zur neuen Standardrückwand mit (#{cm.('hoehe_kastenrueckwand')})")
+check(tk.nicht_angepasst == [alt_d.get_attribute('JT_Schrank', 'schrank')], "alter Schrank ohne Ausz_* gemeldet: #{tk.nicht_angepasst}")
+check(SKW.werte(am)['kennung'] == 'test-auszug', 'Auszugssystem im Modell gespeichert')
+# neu angelegter Schrank baut mit dem Test-Auszug: Boden LW − 40, Schiene 37/69 + 37+160/256/320 (NL 500), Liste
+nm = Sketchup.active_model = Sketchup::Model.new
+UnterschrankSchubladen.erstellen({ 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 })
+nws = []
+ndk, nme = S::Export.erzeugen(nm, alle_ws: nws)
+kb = nws.find { |w| w.rolle == 'KastenBoden' }
+check(kb && [kb.mass(0), kb.mass(1)].any? { |v| (v - (600 - 38 - 40)).abs < 0.01 }, "Kastenboden LW − 40 (#{kb && [kb.mass(0), kb.mass(1)]})")
+sl = nws.find { |w| w.rolle == 'Seite' }.ops.select { |o| o.titel.to_s.start_with?('Schiene ') }
+nl_t = sl.map { |o| o.daten[:nl] }.uniq
+check(nl_t == [500] && sl.size == 3 * 5, "Schiene NL 500 mit 5 Löchern je Schublade (#{nl_t}, #{sl.size})")
+nbl = S::Beschlaege.liste(nws).map(&:to_a)
+check(nbl.any? { |p| p[0] == 'Schubladen (Test-Auszug)' && p[1] =~ /\AZargen [AB] / } && nbl.none? { |p| p[0].include?('LEGRABOX') },
+      "Beschlagliste mit dem Test-Auszug: #{nbl.map { |p| p[0, 2] }.uniq}")
+check(nme.none? { |m| m.include?('LEGRABOX') }, "Meldungen nennen den Test-Auszug: #{nme.grep(/Auszug|Schiene|Zarge/)}")
+tk.waehlen('schubladen', 'blum-legrabox-free', am)
+check((cm.('ausz_boden_b') - 3.5).abs < 1e-6 && (cm.('hoehe_kastenrueckwand') - 14.8).abs < 1e-6, 'zurück auf LEGRABOX: Werte wie vorher')
+tk.eintraege.delete(ta)
+%w[beschlag_schubladen schubkasten].each { |k| Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', k]) }
+Sketchup.active_model = Sketchup::Model.new
+
 # --- Blum-Topfbänder an allen Türen (inge100 wie T_re_L_Topfband.tcn, Montageplatte im Raster der Lochreihe) ---
 VORLAGE_TB = beispiel('T_re_L_Topfband.tcn').split(/\r?\n/).grep(/inge100/).first.sub(/WS=\d+ +/, 'WS ').sub(/ #8507=\S+/, '').tr(',', '.')
 def topfbaender(d) = bearbeitungen(d.text, 1).grep(/inge100/)

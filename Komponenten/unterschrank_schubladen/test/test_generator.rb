@@ -215,6 +215,42 @@ end
   pruefe(w2, 4, 80.0, 45.0, 47.0, "#{label} -> umkonfiguriert")
 end
 
+# --- Schubladenauszug der Küche (gemeinsam/schubkasten.rb) -----------------
+SKG = Kuechenplaner::Schubkasten
+# allgemeine Zargenwahl = bisherige LEGRABOX-Regel
+(20..320).each do |mm|
+  [10.0, 14.8, 16.0, 20.0].each do |soll|
+    check((SKG.hrw(mm / 10.0, soll) - zarge_hrw(mm / 10.0, soll)).abs < 1e-9, "Zargenwahl allgemein = LEGRABOX bei kc #{mm / 10.0}, soll #{soll}")
+  end
+end
+# Wechsel des Systems (wie das Plugin: Ausz_* am Schrank neu setzen, neu zeichnen): Formeln folgen
+test_sys = SKG::STANDARD.merge('zargen' => [[20.0, 17.0], [10.0, 7.0]], 'std' => 17.0, 'nl_min' => 30.0, 'nl_max' => 50.0,
+                               'nl_schritt' => 10.0, 'nl_abstand' => 0.5, 'boden_b' => 4.0, 'boden_t' => 1.2, 'rw_b' => 4.2)
+ta = SKG.attribute(test_sys)
+model = Sketchup.active_model = Sketchup::Model.new
+inst = U.erstellen(eingabe(3, [1, 1, 1], { 'Tiefe' => 52.0 }))
+d = inst.definition
+ta.each { |n, v| d.set_attribute(U::DICT, n.downcase, v / 2.54) }
+d.set_attribute(U::DICT, 'hoehe_kastenrueckwand', 17.0 / 2.54)
+w = Knoten.new(inst, d, nil)
+w.redraw
+check((w.wert('NL') - 50.0).abs < EPS, "Test-System: NL #{w.wert('NL')} statt 50")
+mk = w.wert('Materialstaerke_Korpus')
+lw = 60.0 - 2 * mk
+(1..3).each do |i|
+  s = w.finde("Schublade#{i}")
+  kb = s.finde('KastenBoden'); kr = s.finde('KastenRueckwand'); f = s.finde('Front')
+  check((kb.wert('lenx') - (lw - 4.0)).abs < EPS && (kb.wert('x') - (mk + 2.0)).abs < EPS, "Test-System: Boden LW − 40 mittig S#{i}")
+  check((kb.wert('leny') - (50.0 - 1.2)).abs < EPS, "Test-System: Boden NL − 12 S#{i} (#{kb.wert('leny')})")
+  check((kr.wert('lenx') - (lw - 4.2)).abs < EPS && (kr.wert('x') - (mk + 2.1)).abs < EPS, "Test-System: Rückwand LW − 42 mittig S#{i}")
+  check((kr.wert('y') + kr.wert('leny') - (kb.wert('y') + kb.wert('leny'))).abs < EPS, "Test-System: Rückwand hinten bündig S#{i}")
+  ao = i == 1 ? w.wert('Kasten_Abstand_oben') : 0.0
+  kc = [f.wert('lenz') - kb.wert('z') - w.wert('Kasten_Abstand_oben'), 2.0].max + w.wert('Kasten_Abstand_oben') - ao
+  soll_h = [SKG.hrw(kc, 17.0, ta), kc - w.wert('Materialstaerke_Kastenboden')].min
+  check((kr.wert('lenz') - soll_h).abs < EPS && [17.0, 7.0].any? { |h| (soll_h - h).abs < EPS || soll_h < h },
+        "Test-System: Rückwand #{kr.wert('lenz')} statt #{soll_h} S#{i}")
+end
+
 # --- OpenCutList: Material, Anleimer, Tags ---------------------------------
 model = Sketchup.active_model = Sketchup::Model.new
 inst1 = U.erstellen(eingabe(3, [1, 1, 1]))
@@ -266,7 +302,7 @@ def formel.MIN(*a) = a.min
 def formel.INT(x) = x.floor.to_f
 (250..900).each do |mm|
   t = mm / 10.0
-  check(formel.instance_eval(U.f_nennlaenge(t.to_s)) == U.nennlaenge(t), "NL-Formel = Ruby bei Tiefe #{t}")
+  check(formel.instance_eval(U.f_nennlaenge(t.to_s).gsub(/Ausz_\w+/) { |n| Kuechenplaner::Schubkasten.attribute.fetch(n).to_s }) == U.nennlaenge(t), "NL-Formel = Ruby bei Tiefe #{t}")
 end
 
 # Aufteilungs-Parser

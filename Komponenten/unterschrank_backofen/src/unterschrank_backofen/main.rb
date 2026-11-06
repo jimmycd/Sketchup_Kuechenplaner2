@@ -17,6 +17,7 @@
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'schubkasten') # Schubladenauszug der Küche
 
 # Gemeinsames Untermenü "Erweiterungen > Küchenplaner" für alle Komponenten und
 # den TCN-Export. Steht wortgleich in jeder Erweiterung (der Test prüft das), damit
@@ -126,46 +127,29 @@ module UnterschrankBackofen
   # Korpusboden. Kein Lochraster: die Bohrung sitzt dort, wo der Kasten sie braucht (Jürgen 2026-11-06). Die Front beginnt hier bei 0.
   def self.kasten_unten(p)
     off = p['Hoehenoffset_Schiene']
-    [p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off
+    [p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + p['Ausz_Ueber_Boden']].max - off
   end
 
   # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
   def self.f_kasten_unten
     u = NAME
-    "MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+    "MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{u}!Ausz_Ueber_Boden)" \
       "-#{u}!Hoehenoffset_Schiene"
   end
 
-  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
-  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
-  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
-  # der Tabelle S. 8: Einschubelement M 52 / C 138).
-  SCHIENE_UEBER_BODEN = 3.8 # cm
-  ZARGE_C = 17.7            # cm
-  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
-  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
-  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
-  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
-  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
-  ZARGE_F = 24.1
-  ZARGE_K = 12.85
-  ZARGE_M = 9.05
-  HRW_F = 21.2
-  HRW_K = 9.9
-  HRW_N = 3.7
-  def self.hrw_zarge(kc, soll)
-    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
-    [soll, if kc >= ZARGE_C - 0.0001 then soll
-           elsif kc >= ZARGE_K - 0.0001 then HRW_K
-           elsif kc >= ZARGE_M - 0.0001 then HRW_M
-           else HRW_N
-           end].min
+  # Schubladenauszug der Küche (gemeinsam/schubkasten.rb, gewählt in Küchenplaner › Einstellungen):
+  # Zargen mit Holzrückwand, Nennlängen, Abzüge für Kastenboden und Holzrückwand stehen als Attribute
+  # Ausz_* am Schrank; wechselt das System, setzt das Plugin sie neu. Standard Blum LEGRABOX free.
+  SK = Kuechenplaner::Schubkasten
+
+  # Holzrückwand der höchsten Zarge, die in kc passt (cm)
+  def self.hrw_zarge(kc, soll, p = nil)
+    SK.hrw(kc, soll, p)
   end
 
-  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
-  def self.f_hrw_zarge(kc, soll)
-    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
-      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  # dieselbe Wahl als DC-Formel; q = Teil mit den Attributen Ausz_* (nil = eigene)
+  def self.f_hrw_zarge(kc, soll, q)
+    SK.f_hrw(kc, soll, q)
   end
 
   # Standardwerte in cm. Gerätemaße sind Richtwerte, je Gerät mit der Einbauanleitung prüfen.
@@ -192,7 +176,7 @@ module UnterschrankBackofen
     'Kasten_Abstand_unten'        => 3.0,  # Unterkante Front -> Unterkante Kasten
     'Kasten_Abstand_oben'         => 1.0,  # Oberkante Kasten -> Unterkante Einbauboden
     'Auszug_Anteil'               => 0.8   # Animation: Auszugsweg = Kastentiefe * Anteil
-  }.freeze
+  }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_backofen'.freeze
@@ -399,7 +383,7 @@ module UnterschrankBackofen
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe)
-    p = DEFAULTS.merge(eingabe)
+    p = SK.vorgaben(DEFAULTS, model).merge(eingabe)
     r = berechne(p)
     u = NAME
     mat = material(model)
@@ -435,6 +419,8 @@ module UnterschrankBackofen
       attribut(haupt, n, p[n], units: 'STRING')
     end
     # Nennlänge der LEGRABOX-Schiene: größte NL (35 … 65 cm, 5er-Schritte) mit NL + 3 mm <= Tiefe
+    # Schubladenauszug der Küche (Attribute Ausz_*, setzt das Plugin bei einem Systemwechsel neu)
+    SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', r[:nl], units: 'STRING', formula: f_nennlaenge('Tiefe'))
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
     # abgeleitet (nur aus Eingaben): Fronthöhe unten, Schublade ja/nein
@@ -489,17 +475,15 @@ module UnterschrankBackofen
     haupt
   end
 
-  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
-  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
-  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
-
-  def self.nennlaenge(tiefe)
-    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
+  # Nennlänge der Schiene (cm): größte des Auszugssystems mit NL + Abstand <= Tiefe; passt keine,
+  # bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  def self.nennlaenge(tiefe, p = nil)
+    SK.nl(tiefe, p)
   end
 
-  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
-  def self.f_nennlaenge(tiefe)
-    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
+  # dieselbe Wahl als DC-Formel (Attribute Ausz_NL_* am eigenen Teil bzw. an q)
+  def self.f_nennlaenge(tiefe, q = nil)
+    SK.f_nl(tiefe, q)
   end
 
   # Flache Schublade mit Blum LEGRABOX free unter dem Einbauboden: Front, Boden (LW-35 x NL-10)
@@ -533,6 +517,7 @@ module UnterschrankBackofen
     attribut(d, 'Mrw', mrw, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenrueckwand")
     attribut(d, 'Hrw', p['Hoehe_Kastenrueckwand'], units: 'STRING', formula: "#{u}!Hoehe_Kastenrueckwand")
     attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
+    SK::NAMEN.each { |n| attribut(d, n, p[n], units: 'STRING', formula: "#{u}!#{n}") }
     attribut(d, 'Ab_unten', ab, units: 'STRING', formula: f_kasten_unten)
     roh_kh = "#{u}!Hoehe-#{u}!Nischenhoehe-#{u}!Materialstaerke_Korpus-#{u}!Kasten_Abstand_oben-(#{f_kasten_unten})"
     attribut(d, 'Kh', kh, units: 'STRING', formula: "MAX(#{roh_kh},2)")
@@ -550,16 +535,16 @@ module UnterschrankBackofen
               mat: mat, kz: st.('Front'))
 
     # Boden LW-35 x NL-10, mittig, vorne an der Korpusvorderkante
-    kbod = platte(model, 'Kasten Boden S1', 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
-                  ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk, ab],
-              ["#{s}!Mk+1.75", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
+    kbod = platte(model, 'Kasten Boden S1', 'KastenBoden', [lw - p['Ausz_Boden_B'], nl - p['Ausz_Boden_T'], mb],
+                  ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_Boden_B", "#{s}!NL-#{s}!Ausz_Boden_T", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + p['Ausz_Boden_B'] / 2.0, mk, ab],
+              ["#{s}!Mk+#{s}!Ausz_Boden_B/2", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
 
     # Holzrückwand LW-38, hinten auf dem Boden
-    krw = platte(model, 'Kasten Rueckwand S1', 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{s}!Kh-#{s}!Mb,#{f_hrw_zarge("#{s}!Kh", "#{s}!Hrw")})"])
-    einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
-              ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
+    krw = platte(model, 'Kasten Rueckwand S1', 'KastenRueckwand', [lw - p['Ausz_RW_B'], mrw, hrw],
+                 ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_RW_B", "#{s}!Mrw", "MIN(#{s}!Kh-#{s}!Mb,#{f_hrw_zarge("#{s}!Kh", "#{s}!Hrw", s)})"])
+    einsetzen(de, krw, 'KastenRueckwand', [mk + p['Ausz_RW_B'] / 2.0, mk + nl - p['Ausz_Boden_T'] - mrw, ab + mb],
+              ["#{s}!Mk+#{s}!Ausz_RW_B/2", "#{s}!Mk+#{s}!NL-#{s}!Ausz_Boden_T-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: st.('KastenRueckwand'))
 
     inst = einsetzen(ents, d, s, [0, 0, 0], [nil, nil, nil], layer: tag(model, "#{kz}_S1_Schublade"))
@@ -590,7 +575,7 @@ module UnterschrankBackofen
       if Sketchup.active_model.layers.to_a.any? { |l| l.name.start_with?("#{eingabe['Kuerzel']}_") }
         raise ArgumentError, "Kürzel #{eingabe['Kuerzel']} ist schon vergeben"
       end
-      p = DEFAULTS.merge(eingabe)
+      p = SK.vorgaben(DEFAULTS).merge(eingabe)
       if p['Nischenhoehe'] > p['Hoehe'] - 2 * p['Materialstaerke_Korpus']
         raise ArgumentError, 'Nischenhöhe zu groß für die Schrankhöhe (Boden und Einbauboden brauchen Platz)'
       end

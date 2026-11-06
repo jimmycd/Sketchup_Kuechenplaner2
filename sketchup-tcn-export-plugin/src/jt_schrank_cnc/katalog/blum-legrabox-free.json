@@ -1,0 +1,37 @@
+{
+  "kennung": "blum-legrabox-free",
+  "name": "Blum LEGRABOX free",
+  "hersteller": "Blum",
+  "art": "schubladen",
+  "bauart": "auszug_zarge",
+  "quelle": "Blum Montageanleitung LEGRABOX free MD-015/4 (lbx0002-md-015): Schiene S. 3/4, Zarge C mit Holzrückwand 148 S. 4, Einschubelement C 138 / M 52 S. 8, Seitenstabilisierung S. 9; Zargenhöhen F/K/M/N Blum-Programm; Rückwand und Einsatz F/K/M/N abgeleitet (Zarge − 29 / − 39 mm), nicht bestätigt",
+  "schiene": {
+    "d": 5, "tiefe": 14, "vorn": [37, 69], "abstand_nl": 3, "ueber_boden": 38,
+    "hinten": { "350": [192, 224], "400": [224, 256], "450": [224, 256], "500": [224, 256],
+                "550": [224, 256, 320], "600": [224, 256, 320], "650": [224, 256, 320, 416] },
+    "kg": 40, "kg_nl": { "650": 70 }
+  },
+  "zargen": {
+    "F": { "hoehe": 241.0, "rueckwand": 212.0, "front": [0, 32, 96, 128], "einsatz": 202 },
+    "C": { "hoehe": 177.0, "rueckwand": 148.0, "front": [0, 32, 96, 128], "einsatz": 138 },
+    "K": { "hoehe": 128.5, "rueckwand": 99.0, "front": [0, 32], "einsatz": 90 },
+    "M": { "hoehe": 90.5, "rueckwand": 62.0, "front": [0, 32], "einsatz": 52 },
+    "N": { "hoehe": 66.5, "rueckwand": 37.0, "front": [0], "einsatz": null }
+  },
+  "standard_zarge": "C",
+  "kasten": { "boden_b": 35, "boden_t": 10, "rueckwand_b": 38, "einsatz_abzug": 112 },
+  "front": { "d": 3, "tiefe": 5, "innen": 14, "ueber_kasten": 36, "min_unten": 51 },
+  "boden_falz": { "tiefe": 8, "streifen": [{ "breite": 38, "ueberlauf": 20 }, { "breite": 20, "ueberlauf": 0 }] },
+  "stabilisierung_ab": 600,
+  "liste": {
+    "gruppe": "Schubladen (LEGRABOX free)",
+    "gruppe_schrauben": "Schrauben Schubladen",
+    "schraube_front": "Spanplattenschraube 4 × 15",
+    "schraube_boden": "Spanplattenschraube 4 × 15",
+    "boden_schrauben": 8,
+    "systemschraube": "Systemschraube Ø5 (Blum)",
+    "einsatz": "Seiteneinsatz Glas 10 mm (oder 10-mm-Platte)"
+  },
+  "koerper": { "schiene": 4.0, "schiene_h": 20.0, "zarge": 12.8, "fronthalter": 12.0, "rueckwandhalter": 2.2,
+               "obergurt": 8.0, "einsatz": 10.0 }
+}

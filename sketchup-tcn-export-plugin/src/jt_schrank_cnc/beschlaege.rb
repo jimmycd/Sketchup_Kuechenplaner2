@@ -3,7 +3,7 @@
 #
 # Wird aus denselben Werkstücken wie der TCN-Export berechnet (nach Regeln.anwenden), damit
 # Bohrbilder und Beschläge zusammenpassen:
-#   Schubladen  Blum LEGRABOX free (Montageanleitung MD-015/4): Zargen N, M, K, C oder F (Regeln.zarge),
+#   Schubladen  gewählter Schubladenauszug (Katalog, Standard Blum LEGRABOX free, Montageanleitung MD-015/4): Zargen N, M, K, C oder F (Regeln.zarge),
 #               Korpusschienen je Nennlänge (40 kg, NL 650 70 kg), Rückwand- und Fronthalter,
 #               Seiteneinsätze (S. 4: C 138 / M 52, F/K abgeleitet, × NL − 112 × 10), Seitenstabilisierung ab KB 600 (S. 9),
 #               Schrauben 4 × 15 für Fronthalter und Boden (S. 5), Systemschrauben für die Schienen.
@@ -18,10 +18,9 @@ module JTools
 
       Posten = Struct.new(:gruppe, :beschlag, :hinweis, :anzahl, :einheit, :schraenke)
 
-      KG_70 = [650].freeze           # NL 650 gibt es nur als 70-kg-Schiene (S. 3)
-      KB_STABILISIERUNG = 600.0      # Seitenstabilisierung ab Korpusbreite 600 mm (S. 9)
-      BODEN_SCHRAUBEN = 8            # 4 × 15, je Seite 4 (S. 5, Bild 4)
-      SYSTEMSCHRAUBE = 'Systemschraube Ø5 (Blum)'.freeze
+      # Schubladen: Werte aus dem Katalog (Schubladenauszug der Küche): Tragkraft je Nennlänge
+      # (LEGRABOX NL 650 nur 70 kg, S. 3), Seitenstabilisierung ab Korpusbreite (600, S. 9),
+      # Schrauben 4 × 15 für den Boden (je Seite 4, S. 5, Bild 4)
 
       # werkstuecke: alle Werkstücke nach Regeln.anwenden (mit Bearbeitungen)
       def liste(werkstuecke)
@@ -55,27 +54,32 @@ module JTools
           sk = boden.teil.jt('schrank')
           bereich = boden.teil.jt('bereich')
           m = Regeln.zarge(kasten)
-          z = Regeln::ZARGEN[m]
+          ax = Regeln.auszug
+          e = Beschlagkatalog.gewaehlt('schubladen')
+          li = e['liste']
+          z = ax[:zargen][m]
           schienen = teile.flat_map(&:ops).select { |o| o.titel == "Schiene #{bereich}" && o.daten }
           nl = schienen.map { |o| o.daten[:nl] }.compact.max
           wa = Regeln.breite_achse(kasten)
-          lw = boden.mass(wa) + 35.0
+          lw = boden.mass(wa) + ax[:kasten][:boden_b]
           seite = teile.find { |w| w.rolle == 'Seite' && w.dicke_achse == wa }
           kb = lw + 2 * (seite ? seite.mass(wa) : 19.0)
-          g = GRUPPEN[0]
+          g = li['gruppe']
           nl_text = nl ? "NL #{nl}" : 'NL ? (zu wenig Tiefe)'
           add.(g, "Zargen #{m} (#{Tcn.n(z[:hoehe]).tr('.', ',')} mm), links + rechts", nl_text, 1, 'Paar', sk)
-          add.(g, 'Korpusschienen', "#{nl_text}, #{nl && KG_70.include?(nl) ? 70 : 40} kg", 1, 'Paar', sk)
+          add.(g, 'Korpusschienen', "#{nl_text}, #{(nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]} kg", 1, 'Paar', sk)
           add.(g, "Rückwandhalter Holzrückwand #{m}", "Holzrückwand #{Tcn.n(z[:rueckwand])} mm hoch", 1, 'Paar', sk)
           add.(g, "Fronthalter #{m}", 'Frontbefestigung links + rechts', 1, 'Paar', sk)
           if z[:einsatz] # Zarge N: kein Seiteneinsatz
-            add.(g, 'Seiteneinsatz Glas 10 mm (oder 10-mm-Platte)', nl ? "#{z[:einsatz]} × #{nl - 112} mm" : "#{z[:einsatz]} × (NL − 112) mm", 2, 'Stück', sk)
+            ab = ax[:kasten][:einsatz_abzug]
+            add.(g, li['einsatz'], nl ? "#{z[:einsatz]} × #{nl - ab} mm" : "#{z[:einsatz]} × (NL − #{ab}) mm", 2, 'Stück', sk)
           end
-          add.(g, 'Seitenstabilisierung', "Korpusbreite ab #{KB_STABILISIERUNG.round} mm", 1, 'Stück', sk) if kb >= KB_STABILISIERUNG - Regeln::TOL
-          s = GRUPPEN[1]
-          add.(s, 'Spanplattenschraube 4 × 15', 'Fronthalter', 2 * z[:front].size, 'Stück', sk)
-          add.(s, 'Spanplattenschraube 4 × 15', 'Boden an Zargen', BODEN_SCHRAUBEN, 'Stück', sk)
-          add.(s, SYSTEMSCHRAUBE, 'Korpusschienen (vorgebohrt Ø5)', schienen.size, 'Stück', sk)
+          stab = ax[:stabilisierung_ab]
+          add.(g, 'Seitenstabilisierung', "Korpusbreite ab #{stab.round} mm", 1, 'Stück', sk) if kb >= stab - Regeln::TOL
+          s = li['gruppe_schrauben']
+          add.(s, li['schraube_front'], 'Fronthalter', 2 * z[:front].size, 'Stück', sk)
+          add.(s, li['schraube_boden'], 'Boden an Zargen', li['boden_schrauben'], 'Stück', sk)
+          add.(s, li['systemschraube'], "Korpusschienen (vorgebohrt Ø#{ax[:schiene][:d]})", schienen.size, 'Stück', sk)
         end
       end
 

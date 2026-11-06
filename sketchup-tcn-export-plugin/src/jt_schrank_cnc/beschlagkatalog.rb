@@ -13,6 +13,10 @@
 # Sockelhöhe und Wandabstand; ein neues Modell übernimmt die zuletzt gewählten Beschläge dieses
 # Rechners. Alte Küchen ohne Einstellung: ein Oberschrank mit Klappe, der noch die frühere
 # Option Free Slim (Art_Klappe 3) trägt, behält Free Slim, bis die Einstellung gespeichert wird.
+#
+# Schubladenauszug (Bauart auszug_zarge): die Schränke bauen Kastenboden, Holzrückwand und Zarge
+# mit den Attributen Ausz_* (gemeinsam/schubkasten.rb). Beim Wechsel schreibt waehlen die Werte des
+# neuen Systems in das Modell und in jeden Schrank und zeichnet ihn neu (Jürgen: „automatisch“).
 
 require 'json'
 
@@ -27,12 +31,14 @@ module JTools
 
       # Beschlagart => Bezeichnung im Dialog, Standardmodell, Bauarten, die sie annimmt
       ARTEN = {
+        'schubladen' => { name: 'Schubladenauszug', standard: 'blum-legrabox-free', bauarten: %w[auszug_zarge] },
         'topfband' => { name: 'Topfband (Türen)', standard: 'blum-clip-top', bauarten: %w[topfband_platte] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] }
       }.freeze
 
       # Pflichtteile je Bauart (der Test prüft jeden Eintrag)
       PFLICHT = {
+        'auszug_zarge' => %w[schiene zargen standard_zarge kasten front boden_falz stabilisierung_ab liste koerper],
         'klappe_seite' => %w[seite front liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper]
       }.freeze
@@ -66,6 +72,20 @@ module JTools
         f << "Bauart #{e['bauart']} unbekannt" unless PFLICHT.key?(e['bauart'])
         (PFLICHT[e['bauart']] || []).each { |k| f << "#{k} fehlt" unless e[k] }
         f << "Datei #{e['datei']} passt nicht zur Kennung" if e['datei'] && e['datei'] != "#{e['kennung']}.json"
+        f.concat(fehler_auszug(e)) if e['bauart'] == 'auszug_zarge' && e['zargen'] && e['schiene'] && e['kasten']
+        f
+      end
+
+      # Auszug: Zargen von hoch nach niedrig (die Schränke nehmen die höchste, die passt), höchstens
+      # Kuechenplaner::Schubkasten::STUFEN, Standardzarge vorhanden, Nennlängen in gleichen Schritten
+      def fehler_auszug(e)
+        f = []
+        h = e['zargen'].values.map { |z| z['hoehe'] }
+        f << 'Zargen nicht von hoch nach niedrig' unless h == h.sort.reverse
+        f << "mehr als #{Kuechenplaner::Schubkasten::STUFEN} Zargen" if defined?(Kuechenplaner::Schubkasten) && h.size > Kuechenplaner::Schubkasten::STUFEN
+        f << "Standardzarge #{e['standard_zarge']} fehlt" unless e['zargen'][e['standard_zarge']]
+        nl = e['schiene']['hinten'].keys.map(&:to_i).sort
+        f << 'Nennlängen nicht in gleichen Schritten' if nl.each_cons(2).map { |a, b| b - a }.uniq.size > 1
         f
       end
 
@@ -115,13 +135,76 @@ module JTools
         gewaehlt(art, model)
       end
 
+      # Wahl speichern; beim Schubladenauszug passen sich die Schränke an (Rückgabe: Eintrag und
+      # Liste der Schränke, die das nicht können, weil sie mit einer älteren Version angelegt sind)
       def waehlen(art, kennung, model = nil)
         e = eintrag(kennung)
         raise ArgumentError, "Unbekannter Beschlag: #{kennung}" unless e && e['art'] == art
         m = modell(model)
         m.set_attribute(DICT, schluessel(art), kennung) if m.respond_to?(:set_attribute)
         Sketchup.write_default(SEKTION, schluessel(art), kennung) if defined?(Sketchup) && Sketchup.respond_to?(:write_default)
+        @nicht_angepasst = art == 'schubladen' ? schubladen_anpassen(m, e) : []
         e
+      end
+
+      def nicht_angepasst
+        @nicht_angepasst || []
+      end
+
+      # Werte für die Schränke (Kuechenplaner::Schubkasten, cm) aus einem Auszug-Eintrag (mm)
+      def schubkasten_werte(e)
+        z = e['zargen'].values
+        nl = e['schiene']['hinten'].keys.map(&:to_i).sort
+        cm = ->(v) { v.to_f / 10.0 }
+        { 'kennung' => e['kennung'], 'zargen' => z.map { |v| [cm.(v['hoehe']), cm.(v['rueckwand'])] },
+          'std' => cm.(e['zargen'][e['standard_zarge']]['rueckwand']), 'ueber_boden' => cm.(e['schiene']['ueber_boden']),
+          'nl_min' => cm.(nl.first), 'nl_max' => cm.(nl.last), 'nl_schritt' => cm.(nl.size > 1 ? nl[1] - nl[0] : 50),
+          'nl_abstand' => cm.(e['schiene']['abstand_nl']), 'boden_b' => cm.(e['kasten']['boden_b']),
+          'boden_t' => cm.(e['kasten']['boden_t']), 'rw_b' => cm.(e['kasten']['rueckwand_b']) }
+      end
+
+      # Auszugssystem in das Modell schreiben und alle Schränke mit Schubladen anpassen: Attribute Ausz_*
+      # neu setzen, Hoehe_Kastenrueckwand mitziehen, wenn sie auf der alten Standardrückwand stand,
+      # und neu zeichnen. Schränke ohne Ausz_* (ältere Version) bleiben, wie sie sind.
+      def schubladen_anpassen(m, e)
+        return [] unless m.respond_to?(:set_attribute)
+        w = schubkasten_werte(e)
+        json = JSON.generate(w)
+        m.set_attribute(DICT, Kuechenplaner::Schubkasten::SCHLUESSEL, json)
+        Sketchup.write_default(SEKTION, Kuechenplaner::Schubkasten::SCHLUESSEL, json) if defined?(Sketchup) && Sketchup.respond_to?(:write_default)
+        return [] unless m.respond_to?(:entities)
+        attr = Kuechenplaner::Schubkasten.attribute(w)
+        nicht = []
+        Schraenke.instanzen(m.entities).each do |s|
+          d = Schraenke.definition(s)
+          kz = d.get_attribute(JT_DICT, 'schrank') or next
+          if Schraenke.dc(s, 'ausz_z1').nil?
+            nicht << kz if schubladen?(d)
+            next
+          end
+          # unverändert (gleiches System): nichts tun, sonst würde jeder Schrank neu gezeichnet
+          next if attr.all? { |n, v| (Schraenke.dc(s, n.downcase).to_f * 2.54 - v).abs < 0.001 }
+          alt_std = Schraenke.dc(s, 'ausz_std').to_f * 2.54
+          hrw = Schraenke.dc(s, 'hoehe_kastenrueckwand')
+          [s, d].uniq.each do |ent|
+            # Werte in Zoll wie alle Längen der Komponenten; an der Instanz nur, was dort schon steht
+            attr.each { |n, v| ent.set_attribute(DC_DICT, n.downcase, v / 2.54) if ent == d || ent.get_attribute(DC_DICT, n.downcase) }
+            if hrw && (hrw.to_f * 2.54 - alt_std).abs < 0.01 && (ent == d || ent.get_attribute(DC_DICT, 'hoehe_kastenrueckwand'))
+              ent.set_attribute(DC_DICT, 'hoehe_kastenrueckwand', w['std'] / 2.54)
+            end
+          end
+          $dc_observers.get_latest_class.redraw_with_undo(s) if defined?($dc_observers) && $dc_observers
+        end
+        nicht
+      end
+
+      # Hat der Schrank Schubladen (Kastenteile)?
+      def schubladen?(d, tiefe = 0)
+        return false if tiefe > 4
+        Schraenke.instanzen(d.entities).any? do |i|
+          %w[KastenBoden KastenRueckwand].include?(i.get_attribute(JT_DICT, 'rolle').to_s) ||
+            schubladen?(Schraenke.definition(i), tiefe + 1)
+        end
       end
 
       # Für den Fingerabdruck der Beschläge im Modell: ändert sich mit jeder Wahl

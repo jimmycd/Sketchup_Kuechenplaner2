@@ -8,7 +8,7 @@
 #   kuechenplaner-symbolleiste/kuechenplaner_symbolleiste.rbz  Symbolleiste „Küchenplaner“
 #   Kuechenplaner_alle.rbz                     alles zusammen in einer Datei
 # Vorher werden gemeinsam/eingabe.rb (Eingabefenster im Treppenplaner-Stil),
-# gemeinsam/einstellungen.rb (Sockelhöhe, Abstände) und gemeinsam/neuladen.rb (Neu laden
+# gemeinsam/einstellungen.rb (Sockelhöhe, Abstände), gemeinsam/schubkasten.rb (Schubladenauszug) und gemeinsam/neuladen.rb (Neu laden
 # ohne Neustart) in jede Erweiterung nach
 # src/kuechenplaner_gemeinsam/ kopiert.
 set -e
@@ -25,6 +25,7 @@ for src in Komponenten/*/src sketchup-tcn-export-plugin/src kuechenplaner-update
   cp gemeinsam/eingabe.rb "$src/kuechenplaner_gemeinsam/eingabe.rb"
   cp gemeinsam/einstellungen.rb "$src/kuechenplaner_gemeinsam/einstellungen.rb"
   cp gemeinsam/neuladen.rb "$src/kuechenplaner_gemeinsam/neuladen.rb"
+  cp gemeinsam/schubkasten.rb "$src/kuechenplaner_gemeinsam/schubkasten.rb"
   rm -f "$dir/$name.rbz"
   (cd "$src" && zip -q -X -r "$top/$dir/$name.rbz" . -x "*__pycache__*" && zip -q -X -r "$top/Kuechenplaner_alle.rbz" . -x "*__pycache__*")
   echo "$dir/$name.rbz erstellt"
