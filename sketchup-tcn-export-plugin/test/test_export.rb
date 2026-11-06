@@ -317,7 +317,7 @@ check(neu.all? { |f| f.inst.material == fm && !f.jt('griff_lochmass') }, 'Hochsc
 check(S::Frontfarbe.fronten(model_hv, kategorie: 'Hochschrank').none? { |f| f.inst.material == fm }, 'Hochschrank Vorrat: Tür bleibt')
 Sketchup.active_model = model
 
-# --- Schreiben: TCN + Teileliste + Fräsliste ---
+# --- Schreiben: TCN + Fräsliste (keine eigene Teileliste mehr, alles steht in der Stückliste) ---
 # Übermaß aus den allgemeinen Einstellungen (Länge 10, Breite 6 mm), nicht mehr aus OCL am Material
 check(S::Einstellungen.uebermass_laenge == 10.0 && S::Einstellungen.uebermass_breite == 10.0, 'Einstellungen: Übermaß Standard 10/10 mm')
 S::Einstellungen.setzen('uebermass_breite', 6)
@@ -327,18 +327,16 @@ platte.set_attribute('ladb_opencutlist', 'length_increase', '40 mm')
 Dir.mktmpdir do |dir|
   S::Export.schreiben(dir, dateien)
   check(dateien.all? { |x| File.exist?(File.join(dir, x.datei)) && x.datei == "#{x.nr}_#{x.name}.tcn" }, 'alle TCN geschrieben, Name = Nr_Tag.tcn')
-  csv = File.binread(File.join(dir, 'Teileliste.csv'))
-  zeilen = csv.split("\r\n")
-  check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
-  nb = dateien.find { |x| x.name == 'HS1_Boden' }.nr
-  check(zeilen.include?("#{nb}_HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden"), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
+  check(!File.exist?(File.join(dir, 'Teileliste.csv')), 'keine Teileliste.csv mehr (steht in der Stückliste)')
   # Nummer im Dateinamen = Nummer der Stückliste (Etiketten/Zuschnitt nutzen dieselbe)
   zs = S::Stueckliste.zeilen(dateien)
   check(zs.all? { |z| z.datei.start_with?("#{z.nr}_") } &&
         dateien.all? { |x| zs.any? { |z| z.nr == x.nr && z.datei == x.datei } },
         "Dateiname mit Stücklisten-Nummer: #{zs.first(3).map { |z| [z.nr, z.datei] }}")
   check(dateien.map(&:nr).uniq.size == dateien.size && dateien.map(&:nr).sort == (1..dateien.size).to_a, 'Nummern eindeutig 1..n')
-  check(zeilen.first.end_with?(';Teilname'), 'Teileliste: Spalte Teilname')
+  zb = zs.find { |z| z.tag == 'HS1_Boden' }
+  check(zb && zb.datei == "#{zb.nr}_HS1_Boden.tcn" && zb.anzahl == 1 && zb.material == 'Melamin weiss' &&
+        zb.fraes.map(&:round).sort == [562, 798] && zb.ds == 19, "Stückliste hat alles der alten Teileliste (Datei, Anzahl, Material, DL/DH, DS): #{zb.to_a.first(10)}")
 
   # Fräsliste .xmlst für das TpaCAD-Board
   liste = File.join(dir, S::Fraesliste.name(dir))
@@ -620,24 +618,60 @@ end
 end
 Sketchup.active_model = model
 
-# --- Dialog ---
+# --- Dialog: ein Export-Dialog für alle Ausgaben (hier nur TCN gewählt) ---
 module UI
   class << self
-    attr_accessor :ordner, :meldung
-    def select_directory(**) = ordner
+    attr_accessor :antworten, :meldung, :url
+    # :standard = Vorgaben übernehmen (Etikettenformat, Zuschnitt-Optionen)
+    def inputbox(_l, werte, *) = ((a = (antworten || []).shift) == :standard ? werte : a)
     def messagebox(m, *) = (self.meldung = m)
+    def openURL(u) = (self.url = u)
   end
 end
+# Alles gewählt: alle Ausgaben aus einem Lauf, überall dieselben Nummern
 Dir.mktmpdir do |dir|
-  UI.ordner = dir
+  UI.antworten = [%w[ja ja ja ja] + [dir], :standard, :standard]
   S::Export.dialog(model)
-  check(UI.meldung.to_s.start_with?("#{dateien.size} TCN-Dateien"), "Dialog-Meldung: #{UI.meldung}")
-  check(Dir.children(dir).any? { |f| f =~ /\A\d+_HS1_SeiteL\.tcn\z/ }, 'Dialog schreibt in den Ordner')
+  check(%w[Stueckliste.pdf Stueckliste.csv Etiketten.pdf Zuschnitt.pdf tcn].all? { |f| File.exist?(File.join(dir, f)) },
+        "alles gewählt: Stückliste, Etiketten, Zuschnitt im Zielordner, TCN im Unterordner (#{Dir.children(dir).sort})")
+  check(Dir.children(dir).none? { |f| f =~ /\.(tcn|xmlst)\z/i }, 'keine TCN/xmlst direkt im Zielordner')
+  csv = File.binread(File.join(dir, 'Stueckliste.csv')).force_encoding('Windows-1252').encode('UTF-8').split("\r\n").drop(1).map { |z| z.split(';') }
+  tcn = Dir.children(File.join(dir, 'tcn')).grep(/\.tcn\z/).sort
+  check(!csv.empty? && csv.map { |z| z[2] }.sort == tcn && csv.all? { |z| z[2].start_with?("#{z[0]}_#{z[1]}") },
+        "Nummer und TCN-Datei in der Stückliste = Dateien im Ordner tcn (#{csv.first(2).map { |z| z.first(3) }})")
+  et = PdfHelfer.texte(File.binread(File.join(dir, 'Etiketten.pdf')))
+  check(csv.all? { |z| et.include?(z[2]) }, 'Etiketten tragen dieselben TCN-Dateinamen (Nummern)')
 end
-UI.ordner = nil
+Dir.mktmpdir do |dir|
+  ziel = File.join(dir, 'Kueche')
+  File.write(File.join(dir, 'x.txt'), '') # nichts außerhalb tcn wird gelöscht
+  FileUtils.mkdir_p(File.join(ziel, 'tcn'))
+  File.write(File.join(ziel, 'tcn', '999_ALT_Teil.tcn'), 'alt')
+  File.write(File.join(ziel, 'tcn', 'notiz.txt'), 'bleibt')
+  UI.antworten = [%w[nein nein nein ja] + [ziel]]
+  S::Export.dialog(model)
+  tcn = File.join(ziel, 'tcn')
+  check(UI.meldung.to_s.include?("#{dateien.size} TCN-Dateien"), "Dialog-Meldung: #{UI.meldung}")
+  check(Dir.children(tcn).any? { |f| f =~ /\A\d+_HS1_SeiteL\.tcn\z/ }, 'TCN in den Unterordner tcn')
+  check(Dir.children(tcn).include?('Liste_Kueche.xmlst'), "Fräsliste im Unterordner tcn, benannt nach dem Zielordner: #{Dir.children(tcn).grep(/xmlst/)}")
+  check(File.binread(File.join(tcn, 'Liste_Kueche.xmlst')).include?(File.join(tcn, dateien.first.datei)), 'Fräsliste mit Pfad in tcn')
+  check(!File.exist?(File.join(tcn, '999_ALT_Teil.tcn')) && File.exist?(File.join(tcn, 'notiz.txt')), 'alte TCN in tcn gelöscht, andere Dateien bleiben')
+  check(Dir.children(ziel) == ['tcn'] && File.exist?(File.join(dir, 'x.txt')), "nur TCN gewählt: sonst nichts geschrieben (#{Dir.children(ziel)})")
+  check(model.get_attribute('JT_Ausgabe', 'ordner') == ziel, 'Zielordner am Modell gemerkt')
+  check(Sketchup.read_default('JT_Ausgabe', 'stueckliste') == 'nein' && Sketchup.read_default('JT_Ausgabe', 'tcn') == 'ja', 'Auswahl gemerkt')
+  check(S::Ausgabe.ordner_vorschlag(model) == ziel, 'Vorschlag = zuletzt benutzter Ordner')
+  UI.meldung = nil
+  UI.antworten = [%w[nein nein nein nein] + [ziel]]
+  S::Export.dialog(model)
+  check(UI.meldung.to_s.include?('mindestens eine Ausgabe'), "nichts gewählt: Hinweis (#{UI.meldung})")
+  UI.antworten = [%w[ja nein nein nein] + ['']]
+  S::Export.dialog(model)
+  check(UI.meldung.to_s.include?('Zielordner'), "kein Ordner: Hinweis (#{UI.meldung})")
+end
+UI.antworten = []
 UI.meldung = nil
 S::Export.dialog(model)
-check(UI.meldung.nil?, 'Abbrechen bei der Ordnerwahl schreibt nichts')
+check(UI.meldung.nil?, 'Abbrechen im Dialog schreibt nichts')
 S::Export.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 

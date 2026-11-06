@@ -140,28 +140,36 @@ ys = pv.scan(/1 0 0 1 [\d.]+ ([\d.]+) Tm/).flatten.map { |v| 210 - v.to_f * 25.4
 check(ys.all? { |v| v <= 198 || (v - 205).abs < 0.01 }, 'nichts im Fußbereich außer dem Fuß')
 check(S::Stueckliste.dateiname(Sketchup::Model.new) == 'Stueckliste.pdf', 'Dateiname ohne Modell')
 
-# --- Schreiben und Dialog (Speichern per Dateidialog) ---
-Dir.mktmpdir do |dir|
-  UI.speichern = File.join(dir, 'Kueche Meier')
-  S::Stueckliste.dialog(model)
-  pp = File.join(dir, 'Kueche Meier.pdf')
-  check(UI.speichern_args && UI.speichern_args[2].to_s.end_with?('.pdf'), "Dateidialog schlägt PDF vor: #{UI.speichern_args.inspect}")
-  check(File.exist?(pp) && File.exist?(File.join(dir, 'Kueche Meier.csv')), 'Dialog schreibt PDF (Endung ergänzt) und CSV daneben')
-  check(PdfHelfer.gueltig?(File.binread(pp)) && PdfHelfer.texte(File.binread(pp)).first == 'Stückliste Kueche Meier', 'PDF mit Titel aus Dateiname')
-  check(Dir.children(dir).none? { |f| f.end_with?('.html') }, 'kein HTML mehr')
-  check(File.binread(File.join(dir, 'Kueche Meier.csv')).force_encoding('Windows-1252').encode('UTF-8').include?('Fräs L'), 'CSV in Windows-1252 (Excel)')
-  check(UI.url.to_s.start_with?('file:///') && UI.url.end_with?('Kueche%20Meier.pdf') || UI.url.to_s.end_with?('Kueche Meier.pdf'), "PDF wird geöffnet: #{UI.url}")
-  check(UI.meldung.to_s.start_with?('Stückliste mit'), "Meldung: #{UI.meldung}")
-  # Schreiben scheitert (z. B. PDF noch im Leser offen): Meldung statt Absturz
-  UI.speichern = File.join(dir, 'gibtsnicht', 'x.pdf')
-  S::Stueckliste.dialog(model)
-  check(UI.meldung.to_s.start_with?('Stückliste konnte nicht gespeichert'), "Fehler beim Schreiben: #{UI.meldung}")
+# --- Schreiben über den Export-Dialog (Stückliste gewählt, Zielordner) ---
+module UI
+  class << self
+    attr_accessor :antworten
+    def inputbox(*) = (antworten || []).shift
+  end
 end
-UI.speichern = nil
+model.define_singleton_method(:title) { 'Kueche Meier' }
+Dir.mktmpdir do |dir|
+  UI.antworten = [%w[ja nein nein nein] + [dir]]
+  S::Ausgabe.dialog(model)
+  pp = File.join(dir, 'Stueckliste_Kueche Meier.pdf')
+  check(File.exist?(pp) && File.exist?(File.join(dir, 'Stueckliste_Kueche Meier.csv')), "Dialog schreibt PDF und CSV in den Zielordner: #{Dir.children(dir)}")
+  check(PdfHelfer.gueltig?(File.binread(pp)) && PdfHelfer.texte(File.binread(pp)).first == 'Stückliste Kueche Meier', 'PDF mit Titel aus dem Modell')
+  check(Dir.children(dir).none? { |f| f.end_with?('.html') || f == 'tcn' || f == 'Teileliste.csv' }, "nur die Stückliste gewählt: kein HTML, keine TCN, keine Teileliste (#{Dir.children(dir)})")
+  check(File.binread(File.join(dir, 'Stueckliste_Kueche Meier.csv')).force_encoding('Windows-1252').encode('UTF-8').include?('Fräs L'), 'CSV in Windows-1252 (Excel)')
+  check(UI.url.to_s.start_with?('file:///') && UI.url.to_s.include?(File.basename(dir)), "Zielordner wird geöffnet: #{UI.url}")
+  check(UI.meldung.to_s.start_with?('Export') && UI.meldung.include?('Stückliste ('), "Meldung: #{UI.meldung}")
+  # Schreiben scheitert (z. B. PDF noch im Leser offen): Meldung statt Absturz
+  File.write(File.join(dir, 'datei'), '')
+  UI.antworten = [%w[ja nein nein nein] + [File.join(dir, 'datei', 'unter')]]
+  S::Ausgabe.dialog(model)
+  check(UI.meldung.to_s.include?('konnte nicht geschrieben'), "Fehler beim Schreiben: #{UI.meldung}")
+end
+model.singleton_class.send(:remove_method, :title)
+UI.antworten = []
 UI.meldung = nil
-S::Stueckliste.dialog(model)
-check(UI.meldung.nil?, 'Abbrechen im Dateidialog schreibt nichts')
-S::Stueckliste.dialog(Sketchup::Model.new)
+S::Ausgabe.dialog(model)
+check(UI.meldung.nil?, 'Abbrechen im Dialog schreibt nichts')
+S::Ausgabe.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 
 # --- Beschlagliste (LEGRABOX free, Topfbänder): eigene Seite in der Stückliste ---

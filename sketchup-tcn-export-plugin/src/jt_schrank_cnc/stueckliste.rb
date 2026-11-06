@@ -13,7 +13,7 @@
 # Roh-, Fräs- und Fertigmaß sind dort das umschließende Rechteck (Kontur fräst die CNC).
 # Ausgabe: Stueckliste.pdf (A4 quer, je Material und Stärke eine Tabelle mit Summen, mit
 # dem eigenen PDF-Schreiber pdf.rb wie Etiketten und Zuschnittplan) und daneben
-# Stueckliste.csv (Semikolon, Dezimalkomma, für Excel).
+# Stueckliste.csv (Semikolon, Dezimalkomma, für Excel). Geschrieben über den Export-Dialog (ausgabe.rb).
 
 module JTools
   module SchrankCnc
@@ -69,12 +69,14 @@ module JTools
 
       # Zeilen sortiert nach Material, Stärke (dick zuerst), Rohfläche (groß zuerst), Tag
       def zeilen(dateien)
-        gesehen = {}
+        gesehen = {}.compare_by_identity
         zs = dateien.each_with_object([]) do |d, out|
-          # eine Arbeitsplatte mit zwei Stoßenden hat zwei TCN, aber nur eine Zeile
-          next if !d.ws.respond_to?(:kanten) && gesehen[d.ws.teil.inst]
-          gesehen[d.ws.teil.inst] = true
-          out << zeile(d)
+          # eine Arbeitsplatte mit zwei Stoßenden hat zwei TCN, aber nur eine Zeile (beide Dateien darin)
+          if !d.ws.respond_to?(:kanten) && (z = gesehen[d.ws.teil.inst])
+            z.datei = "#{z.datei}, #{d.datei}"
+            next
+          end
+          out << (gesehen[d.ws.teil.inst] = zeile(d))
         end
         zs = zs.sort_by { |z| [z.material, -z.ds, -(z.roh[0] * z.roh[1]).round(1), z.tag.to_s] }
         zs.each_with_index { |z, i| z.nr = i + 1 }
@@ -84,6 +86,12 @@ module JTools
       def erzeugen(model, auswahl: nil)
         ws = []
         dateien, export_meldungen = Export.erzeugen(model, auswahl: auswahl, alle_ws: ws)
+        aus_export(dateien, export_meldungen, ws)
+      end
+
+      # Stückliste aus einem fertigen Export (Export.erzeugen mit alle_ws: ws), damit Stückliste,
+      # Etiketten, Zuschnitt und TCN-Dateien aus demselben Lauf dieselben Nummern haben
+      def aus_export(dateien, export_meldungen, ws)
         zs = zeilen(dateien)
         meldungen = zs.select { |z| z.material.empty? }.map { |z| "#{z.tag}: kein Material" }
         # Höhen-/Tiefenprobleme der Schubladen gehören auch auf die Stückliste
@@ -269,30 +277,6 @@ module JTools
       def startordner(model)
         p = model.respond_to?(:path) ? model.path.to_s : ''
         p.empty? ? nil : File.dirname(p)
-      end
-
-      def dialog(model = Sketchup.active_model)
-        auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
-        zs, meldungen, beschlaege = erzeugen(model, auswahl: auswahl)
-        if zs.empty?
-          UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
-          return
-        end
-        pfad = UI.savepanel('Stückliste als PDF speichern', startordner(model), dateiname(model))
-        return unless pfad
-        t = model.respond_to?(:title) && !model.title.to_s.strip.empty? ? "Stückliste #{model.title.to_s.strip}" : nil
-        begin
-          p, c = schreiben(pfad, zs, meldungen, titel: t, beschlaege: beschlaege)
-        rescue SystemCallError => e
-          UI.messagebox("Stückliste konnte nicht gespeichert werden (ist die PDF noch geöffnet?):\n#{e.message}")
-          return
-        end
-        UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-        text = "Stückliste mit #{zs.sum(&:anzahl)} Teilen#{auswahl ? ' (nur Auswahl)' : ''}" \
-               "#{beschlaege.empty? ? '' : ' und Beschlagliste (letzte Seite)'}:\n#{p}\n#{c} (für Excel)" \
-               "\n\nDrucken mit „Tatsächliche Größe“ oder „An Seite anpassen“ (A4 quer)."
-        text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
-        UI.messagebox(text)
       end
     end
   end

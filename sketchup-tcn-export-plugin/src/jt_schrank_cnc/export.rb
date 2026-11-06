@@ -2,10 +2,12 @@
 # Schrank-CNC – TCN-Export: je sichtbarem Teil eine TCN-Datei (Dateiname = laufende Nummer
 # der Stückliste + Tag, z. B. 102_UST2_StrebeVorn.tcn; die Nummer ist dieselbe wie auf
 # Stückliste, Etiketten und Zuschnittplan, siehe Stueckliste.zeilen),
-# dazu Teileliste.csv und die Fräsliste Liste_<Ordner>.xmlst für das TpaCAD-Board
+# dazu die Fräsliste Liste_<Ordner>.xmlst für das TpaCAD-Board
 # (alle TCN zusammen, größte Teile zuerst, siehe fraesliste.rb). Gleiche Teile (gleicher Tag, gleiche TCN) werden einmal
 # geschrieben und gezählt; weicht ein gleichnamiges Teil ab, bekommt es _2, _3 …
 # Arbeitsplatten: je Stoßende eine TCN mit der Verbindungsfräsung (arbeitsplatte.rb).
+# Eine eigene Teileliste gibt es nicht mehr: alle Angaben (TCN-Datei, Anzahl, Maße, Material)
+# stehen in der Stückliste. Den Dialog für alle Ausgaben hat ausgabe.rb.
 
 module JTools
   module SchrankCnc
@@ -66,38 +68,15 @@ module JTools
         dateien.each { |d| d.nr = nr[d.ws.teil.inst] }
       end
 
-      def self.teileliste(dateien)
-        z = ['Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname']
-        dateien.each do |d|
-          t = d.ws.teil
-          mat = t.inst.material ? t.inst.material.name : ''
-          z << [d.datei, d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle, mat,
-                Tcn.n(d.lage.dl), Tcn.n(d.lage.dh), Tcn.n(d.lage.ds), Fraesliste.ocl_name(d)].join(';')
-        end
-        z.join("\r\n") + "\r\n"
-      end
-
-      def self.schreiben(ordner, dateien)
+      # TCN-Dateien und Fräsliste in den Ordner; liste = Name der Fräsliste (Standard Liste_<Ordner>.xmlst)
+      def self.schreiben(ordner, dateien, liste: nil)
         dateien.each { |d| Tcn.write(File.join(ordner, d.datei), d.text) }
-        Tcn.write(File.join(ordner, 'Teileliste.csv'), teileliste(dateien))
-        Fraesliste.schreiben(ordner, dateien)
+        Fraesliste.schreiben(ordner, dateien, liste: liste)
       end
 
+      # Früher eigener TCN-Dialog; jetzt ein Dialog für Stückliste, Etiketten, Zuschnitt und TCN
       def self.dialog(model = Sketchup.active_model)
-        auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
-        dateien, meldungen = erzeugen(model, auswahl: auswahl)
-        if dateien.empty?
-          UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
-          return
-        end
-        ordner = UI.select_directory(title: 'Ordner für die TCN-Dateien')
-        return unless ordner
-        schreiben(ordner, dateien)
-        stueck = dateien.sum(&:anzahl)
-        text = "#{dateien.size} TCN-Dateien (#{stueck} Teile#{auswahl ? ', nur Auswahl' : ''}), Teileliste.csv und #{Fraesliste.name(ordner)} in\n#{ordner}"
-        text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
-        text += "\n…" if meldungen.size > 15
-        UI.messagebox(text)
+        Ausgabe.dialog(model)
       end
     end
   end

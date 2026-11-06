@@ -44,7 +44,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke andocken massaenderung frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt beschriftung beschlagmodell rendern].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke andocken massaenderung frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -52,10 +52,7 @@ module JTools
       UI.start_timer(0, false) do
         menu = Kuechenplaner.menu
         menu.add_separator
-        menu.add_item('TCN exportieren…') { Export.dialog }
-        menu.add_item('Stückliste…') { Stueckliste.dialog }
-        menu.add_item('Etiketten…') { Etiketten.dialog }
-        menu.add_item('Zuschnittplan…') { Zuschnitt.dialog }
+        menu.add_item('Export (Stückliste, Etiketten, Zuschnitt, TCN)…') { Ausgabe.dialog }
         menu.add_item('Schrank-Beschriftung ein/aus') { Beschriftung.umschalten }
         menu.add_item('Beschläge ein/aus') { Beschlagmodell.umschalten }
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }

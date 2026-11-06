@@ -203,11 +203,12 @@ check(PdfHelfer.texte(mit).include?('Besäumen') && PdfHelfer.texte(mit).include
 # Reste und Anleimer/Farbe ändern nichts am Aufbau
 check(PdfHelfer.gueltig?(Z.pdf(gruppen, o.merge('zs_farbe' => 'ja', 'zs_kanten' => 'ja', 'zs_nummern' => 'nein')).to_s), 'Darstellungsoptionen')
 
-# --- Dialog ---
+# --- Export-Dialog mit Zuschnittplan (nur Zuschnitt gewählt), dann die Zuschnitt-Optionen ---
 module UI
   class << self
     attr_accessor :meldung, :ordner, :url, :antwort, :letzte_labels, :letzte_werte
     def inputbox(labels, werte, *_)
+      return (ordner ? %w[nein nein ja nein] + [ordner] : nil) if labels.first.to_s.start_with?('Ausgabe:')
       self.letzte_labels = labels
       self.letzte_werte = werte
       antwort
@@ -219,9 +220,9 @@ module UI
 end
 Dir.mktmpdir do |dir|
   UI.ordner = dir
-  Z.dialog(model)
+  S::Ausgabe.dialog(model)
   UI.antwort = nil
-  Z.dialog(model)
+  S::Ausgabe.dialog(model)
   check(!File.exist?(File.join(dir, 'Zuschnitt.pdf')), 'Optionen abgebrochen: nichts geschrieben')
   feld = UI.letzte_labels
   check(feld.include?('Optimierung: Schnitttyp') && feld.include?('Darstellung: Schnitt- und Teileliste') &&
@@ -233,11 +234,11 @@ Dir.mktmpdir do |dir|
   i19 = feld.index { |l| l.start_with?('Melamin weiss 19 mm: Plattenreste') }
   w[i19] = '1000 x 700 x 1'
   UI.antwort = w
-  Z.dialog(model)
+  S::Ausgabe.dialog(model)
   pdf = File.join(dir, 'Zuschnitt.pdf')
   check(File.exist?(pdf) && PdfHelfer.gueltig?(File.binread(pdf)), 'Dialog schreibt Zuschnitt.pdf')
-  check(UI.url.to_s.end_with?('Zuschnitt.pdf'), 'PDF wird geöffnet')
-  check(UI.meldung.to_s.start_with?('Zuschnittplan: '), "Meldung: #{UI.meldung}")
+  check(Dir.children(dir) == ['Zuschnitt.pdf'], "nur Zuschnitt gewählt: nur Zuschnitt.pdf (#{Dir.children(dir)})")
+  check(UI.meldung.to_s.include?('Zuschnittplan ('), "Meldung: #{UI.meldung}")
   check(Z.optionen_lesen['zs_typ'] == 'exakt' && Z.optionen_lesen['zs_stufen'] == '2', 'Optionen gespeichert')
   check(mel.get_attribute('JT_Zuschnitt', 'reste_19') == '1000 x 700' && mel.get_attribute('JT_Zuschnitt', 'platte_19') == '2800 x 2070' &&
         mel.get_attribute('JT_Zuschnitt', 'reste_16') == '', 'Plattenreste und Format je Stärke am Material gespeichert')
@@ -247,21 +248,21 @@ Dir.mktmpdir do |dir|
   w2 = w.dup
   w2[Z::OPTIONEN.keys.index('schnittbreite')] = 'x'
   UI.antwort = w2
-  Z.dialog(model)
+  S::Ausgabe.dialog(model)
   check(UI.meldung.to_s.include?('Schnittbreite') && Z.optionen_lesen['schnittbreite'] == 3.0, "ungültige Schnittbreite: Hinweis (#{UI.meldung})")
   w3 = w.dup
   w3[i19] = '1000 x'
   UI.antwort = w3
-  Z.dialog(model)
+  S::Ausgabe.dialog(model)
   check(UI.meldung.to_s.include?('Plattenrest'), 'ungültiger Plattenrest: Hinweis')
   %w[reste_19 reste_16 reste_8].each { |k| mel.set_attribute('JT_Zuschnitt', k, nil) }
 end
 UI.ordner = nil
 UI.meldung = nil
 UI.antwort = UI.letzte_werte
-Z.dialog(model)
+S::Ausgabe.dialog(model)
 check(UI.meldung.nil?, 'Ordner abgebrochen: nichts geschrieben')
-Z.dialog(Sketchup::Model.new)
+S::Ausgabe.dialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 
 puts $fehler.zero? ? 'OK: Zuschnitt' : "#{$fehler} Fehler"

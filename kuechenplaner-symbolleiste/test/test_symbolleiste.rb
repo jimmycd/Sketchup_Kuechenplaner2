@@ -73,8 +73,8 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Beschläge zeigen', 'Frontfarbe und Griffe', 'TCN exportieren',
-                 'Stückliste', 'Etiketten', 'Zuschnittplan', 'Rendern', 'Materialien', 'Einstellungen'],
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Beschläge zeigen', 'Frontfarbe und Griffe', 'Export',
+                 'Rendern', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
 tb.befehle.each do |c|
@@ -199,15 +199,15 @@ d.callbacks['waehlen'].call(nil, knopf.(d.html, 'Fenster/Tür einsetzen'))
 UI.timer_ablaufen
 check(gerufen == :einsetzen, 'Raum-Auswahl ruft Fenster/Tür einsetzen')
 
-# Stückliste, Etiketten, Zuschnittplan: Icons öffnen dieselben Dialoge wie das Menü
+# Export (ein Dialog für Stückliste, Etiketten, Zuschnitt, TCN), Materialien, Einstellungen: Icons öffnen dieselben Dialoge wie das Menü
 gerufen = []
-{ 'Stückliste' => JTools::SchrankCnc::Stueckliste, 'Etiketten' => JTools::SchrankCnc::Etiketten,
-  'Zuschnittplan' => JTools::SchrankCnc::Zuschnitt, 'Materialien' => JTools::SchrankCnc::Materialdialog,
+{ 'Export' => JTools::SchrankCnc::Ausgabe, 'Materialien' => JTools::SchrankCnc::Materialdialog,
   'Einstellungen' => JTools::SchrankCnc::Einstellungen }.each do |t, mod|
   mod.define_singleton_method(:dialog) { |*_a| gerufen << t }
   tb.befehle.find { |c| c.titel == t }.aktion.call
 end
-check(gerufen == %w[Stückliste Etiketten Zuschnittplan Materialien Einstellungen], "Stückliste/Etiketten/Zuschnittplan/Materialien/Einstellungen öffnen ihren Dialog: #{gerufen.inspect}")
+check(gerufen == %w[Export Materialien Einstellungen], "Export/Materialien/Einstellungen öffnen ihren Dialog: #{gerufen.inspect}")
+check(tb.befehle.none? { |c| %w[Stückliste Etiketten Zuschnittplan].include?(c.titel) }, 'keine eigenen Icons mehr für Stückliste, Etiketten, Zuschnittplan')
 
 # Arbeitsplatte: ohne Auswahl erzeugen, mit gewählter Arbeitsplatte neu berechnen
 aufrufe = []

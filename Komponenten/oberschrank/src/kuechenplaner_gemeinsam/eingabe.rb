@@ -20,7 +20,8 @@
 # kommt in die Gruppe „Ecke 1“. listen: 'a|b|c' wird eine Auswahl, '' ein Eingabefeld.
 # Besondere Felder über listen: ':farbe' zeigt einen Farbwähler (Farbrad mit Helligkeitsregler,
 # Vorschau, Wert als #RRGGBB), ':datei' ein Eingabefeld mit Knopf „Datei wählen…“ (Bilder),
-# ':programm' ebenso für ein Programm (z. B. blender.exe), ':speichern' mit „Speichern unter…“.
+# ':programm' ebenso für ein Programm (z. B. blender.exe), ':speichern' mit „Speichern unter…“,
+# ':ordner' mit „Ordner wählen…“ (UI.select_directory, startet im eingetragenen Ordner).
 # Abbrechen oder Schließen ruft den Block nicht auf (wie nil/false bei UI.inputbox).
 # Ohne UI::HtmlDialog (sehr alte SketchUp-Versionen) wird UI.inputbox benutzt.
 # main.rb lädt die Datei mit require (einmal je Sitzung); „Plugins aktualisieren“
@@ -37,7 +38,7 @@ module Kuechenplaner
 
     # Feldarten über listen
     def self.arten
-      { ':farbe' => :farbe, ':datei' => :datei, ':programm' => :programm, ':speichern' => :speichern }
+      { ':farbe' => :farbe, ':datei' => :datei, ':programm' => :programm, ':speichern' => :speichern, ':ordner' => :ordner }
     end
 
     # Aussehen wie die Dialoge im Treppenplaner (Farben, Schrift, Gruppen, Fußzeile mit Knöpfen)
@@ -130,6 +131,8 @@ module Kuechenplaner
           UI.openpanel('Programm wählen', ordner, 'Programme|*.exe;*.app;blender;Blender||')
         when 'speichern'
           UI.savepanel('Speichern unter', ordner, wert.empty? ? '' : File.basename(wert))
+        when 'ordner'
+          UI.select_directory(title: 'Ordner wählen', directory: File.directory?(wert) ? wert : ordner)
         else
           UI.openpanel('Datei wählen', '', 'Bilder|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.tga||')
         end
@@ -194,7 +197,7 @@ module Kuechenplaner
               ctl += %(<span class="muster" id="f#{n}_muster"></span>)
               extra = %(<div class="farbwahl" data-feld="#{n}"><canvas id="f#{n}_rad" width="124" height="124"></canvas>) +
                       %(<canvas class="hell" id="f#{n}_hell" width="18" height="124"></canvas></div>)
-            when :datei, :programm, :speichern
+            when :datei, :programm, :speichern, :ordner
               ctl += %(<button type="button" class="datei" title="Datei wählen" ) +
                      %(onclick="sketchup.datei(#{n}, '#{f[:art]}', document.getElementById('f#{n}').value)">…</button>)
             end

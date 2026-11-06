@@ -128,6 +128,13 @@ UI.openpanel_antwort = 'C:\\Blender\\blender.exe'
 d5.callbacks['datei'].call(nil, '0', 'programm', '')
 check(d5.skripte.last == 'KP.setze(0, "C:/Blender/blender.exe")', "Programm ins Feld: #{d5.skripte.last}")
 UI.openpanel_antwort = nil
+# Ordner wählen (Export-Zielordner): Knopf, UI.select_directory startet im eingetragenen Ordner
+d6 = E.abfragen(['Zielordner'], [Dir.pwd], [':ordner'], 'Export') { |_| }
+check(d6.html.include?("sketchup.datei(0, 'ordner'"), 'Ordner-Feld mit Knopf')
+def UI.select_directory(**o) = (@ordner_args = o; 'D:\\Kueche\\Export')
+d6.callbacks['datei'].call(nil, '0', 'ordner', Dir.pwd)
+check(d6.skripte.last == 'KP.setze(0, "D:/Kueche/Export")' && UI.instance_variable_get(:@ordner_args)[:directory] == Dir.pwd,
+      "Ordner ins Feld: #{d6.skripte.last} #{UI.instance_variable_get(:@ordner_args)}")
 EingabeHelfer.ok(d4, 'Farbe' => '#2F6FB3')
 check(farbe == ['x', '#2F6FB3', ''], 'Farbe kommt als Text an')
 # ohne HtmlDialog: Feldarten werden zu Eingabefeldern
