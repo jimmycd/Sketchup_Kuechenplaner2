@@ -24,6 +24,7 @@
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'schubkasten') # Schubladenauszug der Küche
 
 module UnterschrankInsel
 
@@ -62,36 +63,19 @@ module UnterschrankInsel
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
-  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
-  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
-  # der Tabelle S. 8: Einschubelement M 52 / C 138).
-  SCHIENE_UEBER_BODEN = 3.8 # cm
-  ZARGE_C = 17.7            # cm
-  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
-  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
-  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
-  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
-  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
-  ZARGE_F = 24.1
-  ZARGE_K = 12.85
-  ZARGE_M = 9.05
-  HRW_F = 21.2
-  HRW_K = 9.9
-  HRW_N = 3.7
-  def self.hrw_zarge(kc, soll)
-    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
-    [soll, if kc >= ZARGE_C - 0.0001 then soll
-           elsif kc >= ZARGE_K - 0.0001 then HRW_K
-           elsif kc >= ZARGE_M - 0.0001 then HRW_M
-           else HRW_N
-           end].min
+  # Schubladenauszug der Küche (gemeinsam/schubkasten.rb, gewählt in Küchenplaner › Einstellungen):
+  # Zargen mit Holzrückwand, Nennlängen, Abzüge für Kastenboden und Holzrückwand stehen als Attribute
+  # Ausz_* am Schrank; wechselt das System, setzt das Plugin sie neu. Standard Blum LEGRABOX free.
+  SK = Kuechenplaner::Schubkasten
+
+  # Holzrückwand der höchsten Zarge, die in kc passt (cm)
+  def self.hrw_zarge(kc, soll, p = nil)
+    SK.hrw(kc, soll, p)
   end
 
-  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
-  def self.f_hrw_zarge(kc, soll)
-    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
-      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  # dieselbe Wahl als DC-Formel; q = Teil mit den Attributen Ausz_* (nil = eigene)
+  def self.f_hrw_zarge(kc, soll, q)
+    SK.f_hrw(kc, soll, q)
   end
 
   # Standardwerte in cm
@@ -128,7 +112,7 @@ module UnterschrankInsel
     'Kasten_Abstand_unten'      => 3.0,   # Unterkante Front -> Unterkante Kasten (mindestens)
     'Kasten_Abstand_oben'       => 3.0,   # Oberkante Kastenrückwand -> Oberkante Front (mindestens)
     'Auszug_Anteil'             => 0.8
-  }.freeze
+  }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_insel'.freeze
@@ -172,29 +156,27 @@ module UnterschrankInsel
     }
   end
 
-  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
-  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
-  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
-
-  def self.nennlaenge(tiefe)
-    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
+  # Nennlänge der Schiene (cm): größte des Auszugssystems mit NL + Abstand <= Tiefe; passt keine,
+  # bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  def self.nennlaenge(tiefe, p = nil)
+    SK.nl(tiefe, p)
   end
 
-  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
-  def self.f_nennlaenge(tiefe)
-    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
+  # dieselbe Wahl als DC-Formel (Attribute Ausz_NL_* am eigenen Teil bzw. an q)
+  def self.f_nennlaenge(tiefe, q = nil)
+    SK.f_nl(tiefe, q)
   end
 
   # Unterkante Kasten über Unterkante Korpus: mindestens Kasten_Abstand_unten über der Unterkante
   # der Front (z_front), Schienenbohrung mind. 38 mm über dem Korpusboden, kein Lochraster
   def self.kasten_unten(p, z_front)
     off = p['Hoehenoffset_Schiene']
-    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off
+    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + p['Ausz_Ueber_Boden']].max - off
   end
 
   def self.f_kasten_unten(z_front)
     u = NAME
-    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{u}!Ausz_Ueber_Boden)" \
       "-#{u}!Hoehenoffset_Schiene"
   end
 
@@ -414,7 +396,7 @@ module UnterschrankInsel
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe = {})
-    p = DEFAULTS.merge(eingabe)
+    p = SK.vorgaben(DEFAULTS, model).merge(eingabe)
     r = berechne(p)
     u = NAME
     mat = material(model)
@@ -463,6 +445,8 @@ module UnterschrankInsel
 
     # --- Abgeleitete Werte (nur auf Eingabe-Attribute gestützt) ---
     verkleidet = 'OR(Verkleidung=1,Theke=1)'
+    # Schubladenauszug der Küche (Attribute Ausz_*, setzt das Plugin bei einem Systemwechsel neu)
+    SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', r[:nl], units: 'STRING', formula: f_nennlaenge('Tiefe'))
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
     attribut(haupt, 'Y_Hinten', r[:y_hinten], units: 'STRING', formula: 'Tiefe+Materialstaerke_Korpus+Materialstarke_Rueckwand')
@@ -596,6 +580,7 @@ module UnterschrankInsel
     attribut(d, 'Mb', mb, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")
     attribut(d, 'Mrw', mrw, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenrueckwand")
     attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
+    SK::NAMEN.each { |n| attribut(d, n, p[n], units: 'STRING', formula: "#{u}!#{n}") }
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     attribut(d, 'Hoehe_Front', r[:hf], units: 'STRING', formula: f_hf)
     attribut(d, 'Z_Front', w[:z], units: 'STRING', formula: f_z(i))
@@ -604,7 +589,7 @@ module UnterschrankInsel
     ao = i == 1 ? "-#{u}!Kasten_Abstand_oben" : ''
     platz = "#{f_z(i)}+#{f_hf}#{ao}-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', w[:hrw], units: 'STRING',
-             formula: "MAX(MIN(#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand")},#{platz}),2)")
+             formula: "MAX(MIN(#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand", u)},#{platz}),2)")
     d.set_attribute(DICT, 'onclick', 'ANIMATE("Y",0,-Auszug)')
     d.set_attribute(DICT, '_onclick_label', 'onClick')
     sichtbarkeit(d, sichtbar, "IF(AND(#{u}!Frontart=1,#{u}!Anz_Schubladen>=#{i}),0,1)")
@@ -615,14 +600,14 @@ module UnterschrankInsel
                    ["#{s}!Breite-#{s}!Spalt", "#{s}!Mk", "#{s}!Hoehe_Front"])
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, w[:z]], ["#{s}!Spalt/2", "-#{s}!Spalt", "#{s}!Z_Front"],
               mat: mat, kz: st.('Front'))
-    kbod = platte(model, "Kasten Boden #{s}", 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
-                  ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk, w[:ab]],
-              ["#{s}!Mk+1.75", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
-    krw = platte(model, "Kasten Rueckwand #{s}", 'KastenRueckwand', [lw - 3.8, mrw, w[:hrw]],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "#{s}!Hrw"])
-    einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, w[:ab] + mb],
-              ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
+    kbod = platte(model, "Kasten Boden #{s}", 'KastenBoden', [lw - p['Ausz_Boden_B'], nl - p['Ausz_Boden_T'], mb],
+                  ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_Boden_B", "#{s}!NL-#{s}!Ausz_Boden_T", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + p['Ausz_Boden_B'] / 2.0, mk, w[:ab]],
+              ["#{s}!Mk+#{s}!Ausz_Boden_B/2", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
+    krw = platte(model, "Kasten Rueckwand #{s}", 'KastenRueckwand', [lw - p['Ausz_RW_B'], mrw, w[:hrw]],
+                 ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_RW_B", "#{s}!Mrw", "#{s}!Hrw"])
+    einsetzen(de, krw, 'KastenRueckwand', [mk + p['Ausz_RW_B'] / 2.0, mk + nl - p['Ausz_Boden_T'] - mrw, w[:ab] + mb],
+              ["#{s}!Mk+#{s}!Ausz_RW_B/2", "#{s}!Mk+#{s}!NL-#{s}!Ausz_Boden_T-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: st.('KastenRueckwand'))
 
     inst = einsetzen(e, d, s, [0, 0, 0], [nil, nil, nil], layer: tag(model, "#{kz}_#{bereich}_Schublade"))
@@ -694,8 +679,8 @@ module UnterschrankInsel
       eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
       raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
       front = FRONTEN.fetch(res[3]) { 1.0 }
-      if front == 1.0 && eingabe['Tiefe'] < 35.3 - 0.000001
-        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein für Schubladen (LEGRABOX NL 350 braucht mindestens 353 mm)"
+      if front == 1.0 && eingabe['Tiefe'] < SK.nl_min - 0.000001
+        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein für Schubladen (kürzeste Schiene braucht mindestens #{(SK.nl_min * 10).round} mm)"
       end
       verkleidung, theke = RUECKSEITEN.fetch(res[4]) { RUECKSEITEN.values.first }
       erstellen(eingabe.merge('Frontart' => front, 'Verkleidung' => verkleidung, 'Theke' => theke))

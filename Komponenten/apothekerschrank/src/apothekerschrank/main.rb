@@ -22,6 +22,7 @@
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'schubkasten') # Schubladenauszug der Küche
 
 module Apothekerschrank
 
@@ -59,36 +60,19 @@ module Apothekerschrank
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
-  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
-  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
-  # der Tabelle S. 8: Einschubelement M 52 / C 138).
-  SCHIENE_UEBER_BODEN = 3.8 # cm
-  ZARGE_C = 17.7            # cm
-  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
-  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
-  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
-  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
-  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
-  ZARGE_F = 24.1
-  ZARGE_K = 12.85
-  ZARGE_M = 9.05
-  HRW_F = 21.2
-  HRW_K = 9.9
-  HRW_N = 3.7
-  def self.hrw_zarge(kc, soll)
-    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
-    [soll, if kc >= ZARGE_C - 0.0001 then soll
-           elsif kc >= ZARGE_K - 0.0001 then HRW_K
-           elsif kc >= ZARGE_M - 0.0001 then HRW_M
-           else HRW_N
-           end].min
+  # Schubladenauszug der Küche (gemeinsam/schubkasten.rb, gewählt in Küchenplaner › Einstellungen):
+  # Zargen mit Holzrückwand, Nennlängen, Abzüge für Kastenboden und Holzrückwand stehen als Attribute
+  # Ausz_* am Schrank; wechselt das System, setzt das Plugin sie neu. Standard Blum LEGRABOX free.
+  SK = Kuechenplaner::Schubkasten
+
+  # Holzrückwand der höchsten Zarge, die in kc passt (cm)
+  def self.hrw_zarge(kc, soll, p = nil)
+    SK.hrw(kc, soll, p)
   end
 
-  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
-  def self.f_hrw_zarge(kc, soll)
-    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
-      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  # dieselbe Wahl als DC-Formel; q = Teil mit den Attributen Ausz_* (nil = eigene)
+  def self.f_hrw_zarge(kc, soll, q)
+    SK.f_hrw(kc, soll, q)
   end
 
   # Standardwerte in cm
@@ -115,7 +99,7 @@ module Apothekerschrank
     'Kasten_Abstand_unten'        => 3.0,  # Unterkante Kasten mindestens so hoch über dem festen Boden darunter
     'Kasten_Abstand_oben'         => 3.0,  # Abstand Oberkante Kasten zum nächsten Kasten bzw. festen Boden
     'Auszug_Anteil'               => 0.8
-  }.freeze
+  }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/apothekerschrank'.freeze
@@ -138,11 +122,11 @@ module Apothekerschrank
   # Abstand Kastenunterkante (= Schienenbohrung ohne Höhenoffset) über einem festen Boden:
   # Kasten_Abstand_unten, aber mindestens 38 mm (LEGRABOX: Schiene mind. 38 über dem Boden)
   def self.abst_unten(p)
-    [p['Kasten_Abstand_unten'], SCHIENE_UEBER_BODEN].max
+    [p['Kasten_Abstand_unten'], p['Ausz_Ueber_Boden']].max
   end
 
   def self.f_abst_unten
-    "MAX(#{a('Kasten_Abstand_unten')},#{SCHIENE_UEBER_BODEN})"
+    "MAX(#{a('Kasten_Abstand_unten')},#{a('Ausz_Ueber_Boden')})"
   end
 
   # Unterkante des untersten Kastens: Kasten_Abstand_unten (mind. 38 mm) über zb. Kein Lochraster:
@@ -227,7 +211,7 @@ module Apothekerschrank
 
   def self.f_hrw(f)
     kh = "#{f_teilung(f)}-#{f_abstand_oben(f)}"
-    "MAX(MIN(#{kh}-#{a('Materialstaerke_Kastenboden')},#{f_hrw_zarge(kh, a('Hoehe_Kastenrueckwand'))}),1)"
+    "MAX(MIN(#{kh}-#{a('Materialstaerke_Kastenboden')},#{f_hrw_zarge(kh, a('Hoehe_Kastenrueckwand'), NAME)}),1)"
   end
 
   def self.f_mittelboden
@@ -399,25 +383,22 @@ module Apothekerschrank
     inst
   end
 
-  # Größte LEGRABOX-Nennlänge (cm, 5er-Schritte, max. 65), für die die Einbautiefe reicht (LT >= NL + 3 mm)
-  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
-  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
-  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
-
-  def self.nennlaenge(tiefe)
-    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
+  # Nennlänge der Schiene (cm): größte des Auszugssystems mit NL + Abstand <= Tiefe; passt keine,
+  # bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  def self.nennlaenge(tiefe, p = nil)
+    SK.nl(tiefe, p)
   end
 
-  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
-  def self.f_nennlaenge(tiefe)
-    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
+  # dieselbe Wahl als DC-Formel (Attribute Ausz_NL_* am eigenen Teil bzw. an q)
+  def self.f_nennlaenge(tiefe, q = nil)
+    SK.f_nl(tiefe, q)
   end
 
   # ---------------------------------------------------------------------------
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe = {})
-    p = DEFAULTS.merge(eingabe)
+    p = SK.vorgaben(DEFAULTS, model).merge(eingabe)
     r = berechne(p)
     u = NAME
     mat = material(model)
@@ -459,6 +440,8 @@ module Apothekerschrank
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
     # Blum-Nennlänge (cm) aus der Korpustiefe, steuert Kastenlänge und Schienenbohrungen
+    # Schubladenauszug der Küche (Attribute Ausz_*, setzt das Plugin bei einem Systemwechsel neu)
+    SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', nennlaenge(p['Tiefe']), units: 'STRING', formula: f_nennlaenge('Tiefe'))
 
     mk = p['Materialstaerke_Korpus']
@@ -525,6 +508,7 @@ module Apothekerschrank
     attribut(d, 'Mb', mb, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")
     attribut(d, 'Mrw', mrw, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenrueckwand")
     attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
+    SK::NAMEN.each { |n| attribut(d, n, p[n], units: 'STRING', formula: "#{u}!#{n}") }
     attribut(d, 'Anz', k[:n].to_f, laenge: false, units: 'INTEGER', formula: "#{u}!Anz_Kaesten_#{f}")
     if f == 'A'
       attribut(d, 'Z_Front', zf, units: 'STRING', formula: '0')
@@ -557,18 +541,18 @@ module Apothekerschrank
       z = k[:z][j - 1]
 
       # Boden LW-35 x NL-10, mittig, vorne an der Korpusvorderkante
-      kbod = platte(model, "Kasten Boden #{f}#{j}", 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
-                    ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
+      kbod = platte(model, "Kasten Boden #{f}#{j}", 'KastenBoden', [lw - p['Ausz_Boden_B'], nl - p['Ausz_Boden_T'], mb],
+                    ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_Boden_B", "#{s}!NL-#{s}!Ausz_Boden_T", "#{s}!Mb"])
       sichtbarkeit(kbod, an, versteckt)
-      i1 = einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk, z],
-                     ["#{s}!Mk+1.75", "#{s}!Mk", "#{s}!Z_Kasten_#{j}"], mat: mat, kz: bt.('KastenBoden'))
+      i1 = einsetzen(de, kbod, 'KastenBoden', [mk + p['Ausz_Boden_B'] / 2.0, mk, z],
+                     ["#{s}!Mk+#{s}!Ausz_Boden_B/2", "#{s}!Mk", "#{s}!Z_Kasten_#{j}"], mat: mat, kz: bt.('KastenBoden'))
 
       # Holzrückwand LW-38 x Hrw, hinten auf dem Boden
-      krw = platte(model, "Kasten Rueckwand #{f}#{j}", 'KastenRueckwand', [lw - 3.8, mrw, k[:hrw]],
-                   ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "#{s}!Hrw"], kanten: %i[zmax])
+      krw = platte(model, "Kasten Rueckwand #{f}#{j}", 'KastenRueckwand', [lw - p['Ausz_RW_B'], mrw, k[:hrw]],
+                   ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_RW_B", "#{s}!Mrw", "#{s}!Hrw"], kanten: %i[zmax])
       sichtbarkeit(krw, an, versteckt)
-      i2 = einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, z + mb],
-                     ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Z_Kasten_#{j}+#{s}!Mb"],
+      i2 = einsetzen(de, krw, 'KastenRueckwand', [mk + p['Ausz_RW_B'] / 2.0, mk + nl - p['Ausz_Boden_T'] - mrw, z + mb],
+                     ["#{s}!Mk+#{s}!Ausz_RW_B/2", "#{s}!Mk+#{s}!NL-#{s}!Ausz_Boden_T-#{s}!Mrw", "#{s}!Z_Kasten_#{j}+#{s}!Mb"],
                      mat: mat, kz: bt.('KastenRueckwand'))
       i1.hidden = i2.hidden = !an
     end
@@ -586,7 +570,7 @@ module Apothekerschrank
   TIEFE_NEU = 52.0 # cm, Vorschlag im Dialog
 
   def self.tiefe_min
-    35.3
+    SK.nl_min
   end
 
   def self.dialog
@@ -596,7 +580,7 @@ module Apothekerschrank
       eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
       t = eingabe['Tiefe']
       if t < tiefe_min - 0.000001
-        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht 353 mm, mindestens #{(tiefe_min * 10).round} mm)"
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (kürzeste Schiene braucht #{(SK.nl_min * 10).round} mm, mindestens #{(tiefe_min * 10).round} mm)"
       end
       raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
       erstellen(eingabe)

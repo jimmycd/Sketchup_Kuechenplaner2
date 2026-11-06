@@ -41,12 +41,14 @@ module JTools
       # Häfele HU Slim Base (vereinfacht): 2 Schienen 12 × 30 an der Seite (Bauraumtiefe − 30 lang),
       # Gestell mit 2 Körben (80 hoch) auf Höhe der Fronthalter, Fronthalter 20 × 40 × 10.
       HU = { schiene: [12.0, 30.0], korb_h: 80.0, korb_d: 3.0, halter: [20.0, 40.0, 10.0], gestell: 10.0 }.freeze
-      # LEGRABOX-Zarge mit Seiteneinsatz: Einsatz 10 mm (Glas) im Fenster NL − 112 lang, Obergurt 8 mm
-      ZARGE_FENSTER = { obergurt: 8.0, einsatz: 10.0 }.freeze
 
       # LEGRABOX free (vereinfacht): Zarge 12,8 mm stark, Korpusschiene 4 mm an der Seite,
       # Zarge davor; Schiene 4 mm hinter der Vorderkante der Seite, NL − 10 lang.
-      LEGRABOX = { schiene: 4.0, schiene_h: 20.0, zarge: 12.8, fronthalter: 12.0, rueckwandhalter: 2.2 }.freeze
+      # Maße: Katalogeintrag des Schubladenauszugs, koerper (schiene, schiene_h, zarge, fronthalter,
+      # rueckwandhalter; Zarge mit Seiteneinsatz: obergurt, einsatz im Fenster NL − kasten.einsatz_abzug)
+      def auszug_koerper
+        Beschlagkatalog.gewaehlt('schubladen')['koerper'].map { |k, v| [k.to_sym, v.to_f] }.to_h
+      end
       # Topfband: Körper aus dem Beschlag-Katalog (koerper: topf_tiefe, arm_h, arm_b, arm_ueber, platte)
       # Klappen: Körper aus dem Beschlag-Katalog (koerper.seite/arm/front, siehe klappen)
 
@@ -104,7 +106,8 @@ module JTools
 
       def schubladen(teile, add)
         alu = MATERIALIEN[:alu][0]
-        lg = LEGRABOX
+        lg = auszug_koerper
+        ax = Regeln.auszug
         # Korpusschienen: je Seite und Schublade an den Schienenbohrungen (fest im Schrank)
         teile.select { |w| w.rolle == 'Seite' }.each do |s|
           s.ops.select { |o| o.titel.to_s.start_with?('Schiene ') && o.daten }.group_by(&:titel).each do |titel, ops|
@@ -117,8 +120,8 @@ module JTools
             ys = ops.map { |o| o.p0[t] }
             # vorn = Seite der beiden vorderen Löcher (37/69); Schiene 4 mm hinter der Vorderkante
             vorn_min = (ys.min - s.lo[t]) <= (s.hi[t] - ys.max)
-            y0 = vorn_min ? ys.min - (Regeln::SCHIENE[:vorn][0] - 4) : ys.max + (Regeln::SCHIENE[:vorn][0] - 4)
-            y1 = y0 + (vorn_min ? 1 : -1) * (nl - 10)
+            y0 = vorn_min ? ys.min - (ax[:schiene][:vorn][0] - lg[:schiene]) : ys.max + (ax[:schiene][:vorn][0] - lg[:schiene])
+            y1 = y0 + (vorn_min ? 1 : -1) * (nl - ax[:kasten][:boden_t])
             add.(s, quader("Korpusschiene NL #{nl.round} #{titel.sub('Schiene ', '')}", alu,
                            p3(k => fl, t => y0, 2 => z - lg[:schiene_h] / 2.0),
                            p3(k => fl + innen * lg[:schiene], t => y1, 2 => z + lg[:schiene_h] / 2.0)))
@@ -129,14 +132,14 @@ module JTools
           boden = kasten.find { |w| w.rolle == 'KastenBoden' } or next
           rw = kasten.find { |w| w.rolle == 'KastenRueckwand' }
           m = Regeln.zarge(kasten)
-          zh = Regeln::ZARGEN[m][:hoehe]
+          zh = ax[:zargen][m][:hoehe]
           wa = Regeln.breite_achse(kasten)
           ta = (boden.flaechen_achsen - [wa]).first
           next unless ta
           unten = kasten.map { |w| w.lo[2] }.min
           seiten = teile.select { |w| w.rolle == 'Seite' && w.dicke_achse == wa }
-          links = seiten.map { |s| s.hi[wa] }.select { |v| v <= boden.lo[wa] + Regeln::TOL }.max || boden.lo[wa] - 17.5
-          rechts = seiten.map { |s| s.lo[wa] }.select { |v| v >= boden.hi[wa] - Regeln::TOL }.min || boden.hi[wa] + 17.5
+          links = seiten.map { |s| s.hi[wa] }.select { |v| v <= boden.lo[wa] + Regeln::TOL }.max || boden.lo[wa] - ax[:kasten][:boden_b] / 2.0
+          rechts = seiten.map { |s| s.lo[wa] }.select { |v| v >= boden.hi[wa] - Regeln::TOL }.min || boden.hi[wa] + ax[:kasten][:boden_b] / 2.0
           f = Regeln.front_zu(kasten, teile)
           # vorn: Seite des Bodens zur Front (ohne Front: zur Rückwand gegenüber)
           vorn_min = if f then mitte(f, ta) < mitte(boden, ta)
@@ -145,12 +148,12 @@ module JTools
                      end
           vorn = vorn_min ? boden.lo[ta] : boden.hi[ta]
           dir = vorn_min ? 1 : -1
-          nl = boden.mass(ta) + 10.0 # Boden NL − 10
+          nl = boden.mass(ta) + ax[:kasten][:boden_t] # Boden NL − boden_t
           bez = boden.teil.jt('bereich')
           [[links, 1, 'links'], [rechts, -1, 'rechts']].each do |aussen, innen, lr|
             x0 = aussen + innen * lg[:schiene]
             x1 = x0 + innen * lg[:zarge]
-            zarge(boden, add, "Zarge #{m} #{lr} #{bez}", m, wa, ta, x0, x1, vorn, dir, nl, unten, zh)
+            zarge(boden, add, "Zarge #{m} #{lr} #{bez}", m, wa, ta, x0, x1, vorn, dir, nl, unten, zh, lg, ax)
             # Rückwandhalter: zwischen Zarge und Holzrückwand, auf deren Höhe
             next unless rw
             add.(boden, quader("Rückwandhalter #{m} #{lr} #{bez}", alu,
@@ -160,7 +163,7 @@ module JTools
           # Seitenstabilisierung (ab Korpusbreite 600, wie die Beschlagliste): Stange quer zwischen den
           # Zargen oben vor der Holzrückwand
           kb = rechts - links + 2 * (seiten.first ? seiten.first.mass(wa) : 19.0)
-          if rw && kb >= Beschlaege::KB_STABILISIERUNG - Regeln::TOL
+          if rw && kb >= ax[:stabilisierung_ab] - Regeln::TOL
             yr = (vorn_min ? rw.lo[ta] : rw.hi[ta]) - dir * 15
             add.(boden, quader("Seitenstabilisierung #{bez}", alu,
                                p3(wa => links + lg[:schiene] + lg[:zarge], ta => yr - 4, 2 => unten + zh - 20),
@@ -184,19 +187,18 @@ module JTools
 
       # Zarge: mit Seiteneinsatz (Zargenhöhe mit einsatz) als Rahmen mit Glas im Fenster NL − 112,
       # sonst (N) voll
-      def zarge(boden, add, name, m, wa, ta, x0, x1, vorn, dir, nl, unten, zh)
+      def zarge(boden, add, name, m, wa, ta, x0, x1, vorn, dir, nl, unten, zh, zf, ax)
         alu = MATERIALIEN[:alu][0]
-        ein = Regeln::ZARGEN[m][:einsatz]
+        ein = ax[:zargen][m][:einsatz]
         y1 = vorn + dir * (nl - 1)
         unless ein && ein < zh
           add.(boden, quader(name, alu, p3(wa => x0, ta => vorn, 2 => unten), p3(wa => x1, ta => y1, 2 => unten + zh)))
           return
         end
-        zf = ZARGE_FENSTER
         oben = unten + zh
         f_oben = oben - zf[:obergurt]
         f_unten = f_oben - ein
-        rand = ((nl - 1) - (nl - 112)) / 2.0
+        rand = ((nl - 1) - (nl - ax[:kasten][:einsatz_abzug])) / 2.0
         fv = vorn + dir * rand
         fh = y1 - dir * rand
         rahmen = [quader(name, alu, p3(wa => x0, ta => vorn, 2 => unten), p3(wa => x1, ta => y1, 2 => f_unten)),

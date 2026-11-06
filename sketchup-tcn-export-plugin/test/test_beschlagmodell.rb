@@ -140,7 +140,7 @@ kaesten.each do |kasten|
   check(z, "#{b}: Zarge #{m} links")
   next unless z
   g = grenzen(z[:pts])
-  check((g[2][1] - g[2][0] - S::Regeln::ZARGEN[m][:hoehe]).abs < 0.01, "#{b}: Zarge #{S::Regeln::ZARGEN[m][:hoehe]} hoch (#{g[2]})")
+  check((g[2][1] - g[2][0] - S::Regeln.zargen[m][:hoehe]).abs < 0.01, "#{b}: Zarge #{S::Regeln.zargen[m][:hoehe]} hoch (#{g[2]})")
   check((g[2][0] - kasten.map { |w| w.lo[2] }.min).abs < 0.01, "#{b}: Zarge ab Kastenunterkante")
   check(g[0][1] <= boden.lo[0] + 0.01 && (g[0][1] - g[0][0] - 12.8).abs < 0.01, "#{b}: Zarge 12,8 neben dem Boden (#{g[0]})")
   nl = S::Schraenke.dc(uss, 'nl').to_f * MM
@@ -241,7 +241,7 @@ end
 kaesten.each do |kasten|
   b = kasten.find { |w| w.rolle == 'KastenBoden' }.teil.jt('bereich')
   m = S::Regeln.zarge(kasten)
-  ein = S::Regeln::ZARGEN[m][:einsatz]
+  ein = S::Regeln.zargen[m][:einsatz]
   ge = uss_k.select { |x| x[:name].start_with?('Seiteneinsatz') && x[:name].end_with?(b) }
   if ein
     check(ge.size == 2 && ge.all? { |x| x[:mat] == 'Beschlag Glas klar' }, "#{b}: 2 Seiteneinsätze Glas (#{ge.size})")

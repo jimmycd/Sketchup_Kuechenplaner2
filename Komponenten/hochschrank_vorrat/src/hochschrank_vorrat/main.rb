@@ -26,6 +26,7 @@
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'schubkasten') # Schubladenauszug der Küche
 
 module HochschrankVorrat
 
@@ -64,36 +65,19 @@ module HochschrankVorrat
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
-  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
-  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
-  # der Tabelle S. 8: Einschubelement M 52 / C 138).
-  SCHIENE_UEBER_BODEN = 3.8 # cm
-  ZARGE_C = 17.7            # cm
-  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
-  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
-  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
-  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
-  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
-  ZARGE_F = 24.1
-  ZARGE_K = 12.85
-  ZARGE_M = 9.05
-  HRW_F = 21.2
-  HRW_K = 9.9
-  HRW_N = 3.7
-  def self.hrw_zarge(kc, soll)
-    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
-    [soll, if kc >= ZARGE_C - 0.0001 then soll
-           elsif kc >= ZARGE_K - 0.0001 then HRW_K
-           elsif kc >= ZARGE_M - 0.0001 then HRW_M
-           else HRW_N
-           end].min
+  # Schubladenauszug der Küche (gemeinsam/schubkasten.rb, gewählt in Küchenplaner › Einstellungen):
+  # Zargen mit Holzrückwand, Nennlängen, Abzüge für Kastenboden und Holzrückwand stehen als Attribute
+  # Ausz_* am Schrank; wechselt das System, setzt das Plugin sie neu. Standard Blum LEGRABOX free.
+  SK = Kuechenplaner::Schubkasten
+
+  # Holzrückwand der höchsten Zarge, die in kc passt (cm)
+  def self.hrw_zarge(kc, soll, p = nil)
+    SK.hrw(kc, soll, p)
   end
 
-  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
-  def self.f_hrw_zarge(kc, soll)
-    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
-      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  # dieselbe Wahl als DC-Formel; q = Teil mit den Attributen Ausz_* (nil = eigene)
+  def self.f_hrw_zarge(kc, soll, q)
+    SK.f_hrw(kc, soll, q)
   end
 
   # Standardwerte in cm
@@ -128,7 +112,7 @@ module HochschrankVorrat
     'Scharnier_Rand'              => 10.0,  # Mitte Scharnier ab Ober-/Unterkante Tür (Fach oben)
     'Auszug_Anteil'               => 0.8,
     'Rueckversatz_Einlegeboden'   => 1.0
-  }.merge((1..MAX_K).to_h { |i| ["Anteil_#{i}", 1.0] }).freeze
+  }.merge((1..MAX_K).to_h { |i| ["Anteil_#{i}", 1.0] }).merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md)
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/hochschrank_vorrat'.freeze
@@ -177,12 +161,12 @@ module HochschrankVorrat
   # Unterkante Kasten über Unterkante Fach (cm): mindestens Kasten_Abstand_unten (mind. 38 mm über
   # dem Fachboden). Kein Lochraster (Jürgen 2026-11-06).
   def self.kasten_unten(p, _z_fach)
-    [p['Kasten_Abstand_unten'], SCHIENE_UEBER_BODEN].max
+    [p['Kasten_Abstand_unten'], p['Ausz_Ueber_Boden']].max
   end
 
   def self.f_kasten_unten(_z_fach)
     u = NAME
-    "MAX(#{u}!Kasten_Abstand_unten,#{SCHIENE_UEBER_BODEN})"
+    "MAX(#{u}!Kasten_Abstand_unten,#{u}!Ausz_Ueber_Boden)"
   end
 
   # ---------------------------------------------------------------------------
@@ -398,15 +382,15 @@ module HochschrankVorrat
     inst
   end
 
-  # LEGRABOX-Nennlänge (cm) für die Tiefe hinter der Innenfront (siehe Hochschrank)
-  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
-
-  def self.nennlaenge(tiefe)
-    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
+  # Nennlänge der Schiene (cm): größte des Auszugssystems mit NL + Abstand <= Tiefe; passt keine,
+  # bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  def self.nennlaenge(tiefe, p = nil)
+    SK.nl(tiefe, p)
   end
 
-  def self.f_nennlaenge(tiefe)
-    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
+  # dieselbe Wahl als DC-Formel (Attribute Ausz_NL_* am eigenen Teil bzw. an q)
+  def self.f_nennlaenge(tiefe, q = nil)
+    SK.f_nl(tiefe, q)
   end
 
   # Kasten beginnt hinter der Innenfront (Rückversatz + Stärke + Fuge wie bei normalen Fronten)
@@ -419,7 +403,7 @@ module HochschrankVorrat
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe = {})
-    p = DEFAULTS.merge(eingabe)
+    p = SK.vorgaben(DEFAULTS, model).merge(eingabe)
     p['Fluegel'] = p['Breite'] > 60.0 + 1e-6 ? 2.0 : 1.0 unless eingabe.key?('Fluegel')
     r = berechne(p)
     u = NAME
@@ -470,6 +454,8 @@ module HochschrankVorrat
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
+    # Schubladenauszug der Küche (Attribute Ausz_*, setzt das Plugin bei einem Systemwechsel neu)
+    SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', nennlaenge(p['Tiefe'] - versatz(p)), units: 'STRING', formula: f_nennlaenge("Tiefe-#{F_VERSATZ}"))
 
     # --- Abgeleitete Werte ---
@@ -626,6 +612,7 @@ module HochschrankVorrat
     attribut(d, 'Li', li, units: 'STRING', formula: "#{u}!Luft_Innenfront")
     attribut(d, 'V', v, units: 'STRING', formula: "#{u}!Rueckversatz_Innenfront+#{u}!Materialstaerke_Innenfront+#{u}!Spaltbreite")
     attribut(d, 'NL', nl, units: 'STRING', formula: "#{u}!NL")
+    SK::NAMEN.each { |n| attribut(d, n, p[n], units: 'STRING', formula: "#{u}!#{n}") }
     attribut(d, 'F', fr, units: 'STRING', formula: "#{u}!Freiraum_Scharnier")
     attribut(d, 'Ab_unten', ab, units: 'STRING', formula: f_kasten_unten("#{u}!Z_Fach_#{i}"))
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
@@ -644,16 +631,16 @@ module HochschrankVorrat
               ["#{s}!Mk+#{s}!Li", "#{s}!Mk+#{s}!Rvi", "#{s}!Ab_unten"], mat: mat, kz: bt.('Innenfront'))
 
     # Boden LW-35 x NL-10, mittig, hinter der Innenfront
-    kbod = platte(model, "Kasten Boden #{i}", 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
-                  ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk + v, ab],
-              ["#{s}!Mk+1.75", "#{s}!Mk+#{s}!V", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenBoden'))
+    kbod = platte(model, "Kasten Boden #{i}", 'KastenBoden', [lw - p['Ausz_Boden_B'], nl - p['Ausz_Boden_T'], mb],
+                  ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_Boden_B", "#{s}!NL-#{s}!Ausz_Boden_T", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + p['Ausz_Boden_B'] / 2.0, mk + v, ab],
+              ["#{s}!Mk+#{s}!Ausz_Boden_B/2", "#{s}!Mk+#{s}!V", "#{s}!Ab_unten"], mat: mat, kz: bt.('KastenBoden'))
 
     # Holzrückwand LW-38 x 148 (höchstens bis zur Kastenoberkante), hinten auf dem Boden
-    krw = platte(model, "Kasten Rueckwand #{i}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{f_kh}-#{s}!Mb,#{f_hrw_zarge(f_kh, "#{s}!Hrw")})"], kanten: %i[zmax])
-    einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + v + nl - 1.0 - mrw, ab + mb],
-              ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!V+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
+    krw = platte(model, "Kasten Rueckwand #{i}", 'KastenRueckwand', [lw - p['Ausz_RW_B'], mrw, hrw],
+                 ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_RW_B", "#{s}!Mrw", "MIN(#{f_kh}-#{s}!Mb,#{f_hrw_zarge(f_kh, "#{s}!Hrw", s)})"], kanten: %i[zmax])
+    einsetzen(de, krw, 'KastenRueckwand', [mk + p['Ausz_RW_B'] / 2.0, mk + v + nl - p['Ausz_Boden_T'] - mrw, ab + mb],
+              ["#{s}!Mk+#{s}!Ausz_RW_B/2", "#{s}!Mk+#{s}!V+#{s}!NL-#{s}!Ausz_Boden_T-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: bt.('KastenRueckwand'))
 
     inst = einsetzen(ents, d, s, [0, 0, fa[:z]], [nil, nil, "#{u}!Z_Fach_#{i}"])
@@ -668,7 +655,7 @@ module HochschrankVorrat
 
   # NL 350 + 3 mm hinter der Innenfront
   def self.tiefe_min
-    35.3 + versatz(DEFAULTS)
+    SK.nl_min + versatz(DEFAULTS)
   end
 
   def self.dialog
@@ -679,7 +666,7 @@ module HochschrankVorrat
       eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
       t = eingabe['Tiefe']
       if t < tiefe_min - 0.000001
-        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (LEGRABOX NL 350 hinter der Innenfront, mindestens #{(tiefe_min * 10).round} mm)"
+        raise ArgumentError, "Tiefe #{(t * 10).round} mm ist zu klein (kürzeste Schiene hinter der Innenfront: mindestens #{(tiefe_min * 10).round} mm)"
       end
       raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
       erstellen(eingabe)

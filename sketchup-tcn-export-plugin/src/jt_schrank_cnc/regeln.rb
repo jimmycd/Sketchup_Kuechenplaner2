@@ -57,31 +57,61 @@ module JTools
       # NL ist die größte, für die die lichte Tiefe (Vorderkante Seite bis Rückwand) >= NL + 3 ist.
       # 40 kg: NL 350 192/224, NL 400–500 224/256, NL 550–600 224/256/320; NL 650 nur 70 kg: 224/256/320/416.
       # Höhe = Kastenunterkante + Höhenoffset Schiene, mindestens 38 mm über dem Boden darunter (S. 4).
-      SCHIENE = { d: 5, tiefe: 14, vorn: [37, 69], abstand_nl: 3, ueber_boden: 38,
-                  hinten: { 350 => [192, 224], 400 => [224, 256], 450 => [224, 256], 500 => [224, 256],
-                            550 => [224, 256, 320], 600 => [224, 256, 320], 650 => [224, 256, 320, 416] } }.freeze
+      # Werte: Katalogeintrag (katalog/blum-legrabox-free.json, schiene), siehe Regeln.schiene
       # LEGRABOX free, alle Zargenhöhen (Blum-Programm): N 66,5, M 90,5, K 128,5, C 177, F 241 mm.
       # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4), Einschubelement C 138 / M 52 (S. 8).
       # Abgeleitet, nicht bestätigt: Holzrückwand = Zarge − 29 mm wie bei C (F 212, K 99, M 62, N 37),
       # Seiteneinsatz = Zarge − 39 mm (F 202, K 90; N ohne Einsatz), Fronthalter: Löcher aus 0/32/96/128,
       # solange das oberste höchstens 13 mm unter der Zargenoberkante liegt (wie bei C: 36 + 128 = 177 − 13).
       # Die Komponenten nehmen die höchste Zarge, die Platz hat; erkannt wird sie an der Höhe der Kastenrückwand.
-      ZARGEN = { 'F' => { hoehe: 241.0, rueckwand: 212.0, front: [0, 32, 96, 128], einsatz: 202 },
-                 'C' => { hoehe: 177.0, rueckwand: 148.0, front: [0, 32, 96, 128], einsatz: 138 },
-                 'K' => { hoehe: 128.5, rueckwand: 99.0, front: [0, 32], einsatz: 90 },
-                 'M' => { hoehe: 90.5, rueckwand: 62.0, front: [0, 32], einsatz: 52 },
-                 'N' => { hoehe: 66.5, rueckwand: 37.0, front: [0], einsatz: nil } }.freeze
+      # Werte: Katalogeintrag (zargen), siehe Regeln.zargen
       KASTEN = %w[KastenBoden KastenRueckwand].freeze
+
+      # Schubladenauszug (Bauart auszug_zarge) aus dem Beschlag-Katalog, gewählt für die ganze Küche
+      # (Küchenplaner › Einstellungen…); Standard Blum LEGRABOX free. Werte in mm.
+      def self.auszug(e = Beschlagkatalog.gewaehlt('schubladen'))
+        @auszug ||= {}
+        @auszug[e['kennung']] ||= begin
+          sch = e['schiene']
+          {
+            kennung: e['kennung'], name: e['name'],
+            schiene: { d: sch['d'], tiefe: sch['tiefe'], vorn: sch['vorn'], abstand_nl: sch['abstand_nl'],
+                       ueber_boden: sch['ueber_boden'], hinten: sch['hinten'].map { |k, v| [k.to_i, v] }.sort.to_h,
+                       kg: sch['kg'], kg_nl: (sch['kg_nl'] || {}).map { |k, v| [k.to_i, v] }.to_h },
+            zargen: e['zargen'].map { |m, z| [m, { hoehe: z['hoehe'].to_f, rueckwand: z['rueckwand'].to_f, front: z['front'], einsatz: z['einsatz'] }] }.to_h,
+            front_bef: e['front'].map { |k, v| [k.to_sym, v] }.to_h,
+            boden_falz: e['boden_falz']['streifen'].map { |st| { breite: st['breite'], ueberlauf: st['ueberlauf'] } },
+            boden_falz_tiefe: e['boden_falz']['tiefe'],
+            kasten: e['kasten'].map { |k, v| [k.to_sym, v] }.to_h,
+            stabilisierung_ab: e['stabilisierung_ab'].to_f
+          }
+        end
+      end
+
+      def self.schiene
+        auszug[:schiene]
+      end
+
+      def self.zargen
+        auszug[:zargen]
+      end
+
+      def self.front_bef
+        auszug[:front_bef]
+      end
+
+      def self.boden_falz
+        auszug[:boden_falz]
+      end
       # Frontbefestigung LEGRABOX (MD-015/4, S. 4): Löcher 14 mm von der Innenseite der Seite
       # (= 14 + FA vom Frontrand), 0/32/96/128 mm übereinander, unterstes mind. 51 über Unterkante Front.
       # Höhe abgeleitet aus SK_Vorderstueck_Frontbef.tcn: unterstes 36 mm über Unterkante Kasten;
       # obere Löcher nur, solange sie nicht über dem Kasten liegen. Ø3 × 5 wie in der Vorlage.
-      # Andere Zargen: Lochbild siehe ZARGEN (F wie C, K und M 0/32, N nur 0; abgeleitet).
-      FRONT_BEF = { d: 3, tiefe: 5, innen: 14, ueber_kasten: 36, min_unten: 51 }.freeze
+      # Andere Zargen: Lochbild siehe zargen (F wie C, K und M 0/32, N nur 0; abgeleitet).
+      # Werte: Katalogeintrag (front), siehe Regeln.front_bef
       # Schubkastenboden.tcn: Falz unten an beiden Enden quer zur Breite für die Zargen,
       # 38 breit über die ganze Tiefe + 20 Überlauf und ein zweites Rechteck 20 breit, beide 8 tief
-      BODEN_FALZ = [{ breite: 38, ueberlauf: 20 }, { breite: 20, ueberlauf: 0 }].freeze
-      BODEN_FALZ_TIEFE = 8
+      # Werte: Katalogeintrag (boden_falz), siehe Regeln.boden_falz
       # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
       SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
@@ -268,7 +298,7 @@ module JTools
         t = 1 - s.dicke_achse
         hinten = teile.select { |w| w.rolle == 'Rueckwand' && w.lo[t] > s.lo[t] }.map { |w| w.lo[t] }.min || s.hi[t]
         lt = [hinten, s.hi[t]].min - s.lo[t] - versatz
-        SCHIENE[:hinten].keys.select { |nl| nl + SCHIENE[:abstand_nl] <= lt + TOL }.max
+        schiene[:hinten].keys.select { |nl| nl + schiene[:abstand_nl] <= lt + TOL }.max
       end
 
       # Nennlänge aus dem Attribut NL am Schrank (cm), wenn es eine LEGRABOX-Nennlänge ist;
@@ -276,7 +306,7 @@ module JTools
       def self.nennlaenge_schrank(schrank)
         v = Schraenke.dc(schrank, 'nl') or return
         nl = (v.to_f * Geometrie::MM).round
-        SCHIENE[:hinten].key?(nl) ? nl : nil
+        schiene[:hinten].key?(nl) ? nl : nil
       end
 
       # sichtbare Schubladen: Kastenteile je Bereich
@@ -308,18 +338,18 @@ module JTools
             versatz = 0 if versatz < TOL
             nl = [nennlaenge_schrank(schrank), nennlaenge(s, teile, versatz)].compact.min
             if nl.nil? || nennlaenge(s, teile, versatz).nil?
-              meldungen << "#{s.name}: zu wenig Tiefe für eine LEGRABOX-Schiene (NL 350 braucht 353 mm)"
+              meldungen << "#{s.name}: zu wenig Tiefe für eine Schiene #{auszug[:name]} (NL #{schiene[:hinten].keys.min} braucht #{schiene[:hinten].keys.min + schiene[:abstand_nl]} mm)"
               next
             end
             bereich = kasten.first.teil.jt('bereich')
-            (SCHIENE[:vorn] + SCHIENE[:hinten][nl].map { |a| SCHIENE[:vorn][0] + a }).each do |d|
+            (schiene[:vorn] + schiene[:hinten][nl].map { |a| schiene[:vorn][0] + a }).each do |d|
               y = s.lo[t] + versatz + d
               p = punkt(k => flaeche, t => y, 2 => z)
-              s.ops << Op.new(:bohrung, seite, p, nil, SCHIENE[:d], SCHIENE[:tiefe], nil, nil, "Schiene #{bereich}", { nl: nl })
+              s.ops << Op.new(:bohrung, seite, p, nil, schiene[:d], schiene[:tiefe], nil, nil, "Schiene #{bereich}", { nl: nl })
             end
             boden = boden_unter(s, z, teile)
-            if boden && z - boden < SCHIENE[:ueber_boden] - TOL
-              meldungen << "#{s.name}: Schiene #{bereich} nur #{(z - boden).round} mm über dem Boden (LEGRABOX: mind. #{SCHIENE[:ueber_boden]} mm)"
+            if boden && z - boden < schiene[:ueber_boden] - TOL
+              meldungen << "#{s.name}: Schiene #{bereich} nur #{(z - boden).round} mm über dem Boden (#{auszug[:name]}: mind. #{schiene[:ueber_boden]} mm)"
             end
           end
         end
@@ -332,9 +362,9 @@ module JTools
 
       # Zargenhöhe der Schublade (LEGRABOX free F, C, K, M oder N) aus der Höhe der Kastenrückwand
       def self.zarge(kasten)
-        rw = kasten.find { |w| w.rolle == 'KastenRueckwand' } or return 'C'
+        rw = kasten.find { |w| w.rolle == 'KastenRueckwand' } or return Beschlagkatalog.gewaehlt('schubladen')['standard_zarge']
         # höchste Zarge, deren Rückwand nicht höher ist als die gezeichnete (kleinere Rückwände = niedrigere Zarge)
-        ZARGEN.find { |_, z| rw.mass(2) >= z[:rueckwand] - 0.5 }&.first || 'N'
+        zargen.find { |_, z| rw.mass(2) >= z[:rueckwand] - 0.5 }&.first || zargen.keys.last
       end
 
       # Prüft, ob die Front die Zarge abdeckt (Kastenunterkante + Zargenhöhe <= Frontoberkante; daran
@@ -343,7 +373,7 @@ module JTools
         boden = kasten.find { |w| w.rolle == 'KastenBoden' } or return
         m = zarge(kasten)
         unten = kasten.map { |w| w.lo[2] }.min
-        oben = unten + ZARGEN[m][:hoehe]
+        oben = unten + zargen[m][:hoehe]
         grenzen = teile.select do |w|
           FESTE_BOEDEN.include?(w.rolle) && w.lo[2] > unten + TOL && [0, 1].all? { |i| ueberlapp(w, boden, i) > 1.0 }
         end.map { |w| w.lo[2] }
@@ -351,7 +381,7 @@ module JTools
         grenzen << f.hi[2] if f && f.rolle == 'Front'
         grenze = grenzen.min or return
         return if oben <= grenze + TOL
-        meldungen << "#{boden.name}: zu wenig Höhe für LEGRABOX free #{m} (Zarge #{Tcn.n(ZARGEN[m][:hoehe])} mm, " \
+        meldungen << "#{boden.name}: zu wenig Höhe für #{auszug[:name]} #{m} (Zarge #{Tcn.n(zargen[m][:hoehe])} mm, " \
                      "#{(oben - grenze).round} mm zu hoch)"
       end
 
@@ -384,10 +414,10 @@ module JTools
         hinten = (boden.lo[da] + boden.hi[da]) / 2.0 > f.hi[da]
         seite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
         flaeche = hinten ? f.hi[da] : f.lo[da]
-        fb = FRONT_BEF
+        fb = front_bef
         unten = kasten.map { |w| w.lo[2] }.min
         z0 = [unten + fb[:ueber_kasten], f.lo[2] + fb[:min_unten]].max
-        ZARGEN[zarge(kasten)][:front].map { |a| z0 + a }.select { |z| z <= f.hi[2] + TOL }.each do |z|
+        zargen[zarge(kasten)][:front].map { |a| z0 + a }.select { |z| z <= f.hi[2] + TOL }.each do |z|
           [links + fb[:innen], rechts - fb[:innen]].each do |x|
             f.ops << Op.new(:bohrung, seite, punkt(da => flaeche, wa => x, 2 => z), nil, fb[:d], fb[:tiefe], nil, nil,
                             'Frontbefestigung')
@@ -401,13 +431,13 @@ module JTools
         k = boden.dicke_achse
         wa = breite_achse(kasten)
         ta = (boden.flaechen_achsen - [wa]).first
-        BODEN_FALZ.each do |r|
+        boden_falz.each do |r|
           t0 = boden.lo_f(ta) - r[:ueberlauf] / 2.0
           t1 = boden.hi_f(ta) + r[:ueberlauf] / 2.0
-          [boden.lo_f(wa) + BODEN_FALZ[0][:breite] / 2.0, boden.hi_f(wa) - BODEN_FALZ[0][:breite] / 2.0].each do |m|
+          [boden.lo_f(wa) + boden_falz[0][:breite] / 2.0, boden.hi_f(wa) - boden_falz[0][:breite] / 2.0].each do |m|
             p0 = punkt(k => boden.lo[k], wa => m - r[:breite] / 2.0, ta => t0)
             p1 = punkt(k => boden.lo[k], wa => m + r[:breite] / 2.0, ta => t1)
-            boden.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, BODEN_FALZ_TIEFE, nil, nil, 'Falz Zarge')
+            boden.ops << Op.new(:tasche, :"#{Geometrie::ACHSEN[k]}min", p0, p1, nil, auszug[:boden_falz_tiefe], nil, nil, 'Falz Zarge')
           end
         end
       end

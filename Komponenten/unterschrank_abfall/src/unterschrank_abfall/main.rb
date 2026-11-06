@@ -22,6 +22,7 @@
 require 'sketchup.rb'
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'eingabe') # Eingabefenster im Treppenplaner-Stil
 require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'neuladen') # Neu laden ohne Neustart (Wächter)
+require File.join(File.dirname(__dir__), 'kuechenplaner_gemeinsam', 'schubkasten') # Schubladenauszug der Küche
 
 module UnterschrankAbfall
 
@@ -58,36 +59,19 @@ module UnterschrankAbfall
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # Blum LEGRABOX free (Montageanleitung MD-015/4): Schienenschraube mind. 38 mm über der Oberkante
-  # des festen Bodens darunter (S. 4). Zargenhöhe C = 177 mm mit Holzrückwand 148 mm (S. 4); passt C
-  # nicht in die Schublade, wird M genommen (Zarge 90,5 mm, Rückwand 62 mm = 148 - 86, abgeleitet aus
-  # der Tabelle S. 8: Einschubelement M 52 / C 138).
-  SCHIENE_UEBER_BODEN = 3.8 # cm
-  ZARGE_C = 17.7            # cm
-  HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
-  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
-  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
-  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
-  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
-  ZARGE_F = 24.1
-  ZARGE_K = 12.85
-  ZARGE_M = 9.05
-  HRW_F = 21.2
-  HRW_K = 9.9
-  HRW_N = 3.7
-  def self.hrw_zarge(kc, soll)
-    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
-    [soll, if kc >= ZARGE_C - 0.0001 then soll
-           elsif kc >= ZARGE_K - 0.0001 then HRW_K
-           elsif kc >= ZARGE_M - 0.0001 then HRW_M
-           else HRW_N
-           end].min
+  # Schubladenauszug der Küche (gemeinsam/schubkasten.rb, gewählt in Küchenplaner › Einstellungen):
+  # Zargen mit Holzrückwand, Nennlängen, Abzüge für Kastenboden und Holzrückwand stehen als Attribute
+  # Ausz_* am Schrank; wechselt das System, setzt das Plugin sie neu. Standard Blum LEGRABOX free.
+  SK = Kuechenplaner::Schubkasten
+
+  # Holzrückwand der höchsten Zarge, die in kc passt (cm)
+  def self.hrw_zarge(kc, soll, p = nil)
+    SK.hrw(kc, soll, p)
   end
 
-  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
-  def self.f_hrw_zarge(kc, soll)
-    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
-      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  # dieselbe Wahl als DC-Formel; q = Teil mit den Attributen Ausz_* (nil = eigene)
+  def self.f_hrw_zarge(kc, soll, q)
+    SK.f_hrw(kc, soll, q)
   end
 
   # Standardwerte in cm
@@ -114,7 +98,7 @@ module UnterschrankAbfall
     'Kasten_Abstand_oben'       => 3.0,   # Oberkante Kasten/Behälter -> Oberkante Front (mindestens)
     'Behaelter_Abstand'         => 1.0,   # Luft zwischen den Behältern und zur Kastenrückwand
     'Auszug_Anteil'             => 0.8
-  }.freeze
+  }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/unterschrank_abfall'.freeze
@@ -140,8 +124,8 @@ module UnterschrankAbfall
       hrw_a: hrw(p['Hoehe_Kastenrueckwand'], h_a - ao - ab_a - mb, mb),
       hrw_b: hrw(p['Hoehe_Kastenrueckwand'], h - ao - ab_b - mb, mb),
       n: n,
-      b_beh: (lw - 3.5 - (n - 1) * ba) / n,                           # Breite je Behälter
-      t_beh: nl - 1.0 - p['Materialstaerke_Kastenrueckwand'] - ba,   # Tiefe bis vor die Kastenrückwand
+      b_beh: (lw - p['Ausz_Boden_B'] - (n - 1) * ba) / n,                           # Breite je Behälter
+      t_beh: nl - p['Ausz_Boden_T'] - p['Materialstaerke_Kastenrueckwand'] - ba,   # Tiefe bis vor die Kastenrückwand
       h_beh: [[p['Behaelter_Hoehe'], h_a - ao - ab_a - mb].min, 5.0].max
     }
   end
@@ -151,29 +135,27 @@ module UnterschrankAbfall
     [[platz, hrw_zarge(platz + mb, soll)].min, 2.0].max
   end
 
-  # LEGRABOX gibt es nur in festen Nennlängen (cm). Gewählt wird die größte mit NL + 3 mm <= Tiefe;
-  # passt keine (Tiefe < 353 mm), bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
-  NENNLAENGEN = [35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].freeze
-
-  def self.nennlaenge(tiefe)
-    NENNLAENGEN.select { |nl| nl + 0.3 <= tiefe + 0.000001 }.max || NENNLAENGEN.first
+  # Nennlänge der Schiene (cm): größte des Auszugssystems mit NL + Abstand <= Tiefe; passt keine,
+  # bleibt es bei der kürzesten, der TCN-Export meldet dann zu wenig Tiefe.
+  def self.nennlaenge(tiefe, p = nil)
+    SK.nl(tiefe, p)
   end
 
-  # dieselbe Wahl als DC-Formel (die Nennlängen liegen im 5-cm-Raster)
-  def self.f_nennlaenge(tiefe)
-    "MAX(35,MIN(65,INT((#{tiefe}-0.3)/5+0.000001)*5))"
+  # dieselbe Wahl als DC-Formel (Attribute Ausz_NL_* am eigenen Teil bzw. an q)
+  def self.f_nennlaenge(tiefe, q = nil)
+    SK.f_nl(tiefe, q)
   end
 
   # Unterkante Kasten über Unterkante Korpus: mindestens Kasten_Abstand_unten über der Unterkante
   # der Front (z_front), Schienenbohrung mind. 38 mm über dem Korpusboden, kein Lochraster
   def self.kasten_unten(p, z_front)
     off = p['Hoehenoffset_Schiene']
-    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off
+    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + p['Ausz_Ueber_Boden']].max - off
   end
 
   def self.f_kasten_unten(z_front)
     u = NAME
-    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{u}!Ausz_Ueber_Boden)" \
       "-#{u}!Hoehenoffset_Schiene"
   end
 
@@ -362,7 +344,7 @@ module UnterschrankAbfall
   # Aufbau
   # ---------------------------------------------------------------------------
   def self.erzeuge(model, eingabe = {})
-    p = DEFAULTS.merge(eingabe)
+    p = SK.vorgaben(DEFAULTS, model).merge(eingabe)
     r = berechne(p)
     u = NAME
     mat = material(model)
@@ -398,6 +380,8 @@ module UnterschrankAbfall
 
     # --- Abgeleitete Werte (nur auf Eingabe-Attribute gestützt: SketchUp rechnet die Formeln
     # eines Bauteils nur einmal der Reihe nach) ---
+    # Schubladenauszug der Küche (Attribute Ausz_*, setzt das Plugin bei einem Systemwechsel neu)
+    SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', r[:nl], units: 'STRING', formula: f_nennlaenge('Tiefe'))
     attribut(haupt, 'H_Auszug', r[:h_a], units: 'STRING',
              formula: 'IF(Frontvariante=1,Hoehe-Hoehe_Front_Oben-Spaltbreite,Hoehe)')
@@ -448,6 +432,7 @@ module UnterschrankAbfall
     attribut(d, 'Mb', p['Materialstaerke_Kastenboden'], units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")
     attribut(d, 'Mrw', p['Materialstaerke_Kastenrueckwand'], units: 'STRING', formula: "#{u}!Materialstaerke_Kastenrueckwand")
     attribut(d, 'NL', r[:nl], units: 'STRING', formula: "#{u}!NL")
+    SK::NAMEN.each { |n| attribut(d, n, p[n], units: 'STRING', formula: "#{u}!#{n}") }
     attribut(d, 'Auszug', r[:nl] * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     # Mit "Interagieren" anklicken -> fährt heraus
     d.set_attribute(DICT, 'onclick', 'ANIMATE("Y",0,-Auszug)')
@@ -466,15 +451,15 @@ module UnterschrankAbfall
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, z_front], ["#{s}!Spalt/2", "-#{s}!Spalt", "#{s}!Z_Front"],
               mat: mat, kz: st.('Front'))
 
-    kbod = platte(model, "Kasten Boden #{s}", 'KastenBoden', [lw - 3.5, nl - 1.0, mb],
-                  ["#{s}!Breite-2*#{s}!Mk-3.5", "#{s}!NL-1", "#{s}!Mb"])
-    einsetzen(de, kbod, 'KastenBoden', [mk + 1.75, mk, ab],
-              ["#{s}!Mk+1.75", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
+    kbod = platte(model, "Kasten Boden #{s}", 'KastenBoden', [lw - p['Ausz_Boden_B'], nl - p['Ausz_Boden_T'], mb],
+                  ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_Boden_B", "#{s}!NL-#{s}!Ausz_Boden_T", "#{s}!Mb"])
+    einsetzen(de, kbod, 'KastenBoden', [mk + p['Ausz_Boden_B'] / 2.0, mk, ab],
+              ["#{s}!Mk+#{s}!Ausz_Boden_B/2", "#{s}!Mk", "#{s}!Ab_unten"], mat: mat, kz: st.('KastenBoden'))
 
-    krw = platte(model, "Kasten Rueckwand #{s}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "#{s}!Hrw"])
-    einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
-              ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
+    krw = platte(model, "Kasten Rueckwand #{s}", 'KastenRueckwand', [lw - p['Ausz_RW_B'], mrw, hrw],
+                 ["#{s}!Breite-2*#{s}!Mk-#{s}!Ausz_RW_B", "#{s}!Mrw", "#{s}!Hrw"])
+    einsetzen(de, krw, 'KastenRueckwand', [mk + p['Ausz_RW_B'] / 2.0, mk + nl - p['Ausz_Boden_T'] - mrw, ab + mb],
+              ["#{s}!Mk+#{s}!Ausz_RW_B/2", "#{s}!Mk+#{s}!NL-#{s}!Ausz_Boden_T-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: st.('KastenRueckwand'))
   end
 
@@ -493,15 +478,15 @@ module UnterschrankAbfall
     attribut(d, 'Z_Front', 0.0, units: 'STRING', formula: '0')
     attribut(d, 'Ab_unten', r[:ab_a], units: 'STRING', formula: ab)
     platz = "#{u}!H_Auszug-#{u}!Kasten_Abstand_oben-(#{ab})-#{u}!Materialstaerke_Kastenboden"
-    attribut(d, 'Hrw', r[:hrw_a], units: 'STRING', formula: "MAX(MIN(#{platz},#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand")}),2)")
+    attribut(d, 'Hrw', r[:hrw_a], units: 'STRING', formula: "MAX(MIN(#{platz},#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand", u)}),2)")
     # Behälter: n gleich breite nebeneinander auf dem Kastenboden, vor der Kastenrückwand
     attribut(d, 'Anz', r[:n], laenge: false, units: 'STRING',
              formula: "MAX(1,MIN(#{MAX_BEHAELTER},#{u}!Anz_Behaelter))")
     attribut(d, 'B_Beh', r[:b_beh], units: 'STRING',
-             formula: "(#{u}!Breite-2*#{u}!Materialstaerke_Korpus-3.5-(MAX(1,MIN(#{MAX_BEHAELTER},#{u}!Anz_Behaelter))-1)" \
+             formula: "(#{u}!Breite-2*#{u}!Materialstaerke_Korpus-#{u}!Ausz_Boden_B-(MAX(1,MIN(#{MAX_BEHAELTER},#{u}!Anz_Behaelter))-1)" \
                       "*#{u}!Behaelter_Abstand)/MAX(1,MIN(#{MAX_BEHAELTER},#{u}!Anz_Behaelter))")
     attribut(d, 'T_Beh', r[:t_beh], units: 'STRING',
-             formula: "#{u}!NL-1-#{u}!Materialstaerke_Kastenrueckwand-#{u}!Behaelter_Abstand")
+             formula: "#{u}!NL-#{u}!Ausz_Boden_T-#{u}!Materialstaerke_Kastenrueckwand-#{u}!Behaelter_Abstand")
     attribut(d, 'H_Beh', r[:h_beh], units: 'STRING', formula: "MAX(MIN(#{u}!Behaelter_Hoehe,#{platz}),5)")
     attribut(d, 'Ba', p['Behaelter_Abstand'], units: 'STRING', formula: "#{u}!Behaelter_Abstand")
 
@@ -516,8 +501,8 @@ module UnterschrankAbfall
       # kein JT_Schrank (kein Werkstück), eigener Tag für die Zuordnung. Ausgeblendete Behälter
       # stehen auf dem Platz des ersten, sonst ragen sie seitlich aus dem Schrank und vergrößern die
       # Komponentengrenze (SketchUp zählt ausgeblendete Teile mit).
-      gi = einsetzen(d.entities, g, "Behaelter#{i}", [mk + 1.75 + (i <= r[:n] ? (i - 1) * (r[:b_beh] + ba) : 0), mk, r[:ab_a] + mb],
-                     ["#{s}!Mk+1.75+IF(#{s}!Anz>=#{i},#{i - 1}*(#{s}!B_Beh+#{s}!Ba),0)", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"],
+      gi = einsetzen(d.entities, g, "Behaelter#{i}", [mk + p['Ausz_Boden_B'] / 2.0 + (i <= r[:n] ? (i - 1) * (r[:b_beh] + ba) : 0), mk, r[:ab_a] + mb],
+                     ["#{s}!Mk+#{s}!Ausz_Boden_B/2+IF(#{s}!Anz>=#{i},#{i - 1}*(#{s}!B_Beh+#{s}!Ba),0)", "#{s}!Mk", "#{s}!Ab_unten+#{s}!Mb"],
                      mat: bm, layer: tag(model, "#{kz}_A_Behaelter#{i}"))
       gi.hidden = i > r[:n]
     end
@@ -540,7 +525,7 @@ module UnterschrankAbfall
     attribut(d, 'Ab_unten', r[:ab_b], units: 'STRING', formula: ab)
     platz = "#{u}!Hoehe-#{u}!Kasten_Abstand_oben-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', r[:hrw_b], units: 'STRING',
-             formula: "MAX(MIN(#{platz},#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand")}),2)")
+             formula: "MAX(MIN(#{platz},#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand", u)}),2)")
     sichtbarkeit(d, sichtbar, "IF(#{u}!Frontvariante=1,0,1)")
     kasten(model, d, s, p, r, mat, kz, 'B', r[:z_b], p['Hoehe_Front_Oben'], r[:ab_b], r[:hrw_b])
     inst = einsetzen(e, d, s, [0, 0, 0], [nil, nil, nil], layer: tag(model, "#{kz}_B_Schublade"))
@@ -562,8 +547,8 @@ module UnterschrankAbfall
       w = res.map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
       eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2] }
       raise ArgumentError, 'Maße müssen größer als 0 sein' if eingabe.values.any? { |v| v <= 0 }
-      if eingabe['Tiefe'] < 35.3 - 0.000001
-        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (LEGRABOX NL 350 braucht mindestens 353 mm)"
+      if eingabe['Tiefe'] < SK.nl_min - 0.000001
+        raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (kürzeste Schiene braucht mindestens #{(SK.nl_min * 10).round} mm)"
       end
       erstellen(eingabe)
     end
