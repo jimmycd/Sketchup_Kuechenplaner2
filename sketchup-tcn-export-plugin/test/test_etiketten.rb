@@ -43,7 +43,7 @@ bz = zs.find { |z| z.tag == 'HS1_Boden' }
 k = texte.index('HS1_Boden')
 check(k, 'Tag auf dem Etikett')
 etk = texte[k - 1, 9]
-check(etk.include?("Nr #{bz.nr}") && etk.include?('HS1_Boden.tcn'), "Boden: Nummer und TCN-Datei: #{etk}")
+check(etk.include?("Nr #{bz.nr}") && etk.include?("#{bz.nr}_HS1_Boden.tcn"), "Boden: Nummer und TCN-Datei: #{etk}")
 # Reihenfolge der Maße: Roh, Fräs, Fertig
 r = etk.index('Roh 808 × 572')
 fr = etk.index('Fräs 798 × 562')
