@@ -5,6 +5,8 @@
 #  3. Bögen als W#2125 mit EW2 automatisch, Vorzeichen wie in der TPA-Ansicht
 #  4. Kein OpenCutList mehr (Material, Kanten und Tag bleiben Pflicht)
 #  5. Timer, die eine Meldung öffnen können, halten sich zuerst an (UI.stop_timer)
+#  6. Kopierte Schränke öffnen unabhängig: nach Kopieren hat jeder Schrank eigene Definitionen
+#     bis hinunter zu jedem beweglichen Teil (Schublade, Tür, Klappe, Falttür) (2026-11-06)
 haupt = File.expand_path('..', __dir__)
 $LOAD_PATH.unshift(File.join(haupt, 'sketchup-tcn-export-plugin/test'))
 require 'sketchup_mock'
@@ -43,6 +45,13 @@ varianten = {
 }
 dateien = []
 gebaut = []
+# Regel 6: alle Instanzen über einem beweglichen Teil dürfen nur einmal benutzt werden
+bewegliche_pfade = lambda do |inst, pfad = [], out = []|
+  S::Schraenke.instanzen(S::Schraenke.definition(inst).entities).each do |c|
+    S::Kopien.beweglich?(c) ? out << (pfad + [c]) : bewegliche_pfade.call(c, pfad + [c], out)
+  end
+  out
+end
 schraenke.each do |m|
   (varianten[m.name.split('::').last] || [[{}]]).each do |eingabe, kw|
     model = Sketchup.active_model = Sketchup::Model.new
@@ -50,6 +59,17 @@ schraenke.each do |m|
       kw ? m.erstellen(eingabe, **kw) : m.erstellen(eingabe)
       d, = S::Export.erzeugen(model)
       dateien.concat(d)
+      # jeden Schrank einmal kopieren, Kopien trennen, dann darf kein bewegliches Teil geteilt sein
+      model.entities.grep(Sketchup::ComponentInstance).select { |e| S::Andocken.schrank?(e) }.each do |e|
+        model.entities.add_instance(e.definition, e.transformation)
+      end
+      S::Kopien.nachziehen(model)
+      model.entities.grep(Sketchup::ComponentInstance).select { |e| S::Andocken.schrank?(e) }.each do |e|
+        bewegliche_pfade.call(e).each do |pf|
+          geteilt = ([e] + pf[0..-2]).select { |i| i.definition.instances.size > 1 }
+          check(geteilt.empty?, "#{m.name}: Kopie öffnet mit (#{pf.last.name} geteilt über #{geteilt.map(&:name).join(', ')})")
+        end
+      end
       gebaut << m.name
     rescue StandardError => e
       check(false, "#{m.name}: Schrank bauen/exportieren: #{e.class} #{e.message}")
