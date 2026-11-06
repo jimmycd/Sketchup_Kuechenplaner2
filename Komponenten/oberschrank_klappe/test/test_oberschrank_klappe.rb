@@ -212,6 +212,8 @@ end
 lauf({}, 'Standard (HK-top)', { 'Art_Klappe' => 2, 'Anz_Einlegeboeden' => 2, 'Breite' => 60.0, 'Hoehe' => 72.0 })
 lauf({ 'Hoehe' => 72.0, 'Art_Klappe' => 2.0, 'Anz_Einlegeboeden' => 1.0 }, 'HF', { 'Art_Klappe' => 1, 'Anz_Einlegeboeden' => 0, 'Hoehe' => 35.0 })
 lauf({ 'Breite' => 120.0, 'Hoehe' => 90.0, 'Art_Klappe' => 2.0, 'Tiefe' => 32.0 }, 'HF breit', { 'Tiefe' => 35.0, 'Breite' => 80.0 })
+lauf({ 'Art_Klappe' => 3.0, 'Hoehe' => 50.0 }, 'Free Slim', { 'Art_Klappe' => 2, 'Hoehe' => 72.0 })
+lauf({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 }, 'HF -> Free Slim', { 'Art_Klappe' => 3, 'Hoehe' => 45.0 })
 lauf({ 'Kuerzel' => 'OK7' }, 'eigenes Kürzel', nil, 'OK7')
 
 # Zweiter Schrank im selben Modell bekommt OK2
@@ -233,6 +235,7 @@ check(Sketchup.active_model.definitions['Klappe unten Halter'].get_attribute(H::
 # Hinweis zur Korpushöhe
 check(H.hinweis(1, 40.0).nil? && H.hinweis(2, 72.0).nil?, 'Hinweis: passende Höhen ohne Meldung')
 check(H.hinweis(1, 72.0).to_s.include?('HK-top') && H.hinweis(2, 30.0).to_s.include?('HF'), 'Hinweis: unpassende Höhen gemeldet')
+check(H.hinweis(3, 50.0).nil? && H.hinweis(3, 72.0).to_s.include?('Free Slim'), 'Hinweis: Free Slim bis 650 mm')
 
 # Rollen: Klappenteile zählen als Front (Frontfarbe, Griffe, Stückliste)
 %w[Klappe KlappeO KlappeU].each { |t| check(H::ROLLEN[t] == 'Front', "Rolle #{t}") }

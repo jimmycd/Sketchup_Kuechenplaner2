@@ -91,6 +91,7 @@ uss = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 52.0, 'Anz
                                          'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
 os = Oberschrank.erstellen({})
 kl = OberschrankKlappe.erstellen({})
+fs = OberschrankKlappe.erstellen({ 'Art_Klappe' => 3.0 })
 usd = UnterschrankDoppeltuer.erstellen({})
 hs = Hochschrank.erstellen({})
 lm = Eckschrank.erstellen({ 'Variante' => 2.0 })
@@ -211,6 +212,29 @@ beruehrt = ->(g, h) { (0..2).all? { |a| g[a][0] <= h[a][1] + 0.01 && h[a][0] <= 
 arme.each do |a|
   g = grenzen(a[:pts])
   check(kraft.any? { |h| beruehrt.(g, h) } && front.any? { |h| beruehrt.(g, h) }, "Hebelarm verbindet Kraftspeicher und Frontbeschlag (#{g})")
+end
+
+# --- Häfele Free Slim: Mechanismus an beiden Seiten über den Dübellöchern, Arm zum Frontbeschlag ---
+fk = k.select { |x| x[:pfad].first == fs }
+mech = fk.select { |x| x[:name] == 'Mechanismus Free Slim' }
+fsf = fk.select { |x| x[:name] == 'Frontbeschlag Free Slim' }
+fsa = fk.select { |x| x[:name] == 'Arm Free Slim' }
+check(mech.size == 2 && fsf.size == 2 && fsa.size == 2, "Free Slim: 2 Mechanismen, 2 Frontbeschläge, 2 Arme (#{fk.map { |x| x[:name] }})")
+check(fk.none? { |x| x[:name].include?('AVENTOS') }, 'Free Slim: keine AVENTOS-Teile')
+check(mech.all? { |x| x[:pfad] == [fs] } && fsa.all? { |x| x[:pfad] == [fs] }, 'Free Slim: Mechanismus und Arm fest im Schrank')
+check(fsf.all? { |x| x[:pfad].map(&:name).include?("KlappeHalter") }, "Free Slim: Frontbeschlag geht mit der Klappe (#{fsf.map { |x| x[:pfad].map(&:name) }})")
+fws = nachher_ws.select { |w| w.teil.pfad.first == fs }
+dl = fws.flat_map(&:ops).select { |o| o.titel == 'Mechanismus Free Slim' }
+check(dl.size == 4, "Free Slim: 4 Dübellöcher (#{dl.size})")
+mg = mech.map { |x| grenzen(x[:pts]) }
+dl.each do |o|
+  check(mg.any? { |g| (0..2).all? { |a| o.p0[a].between?(g[a][0] - 0.01, g[a][1] + 0.01) } }, "Free Slim: Mechanismus über dem Loch #{o.p0}")
+end
+check(mg.all? { |g| (g[2][1] - g[2][0] - 165).abs < 0.01 && (g[1][1] - g[1][0] - 235).abs < 0.01 }, "Free Slim: Mechanismus 245 × 165 (vorn 10 frei) #{mg}")
+fg = fsf.map { |x| grenzen(x[:pts]) }
+fsa.each do |a|
+  g = grenzen(a[:pts])
+  check(mg.any? { |h| beruehrt.(g, h) } && fg.any? { |h| beruehrt.(g, h) }, "Free Slim: Arm verbindet Mechanismus und Frontbeschlag (#{g})")
 end
 
 # --- LEGRABOX: Seiteneinsatz (Glas) im Zargenfenster, Seitenstabilisierung ab Korpusbreite 600 ---
