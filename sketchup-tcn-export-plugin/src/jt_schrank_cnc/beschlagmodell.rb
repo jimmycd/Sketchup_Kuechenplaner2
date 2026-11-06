@@ -23,6 +23,8 @@ module JTools
       DICT = 'JT_Beschlag'.freeze
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
+      # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
+      VERSION = 2
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -35,11 +37,13 @@ module JTools
       LEGRABOX = { schiene: 4.0, schiene_h: 20.0, zarge: 12.8, fronthalter: 12.0, rueckwandhalter: 2.2 }.freeze
       # Blum-Topfband (vereinfacht): Topf Ø35 × 13 in der Tür, Arm 16 hoch, 16 breit, endet 25 mm
       # hinter den Löchern der Montageplatte; Montageplatte 48 × 20 × 4.
-      TOPFBAND = { topf_tiefe: 13.0, rand: 1.0, arm_h: 16.0, arm_b: 16.0, arm_ueber: 25.0,
+      TOPFBAND = { topf_tiefe: 13.0, arm_h: 16.0, arm_b: 16.0, arm_ueber: 25.0,
                    platte: [48.0, 20.0, 4.0] }.freeze
       # AVENTOS HK-top (vereinfacht): Kraftspeicher 30 stark, 20 vor dem ersten bis 60 hinter dem
-      # letzten Loch, 60 unter bis 15 über der Lochreihe; Frontbeschlag 20 × 52 × 10.
-      AVENTOS = { dicke: 30.0, vor: 20.0, hinter: 60.0, unter: 60.0, ueber: 15.0, front: [20.0, 10.0] }.freeze
+      # letzten Loch, 60 unter bis 15 über der Lochreihe; Frontbeschlag 20 × 52 × 10; Hebelarm 8 × 8
+      # schräg vom Kraftspeicher (40 hinter seinem vorderen Ende) zur Mitte des Frontbeschlags.
+      AVENTOS = { dicke: 30.0, vor: 20.0, hinter: 60.0, unter: 60.0, ueber: 15.0, front: [20.0, 10.0],
+                  arm: 8.0, arm_ein: 40.0 }.freeze
 
       def an?(model = Sketchup.active_model)
         model ? model.get_attribute(DICT, 'an') == true : false
@@ -48,6 +52,7 @@ module JTools
       # ---------------------------------------------------------------------
       # Körper in Weltkoordinaten (mm): Quader [lo, hi] oder Zylinder (Achse, Mitte, r, von–bis)
       # ---------------------------------------------------------------------
+      # Stab: a, b = Endpunkte der Mittellinie, achse = Querachse (Breite 2r), r = halbe Breite;
       # Quader: a = lo, b = hi; Zylinder: a = Mitte der Grundfläche (Wert auf der Achse = von),
       # b = Wert auf der Achse am anderen Ende
       Koerper = Struct.new(:name, :mat, :form, :a, :b, :achse, :r)
@@ -75,7 +80,11 @@ module JTools
       # ---------------------------------------------------------------------
       def koerper(teile)
         out = Hash.new { |h, k| h[k] = [] }
-        add = ->(w, k) { out[w.teil.pfad[0..-2]] << k if k && w.teil.pfad.size >= 2 }
+        # selbst: Körper kommt in das Teil selbst (Topf in die Tür), sonst in sein Elternteil
+        add = lambda do |w, k, selbst = false|
+          pfad = selbst ? w.teil.pfad : w.teil.pfad[0..-2]
+          out[pfad] << k if k && pfad.size >= 1 && (selbst || w.teil.pfad.size >= 2)
+        end
         schubladen(teile, add)
         topfbaender(teile, add)
         aventos(teile, add)
@@ -171,26 +180,23 @@ module JTools
             wa = kante ? Geometrie.achse(kante) : (t.flaechen_achsen - [2]).first
             z = o.p0[2]
             n = i + 1
-            add.(t, zylinder("Topfband #{n} Topf", stahl, o.p0, da, tfl - rein * tb[:topf_tiefe], tfl + rein * tb[:rand], r))
+            # Topf in der Tür selbst (dreht sich mit, egal ob Tür oder Türhalter animiert ist);
+            # ganz innerhalb der Türstärke, damit die Maße der Tür (TCN, Stückliste) gleich bleiben
+            add.(t, zylinder("Topfband #{n} Topf", stahl, o.p0, da, tfl - rein * tb[:topf_tiefe], tfl, r), true)
             s = kante && Regeln.seite_am_anschlag(t, kante, teile)
-            unless s
-              # Falttür am Eckscharnier: nur Topf und kurzer Arm
-              add.(t, quader("Topfband #{n} Arm", stahl, p3(da => tfl + rein * tb[:rand], wa => o.p0[wa] - tb[:arm_b] / 2.0, 2 => z - tb[:arm_h] / 2.0),
-                             p3(da => tfl + rein * 12, wa => o.p0[wa] + tb[:arm_b] / 2.0, 2 => z + tb[:arm_h] / 2.0)))
-              next
-            end
+            next unless s # Falttür am Eckscharnier: nur der Topf
             max = Geometrie.max?(kante)
             _, sfl = Regeln.flaeche_innen(s, wa, !max)
             innen = max ? -1 : 1 # von der Innenseite der Seite in den Korpus
-            hinten_tuer = rein
-            y = hinten_tuer > 0 ? s.lo_f(da) + Regeln::LOCHREIHE[:rand] : s.hi_f(da) - Regeln::LOCHREIHE[:rand]
+            y = rein > 0 ? s.lo_f(da) + Regeln::LOCHREIHE[:rand] : s.hi_f(da) - Regeln::LOCHREIHE[:rand]
+            vorne = rein > 0 ? s.lo[da] : s.hi[da] # Vorderkante der Seite
             pl = tb[:platte]
-            # Montageplatte an der Seite (fest im Schrank)
+            # Montageplatte und Arm fest an der Seite (wie beim echten Band bleibt der Arm auf der
+            # Platte, nur der Topf geht mit der Tür auf)
             add.(s, quader("Montageplatte #{n}", stahl, p3(wa => sfl, da => y - pl[1] / 2.0, 2 => z - pl[0] / 2.0),
                            p3(wa => sfl + innen * pl[2], da => y + pl[1] / 2.0, 2 => z + pl[0] / 2.0)))
-            # Arm: vom Topf an der Seite entlang bis hinter die Montageplatte (bewegt sich mit der Tür)
-            add.(t, quader("Topfband #{n} Arm", stahl,
-                           p3(wa => sfl + innen * pl[2], da => tfl + rein * tb[:rand], 2 => z - tb[:arm_h] / 2.0),
+            add.(s, quader("Topfband #{n} Arm", stahl,
+                           p3(wa => sfl + innen * pl[2], da => vorne, 2 => z - tb[:arm_h] / 2.0),
                            p3(wa => sfl + innen * (pl[2] + tb[:arm_b]), da => y + rein * tb[:arm_ueber], 2 => z + tb[:arm_h] / 2.0)))
           end
         end
@@ -212,6 +218,16 @@ module JTools
           z = ops[0].p0[2]
           add.(s, quader('Kraftspeicher AVENTOS HK-top', kst, p3(k => ops[0].p0[k], t => y0, 2 => z - av[:unter]),
                          p3(k => ops[0].p0[k] + innen * av[:dicke], t => y1, 2 => z + av[:ueber])))
+          # Hebelarm (Stange) vom Kraftspeicher zum Frontbeschlag dieser Seite, fest im Schrank
+          # (Lage bei geschlossener Klappe)
+          fb = teile.flat_map(&:ops).select { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' }
+          next if fb.empty?
+          naechst = fb.min_by { |o| (o.p0[k] - ops[0].p0[k]).abs }
+          paar = fb.select { |o| (o.p0[k] - naechst.p0[k]).abs < 0.5 }
+          xm = naechst.p0[k]
+          start = p3(k => xm, t => y0 + (vorn_min ? 1 : -1) * av[:arm_ein], 2 => z - av[:unter] / 2.0)
+          ende = p3(k => xm, t => naechst.p0[t] + (vorn_min ? 1 : -1) * av[:front][1] / 2.0, 2 => paar.sum { |o| o.p0[2] } / paar.size)
+          add.(s, Koerper.new('Hebelarm AVENTOS HK-top', stahl, :stab, start, ende, k, av[:arm] / 2.0))
         end
         teile.select { |w| w.ops.any? { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' } }.each do |kl|
           ops = kl.ops.select { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' }
@@ -251,7 +267,26 @@ module JTools
       # Flächen (Punktlisten, Zoll, im Behälter) eines Körpers
       def flaechen(k, inv)
         lokal = ->(p) { Geometrie.punkt(inv, p.map { |v| v / Geometrie::MM }).map { |v| v.round(5) } }
-        if k.form == :quader
+        if k.form == :stab
+          q = k.achse
+          d = (0..2).map { |i| k.b[i] - k.a[i] }
+          d[q] = 0.0
+          l = Math.sqrt(d.sum { |v| v * v })
+          # senkrecht zur Stange in ihrer Ebene (quer zur Achse q)
+          n = [0.0, 0.0, 0.0]
+          i1, i2 = ([0, 1, 2] - [q])
+          n[i1], n[i2] = -d[i2] / l, d[i1] / l
+          e = [k.a, k.b].flat_map do |p|
+            [[-1, -1], [-1, 1], [1, -1], [1, 1]].map do |sq, sn|
+              pt = p.dup
+              pt[q] += sq * k.r
+              (0..2).each { |i| pt[i] += sn * k.r * n[i] }
+              pt
+            end
+          end.map(&lokal)
+          # Ecke a: 0..3, b: 4..7 (je Querrichtung -, -/+ …)
+          [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]].map { |f| f.map { |i| e[i] } }
+        elsif k.form == :quader
           e = [0, 1].product([0, 1], [0, 1]).map { |i, j, l| [[k.a, k.b][i][0], [k.a, k.b][j][1], [k.a, k.b][l][2]] }
           e = e.map(&lokal)
           # Ecken-Index i*4 + j*2 + l (x, y, z)
@@ -326,7 +361,7 @@ module JTools
           next '' unless dict
           dict.to_a.reject { |k, _| k.to_s.start_with?('_') }.map { |k, v| "#{k}=#{v.is_a?(Float) ? v.round(4) : v}" }.sort.join(';')
         end
-        "#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
+        "v#{VERSION}|#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
       end
 
       # Werkstücke eines Schranks mit Bearbeitungen (wie im TCN-Export)
@@ -337,14 +372,13 @@ module JTools
         ws
       end
 
-      # Soll-Gruppen eines Schranks: { Behälter-Definition => [Pfad, [Körper]] }
-      def soll(model, s)
-        ws = werkstuecke(model, s)
+      # Soll-Gruppen eines Schranks: { Behälter-Definition => [[Pfad, [Körper]], …] }
+      # (mehrere Pfade, wenn sich Teile eine Definition teilen, z. B. zwei gleiche Türen)
+      def soll(model, s, ws = werkstuecke(model, s))
         out = {}
         koerper(ws).each do |pfad, liste|
-          d = Schraenke.definition(pfad.last)
-          next if out.key?(d) || liste.empty?
-          out[d] = [pfad, liste]
+          next if liste.empty?
+          (out[Schraenke.definition(pfad.last)] ||= []) << [pfad, liste]
         end
         out
       end
@@ -377,14 +411,32 @@ module JTools
         g
       end
 
+      # Türen und Klappen geschlossen? Offen (Interagieren) stimmen die Bohrbilder nicht
+      # (die Tür steht schräg oder quer), dann bleiben die Beschläge, wie sie sind.
+      def geschlossen?(ws)
+        seiten = ws.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }
+        return true if seiten.empty?
+        tiefe = 1 - seiten.first.dicke_achse
+        ws.select { |w| w.rolle == 'Tuer' || w.teil.jt('teil').to_s.start_with?('Klappe') }.all? do |w|
+          w.dicke_achse == tiefe && w.mass(tiefe) < 40
+        end
+      end
+
       # Beschläge eines Schranks auf Stand bringen; liefert die Anzahl der Körper
+      # (nil, wenn eine Tür oder Klappe offen steht: dann bleibt alles, wie es ist)
       def schrank_aktualisieren(model, s)
         anzahl = 0
         behaelter = {}
-        soll(model, s).each do |d, (pfad, liste)|
-          fl, sig = lokal(pfad, liste)
+        ws = werkstuecke(model, s)
+        return nil unless geschlossen?(ws)
+        soll(model, s, ws).each do |d, eintraege|
+          lok = eintraege.map { |pfad, liste| lokal(pfad, liste) }
+          # geteilte Definition, aber verschiedene Lage (z. B. Tür links/rechts in einer Definition):
+          # dort keine Beschläge, sonst säßen sie bei einer der Türen falsch
+          next unless lok.map(&:last).uniq.size == 1
+          fl, sig = lok.first
           behaelter[d] = true
-          anzahl += liste.size
+          anzahl += eintraege.first.last.size
           alt = gruppen_in(d.entities)
           next if alt.size == 1 && alt[0].get_attribute(DICT, 'signatur') == sig
           d.entities.erase_entities(alt) unless alt.empty?
@@ -403,7 +455,7 @@ module JTools
       def aktualisieren(model, alle: true)
         schraenke(model).sum do |s|
           next 0 unless alle || s.get_attribute(DICT, 'fingerabdruck') != fingerabdruck(s)
-          schrank_aktualisieren(model, s)
+          schrank_aktualisieren(model, s).to_i
         end
       end
 
