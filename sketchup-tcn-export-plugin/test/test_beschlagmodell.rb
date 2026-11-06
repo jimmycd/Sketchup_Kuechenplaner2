@@ -162,6 +162,8 @@ end
   check(n >= 2, "#{s.name}: Topfbänder gebohrt (#{n})")
   check(sk.count { |x| x[:name].end_with?('Topf') } == n, "#{s.name}: #{n} Töpfe")
   check(sk.count { |x| x[:name].end_with?('Arm') } == n, "#{s.name}: #{n} Arme")
+  check(sk.select { |x| x[:name].end_with?('Arm') || x[:name].start_with?('Montageplatte') }.all? { |x| x[:pfad] == [s] },
+        "#{s.name}: Arm und Montageplatte fest im Schrank (bleiben beim Öffnen an der Seite)")
   check(sk.count { |x| x[:name].start_with?('Montageplatte') } == n, "#{s.name}: #{n} Montageplatten")
   # Topf: Ø35 um die Topfmitte, 13 tief in der Tür
   tueren.each do |t|
@@ -174,9 +176,10 @@ end
       next unless topf
       g = grenzen(topf[:pts])
       da = S::Geometrie.achse(o.seite)
-      check((g[da][1] - g[da][0] - 14).abs < 0.01 && g.each_with_index.reject { |_, a| a == da }.all? { |(a0, a1), _| (a1 - a0 - 35).abs < 0.01 },
-            "#{t.name}: Topf Ø35 × 13 (+1 Rand) (#{g})")
-      check(topf[:pfad].last.equal?(t.teil.pfad[-2]), "#{t.name}: Topf bewegt sich mit der Tür")
+      check((g[da][1] - g[da][0] - 13).abs < 0.01 && g.each_with_index.reject { |_, a| a == da }.all? { |(a0, a1), _| (a1 - a0 - 35).abs < 0.01 },
+            "#{t.name}: Topf Ø35 × 13 (#{g})")
+      check((0..2).all? { |a| g[a][0] >= t.lo[a] - 0.01 && g[a][1] <= t.hi[a] + 0.01 }, "#{t.name}: Topf ganz in der Tür (Maße der Tür bleiben)")
+      check(topf[:pfad].last.equal?(t.teil.inst), "#{t.name}: Topf steckt in der Tür (dreht sich mit)")
     end
   end
   # Montageplatte: liegt an der Innenseite der Seite, um die beiden Löcher Ø5
@@ -193,6 +196,15 @@ end
 kk = k.select { |x| x[:pfad].first == kl }
 check(kk.count { |x| x[:name] == 'Kraftspeicher AVENTOS HK-top' } == 2, "Klappe: 2 Kraftspeicher (#{kk.map { |x| x[:name] }})")
 check(kk.count { |x| x[:name] == 'Frontbeschlag AVENTOS HK-top' } == 2, 'Klappe: 2 Frontbeschläge')
+arme = kk.select { |x| x[:name] == 'Hebelarm AVENTOS HK-top' }
+check(arme.size == 2, "Klappe: 2 Hebelarme (#{arme.size})")
+kraft = kk.select { |x| x[:name] == 'Kraftspeicher AVENTOS HK-top' }.map { |x| grenzen(x[:pts]) }
+front = kk.select { |x| x[:name] == 'Frontbeschlag AVENTOS HK-top' }.map { |x| grenzen(x[:pts]) }
+beruehrt = ->(g, h) { (0..2).all? { |a| g[a][0] <= h[a][1] + 0.01 && h[a][0] <= g[a][1] + 0.01 } }
+arme.each do |a|
+  g = grenzen(a[:pts])
+  check(kraft.any? { |h| beruehrt.(g, h) } && front.any? { |h| beruehrt.(g, h) }, "Hebelarm verbindet Kraftspeicher und Frontbeschlag (#{g})")
+end
 
 # --- Nachziehen: unverändert -> nichts neu; Option geändert -> neu ---
 gruppen = B.alle_gruppen(model.entities)
@@ -212,6 +224,19 @@ check(B.alle_gruppen(model.entities).count { |g| !gruppen.include?(g) } >= 1, 'v
 # keine doppelten Gruppen je Behälter
 beh = B.alle_gruppen(model.entities).group_by(&:parent)
 check(beh.values.all? { |l| l.size == 1 }, 'je Behälter eine Beschlag-Gruppe')
+
+# --- Offene Tür (Interagieren): Beschläge bleiben, wie sie sind ---
+os_gr = B.alle_gruppen(S::Schraenke.definition(os).entities).map(&:object_id).sort
+halter = S::Schraenke.definition(os).entities.instances.find { |i| i.name.to_s.include?('Halter') && !i.hidden }
+check(halter, 'Oberschrank: Türhalter gefunden')
+if halter
+  halter.instance_variable_set(:@transformation, Geom::Transformation.axes(halter.transformation.origin, [0, 1, 0], [-1, 0, 0], [0, 0, 1]))
+  check(!B.geschlossen?(B.werkstuecke(model, os)), 'gedrehte Tür erkannt')
+  check(B.schrank_aktualisieren(model, os).nil?, 'offene Tür: nicht neu berechnet')
+  check(B.alle_gruppen(S::Schraenke.definition(os).entities).map(&:object_id).sort == os_gr, 'offene Tür: Beschläge unverändert')
+  halter.instance_variable_set(:@transformation, Geom::Transformation.translation(halter.transformation.origin))
+end
+check(B.geschlossen?(B.werkstuecke(model, os)), 'geschlossene Tür erkannt')
 
 # --- Inverse ---
 m = [0.0, 1, 0, 0, -2, 0, 0, 0, 0, 0, 1, 0, 5, 6, 7, 1]
