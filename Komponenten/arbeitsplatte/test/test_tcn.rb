@@ -111,9 +111,10 @@ check(knick && knick.size >= 4 && knick.each_cons(2).all? { |p0, p1| Math.hypot(
       "Kontur A: Bogen aus kurzen Geraden zur Vorderkante: #{pa}")
 check(pa.each_cons(2).all? { |p0, p1| p1[0] >= p0[0] - 0.01 || p0[1] < 815 - 0.01 }, "Kontur A läuft ohne Rücksprung: #{pa}")
 
-# Teileliste mit den Arbeitsplatten
-tl = S::Export.teileliste(dateien)
-check(tl.include?('APL1_Platte1_Stoss1.tcn;1;APL1;Platte1;Arbeitsplatte;Arbeitsplatte Schichtstoff;1595;835;38'), "Teileliste: #{tl}")
+# Stückliste (CSV) mit den Arbeitsplatten (die frühere Teileliste.csv steckt jetzt in der Stückliste)
+tl = S::Stueckliste.csv(S::Stueckliste.zeilen(dateien))
+check(tl.lines.any? { |z| z.include?('APL1_Platte1_Stoss1.tcn') && z.include?(';1;APL1;Platte1;Arbeitsplatte;Arbeitsplatte Schichtstoff;38;1595;835;') },
+      "Stückliste: #{tl}")
 
 # --- gerade Zeile mit Spüle, ohne Stoß: eine TCN mit dem Ausschnitt ---
 m2 = Sketchup::Model.new

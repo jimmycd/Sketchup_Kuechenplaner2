@@ -58,8 +58,8 @@ module JTools
         dateien.sort_by { |d| [-(d.lage.dl * d.lage.dh).round(3), -d.lage.dl.round(3), d.name] }
       end
 
-      def text(ordner, dateien)
-        liste = name(ordner)
+      def text(ordner, dateien, liste: nil)
+        liste ||= name(ordner)
         out = +"﻿<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
         out << "<List>\n"
         out << "  <Rows Name=\"#{attr(liste)}\" Repetitions=\"1\" TL=\"0\" TH=\"0\" TS=\"0\" Criterion=\"\">\n"
@@ -69,9 +69,11 @@ module JTools
         out.gsub("\n", "\r\n")
       end
 
-      def schreiben(ordner, dateien)
-        p = File.join(ordner, name(ordner))
-        File.binwrite(p, text(ordner, dateien).encode('UTF-8').b)
+      # liste: Dateiname der Liste (Standard Liste_<Ordner>.xmlst)
+      def schreiben(ordner, dateien, liste: nil)
+        liste ||= name(ordner)
+        p = File.join(ordner, liste)
+        File.binwrite(p, text(ordner, dateien, liste: liste).encode('UTF-8').b)
         p
       end
 

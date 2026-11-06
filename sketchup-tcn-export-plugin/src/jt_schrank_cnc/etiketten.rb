@@ -222,26 +222,6 @@ module JTools
           yield neu, start.to_i
         end
       end
-
-      def dialog(model = Sketchup.active_model)
-        auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
-        zs, meldungen = Stueckliste.erzeugen(model, auswahl: auswahl)
-        if zs.empty?
-          UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag und JT_Schrank, sichtbar).')
-          return
-        end
-        abfragen do |f, start|
-          ordner = UI.select_directory(title: 'Ordner für die Etiketten')
-          next unless ordner
-          p = schreiben(ordner, zs, f, start: start)
-          UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-          text = "#{stuecke(zs).size} Etiketten#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nDrucken mit „Tatsächliche Größe“ (100 %, nicht „an Seite anpassen“)."
-          text += "\n\nHinweise:\n" + meldungen.first(15).join("\n") unless meldungen.empty?
-          UI.messagebox(text)
-        end
-      rescue ArgumentError => e
-        UI.messagebox(e.message)
-      end
     end
   end
 end

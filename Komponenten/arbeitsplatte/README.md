@@ -151,7 +151,7 @@ Werkzeugnummern und -durchmesser stehen in `Arbeitsplatten::KONTUR` und `STEG`
 - `src/arbeitsplatte/main.rb`: Menü, Erzeugen und Neuberechnen
 - `test/test_arbeitsplatte.rb`: Erkennung: gerade, Lücke, Hochschrank, L (Blindeck, L-Eckschrank), U, Drehung
 - `test/test_ausgabe.rb`: Zeichnen, Material, Tags, Anleimer, Dialog, Neuberechnen, Schrank-Export übergeht die Platten
-- `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen), Längsstoß mit Hundeknochen an beiden Teilplatten, Stückliste, Platte mit Spüle, Teileliste
+- `test/test_tcn.rb`: TCN der L-Küche (Kontur, Hundeknochen), Längsstoß mit Hundeknochen an beiden Teilplatten, Stückliste, Platte mit Spüle, Stückliste-CSV
 - `test/test_ausschnitte.rb`: Ausschnitte, Prüfungen, Längsstoß weicht aus, Dialog, Löcher
 - `test/test_layout.rb`: Layout: Überstände, Formate, Teilung (Rohling − 50, Schrankmitte, 300 vor der Ecke, keine Geräte-Nische), Stoßarten, Bogen, Flächen passen lückenlos
 

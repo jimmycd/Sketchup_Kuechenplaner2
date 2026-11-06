@@ -497,29 +497,6 @@ module JTools
           yield neu, formate
         end
       end
-
-      def dialog(model = Sketchup.active_model)
-        auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
-        zs, meldungen = Stueckliste.erzeugen(model, auswahl: auswahl)
-        if zs.none? { |z| z.hinweis != 'Arbeitsplatte' && !z.material.empty? }
-          UI.messagebox('Keine Schrankteile gefunden (Teile mit Tag, JT_Schrank und Material, sichtbar).')
-          return
-        end
-        abfragen(model, zs) do |o, formate|
-          ordner = UI.select_directory(title: 'Ordner für den Zuschnittplan')
-          next unless ordner
-          gruppen = berechnen(model, zs, o, formate)
-          alle = meldungen + meldungen_zu(gruppen, zs)
-          p = schreiben(ordner, gruppen, o, alle)
-          UI.openURL("file:///#{p.tr('\\', '/').sub(%r{\A/+}, '')}")
-          platten = gruppen.sum { |g| g.platten.size }
-          text = "Zuschnittplan: #{platten} Platte(n)#{auswahl ? ' (nur Auswahl)' : ''} in\n#{p}\n\nDrucken mit „Tatsächliche Größe“ oder „An Seite anpassen“ (A4 quer)."
-          text += "\n\nHinweise:\n" + alle.first(15).join("\n") unless alle.empty?
-          UI.messagebox(text)
-        end
-      rescue ArgumentError => e
-        UI.messagebox(e.message)
-      end
     end
   end
 end

@@ -95,44 +95,49 @@ mit = E.pdf(zs, f.merge('etikett_qr' => 'ja')).seiten.first[:ops].scan(' re').si
 check(mit > ohne + 50 * [stueck, 24].min, "QR-Code je Etikett gezeichnet (#{ohne} → #{mit} Rechtecke)")
 check(!E.pdf(zs, f.merge('etikett_qr' => 'ja')).to_s.include?('http'), 'kein Internet nötig')
 
-# --- Dialog: Format speichern, Ordner, Druckseite öffnen ---
+# --- Export-Dialog mit Etiketten: Format speichern, Zielordner ---
 module UI
   class << self
-    attr_accessor :antwort, :meldung, :ordner, :url
-    def inputbox(*) = antwort
+    attr_accessor :antwort, :meldung, :ordner, :url, :antworten
+    # erst der Export-Dialog (nur Etiketten, Zielordner), dann das Etikettenformat
+    def inputbox(*) = (self.antworten ||= [%w[nein ja nein nein] + [ordner.to_s], antwort]).shift
     def messagebox(m, *) = (self.meldung = m)
     def select_directory(**) = ordner
     def openURL(u) = (self.url = u)
   end
 end
 model.selection.clear
+def edialog(m)
+  UI.antworten = nil
+  S::Ausgabe.dialog(m)
+end
 Dir.mktmpdir do |dir|
   UI.ordner = dir
   UI.antwort = ['Endlos', '62', '29', '1', '1', '0', '0', '0', '0', 'nein', '1']
-  E.dialog(model)
+  edialog(model)
   p = File.join(dir, 'Etiketten.pdf')
   check(File.exist?(p) && PdfHelfer.formate(File.binread(p)).uniq == [[62.0, 29.0]], 'Dialog schreibt Endlos-Etiketten als PDF')
-  check(UI.url.to_s.end_with?('Etiketten.pdf'), 'PDF wird geöffnet')
-  check(UI.meldung.to_s.start_with?("#{stueck} Etiketten"), "Meldung: #{UI.meldung}")
+  check(Dir.children(dir) == ['Etiketten.pdf'], "nur Etiketten gewählt: nur Etiketten.pdf (#{Dir.children(dir)})")
+  check(UI.meldung.to_s.include?("#{stueck} Etiketten"), "Meldung: #{UI.meldung}")
   check(E.format_lesen['etikett_art'] == 'Endlos' && E.format_lesen['etikett_breite'] == 62.0, 'Format wird gespeichert')
   # Komma erlaubt, Start 3
   UI.antwort = ['Bogen', '70', '37', '3', '8', '0,5', '0', '0', '0', 'nein', '3']
-  E.dialog(model)
+  edialog(model)
   check(PdfHelfer.formate(File.binread(p)).uniq == [[210.0, 297.0]] && E.format_lesen['etikett_art'] == 'Bogen', 'Dialog: Bogen mit Komma und Start 3')
   # ungültig: nichts gespeichert
   UI.meldung = nil
   UI.antwort = ['Bogen', 'x', '37', '3', '8', '0', '0', '0', '0', 'nein', '1']
-  E.dialog(model)
+  edialog(model)
   check(UI.meldung.to_s.include?('nur Zahlen') && E.format_lesen['etikett_breite'] == 70.0, 'ungültige Eingabe: Hinweis, Format bleibt')
   UI.antwort = ['Bogen', '80', '37', '3', '8', '0', '0', '0', '0', 'nein', '1']
-  E.dialog(model)
+  edialog(model)
   check(UI.meldung.to_s.include?('passen nicht auf A4'), 'zu großer Bogen: Hinweis')
 end
 UI.antwort = nil
 UI.meldung = nil
-E.dialog(model)
+edialog(model)
 check(UI.meldung.nil?, 'Abbrechen schreibt nichts')
-E.dialog(Sketchup::Model.new)
+edialog(Sketchup::Model.new)
 check(UI.meldung.to_s.start_with?('Keine Schrankteile'), 'leeres Modell: Hinweis')
 
 puts $fehler.zero? ? 'OK: Etiketten' : "#{$fehler} Fehler"

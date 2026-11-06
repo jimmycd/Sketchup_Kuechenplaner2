@@ -2,7 +2,7 @@
 
 **Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe Blum AVENTOS HK-top kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen bekommen Blum-Topfbänder (Topf in der Tür, Montageplatte in der Seite); Griffe folgen.
 
-Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu Fräsliste (`.xmlst`) und Teileliste (`.csv`). Stückliste, Etiketten und Zuschnittplan sind eigene Funktionen des Plugins ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
+Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu die Fräsliste (`.xmlst`), und erzeugt Stückliste, Etiketten und Zuschnittplan; alles zusammen über einen [Export-Dialog](#export) ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
 
 * Ausführlicher Plan: [Plan: TCN-Export für Schrank-Komponenten](https://claude.ai/artifact/1txhjwKrxeGrWi3j7F5wNN)
 * Vorbild für den TCN-Writer: [jimmycd/sketchup-treppenbauer](https://github.com/jimmycd/sketchup-treppenbauer) (`src/jt_treppenbau/tcn.rb`, `fraesliste.rb`)
@@ -90,8 +90,21 @@ Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küche
 
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
 
+## Export
+*Erweiterungen › Küchenplaner › Export (Stückliste, Etiketten, Zuschnitt, TCN)…* oder das Icon **Export** (TCN-Icon) der Symbolleiste öffnet einen Dialog: Stückliste, Etiketten, Zuschnittplan und TCN je *ja/nein*, dazu der **Zielordner** (Knopf „…“ zum Wählen; ein neuer Ordner wird angelegt; Vorschlag: zuletzt benutzter Ordner des Modells, sonst `Export_<Modell>` neben dem Modell). Die Auswahl wird gemerkt. Sind Etiketten bzw. Zuschnittplan gewählt, folgen danach deren Fenster (Etikettenformat, Zuschnitt-Optionen); Abbrechen dort schreibt nichts. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke. Zum Schluss öffnet sich der Zielordner.
+
+| Datei | Ort |
+|---|---|
+| `Stueckliste_<Modell>.pdf` (mit Beschlagliste auf der letzten Seite), `.csv` und `_Beschlaege.csv` | Zielordner |
+| `Etiketten.pdf`, `Zuschnitt.pdf` | Zielordner |
+| `<Nr>_<Tag>.tcn` und Fräsliste `Liste_<Zielordner>.xmlst` | Unterordner `tcn` |
+
+Alle Ausgaben kommen aus **einem** Export-Lauf, die Nummern sind daher überall gleich (Stückliste, Etiketten, Zuschnittplan, TCN-Dateiname). Vor dem Schreiben werden alte `.tcn`/`.xmlst` im Unterordner `tcn` gelöscht (andere Dateien bleiben), damit dort und in der Fräsliste nur der aktuelle Stand liegt.
+
+**Eine Liste:** Die frühere `Teileliste.csv` des TCN-Exports gibt es nicht mehr; alles, was sie hatte (TCN-Datei, Anzahl, Schrank, Teil, Rolle, Material, Fräsmaß = DL/DH, Stärke), steht in der Stückliste (dazu Roh- und Fertigmaß, Kanten). Die Stückliste gibt es als PDF zum Drucken und gleich als CSV für Excel. Die Fräsliste `.xmlst` ist keine Teileliste, sondern der Auftrag für das TpaCAD-Board.
+
 ## Stückliste
-*Erweiterungen › Küchenplaner › Stückliste…* Ein Dateidialog fragt, wo die PDF gespeichert wird (Vorschlag `Stueckliste_<Modellname>.pdf` im Ordner des Modells). Geschrieben werden die **PDF** (A4 quer, je Material und Stärke eine Tabelle mit Stückzahl, Rohfläche und Anleimer-Laufmetern, Rohmaß fett, lange Tabellen laufen mit wiederholtem Spaltenkopf über mehrere Seiten, Fuß „Seite x von n“) und daneben mit gleichem Namen die **CSV** (Semikolon, Dezimalkomma, Windows-1252 für Excel). Danach öffnet sich die PDF im PDF-Leser zum Drucken („Tatsächliche Größe“ oder „An Seite anpassen“). Ist die Datei noch im PDF-Leser offen und kann nicht überschrieben werden, kommt ein Hinweis. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+Über den [Export-Dialog](#export). Geschrieben werden die **PDF** (A4 quer, je Material und Stärke eine Tabelle mit Stückzahl, Rohfläche und Anleimer-Laufmetern, Rohmaß fett, lange Tabellen laufen mit wiederholtem Spaltenkopf über mehrere Seiten, Fuß „Seite x von n“) und daneben mit gleichem Namen die **CSV** (Semikolon, Dezimalkomma, Windows-1252 für Excel). Drucken mit „Tatsächliche Größe“ oder „An Seite anpassen“. Ist die Datei noch im PDF-Leser offen und kann nicht überschrieben werden, kommt ein Hinweis. Eine Arbeitsplatte mit zwei Stoßenden hat eine Zeile mit beiden TCN-Dateien.
 
 **Beschlagliste:** Die letzte Seite der PDF (und `<Name>_Beschlaege.csv` daneben) listet die Beschläge aller Schubladen, Türen und Klappen, gezählt aus denselben Bohrbildern wie der TCN-Export (`beschlaege.rb`): je Schublade LEGRABOX-free-Zargen F/C/K/M/N mit Nennlänge, Korpusschienen (40 kg, NL 650 70 kg), Rückwandhalter, Fronthalter, zwei Seiteneinsätze (Glas 10 mm, F 202 / C 138 / K 90 / M 52 × NL − 112, N ohne), Seitenstabilisierung ab Korpusbreite 600, Schrauben 4 × 15 für Fronthalter und Boden (8 je Boden, S. 5) und Systemschrauben für die Schienen; je Tür Blum-Topfbänder Ø35 mit Montageplatte und Systemschrauben; je Klappe AVENTOS HK-top. Höhenprobleme der Schubladen stehen auch als Hinweis auf der Stückliste.
 
@@ -104,7 +117,7 @@ Die PDF schreibt das Plugin selbst mit `pdf.rb` (kein Browser, kein Druckertreib
 * Arbeitsplatten stehen mit ihren Maßen drin (ohne Übermaß, Zuschnitt von Hand).
 
 ## Etiketten
-*Erweiterungen › Küchenplaner › Etiketten…* Ein Etikett je Stück (Anzahl 3 = „1/3“, „2/3“, „3/3“), in der Reihenfolge und mit den Nummern der Stückliste. Inhalt: Tag, Nummer, Schrank · Teil, Material und Stärke, dann die Maße in der Reihenfolge **Rohmaß** (fett), **Fräsmaß**, **Fertigmaß**, dazu TCN-Dateiname und ein Kantenbild (Länge waagrecht, Anleimer als dicke Linie: L1 unten, L2 oben, B1 links, B2 rechts). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+Über den [Export-Dialog](#export) (Etiketten gewählt). Ein Etikett je Stück (Anzahl 3 = „1/3“, „2/3“, „3/3“), in der Reihenfolge und mit den Nummern der Stückliste. Inhalt: Tag, Nummer, Schrank · Teil, Material und Stärke, dann die Maße in der Reihenfolge **Rohmaß** (fett), **Fräsmaß**, **Fertigmaß**, dazu TCN-Dateiname und ein Kantenbild (Länge waagrecht, Anleimer als dicke Linie: L1 unten, L2 oben, B1 links, B2 rechts). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
 Vor dem Schreiben fragt ein Fenster das Format ab (vorbelegt mit dem zuletzt benutzten, gespeichert für alle Modelle):
 
@@ -157,7 +170,7 @@ Im Fenster: **Breite** in Pixeln (die Höhe folgt dem Seitenverhältnis der Ansi
 * Neben dem Bild liegt der Ordner `<Bild>_blender/` mit `szene.obj/.mtl` (Meter, Z oben), Texturen, `szene.json`, `kp_status.txt` (Fortschritt und Ergebnis, Blender 5 unter Windows schreibt seine Ausgabe nur ins eigene Konsolenfenster), `blender.log` und `szene.blend`: die Szene lässt sich in Blender öffnen und weiter verfeinern (Licht, Materialien, Kamera).
 
 ## Zuschnittplan
-*Erweiterungen › Küchenplaner › Zuschnittplan…* ist gedacht für die Formatsäge (alles von Hand, kein Zuschnittprogramm). Je Material und Stärke verteilt ein Guillotine-Optimierer (`guillotine.rb`, eigener Code) die **Rohmaße** der Stückliste auf Platten, nur mit durchgehenden Schnitten in Stufen. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke. Arbeitsplatten und Teile ohne Material bleiben draußen (Hinweis). Teile, die nicht auf die Platte passen, stehen in der Übersicht unter „passt nicht“.
+Über den [Export-Dialog](#export) (Zuschnittplan gewählt), gedacht für die Formatsäge (alles von Hand, kein Zuschnittprogramm). Je Material und Stärke verteilt ein Guillotine-Optimierer (`guillotine.rb`, eigener Code) die **Rohmaße** der Stückliste auf Platten, nur mit durchgehenden Schnitten in Stufen. Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke. Arbeitsplatten und Teile ohne Material bleiben draußen (Hinweis). Teile, die nicht auf die Platte passen, stehen in der Übersicht unter „passt nicht“.
 
 Ein Fenster fragt die Optionen ab (gespeichert für alle Modelle):
 
@@ -203,9 +216,9 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 | Zuschnitt: Besäumen je Plattenkante (mm) | 10 | Randabfall im Zuschnittplan (auch dort einstellbar) |
 
 ## TCN exportieren
-*Erweiterungen › Küchenplaner › TCN exportieren…* fragt nach einem Ordner und schreibt je sichtbarem Teil eine TCN-Datei (Name = laufende Nummer der Stückliste + Tag, z. B. `102_UST2_StrebeVorn.tcn`; die Nummer ist dieselbe wie auf Stückliste, Etiketten und Zuschnittplan, wenn dieselben Schränke gewählt sind bzw. nichts ausgewählt ist; beide TCN einer Arbeitsplatte mit zwei Stoßenden haben die Nummer ihrer Stücklistenzeile) und `Teileliste.csv` (Datei, Anzahl, Schrank, Teil, Rolle, Material, DL, DH, DS, Teilname). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
+Über den [Export-Dialog](#export) (TCN gewählt), in den Unterordner `tcn` des Zielordners: je sichtbarem Teil eine TCN-Datei (Name = laufende Nummer der Stückliste + Tag, z. B. `102_UST2_StrebeVorn.tcn`; die Nummer ist dieselbe wie auf Stückliste, Etiketten und Zuschnittplan, wenn dieselben Schränke gewählt sind bzw. nichts ausgewählt ist; beide TCN einer Arbeitsplatte mit zwei Stoßenden haben die Nummer ihrer Stücklistenzeile). Eine eigene Teileliste gibt es nicht mehr (siehe [Export](#export)). Ist etwas ausgewählt, nur die Teile der ausgewählten Schränke.
 
-**Fräsliste** `Liste_<Ordnername>.xmlst` (Aufbau wie csv2tcn und Treppenbau): alle TCN des Exports zusammen für das TpaCAD-Board, mit vollem Windows-Pfad, `REPETITIONS` = Stückzahl und `FIELD` 9. Sortiert nach Größe: größte Fläche DL × DH zuerst, bei gleicher Fläche die längere. `OFFSET X/Y` = halbes Übermaß aus den *Einstellungen* (Länge für die längere, Breite für die kürzere Seite), weil die TCN im Fräsmaß ist und das Rohteil um das Übermaß größer; `length_increase`/`width_increase` am Material werden nicht mehr gelesen; `OFFSET Z` = 0. `COMMENT` = Teilname (Name der Komponentendefinition, z. B. `Front S1`); denselben Namen hat die Teileliste in der Spalte Teilname.
+**Fräsliste** `Liste_<Zielordner>.xmlst` (Aufbau wie csv2tcn und Treppenbau): alle TCN des Exports zusammen für das TpaCAD-Board, mit vollem Windows-Pfad, `REPETITIONS` = Stückzahl und `FIELD` 9. Sortiert nach Größe: größte Fläche DL × DH zuerst, bei gleicher Fläche die längere. `OFFSET X/Y` = halbes Übermaß aus den *Einstellungen* (Länge für die längere, Breite für die kürzere Seite), weil die TCN im Fräsmaß ist und das Rohteil um das Übermaß größer; `length_increase`/`width_increase` am Material werden nicht mehr gelesen; `OFFSET Z` = 0. `COMMENT` = Teilname (Name der Komponentendefinition, z. B. `Front S1`).
 
 * Maße und Lagen sind **Fräsmaß**: an jeder Seite mit Anleimer (Kantenfläche mit Kante, Material-Typ 4) um dessen Stärke kleiner. DL ist die längere, DH die kürzere Plattenrichtung, DS die Stärke. Ausnahme Seiten: immer wie `Seite.tcn` DL = Höhe (Unterkante bei x = 0), DH = Tiefe, auch wenn die Seite tiefer als hoch ist.
 * Stöße werden geometrisch gefunden: liegt die Stirnseite von Boden, Deckel, Zwischenboden oder Strebe an der Fläche einer Seite, gibt es eine Dübelreihe Ø8 (22 tief in die Stirnseite, 14 tief in die Seite wie `Seiten_SK`; Seiten sind immer gleich), mittig in der Plattenstärke. Boden/Deckel/Zwischenboden: erster und letzter Dübel 30 mm von der fertigen Kante (mit Anleimer), in der TCN (Fräsmaß) also 28 an einer Kante mit 2-mm-Anleimer und 30 ohne; „gerade Anzahl“ aus (0/0), Schritt ST errechnet: n = ⌈(L−60)/160⌉ + 1 Dübel, ST = (L−60)/(n−1) mit L = fertige Länge, also höchstens 160 mm Abstand (z. B. Tiefe 560, vorn Anleimer → 30 … x-28, 5 Dübel, ST 125). Die Seite bekommt dieselbe Reihe aus denselben Weltkoordinaten, nach dem Anleimen liegen die Löcher also übereinander. Strebe: genau 2 Dübel, 20 mm von der fertigen Kante (Fräsmaß 18 an der Kante mit Anleimer), ST = Abstand der beiden, 0/0 – wie `Strebe.tcn`. In die Seite kommt je Strebe eine Schraubbohrung Ø3, 21 tief, in der Mitte der Strebe.
@@ -247,10 +260,11 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
-* `src/jt_schrank_cnc/export.rb` – Export, Teileliste, Dialog
+* `src/jt_schrank_cnc/export.rb` – TCN-Export (Dateien, Nummern)
+* `src/jt_schrank_cnc/ausgabe.rb` – Export-Dialog für Stückliste, Etiketten, Zuschnitt und TCN (Zielordner, Unterordner `tcn`)
 * `src/jt_schrank_cnc/fraesliste.rb` – Fräsliste `Liste_<Ordner>.xmlst`
 * `src/jt_schrank_cnc/einstellungen.rb` – allgemeine Einstellungen (Übermaß) und das Einstellungen-Fenster; Sockel und Abstände in `gemeinsam/einstellungen.rb`
-* `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (CSV und Druckseite)
+* `src/jt_schrank_cnc/stueckliste.rb` – Stückliste (PDF und CSV)
 * `src/jt_schrank_cnc/beschlaege.rb` – Beschlagliste (Schubladen, Türen, Klappen) für die Stückliste
 * `src/jt_schrank_cnc/pdf.rb` – kleiner PDF-Schreiber (Text, Linien, Flächen, QR-Code), ohne fremde Bibliothek
 * `src/jt_schrank_cnc/rqrcode_core/` – QR-Code-Erzeuger rqrcode_core (MIT, siehe `THIRD_PARTY.md`)
@@ -269,7 +283,7 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 1. Teile einsammeln (sichtbare Instanzen mit Tag nach dem Schema `<Kürzel>_<Bereich>_<Teil>`).
 2. Teile vermessen, Anleimer aus den Kantenflächen lesen, Lagen im Fräsmaß.
 3. Stöße zwischen Teilen finden und daraus Dübel, Lochreihen, Topfbänder und Schienenbohrungen ableiten.
-4. Eine TCN je Tag schreiben, dann Fräsliste und Teileliste.
+4. Eine TCN je Tag schreiben, dann die Fräsliste.
 
 ## Schritte
 1. ~~Tags aller Komponenten vereinheitlichen.~~ Erledigt: Hochschrank `HS<n>`, Unterschrank Schubladen `USS<n>`, Unterschrank Tür `UST<n>`, jeweils mit `JT_Schrank`.
