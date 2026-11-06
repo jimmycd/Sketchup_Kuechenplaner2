@@ -7,10 +7,11 @@
 #
 # Korpus wie der Oberschrank: Seiten über die volle Höhe, Boden und Deckel zwischen den Seiten,
 # Rückwand 8 mm, 25 mm vor der Hinterkante in einer 9 mm tiefen Nut, Deckel vor der Rückwand,
-# 0–2 Einlegeböden. Front ist eine Klappe mit Blum AVENTOS:
-#   HK-top – eine Klappe, schwenkt um die Oberkante nach oben
-#   HF     – Faltklappe aus zwei gleich hohen Teilen (KlappeO, KlappeU), für hohe Schränke
-# Die Beschlagsbohrungen (Kraftspeicher, Frontbeschlag) setzt der TCN-Export noch nicht.
+# 0–2 Einlegeböden. Front ist eine Klappe:
+#   HK-top    – Blum AVENTOS HK-top, eine Klappe, schwenkt um die Oberkante nach oben
+#   HF        – Blum AVENTOS HF, Faltklappe aus zwei gleich hohen Teilen (KlappeO, KlappeU), für hohe Schränke
+#   Free Slim – Häfele Free Slim flap, eine Klappe wie HK-top
+# Die Beschlagsbohrungen setzt der TCN-Export (HK-top und Free Slim; HF noch nicht).
 #
 # Platten haben das Material "Melamin weiss", sichtbare Kanten das Kantenmaterial
 # "Anleimer Melamin weiss" (2 mm, wird erst in Stückliste/Zuschnitt abgezogen; gezeichnet wird
@@ -57,10 +58,11 @@ module OberschrankKlappe
     'Verkleidung' => 'Verkleidung', 'Theke' => 'Theke'
   }.freeze
 
-  # Klappenarten (Blum AVENTOS) mit dem Bereich der Korpushöhe laut Blum (cm, nur als Hinweis)
+  # Klappenarten mit dem Bereich der Korpushöhe laut Hersteller (cm, nur als Hinweis)
   ARTEN = {
     1 => { name: 'AVENTOS HK-top', hoehe: 20.5..60.0 },
-    2 => { name: 'AVENTOS HF', hoehe: 48.0..104.0 }
+    2 => { name: 'AVENTOS HF', hoehe: 48.0..104.0 },
+    3 => { name: 'Häfele Free Slim', hoehe: 22.5..65.0 }
   }.freeze
 
   # Standardwerte in cm
@@ -68,7 +70,7 @@ module OberschrankKlappe
     'Breite'                    => 90.0,
     'Hoehe'                     => 40.0,
     'Tiefe'                     => 40.0,  # Korpus ohne Front
-    'Art_Klappe'                => 1.0,   # 1 = HK-top (eine Klappe), 2 = HF (Faltklappe, zwei Teile)
+    'Art_Klappe'                => 1.0,   # 1 = HK-top (eine Klappe), 2 = HF (Faltklappe, zwei Teile), 3 = Free Slim
     'Anz_Einlegeboeden'         => 0.0,
     'Materialstaerke_Korpus'    => 1.9,
     'Materialstarke_Rueckwand'  => 0.8,
@@ -80,7 +82,7 @@ module OberschrankKlappe
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
   DOKU_URL = 'https://github.com/jimmycd/sketchup_kuechenplaner2/tree/main/Komponenten/oberschrank_klappe'.freeze
-  HILFE_KURZ = 'Oberschrank mit Klappe Blum AVENTOS HK-top oder HF (Faltklappe), 0–2 Einlegeböden'.freeze
+  HILFE_KURZ = 'Oberschrank mit Klappe Blum AVENTOS HK-top, HF (Faltklappe) oder Häfele Free Slim, 0–2 Einlegeböden'.freeze
 
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
@@ -302,8 +304,9 @@ module OberschrankKlappe
     attribut(haupt, 'Breite', p['Breite'], access: 'TEXTBOX', formlabel: 'Breite')
     attribut(haupt, 'Hoehe', p['Hoehe'], access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front)')
-    attribut(haupt, 'Art_Klappe', p['Art_Klappe'], laenge: false, access: 'LIST', formlabel: 'Klappe (Blum AVENTOS)',
-             units: 'INTEGER', options: '&HK-top%20(eine%20Klappe)=1&HF%20(Faltklappe%2C%20zwei%20Teile)=2&')
+    attribut(haupt, 'Art_Klappe', p['Art_Klappe'], laenge: false, access: 'LIST', formlabel: 'Klappe (Beschlag)',
+             units: 'INTEGER', options: '&HK-top%20(eine%20Klappe)=1&HF%20(Faltklappe%2C%20zwei%20Teile)=2&' \
+                                        'Free%20Slim%20(eine%20Klappe)=3&')
     attribut(haupt, 'Anz_Einlegeboeden', p['Anz_Einlegeboeden'], laenge: false, access: 'LIST',
              formlabel: 'Anzahl Einlegeböden', units: 'INTEGER', options: liste(0, MAX_EB))
 
@@ -383,7 +386,7 @@ module OberschrankKlappe
     d
   end
 
-  # Klappe(n): HK-top eine Klappe, HF zwei gleich hohe Teile mit 2 mm Fuge dazwischen.
+  # Klappe(n): HK-top und Free Slim eine Klappe, HF zwei gleich hohe Teile mit 2 mm Fuge dazwischen.
   # Außen 1 mm Fuge, 2 mm vor dem Korpus wie die Türen.
   def self.klappen(model, e, p, r, mat, t_)
     u = NAME
@@ -392,16 +395,16 @@ module OberschrankKlappe
     pos = [sp / 2.0, -sp, h - sp / 2.0]
     pos_f = ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Hoehe-#{u}!Spaltbreite/2"]
 
-    # --- HK-top ---
+    # --- HK-top und Free Slim (eine Klappe) ---
     hn = 'KlappeHalter'
     hd = halter(model, 'Klappe Halter', hn,
                 { 'B' => [r[:b_klappe], "#{u}!Breite-#{u}!Spaltbreite"], 'H' => [r[:h_klappe], "#{u}!Hoehe-#{u}!Spaltbreite"],
                   'Mk' => [mk, "#{u}!Materialstaerke_Korpus"] }, -100)
-    sichtbarkeit(hd, art == 1, "IF(#{u}!Art_Klappe=1,0,1)")
+    sichtbarkeit(hd, art != 2, "IF(#{u}!Art_Klappe=2,1,0)")
     kd = platte(model, 'Klappe', 'Klappe', [r[:b_klappe], mk, r[:h_klappe]], ["#{hn}!B", "#{hn}!Mk", "#{hn}!H"])
     einsetzen(hd.entities, kd, 'Klappe', [0, 0, -r[:h_klappe]], [nil, nil, "-#{hn}!H"], mat: mat, kz: t_.('Klappe'))
     ih = einsetzen(e, hd, hn, pos, pos_f)
-    ih.hidden = art != 1
+    ih.hidden = art == 2
 
     # --- HF: oberes Teil dreht um die Oberkante, unteres hängt am oberen und faltet ---
     on = 'KlappeOHalter'

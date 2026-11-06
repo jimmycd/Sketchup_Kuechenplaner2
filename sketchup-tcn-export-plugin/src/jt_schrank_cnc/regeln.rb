@@ -10,7 +10,8 @@
 # Rohrausschnitt im Oberschrank Dunstabzug;
 # Schienen und Front des Hochauszugs Häfele HU Slim Base; beim Eckschrank die Innenecke
 # der L-Platten, die Streben in der Ecke und die Bohrungen für Kesseböhmer LeMans II;
-# beim Oberschrank mit Klappe die Bohrungen für Blum AVENTOS HK-top (Kraftspeicher und Frontbeschlag);
+# beim Oberschrank mit Klappe die Bohrungen für Blum AVENTOS HK-top bzw. Häfele Free Slim (Mechanismus
+# und Frontbeschlag);
 # an allen Türen die Blum-Topfbänder (Topf Ø35 in der Tür, Montageplatte in der Seite).
 # Die Bearbeitungen entstehen zuerst in
 # Weltkoordinaten (mm) und werden erst beim Schreiben in die
@@ -433,6 +434,24 @@ module JTools
         front: { d: 5, tiefe: 12, innen: 12.5, unter_oben: [62, 94] }
       }.freeze
 
+      # Häfele Free Slim flap 1.12 / 1.10 push (372.92.xxx, Montageanleitung 732.23.046, Stand 02.10.2025),
+      # Oberschrank mit Klappe, Art_Klappe 3:
+      # Mechanismus: je Seite 2 Löcher Ø5 × 10 für die Dübel, 122,5 ab Vorderkante Seite, 39,5 und
+      # 39,5 + 96 = 135,5 unter der Unterseite des Deckels (S. 3 und Schablone S. 15/16).
+      # Frontbeschlag: je Seite 4 Löcher Ø3 übereinander im Raster 32, 36 + KO − F ab Oberkante Klappe
+      # (= 36 unter der Unterseite des Deckels), 12 + KS − F vom Rand der Klappe (= 12 ab Innenseite der
+      # Seite), für Schrauben Ø4 × 15 (S. 7, 7a); Frontbohrungen 5 tief (Jürgen).
+      FREE_SLIM = {
+        name: 'Häfele Free Slim',
+        seite: { d: 5, tiefe: 10, vorn: 122.5, unter_deckel: [39.5, 135.5] },
+        front: { d: 3, tiefe: 5, innen: 12, unter_deckel: [36, 68, 100, 132] }
+      }.freeze
+      ART_FREE_SLIM = 3
+
+      def self.free_slim?(teile)
+        Schraenke.dc(teile.first.teil.schrank, 'art_klappe').to_f.round == ART_FREE_SLIM
+      end
+
       def self.aventos(teile, meldungen)
         hf = teile.find { |w| %w[KlappeO KlappeU].include?(w.teil.jt('teil')) }
         if hf
@@ -441,6 +460,7 @@ module JTools
         kl = teile.find { |w| w.teil.jt('teil') == 'Klappe' } or return
         seiten = teile.select { |w| w.rolle == 'Seite' }
         return unless seiten.size == 2
+        return free_slim(teile, kl, seiten) if free_slim?(teile)
         k = seiten[0].dicke_achse
         t = ([0, 1, 2] - [k, 2]).first
         mitte = ->(w, i) { (w.lo[i] + w.hi[i]) / 2.0 }
@@ -468,6 +488,38 @@ module JTools
           [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
             kl.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => oben - dz), nil, fc[:d], fc[:tiefe], nil, nil,
                              'Frontbeschlag AVENTOS HK-top')
+          end
+        end
+      end
+
+      def self.free_slim(teile, kl, seiten)
+        k = seiten[0].dicke_achse
+        t = ([0, 1, 2] - [k, 2]).first
+        mitte = ->(w, i) { (w.lo[i] + w.hi[i]) / 2.0 }
+        deckel = teile.find { |w| w.rolle == 'Deckel' }
+        unten = deckel ? deckel.lo[2] : seiten.map { |w| w.hi[2] }.max - seiten[0].mass(k)
+        vorn_max = mitte.(kl, t) > mitte.(seiten[0], t)
+        c = FREE_SLIM[:seite]
+        seiten.each do |s|
+          andere = (seiten - [s]).first
+          seite, flaeche = flaeche_innen(s, k, mitte.(andere, k) > mitte.(s, k))
+          vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
+          c[:unter_deckel].each do |dz|
+            s.ops << Op.new(:bohrung, seite, punkt(k => flaeche, t => vorne + dir * c[:vorn], 2 => unten - dz), nil,
+                            c[:d], c[:tiefe], nil, nil, 'Mechanismus Free Slim')
+          end
+        end
+
+        innen = [seiten.map { |w| w.hi[k] }.min, seiten.map { |w| w.lo[k] }.max]
+        da = kl.dicke_achse
+        hinten = mitte.(seiten[0], da) > mitte.(kl, da)
+        fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        fl = hinten ? kl.hi[da] : kl.lo[da]
+        fc = FREE_SLIM[:front]
+        fc[:unter_deckel].each do |dz|
+          [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
+            kl.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => unten - dz), nil, fc[:d], fc[:tiefe], nil, nil,
+                             'Frontbeschlag Free Slim')
           end
         end
       end

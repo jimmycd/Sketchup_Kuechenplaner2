@@ -901,6 +901,38 @@ ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
 check(fb.size == 4 && xs == [28.5] && ys == [59.0, 91.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
 check(ks.(d['OK2_KlappeO']).empty? && ks.(d['OK2_SeiteL']).empty?, 'HF: noch keine AVENTOS-Bohrungen')
 check(bearbeitungen(d['OK1_Rueckwand'].text, 1).any? { |x| x.include?('#8522=5 ') && x.include?('#8513=-9 ') }, 'Rückwand für die Deckelschrauben gebohrt')
+# Häfele Free Slim (Art_Klappe 3, 900 x 400, Deckel 19): Mechanismus je Seite 2 × Ø5 × 10, 122,5 ab Vorderkante,
+# 39,5 / 135,5 unter der Unterseite des Deckels (= 58,5 / 154,5 unter der Oberkante); Frontbeschlag je Seite
+# 4 × Ø3 × 5, 12 ab Innenseite der Seite, 36/68/100/132 unter dem Deckel (= 55/87/119/151 unter der Oberkante)
+fm = Sketchup.active_model = Sketchup::Model.new
+OberschrankKlappe.erstellen({ 'Art_Klappe' => 3.0 })
+fws = []
+fdk, fkm = S::Export.erzeugen(fm, alle_ws: fws)
+fd = fdk.to_h { |x| [x.name, x] }
+check(fkm.empty?, "Free Slim: keine Meldung (#{fkm})")
+bo = ->(w, dm, tf) { bearbeitungen(w.text, 1).select { |x| x.include?("#1002=#{dm} ") && x.include?("#3=-#{tf} ") && !x.include?('#8522') } }
+%w[OK1_SeiteL OK1_SeiteR].each do |n|
+  w = fd[n]
+  check(bo.(w, 5, 12).empty?, "#{n}: Free Slim ohne AVENTOS-Kraftspeicher")
+  pk = bo.(w, 5, 10).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
+  vorn = pk.map { |p| [p[1], w.lage.dh - p[1]].min }.uniq
+  hoch = pk.map { |p| [p[0], w.lage.dl - p[0]].min }.sort
+  check(pk.size == 2 && vorn == [120.5] && hoch == [56.5, 152.5], "#{n}: Free Slim Mechanismus #{pk} (Fräsmaß: vorn #{vorn}, oben #{hoch})")
+end
+fk = fd['OK1_Klappe']
+fb = bo.(fk, 3, 5).map { |x| [lage_mm(x[/#1=(\S+)/, 1], fk.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fk.lage.dh)] }
+xs = fb.map { |p| [p[0], fk.lage.dl - p[0]].min }.uniq.sort
+ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
+# Klappe: Innenseite der Seite 18 vom Rand -> 30 (28 im Fräsmaß); Oberkante 1 unter Korpus -> 54/86/118/150 (52/84/116/148)
+check(fb.size == 8 && xs == [28.0] && ys == [52.0, 84.0, 116.0, 148.0], "Free Slim: Frontbeschlag #{fb.size} Löcher (x #{xs}, y #{ys})")
+bl = S::Beschlaege.liste(fws).map(&:to_a)
+fsl = bl.select { |p| p[0] == 'Klappen (Häfele Free Slim)' }
+check(fsl.map { |p| [p[1], p[3]] } == [['Häfele Free Slim Dübel', 4], ['Häfele Free Slim Frontbeschlag', 1],
+                                       ['Häfele Free Slim flap 1.12 (372.92.xxx), Mechanismus L + R', 1],
+                                       ['Spanplattenschraube 4 × 15', 8], ['Spanplattenschraube 4 × 20', 8]],
+      "Beschlagliste Free Slim: #{fsl.map { |p| [p[1], p[3]] }}")
+check(bl.none? { |p| p[1].include?('AVENTOS') }, 'Beschlagliste Free Slim: kein AVENTOS')
+
 check([3, 4, 5, 6].flat_map { |sd| bearbeitungen(d['OK1_Deckel'].text, sd) }.none? { |x| x.include?('#8522=3 ') }, 'Deckel: Kante nicht vorgebohrt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
 # Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach
