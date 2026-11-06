@@ -44,7 +44,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke andocken massaenderung frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt beschriftung rendern].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke andocken massaenderung frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt beschriftung beschlagmodell rendern].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -57,6 +57,7 @@ module JTools
         menu.add_item('Etiketten…') { Etiketten.dialog }
         menu.add_item('Zuschnittplan…') { Zuschnitt.dialog }
         menu.add_item('Schrank-Beschriftung ein/aus') { Beschriftung.umschalten }
+        menu.add_item('Beschläge ein/aus') { Beschlagmodell.umschalten }
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }
         menu.add_item('Materialien…') { Materialdialog.dialog }
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
@@ -66,6 +67,7 @@ module JTools
       end
       file_loaded(__FILE__)
     end
+    Beschlagmodell.app_beobachten # Beschläge folgen Änderungen am Schrank
     Beschriftung.app_beobachten # einmal je SketchUp-Sitzung, auch nach dem Neuladen
     Massaenderung.app_beobachten # angedockte Schränke bei Breite/Tiefe richtig verschieben
   end

@@ -73,7 +73,7 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Frontfarbe und Griffe', 'TCN exportieren',
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Beschläge zeigen', 'Frontfarbe und Griffe', 'TCN exportieren',
                  'Stückliste', 'Etiketten', 'Zuschnittplan', 'Rendern', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
@@ -114,6 +114,18 @@ gs.aktion.call
 check(geschaltet == 1 && gs.validation.call == MF_CHECKED, 'Geräte: Klick setzt ein, Icon gedrückt')
 gs.aktion.call
 check(geschaltet == 2 && gs.validation.call == MF_ENABLED, 'Geräte: zweiter Klick entfernt, Icon nicht gedrückt')
+
+# Beschläge: Schalter, gedrückt = Beschläge im Modell gezeigt
+bg = tb.befehle.find { |c| c.titel == 'Beschläge zeigen' }
+bm = JTools::SchrankCnc::Beschlagmodell
+bschalt = 0
+bzeigt = false
+bm.define_singleton_method(:umschalten) { |*_a| bschalt += 1; bzeigt = !bzeigt }
+bm.define_singleton_method(:an?) { |*_a| bzeigt }
+bg.aktion.call
+check(bschalt == 1 && bg.validation.call == MF_CHECKED, 'Beschläge: Klick zeigt sie, Icon gedrückt')
+bg.aktion.call
+check(bschalt == 2 && bg.validation.call == MF_ENABLED, 'Beschläge: zweiter Klick blendet aus')
 
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }
