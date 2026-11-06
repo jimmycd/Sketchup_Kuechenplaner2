@@ -84,6 +84,8 @@ Neue Schränke muss man nicht von Hand verschieben und drehen. Gilt für alle Sc
 * **Tiefe:** Die Rückseite bleibt (an der Wand), die Front wandert nach vorn bzw. zurück.
 * Erkannt wird die Änderung am Bezugskasten (Seiten, Wangen, Rückwand), der nach jedem Schritt am Schrank gemerkt wird (`JT_Masse/kasten`). Die Verschiebung gehört zum selben *Rückgängig*-Schritt wie die Maßänderung. Arbeitsplatten und Sockelblenden sind ausgenommen. Rechnung in `src/jt_schrank_cnc/massaenderung.rb`, getestet in `test/test_massaenderung.rb`.
 
+**Schränke kopieren** (Jürgen 2026-11-06): Eine Kopie (Verschieben mit Strg, Kopieren/Einfügen) teilt sich zuerst die Komponentendefinition mit dem Original, dann würde das Interagieren-Werkzeug Schubladen, Türen und Klappen in beiden Schränken bewegen. Nach jedem Schritt (und beim Öffnen eines Modells) bekommt deshalb jede Kopie eine eigene Definition, ebenso jede Zwischenebene über einem beweglichen Teil (z. B. Türhalter). Starre Teile bleiben geteilt. Gehört zum selben *Rückgängig*-Schritt wie das Kopieren. Code in `src/jt_schrank_cnc/kopien.rb`, getestet in `test/test_kopien.rb` und für alle Schränke in `test/test_konsistenz.rb`.
+
 Einen vorhandenen Schrank neu andocken: auswählen und *Erweiterungen › Küchenplaner › Schrank andocken…*.
 
 Ohne Schrank-CNC-Erweiterung erzeugen die Komponenten ihre Schränke wie bisher rechts neben dem Modell. Die Rechnung steht in `src/jt_schrank_cnc/andocken.rb` (Modul `Rechnung`), getestet in `test/test_andocken.rb`. In echtem SketchUp noch nicht ausprobiert.
