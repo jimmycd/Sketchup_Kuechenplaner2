@@ -63,7 +63,7 @@ module JTools
         out = +"﻿<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
         out << "<List>\n"
         out << "  <Rows Name=\"#{attr(liste)}\" Repetitions=\"1\" TL=\"0\" TH=\"0\" TS=\"0\" Criterion=\"\">\n"
-        sortiert(dateien).each_with_index { |d, i| out << row(i + 1, pfad(ordner, "#{d.name}.tcn"), d) }
+        sortiert(dateien).each_with_index { |d, i| out << row(i + 1, pfad(ordner, d.datei), d) }
         out << "  </Rows>\n"
         out << "</List>\n"
         out.gsub("\n", "\r\n")

@@ -1,5 +1,7 @@
 # encoding: UTF-8
-# Schrank-CNC – TCN-Export: je sichtbarem Teil eine TCN-Datei (Dateiname = Tag),
+# Schrank-CNC – TCN-Export: je sichtbarem Teil eine TCN-Datei (Dateiname = laufende Nummer
+# der Stückliste + Tag, z. B. 102_UST2_StrebeVorn.tcn; die Nummer ist dieselbe wie auf
+# Stückliste, Etiketten und Zuschnittplan, siehe Stueckliste.zeilen),
 # dazu Teileliste.csv und die Fräsliste Liste_<Ordner>.xmlst für das TpaCAD-Board
 # (alle TCN zusammen, größte Teile zuerst, siehe fraesliste.rb). Gleiche Teile (gleicher Tag, gleiche TCN) werden einmal
 # geschrieben und gezählt; weicht ein gleichnamiges Teil ab, bekommt es _2, _3 …
@@ -8,7 +10,12 @@
 module JTools
   module SchrankCnc
     module Export
-      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage)
+      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage, :nr) do
+        # Dateiname der TCN: "<Nr>_<Tag>.tcn" (ohne Nummer nur der Tag)
+        def datei
+          nr ? "#{nr}_#{name}.tcn" : "#{name}.tcn"
+        end
+      end
 
       def self.werkstuecke(model, auswahl: nil)
         # Arbeitsplatten (Komponenten/arbeitsplatte) haben einen eigenen Export
@@ -46,7 +53,17 @@ module JTools
         end
         ap, ap_meldungen = Arbeitsplatten.dateien(model, auswahl: auswahl)
         ap.each { |name, text, teil, lage| dateien << Datei.new(name, text, 1, Arbeitsplatten::Ws.new(teil), lage) }
+        nummerieren(dateien)
         [dateien, (meldungen + ap_meldungen).uniq]
+      end
+
+      # Laufende Nummer je Datei aus der Stückliste (gleiche Sortierung, gleiche Nummer wie
+      # Stückliste/Etiketten/Zuschnitt); beide TCN einer Arbeitsplatte mit zwei Stoßenden
+      # gehören zu einer Stücklistenzeile und bekommen dieselbe Nummer.
+      def self.nummerieren(dateien)
+        nr = {}.compare_by_identity
+        Stueckliste.zeilen(dateien).each { |z| nr[z.quelle.ws.teil.inst] = z.nr }
+        dateien.each { |d| d.nr = nr[d.ws.teil.inst] }
       end
 
       def self.teileliste(dateien)
@@ -54,14 +71,14 @@ module JTools
         dateien.each do |d|
           t = d.ws.teil
           mat = t.inst.material ? t.inst.material.name : ''
-          z << [d.name + '.tcn', d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle, mat,
+          z << [d.datei, d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle, mat,
                 Tcn.n(d.lage.dl), Tcn.n(d.lage.dh), Tcn.n(d.lage.ds), Fraesliste.ocl_name(d)].join(';')
         end
         z.join("\r\n") + "\r\n"
       end
 
       def self.schreiben(ordner, dateien)
-        dateien.each { |d| Tcn.write(File.join(ordner, "#{d.name}.tcn"), d.text) }
+        dateien.each { |d| Tcn.write(File.join(ordner, d.datei), d.text) }
         Tcn.write(File.join(ordner, 'Teileliste.csv'), teileliste(dateien))
         Fraesliste.schreiben(ordner, dateien)
       end

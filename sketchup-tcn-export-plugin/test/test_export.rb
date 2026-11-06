@@ -326,11 +326,18 @@ alt_li = platte.get_attribute('ladb_opencutlist', 'length_increase')
 platte.set_attribute('ladb_opencutlist', 'length_increase', '40 mm')
 Dir.mktmpdir do |dir|
   S::Export.schreiben(dir, dateien)
-  check(dateien.all? { |x| File.exist?(File.join(dir, "#{x.name}.tcn")) }, 'alle TCN geschrieben')
+  check(dateien.all? { |x| File.exist?(File.join(dir, x.datei)) && x.datei == "#{x.nr}_#{x.name}.tcn" }, 'alle TCN geschrieben, Name = Nr_Tag.tcn')
   csv = File.binread(File.join(dir, 'Teileliste.csv'))
   zeilen = csv.split("\r\n")
   check(zeilen.first == 'Datei;Anzahl;Schrank;Teil;Rolle;Material;DL;DH;DS;Teilname' && zeilen.size == dateien.size + 1, 'Teileliste: Kopf und eine Zeile je Datei')
-  check(zeilen.include?('HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden'), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
+  nb = dateien.find { |x| x.name == 'HS1_Boden' }.nr
+  check(zeilen.include?("#{nb}_HS1_Boden.tcn;1;HS1;Boden;Boden;Melamin weiss;798;562;19;Boden"), "Teileliste Boden: #{zeilen.grep(/HS1_Boden/)}")
+  # Nummer im Dateinamen = Nummer der Stückliste (Etiketten/Zuschnitt nutzen dieselbe)
+  zs = S::Stueckliste.zeilen(dateien)
+  check(zs.all? { |z| z.datei.start_with?("#{z.nr}_") } &&
+        dateien.all? { |x| zs.any? { |z| z.nr == x.nr && z.datei == x.datei } },
+        "Dateiname mit Stücklisten-Nummer: #{zs.first(3).map { |z| [z.nr, z.datei] }}")
+  check(dateien.map(&:nr).uniq.size == dateien.size && dateien.map(&:nr).sort == (1..dateien.size).to_a, 'Nummern eindeutig 1..n')
   check(zeilen.first.end_with?(';Teilname'), 'Teileliste: Spalte Teilname')
 
   # Fräsliste .xmlst für das TpaCAD-Board
@@ -342,7 +349,7 @@ Dir.mktmpdir do |dir|
   rows = x.scan(/<Row Index="(\d+)".*?<\/Row>/m).size
   check(rows == dateien.size, "Fräsliste: eine Zeile je TCN (#{rows}/#{dateien.size})")
   namen = x.scan(/<Cell Name="NAME" DataType="161">"(.*?)"<\/Cell>/).flatten
-  check(namen.all? { |n| n.start_with?(dir) } && namen.map { |n| File.basename(n) }.sort == dateien.map { |d| "#{d.name}.tcn" }.sort, 'Fräsliste: alle TCN mit Pfad')
+  check(namen.all? { |n| n.start_with?(dir) } && namen.map { |n| File.basename(n) }.sort == dateien.map(&:datei).sort, 'Fräsliste: alle TCN mit Pfad')
   flaechen = x.scan(/"LENGTH" DataType="168">([\d.]+)<.*?"HEIGHT" DataType="169">([\d.]+)</m).map { |l, h| l.to_f * h.to_f }
   check(flaechen == flaechen.sort.reverse && flaechen.size == dateien.size, 'Fräsliste: größte Teile zuerst')
   boden = x[/<Row[^>]*HS1_Boden\.tcn.*?<\/Row>/m].to_s
@@ -625,7 +632,7 @@ Dir.mktmpdir do |dir|
   UI.ordner = dir
   S::Export.dialog(model)
   check(UI.meldung.to_s.start_with?("#{dateien.size} TCN-Dateien"), "Dialog-Meldung: #{UI.meldung}")
-  check(File.exist?(File.join(dir, 'HS1_SeiteL.tcn')), 'Dialog schreibt in den Ordner')
+  check(Dir.children(dir).any? { |f| f =~ /\A\d+_HS1_SeiteL\.tcn\z/ }, 'Dialog schreibt in den Ordner')
 end
 UI.ordner = nil
 UI.meldung = nil

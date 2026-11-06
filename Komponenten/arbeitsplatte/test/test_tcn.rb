@@ -153,6 +153,9 @@ end
 zs = S::Stueckliste.zeilen(d4)
 check(zs.count { |z| z.hinweis == 'Arbeitsplatte' } == 2 && zs.map(&:fertig).sort == [[300.0, 835.0], [3900.0, 835.0]],
       "Stückliste: zwei Teilplatten #{zs.map(&:fertig)}")
+# TCN-Dateiname mit laufender Nummer der Stückliste (Jürgen 2026-11-06)
+check(d4.map(&:nr).sort == zs.map(&:nr).sort && d4.all? { |d| d.datei == "#{d.nr}_#{d.name}.tcn" },
+      "Teilplatten: Nr im Dateinamen #{d4.map(&:datei)}")
 
 # --- Platte ohne gespeicherte Daten: Meldung ---
 inst = d2[0].ws.teil.inst
