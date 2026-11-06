@@ -24,13 +24,24 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 2
+      VERSION = 3
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
         stahl: ['Beschlag Stahl vernickelt', [196, 198, 202]],
-        kunststoff: ['Beschlag Kunststoff grau', [110, 112, 116]]
+        kunststoff: ['Beschlag Kunststoff grau', [110, 112, 116]],
+        glas: ['Beschlag Glas klar', [205, 225, 230], 0.35],
+        chrom: ['Beschlag Chrom', [215, 218, 222]]
       }.freeze
+      # LeMans II (vereinfacht): Säule Ø30, Tablar 6 mm Boden mit 50 mm Rand (Ecken R120) im Einbauraum
+      # von der Seite bis 40 mm hinter das Säulenlager, Tiefe bis 490; Seitenprofil 30 × 10.
+      LEMANS = { saeule_r: 15.0, tablar: 6.0, rand_h: 50.0, rand_d: 3.0, radius: 120.0, ueber_saeule: 40.0,
+                 tiefe_max: 490.0, abstand: 10.0, profil: [30.0, 10.0] }.freeze
+      # Häfele HU Slim Base (vereinfacht): 2 Schienen 12 × 30 an der Seite (Bauraumtiefe − 30 lang),
+      # Gestell mit 2 Körben (80 hoch) auf Höhe der Fronthalter, Fronthalter 20 × 40 × 10.
+      HU = { schiene: [12.0, 30.0], korb_h: 80.0, korb_d: 3.0, halter: [20.0, 40.0, 10.0], gestell: 10.0 }.freeze
+      # LEGRABOX-Zarge mit Seiteneinsatz: Einsatz 10 mm (Glas) im Fenster NL − 112 lang, Obergurt 8 mm
+      ZARGE_FENSTER = { obergurt: 8.0, einsatz: 10.0 }.freeze
 
       # LEGRABOX free (vereinfacht): Zarge 12,8 mm stark, Korpusschiene 4 mm an der Seite,
       # Zarge davor; Schiene 4 mm hinter der Vorderkante der Seite, NL − 10 lang.
@@ -88,6 +99,8 @@ module JTools
         schubladen(teile, add)
         topfbaender(teile, add)
         aventos(teile, add)
+        lemans(teile, add)
+        hu_slim_base(teile, add)
         out
       end
 
@@ -143,13 +156,21 @@ module JTools
           [[links, 1, 'links'], [rechts, -1, 'rechts']].each do |aussen, innen, lr|
             x0 = aussen + innen * lg[:schiene]
             x1 = x0 + innen * lg[:zarge]
-            add.(boden, quader("Zarge #{m} #{lr} #{bez}", alu, p3(wa => x0, ta => vorn, 2 => unten),
-                               p3(wa => x1, ta => vorn + dir * (nl - 1), 2 => unten + zh)))
+            zarge(boden, add, "Zarge #{m} #{lr} #{bez}", m, wa, ta, x0, x1, vorn, dir, nl, unten, zh)
             # Rückwandhalter: zwischen Zarge und Holzrückwand, auf deren Höhe
             next unless rw
             add.(boden, quader("Rückwandhalter #{m} #{lr} #{bez}", alu,
                                p3(wa => x1, ta => rw.lo[ta] - 5, 2 => rw.lo[2] + 5),
                                p3(wa => x1 + innen * lg[:rueckwandhalter], ta => rw.hi[ta] + 5, 2 => rw.hi[2] - 5)))
+          end
+          # Seitenstabilisierung (ab Korpusbreite 600, wie die Beschlagliste): Stange quer zwischen den
+          # Zargen oben vor der Holzrückwand
+          kb = rechts - links + 2 * (seiten.first ? seiten.first.mass(wa) : 19.0)
+          if rw && kb >= Beschlaege::KB_STABILISIERUNG - Regeln::TOL
+            yr = (vorn_min ? rw.lo[ta] : rw.hi[ta]) - dir * 15
+            add.(boden, quader("Seitenstabilisierung #{bez}", alu,
+                               p3(wa => links + lg[:schiene] + lg[:zarge], ta => yr - 4, 2 => unten + zh - 20),
+                               p3(wa => rechts - lg[:schiene] - lg[:zarge], ta => yr + 4, 2 => unten + zh - 12)))
           end
           # Fronthalter: an den Löchern der Frontbefestigung, hinter der Front vor der Zarge
           next unless f
@@ -164,6 +185,153 @@ module JTools
             add.(f, quader("Fronthalter #{m} #{lr} #{bez}", alu, p3(wa => x0, da => fl, 2 => zs.min - 10),
                            p3(wa => x0 + innen * lg[:zarge], da => fl + hinten * lg[:fronthalter], 2 => zs.max + 10)))
           end
+        end
+      end
+
+      # Zarge: mit Seiteneinsatz (Zargenhöhe mit einsatz) als Rahmen mit Glas im Fenster NL − 112,
+      # sonst (N) voll
+      def zarge(boden, add, name, m, wa, ta, x0, x1, vorn, dir, nl, unten, zh)
+        alu = MATERIALIEN[:alu][0]
+        ein = Regeln::ZARGEN[m][:einsatz]
+        y1 = vorn + dir * (nl - 1)
+        unless ein && ein < zh
+          add.(boden, quader(name, alu, p3(wa => x0, ta => vorn, 2 => unten), p3(wa => x1, ta => y1, 2 => unten + zh)))
+          return
+        end
+        zf = ZARGE_FENSTER
+        oben = unten + zh
+        f_oben = oben - zf[:obergurt]
+        f_unten = f_oben - ein
+        rand = ((nl - 1) - (nl - 112)) / 2.0
+        fv = vorn + dir * rand
+        fh = y1 - dir * rand
+        rahmen = [quader(name, alu, p3(wa => x0, ta => vorn, 2 => unten), p3(wa => x1, ta => y1, 2 => f_unten)),
+                  quader(name, alu, p3(wa => x0, ta => vorn, 2 => f_oben), p3(wa => x1, ta => y1, 2 => oben)),
+                  quader(name, alu, p3(wa => x0, ta => vorn, 2 => f_unten), p3(wa => x1, ta => fv, 2 => f_oben)),
+                  quader(name, alu, p3(wa => x0, ta => fh, 2 => f_unten), p3(wa => x1, ta => y1, 2 => f_oben))]
+        add.(boden, Koerper.new(name, alu, :mehrere, rahmen.compact))
+        xm = (x0 + x1) / 2.0
+        add.(boden, quader("Seiteneinsatz #{name.sub('Zarge ', '')}", MATERIALIEN[:glas][0],
+                           p3(wa => xm - zf[:einsatz] / 2.0, ta => fv, 2 => f_unten), p3(wa => xm + zf[:einsatz] / 2.0, ta => fh, 2 => f_oben)))
+      end
+
+      # Wanne (Korb, Tablar): Boden und Rand als Prismen über einem Umriss (Punkte in der xy-Ebene)
+      def wanne(name, mat, umriss, z, boden_d, rand_h, rand_d)
+        out = [Koerper.new("#{name} Boden", mat, :prisma, umriss.map { |x, y| [x, y, z] }, z + boden_d)]
+        innen = versetzt(umriss, rand_d)
+        n = umriss.size
+        n.times do |i|
+          j = (i + 1) % n
+          ring = [umriss[i], umriss[j], innen[j], innen[i]].map { |x, y| [x, y, z] }
+          out << Koerper.new("#{name} Rand", mat, :prisma, ring, z + rand_h)
+        end
+        out
+      end
+
+      # Umriss nach innen versetzt (konvex, gegen oder im Uhrzeigersinn): Punkt zum Schwerpunkt hin
+      def versetzt(pts, d)
+        cx = pts.sum { |x, _| x } / pts.size
+        cy = pts.sum { |_, y| y } / pts.size
+        pts.map do |x, y|
+          l = Math.hypot(cx - x, cy - y)
+          l < d ? [x, y] : [x + (cx - x) * d / l, y + (cy - y) * d / l]
+        end
+      end
+
+      # Rechteck mit runden Ecken (Radius r, je Ecke 4 Segmente) in den Achsen a (x) und b (y)
+      def rund_rechteck(a0, a1, b0, b1, r)
+        r = [r, (a1 - a0) / 2.0, (b1 - b0) / 2.0].min
+        ecken = [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]]
+        ecken.flat_map do |cx, cy, w0|
+          (0..4).map { |i| w = (w0 + i * 22.5) * Math::PI / 180; [cx + r * Math.cos(w), cy + r * Math.sin(w)] }
+        end
+      end
+
+      # Kesseböhmer LeMans II (Eckschrank Variante Le Mans): Säule zwischen den Lagern, Seitenprofil,
+      # 2 Tablare im Einbauraum von der Seite an der Tür bis hinter die Säule
+      def lemans(teile, add)
+        return if teile.empty? || !Regeln.lemans?(teile)
+        lg = Regeln::LEMANS
+        le = LEMANS
+        chrom = MATERIALIEN[:chrom][0]
+        s = teile.find { |w| w.ops.any? { |o| o.titel == 'Profil LeMans' } } or return
+        boden = teile.find { |w| w.rolle == 'Boden' } or return
+        lager = boden.ops.find { |o| o.titel == 'Lager LeMans' } or return
+        strebe = teile.find { |w| w.teil.jt('teil') == 'StrebeVorn' }
+        profil = s.ops.select { |o| o.titel == 'Profil LeMans' }
+        k = Geometrie.achse(profil[0].seite)
+        innen = Geometrie.max?(profil[0].seite) ? 1 : -1
+        t = ([0, 1] - [k]).first
+        fl = profil[0].p0[k]
+        sx = lager.p0[k]
+        sy = lager.p0[t]
+        yp = profil[0].p0[t]
+        dir = (sy - yp) / (lg[:lager][:vorn] - lg[:profil][:vorn]) > 0 ? 1 : -1
+        vorne = yp - dir * lg[:profil][:vorn]
+        oben = strebe ? strebe.lo[2] : s.hi[2] - 19
+        unten = boden.hi[2]
+        zs = profil.map { |o| o.p0[2] }
+        add.(s, quader('Seitenprofil LeMans', chrom, p3(k => fl, t => yp - le[:profil][0] / 2.0, 2 => zs.min - 20),
+                       p3(k => fl + innen * le[:profil][1], t => yp + le[:profil][0] / 2.0, 2 => zs.max + 20)))
+        add.(s, zylinder('Säule LeMans', chrom, p3(k => sx, t => sy, 2 => unten), 2, unten, oben, le[:saeule_r]))
+        # Tablare: in k von der Seite (+ Abstand) bis hinter die Säule, in t ab vorne bis Tiefe max
+        rw = teile.select { |w| w.rolle == 'Rueckwand' }.map { |w| dir > 0 ? w.lo[t] : w.hi[t] }
+        hinten = rw.min_by { |v| (v - vorne).abs } || (dir > 0 ? s.hi[t] : s.lo[t])
+        tiefe = [(hinten - vorne).abs - 2 * le[:abstand], le[:tiefe_max]].min
+        a0, a1 = [fl + innen * le[:abstand], sx + innen * le[:ueber_saeule]].minmax
+        b0, b1 = [vorne + dir * le[:abstand], vorne + dir * (le[:abstand] + tiefe)].minmax
+        umriss = rund_rechteck(a0, a1, b0, b1, le[:radius]).map { |u, v| k.zero? ? [u, v] : [v, u] }
+        h = oben - unten
+        [unten + 100, unten + h / 2.0 + 60].each_with_index do |z, i|
+          wanne("Tablar LeMans #{i + 1}", MATERIALIEN[:kunststoff][0], umriss, z, le[:tablar], le[:rand_h], le[:rand_d]).each { |kp| add.(s, kp) }
+        end
+      end
+
+      # Häfele HU Slim Base (Unterschrank Handtuchauszug): Schienen an der Seite, Gestell mit 2 Körben
+      # und Fronthaltern im Auszug (fährt mit der Front heraus)
+      def hu_slim_base(teile, add)
+        return if teile.empty? || !Regeln.hu_slim_base?(teile)
+        hu = HU
+        stahl = MATERIALIEN[:stahl][0]
+        s = teile.find { |w| w.ops.any? { |o| o.titel == 'Schiene HU Slim Base' } } or return
+        boden = teile.find { |w| w.rolle == 'Boden' } or return
+        sch = s.ops.select { |o| o.titel == 'Schiene HU Slim Base' }
+        k = Geometrie.achse(sch[0].seite)
+        innen = Geometrie.max?(sch[0].seite) ? 1 : -1
+        t = ([0, 1] - [k]).first
+        fl = sch[0].p0[k]
+        ys = sch.map { |o| o.p0[t] }
+        c = Regeln::HU_SLIM_BASE
+        dir = (s.hi[t] - ys.max) > (ys.min - s.lo[t]) ? 1 : -1
+        vorne = dir > 0 ? ys.min - c[:schiene][:vorn][0] : ys.max + c[:schiene][:vorn][0]
+        laenge = c[:bauraum][:tiefe] - 30
+        sch.map { |o| o.p0[2] }.uniq.each_with_index do |z, i|
+          add.(s, quader("Schiene HU Slim Base #{i + 1}", stahl, p3(k => fl, t => vorne + dir * 10, 2 => z - hu[:schiene][1] / 2.0),
+                         p3(k => fl + innen * hu[:schiene][0], t => vorne + dir * (10 + laenge), 2 => z + hu[:schiene][1] / 2.0)))
+        end
+        f = teile.find { |w| w.ops.any? { |o| o.titel == 'Front HU Slim Base' } } or return
+        fo = f.ops.select { |o| o.titel == 'Front HU Slim Base' }
+        da = Geometrie.achse(fo[0].seite)
+        rein = Geometrie.max?(fo[0].seite) ? 1 : -1
+        ff = fo[0].p0[da]
+        hl = hu[:halter]
+        fo.each_with_index do |o, i|
+          add.(f, quader("Fronthalter HU Slim Base #{i + 1}", stahl,
+                         p3(k => o.p0[k] - hl[0] / 2.0, da => ff, 2 => o.p0[2] - hl[1] / 2.0),
+                         p3(k => o.p0[k] + hl[0] / 2.0, da => ff + rein * hl[2], 2 => o.p0[2] + hl[1] / 2.0)))
+        end
+        # Gestell und Körbe zwischen Schiene und anderer Seite, ab Fronthalter bis Bauraumtiefe
+        x0 = fl + innen * hu[:schiene][0]
+        xs = fo.map { |o| o.p0[k] }
+        x1 = (innen > 0 ? xs.max + hl[0] / 2.0 : xs.min - hl[0] / 2.0)
+        a0, a1 = [x0, x1].minmax
+        b0, b1 = [ff + rein * hl[2], ff + rein * (hl[2] + laenge - 20)].minmax
+        zs = fo.map { |o| o.p0[2] }.uniq.sort
+        add.(f, quader('Gestell HU Slim Base hinten', stahl, p3(k => a0, t => (rein > 0 ? b1 - hu[:gestell] : b0), 2 => zs.first - 60),
+                       p3(k => a0 + hu[:gestell], t => (rein > 0 ? b1 : b0 + hu[:gestell]), 2 => zs.last + hu[:korb_h])))
+        zs.each_with_index do |z, i|
+          rechteck = [[a0, b0], [a1, b0], [a1, b1], [a0, b1]].map { |u, v| k.zero? ? [u, v] : [v, u] }
+          wanne("Korb HU Slim Base #{i + 1}", MATERIALIEN[:chrom][0], rechteck, z - 30, hu[:korb_d], hu[:korb_h], hu[:korb_d]).each { |kp| add.(f, kp) }
         end
       end
 
@@ -267,6 +435,13 @@ module JTools
       # Flächen (Punktlisten, Zoll, im Behälter) eines Körpers
       def flaechen(k, inv)
         lokal = ->(p) { Geometrie.punkt(inv, p.map { |v| v / Geometrie::MM }).map { |v| v.round(5) } }
+        return k.a.flat_map { |x| flaechen(x, inv) } if k.form == :mehrere
+        if k.form == :prisma
+          u = k.a.map(&lokal)
+          o = k.a.map { |p| q = p.dup; q[2] = k.b; lokal.(q) }
+          n = u.size
+          return [u, o.reverse] + (0...n).map { |i| [u[i], u[(i + 1) % n], o[(i + 1) % n], o[i]] }
+        end
         if k.form == :stab
           q = k.achse
           d = (0..2).map { |i| k.b[i] - k.a[i] }
@@ -322,6 +497,8 @@ module JTools
         return m if m
         m = model.materials.add(name)
         m.color = Sketchup::Color.new(*rgb)
+        alpha = MATERIALIEN.values.find { |n, _| n == name }&.at(2)
+        m.alpha = alpha if alpha && m.respond_to?(:alpha=)
         m
       end
 
@@ -459,6 +636,23 @@ module JTools
         end
       end
 
+      # Platzhalter der Komponenten für zugekaufte Beschläge (LeMans-Einbauraum, HU-Slim-Base-Gestell:
+      # DC-Name „Beschlag“, eigener Tag <Kürzel>_LeMans bzw. <Kürzel>_Beschlag): ausblenden, solange die
+      # Beschläge gezeigt werden (über ihren Tag, die DC steuert die Sichtbarkeit der Instanz selbst)
+      def platzhalter(model, sichtbar, ents = model.entities, gesehen = {})
+        Schraenke.instanzen(ents).each do |i|
+          next if gruppe?(i)
+          d = Schraenke.definition(i)
+          if d.get_attribute(DC_DICT, '_name') == 'Beschlag' && i.layer && i.layer.name != TAG && i.layer.respond_to?(:visible=)
+            i.layer.visible = sichtbar
+            next
+          end
+          next if gesehen[d.object_id]
+          gesehen[d.object_id] = true
+          platzhalter(model, sichtbar, d.entities, gesehen)
+        end
+      end
+
       def entfernen(model)
         g = alle_gruppen(model.entities)
         g.each(&:erase!)
@@ -470,6 +664,7 @@ module JTools
         model.start_operation(an ? 'Beschläge zeigen' : 'Beschläge ausblenden', true)
         model.set_attribute(DICT, 'an', an)
         n = an ? aktualisieren(model) : entfernen(model)
+        platzhalter(model, !an)
         model.commit_operation
         beobachten(model) if an
         n
@@ -494,6 +689,7 @@ module JTools
         return if offen.empty?
         model.start_operation('Beschläge', true, false, true)
         offen.each { |s| schrank_aktualisieren(model, s) }
+        platzhalter(model, false)
         model.commit_operation
       rescue StandardError => e
         model.abort_operation if model

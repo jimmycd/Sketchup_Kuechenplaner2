@@ -30,6 +30,11 @@ module Sketchup
     def erase_entities(l) = l.each { |e| @list.delete(e) }
   end
 
+  class Mat # die Tags des Mocks sind Mat-Objekte
+    attr_writer :visible
+    def visible = @visible.nil? ? true : @visible
+  end
+
   class Model
     include Attr
     def valid? = true
@@ -44,7 +49,7 @@ module UI
 end
 
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen oberschrank oberschrank_klappe unterschrank_doppeltuer hochschrank].each do |k|
+%w[unterschrank_schubladen oberschrank oberschrank_klappe unterschrank_doppeltuer hochschrank eckschrank unterschrank_handtuch].each do |k|
   load File.join(komp, "#{k}/src/#{k}/main.rb")
 end
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
@@ -88,6 +93,8 @@ os = Oberschrank.erstellen({})
 kl = OberschrankKlappe.erstellen({})
 usd = UnterschrankDoppeltuer.erstellen({})
 hs = Hochschrank.erstellen({})
+lm = Eckschrank.erstellen({ 'Variante' => 2.0 })
+hu = UnterschrankHandtuch.erstellen({})
 
 # Vorher: TCN, Stückliste, Beschlagliste
 vorher_ws = []
@@ -143,7 +150,7 @@ kaesten.each do |kasten|
 end
 
 # --- Alles innerhalb des Schranks (Komponentengrenzen) ---
-[uss, os, kl, usd, hs].each do |s|
+[uss, os, kl, usd, hs, lm, hu].each do |s|
   teile = nachher_ws.select { |w| w.teil.pfad.first == s }
   lo = (0..2).map { |a| teile.map { |w| w.lo[a] }.min }
   hi = (0..2).map { |a| teile.map { |w| w.hi[a] }.max }
@@ -206,6 +213,45 @@ arme.each do |a|
   check(kraft.any? { |h| beruehrt.(g, h) } && front.any? { |h| beruehrt.(g, h) }, "Hebelarm verbindet Kraftspeicher und Frontbeschlag (#{g})")
 end
 
+# --- LEGRABOX: Seiteneinsatz (Glas) im Zargenfenster, Seitenstabilisierung ab Korpusbreite 600 ---
+kaesten.each do |kasten|
+  b = kasten.find { |w| w.rolle == 'KastenBoden' }.teil.jt('bereich')
+  m = S::Regeln.zarge(kasten)
+  ein = S::Regeln::ZARGEN[m][:einsatz]
+  ge = uss_k.select { |x| x[:name].start_with?('Seiteneinsatz') && x[:name].end_with?(b) }
+  if ein
+    check(ge.size == 2 && ge.all? { |x| x[:mat] == 'Beschlag Glas klar' }, "#{b}: 2 Seiteneinsätze Glas (#{ge.size})")
+    g = grenzen(ge[0][:pts])
+    nl = S::Schraenke.dc(uss, 'nl').to_f * MM
+    check((g[2][1] - g[2][0] - ein).abs < 0.01 && (g[1][1] - g[1][0] - (nl - 112)).abs < 0.01, "#{b}: Einsatz #{ein} × NL − 112 (#{g})")
+  else
+    check(ge.empty?, "#{b}: Zarge N ohne Einsatz")
+  end
+  check(uss_k.count { |x| x[:name] == "Seitenstabilisierung #{b}" } == 1, "#{b}: Seitenstabilisierung (Korpus 600)")
+end
+
+# --- LeMans II: Säule, Seitenprofil, 2 Tablare; Platzhalter ausgeblendet ---
+lk = k.select { |x| x[:pfad].first == lm }
+check(lk.count { |x| x[:name] == 'Säule LeMans' } == 1, "LeMans: Säule (#{lk.map { |x| x[:name] }.uniq})")
+check(lk.count { |x| x[:name] == 'Seitenprofil LeMans' } == 1, 'LeMans: Seitenprofil')
+check(lk.count { |x| x[:name] == 'Tablar LeMans 1 Boden' } == 1 && lk.count { |x| x[:name] == 'Tablar LeMans 2 Boden' } == 1, 'LeMans: 2 Tablare')
+lws = nachher_ws.select { |w| w.teil.pfad.first == lm }
+lager = lws.flat_map(&:ops).find { |o| o.titel == 'Lager LeMans' }
+saeule = lk.find { |x| x[:name] == 'Säule LeMans' }
+if saeule && lager
+  g = grenzen(saeule[:pts])
+  check((g[0].sum / 2.0 - lager.p0[0]).abs < 0.5 && (g[1].sum / 2.0 - lager.p0[1]).abs < 0.5, "LeMans: Säule über dem Lager (#{g}, #{lager.p0})")
+end
+lm_platz = S::Schraenke.definition(lm).entities.instances.find { |i| i.name == 'LeMans' }
+check(lm_platz && lm_platz.layer.visible == false, 'LeMans: Platzhalter ausgeblendet')
+
+# --- HU Slim Base: 2 Schienen im Schrank, Fronthalter/Gestell/Körbe im Auszug ---
+hk = k.select { |x| x[:pfad].first == hu }
+check(hk.count { |x| x[:name].start_with?('Schiene HU Slim Base') && x[:pfad] == [hu] } == 2, "HU: 2 Schienen im Schrank (#{hk.map { |x| x[:name] }.uniq})")
+check(hk.count { |x| x[:name].start_with?('Fronthalter HU Slim Base') } == 4, 'HU: 4 Fronthalter')
+check(hk.select { |x| x[:name].start_with?('Korb', 'Fronthalter', 'Gestell') }.all? { |x| x[:pfad].last.name == 'Auszug' }, 'HU: Gestell fährt mit dem Auszug')
+check(hk.count { |x| x[:name] =~ /\AKorb HU Slim Base \d Boden\z/ } == 2, 'HU: 2 Körbe')
+
 # --- Nachziehen: unverändert -> nichts neu; Option geändert -> neu ---
 gruppen = B.alle_gruppen(model.entities)
 B.nachziehen(model)
@@ -248,6 +294,7 @@ check(q.zip(p).all? { |a, b| (a - b).abs < 1e-9 }, "Inverse (#{q})")
 # --- Aus: alles weg ---
 check(B.umschalten(model) == false && !B.an?(model), 'ausgeschaltet')
 check(B.alle_gruppen(model.entities).empty?, 'alle Beschläge entfernt')
+check(lm_platz.nil? || lm_platz.layer.visible == true, 'aus: LeMans-Platzhalter wieder sichtbar')
 
 if $fehler.zero?
   puts 'Beschlagmodell: alle Tests OK'
