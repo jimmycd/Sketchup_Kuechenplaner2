@@ -222,8 +222,8 @@ module JTools
       def beschlagseite(doc, posten)
         doc.seite(*SEITE)
         doc.text(RAND, 16, 'Beschläge', groesse: 6, fett: true, max: 277)
-        ['Schubladen: Blum LEGRABOX free nach Montageanleitung MD-015/4 – Zarge C (177 mm), wenn die Schublade hoch genug ist, ' \
-         'sonst M (90,5 mm); Nennlänge NL wie die Bohrungen in den Seiten.',
+        ['Schubladen: Blum LEGRABOX free nach Montageanleitung MD-015/4 – höchste Zarge, die passt (F 241, C 177, K 128,5, M 90,5, N 66,5 mm); ' \
+         'Nennlänge NL wie die Bohrungen in den Seiten.',
          'Türen: Blum-Topfbänder Ø35 mit Montageplatte. Alle Anzahlen aus den Bohrbildern der TCN-Dateien; Artikelnummern nach Blum-Katalog.']
           .each_with_index { |t, i| doc.text(RAND, 23 + 4.2 * i, t, groesse: 2.8, max: 277) }
         y = 31.0

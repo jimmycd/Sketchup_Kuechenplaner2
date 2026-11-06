@@ -5,6 +5,17 @@ load File.expand_path('../src/unterschrank_schubladen/main.rb', __dir__)
 
 U = UnterschrankSchubladen
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   unless bed
@@ -127,21 +138,17 @@ def pruefe(wurzel, anz, h, b, t, label)
     # Platz bis Kasten_Abstand_oben unter der Front (oberste Schublade), sonst bis an die Frontoberkante
     ao = i == 1 ? wurzel.wert('Kasten_Abstand_oben') : 0.0
     kc = [f.wert('lenz') - kb.wert('z') - wurzel.wert('Kasten_Abstand_oben'), 2.0].max + wurzel.wert('Kasten_Abstand_oben') - ao
-    zarge_c = kc >= 17.7 - 1e-4
-    soll_h = zarge_c ? wurzel.wert('Hoehe_Kastenrueckwand') : [6.2, kc - mb].min
+    soll_h = [zarge_hrw(kc, wurzel.wert('Hoehe_Kastenrueckwand')), kc - mb].min
+    zarge = zarge_zu(zarge_hrw(kc, wurzel.wert('Hoehe_Kastenrueckwand')))
     check((kr.wert('lenz') - soll_h).abs < EPS && kr.wert('lenz') > 0, "#{label}: Rückwandhöhe #{kr.wert('lenz')} statt #{soll_h} S#{i}")
-    # Lochraster: Schienenbohrung (Unterkante Kasten + Höhenoffset) auf Start + n * Raster, ab Unterkante Seite
+    # kein Lochraster bei Schubladen (Jürgen 2026-11-06): Kasten genau am Mindestabstand
     unten = z0 + kb.wert('z')
-    loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
-    check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster (#{unten.round(3)})")
     # mindestens Kasten_Abstand_unten über der Front-Unterkante und Schiene 38 mm über dem Korpusboden
     min_ab = [wurzel.wert('Kasten_Abstand_unten'), mk + 3.8 - wurzel.wert('Hoehenoffset_Schiene') - z0].max
     check(unten + wurzel.wert('Hoehenoffset_Schiene') >= mk + 3.8 - EPS, "#{label}: Schiene S#{i} mind. 38 mm über dem Boden")
-    check(kb.wert('z') >= min_ab - EPS &&
-          kb.wert('z') < min_ab + wurzel.wert('Lochraster') - EPS,
-          "#{label}: Kasten S#{i} höchstens ein Raster über dem Mindestabstand")
-    zarge_oben = z0 + kb.wert('z') + (zarge_c ? 17.7 : 9.05)
-    check(zarge_oben <= z0 + f.wert('lenz') - ao + EPS || kc < 9.05 - EPS, # sonst Meldung im TCN-Export
+    check((kb.wert('z') - min_ab).abs < EPS, "#{label}: Kasten S#{i} genau am Mindestabstand (#{kb.wert('z').round(3)} statt #{min_ab.round(3)})")
+    zarge_oben = z0 + kb.wert('z') + zarge
+    check(zarge_oben <= z0 + f.wert('lenz') - ao + EPS || kc < 6.65 - EPS, # sonst Meldung im TCN-Export
           "#{label}: Kasten S#{i} Abstand oben")
     check((s.wert('Auszug') - nl * 0.8).abs < EPS, "#{label}: Auszug S#{i}")
   end

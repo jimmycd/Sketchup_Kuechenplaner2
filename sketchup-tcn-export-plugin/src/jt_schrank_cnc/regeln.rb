@@ -59,17 +59,23 @@ module JTools
       SCHIENE = { d: 5, tiefe: 14, vorn: [37, 69], abstand_nl: 3, ueber_boden: 38,
                   hinten: { 350 => [192, 224], 400 => [224, 256], 450 => [224, 256], 500 => [224, 256],
                             550 => [224, 256, 320], 600 => [224, 256, 320], 650 => [224, 256, 320, 416] } }.freeze
-      # LEGRABOX free Zargenhöhen: C 177 mm (Holzrückwand 148, S. 4), M 90,5 mm (Holzrückwand 62, abgeleitet:
-      # Einschubelement M 52 / C 138, S. 8). Die Komponenten nehmen C, wenn der Kasten Platz hat, sonst M;
-      # erkannt wird das Modell an der Höhe der Kastenrückwand.
-      ZARGEN = { 'C' => { hoehe: 177.0, rueckwand: 148.0, front: [0, 32, 96, 128], einsatz: 138 },
-                 'M' => { hoehe: 90.5, rueckwand: 62.0, front: [0, 32], einsatz: 52 } }.freeze
+      # LEGRABOX free, alle Zargenhöhen (Blum-Programm): N 66,5, M 90,5, K 128,5, C 177, F 241 mm.
+      # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4), Einschubelement C 138 / M 52 (S. 8).
+      # Abgeleitet, nicht bestätigt: Holzrückwand = Zarge − 29 mm wie bei C (F 212, K 99, M 62, N 37),
+      # Seiteneinsatz = Zarge − 39 mm (F 202, K 90; N ohne Einsatz), Fronthalter: Löcher aus 0/32/96/128,
+      # solange das oberste höchstens 13 mm unter der Zargenoberkante liegt (wie bei C: 36 + 128 = 177 − 13).
+      # Die Komponenten nehmen die höchste Zarge, die Platz hat; erkannt wird sie an der Höhe der Kastenrückwand.
+      ZARGEN = { 'F' => { hoehe: 241.0, rueckwand: 212.0, front: [0, 32, 96, 128], einsatz: 202 },
+                 'C' => { hoehe: 177.0, rueckwand: 148.0, front: [0, 32, 96, 128], einsatz: 138 },
+                 'K' => { hoehe: 128.5, rueckwand: 99.0, front: [0, 32], einsatz: 90 },
+                 'M' => { hoehe: 90.5, rueckwand: 62.0, front: [0, 32], einsatz: 52 },
+                 'N' => { hoehe: 66.5, rueckwand: 37.0, front: [0], einsatz: nil } }.freeze
       KASTEN = %w[KastenBoden KastenRueckwand].freeze
       # Frontbefestigung LEGRABOX (MD-015/4, S. 4): Löcher 14 mm von der Innenseite der Seite
       # (= 14 + FA vom Frontrand), 0/32/96/128 mm übereinander, unterstes mind. 51 über Unterkante Front.
       # Höhe abgeleitet aus SK_Vorderstueck_Frontbef.tcn: unterstes 36 mm über Unterkante Kasten;
       # obere Löcher nur, solange sie nicht über dem Kasten liegen. Ø3 × 5 wie in der Vorlage.
-      # Zarge M: nur das untere Lochpaar (0/32; Fronthalter M, nicht in der Anleitung, abgeleitet).
+      # Andere Zargen: Lochbild siehe ZARGEN (F wie C, K und M 0/32, N nur 0; abgeleitet).
       FRONT_BEF = { d: 3, tiefe: 5, innen: 14, ueber_kasten: 36, min_unten: 51 }.freeze
       # Schubkastenboden.tcn: Falz unten an beiden Enden quer zur Breite für die Zargen,
       # 38 breit über die ganze Tiefe + 20 Überlauf und ein zweites Rechteck 20 breit, beide 8 tief
@@ -319,10 +325,11 @@ module JTools
         boeden_an(s, teile).map { |b| b.hi[2] }.select { |v| v <= z + TOL }.max
       end
 
-      # Zargenhöhe der Schublade (LEGRABOX free C oder M) aus der Höhe der Kastenrückwand
+      # Zargenhöhe der Schublade (LEGRABOX free F, C, K, M oder N) aus der Höhe der Kastenrückwand
       def self.zarge(kasten)
         rw = kasten.find { |w| w.rolle == 'KastenRueckwand' } or return 'C'
-        rw.mass(2) >= (ZARGEN['C'][:rueckwand] + ZARGEN['M'][:rueckwand]) / 2.0 ? 'C' : 'M'
+        # höchste Zarge, deren Rückwand nicht höher ist als die gezeichnete (kleinere Rückwände = niedrigere Zarge)
+        ZARGEN.find { |_, z| rw.mass(2) >= z[:rueckwand] - 0.5 }&.first || 'N'
       end
 
       # Prüft, ob die Front die Zarge abdeckt (Kastenunterkante + Zargenhöhe <= Frontoberkante; daran

@@ -5,6 +5,17 @@ load File.expand_path('../src/apothekerschrank/main.rb', __dir__)
 
 A = Apothekerschrank
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   return if bed
@@ -143,7 +154,7 @@ def pruefe(w, p, label)
   check(mb[:hidden] == !mb_an, "#{label}: Mittelboden sichtbar #{!mb[:hidden]}")
   check((mb[:q][5] - ht).abs < EPS, "#{label}: Mittelboden an der Teilung") if nf == 2
 
-  # Kästen je Front (LEGRABOX free): im Lochraster, gleichmäßig, im Raum zwischen den festen Böden
+  # Kästen je Front (LEGRABOX free): ohne Lochraster, gleichmäßig, im Raum zwischen den festen Böden
   nl = ([35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0].select { |n| n + 0.3 <= t + 1e-6 }.max || 35.0)
   check((w.wert('NL') - nl).abs < EPS, "#{label}: NL #{w.wert('NL')} statt #{nl}")
   off = p['Hoehenoffset_Schiene']
@@ -158,11 +169,10 @@ def pruefe(w, p, label)
     zt = f == 'A' && nf == 1 ? h - mk : (f == 'A' ? ht - mk : h - mk)
     abst = kb.each_cons(2).map { |x, y| x[:q][4] - y[:q][4] }
     check(abst.all? { |d| (d - abst.first).abs < EPS }, "#{label}: Front #{f}: Kästen nicht gleichmäßig #{abst}")
-    check(abst.empty? || ((abst.first / 3.2) - (abst.first / 3.2).round).abs < 1e-6, "#{label}: Teilung kein Vielfaches des Rasters")
+    check(abst.empty? || ((abst.first * 10) - (abst.first * 10).round).abs < 1e-6, "#{label}: Teilung nicht auf ganze mm")
     kb.each do |k|
       q = k[:q]
-      loch = (q[4] + off - p['Lochraster_Start']) / p['Lochraster']
-      check((loch - loch.round).abs < 1e-6, "#{label}: #{k[:pfad]} nicht im Lochraster (#{q[4].round(3)})")
+      check(q[4] + off >= mk + 3.8 - EPS, "#{label}: #{k[:pfad]} Schiene mind. 38 mm über dem Boden (#{q[4].round(3)})")
       check(q[4] >= zb + au - EPS, "#{label}: #{k[:pfad]} zu tief")
       # über jedem festen Boden darunter mindestens Kasten_Abstand_unten
       darunter = boeden_fest.map { |x| x[:q][5] }.select { |z| z <= q[4] + EPS }.max
@@ -174,7 +184,7 @@ def pruefe(w, p, label)
       r = kr[:q]
       check((r[0] - (mk + 1.9)).abs < EPS && (r[1] - (b - mk - 1.9)).abs < EPS, "#{label}: #{kr[:pfad]} Breite LW-38")
       check((r[3] - q[3]).abs < EPS && (r[3] - r[2] - mrw).abs < EPS, "#{label}: #{kr[:pfad]} hinten am Boden")
-      check((r[4] - q[5]).abs < EPS && r[5] - r[4] <= p['Hoehe_Kastenrueckwand'] + EPS, "#{label}: #{kr[:pfad]} auf dem Boden")
+      check((r[4] - q[5]).abs < EPS && r[5] - r[4] <= [p['Hoehe_Kastenrueckwand'], 21.2].max + EPS, "#{label}: #{kr[:pfad]} auf dem Boden")
       check(r[5] <= zt - ao + EPS, "#{label}: #{kr[:pfad]} zu hoch")
       darueber = (boeden_fest.map { |x| x[:q][4] } + kb.map { |x| x[:q][4] }).select { |z| z > q[4] + EPS }.min
       check(darueber - r[5] >= ao - EPS, "#{label}: #{kr[:pfad]} zu nah unter dem nächsten Teil")
@@ -187,7 +197,7 @@ def pruefe(w, p, label)
                   .all? do |x|
                     # Zarge C (Rückwand 148), wenn der Kasten 177 mm hoch sein kann, sonst M (Rückwand 62)
                     kh = abst.first - ao - (f == 'A' && nf == 1 && p['Mittelboden'].to_i == 1 ? au + mk : 0)
-                    soll = [p['Hoehe_Kastenrueckwand'], kh - mbd, kh >= 17.7 - 1e-4 ? p['Hoehe_Kastenrueckwand'] : 6.2].min
+                    soll = [kh - mbd, zarge_hrw(kh, p['Hoehe_Kastenrueckwand'])].min
                     (x[:q][5] - x[:q][4] - [soll, 1.0].max).abs < EPS
                   end,
           "#{label}: Front #{f}: Höhe Kastenrückwand")
@@ -273,9 +283,9 @@ lauf({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 4.0, 'Anz_Kaesten_B' => 6.0, 'H_
      'eng (4 + 6 Kästen)')
 lauf({ 'Anz_Kaesten_A' => 6.0, 'Hoehe' => 120.0 }, 'eng mit Mittelboden (6 Kästen in 1200 mm)')
 
-# Rechnung in Ruby = DC-Formeln (Standard): Kästen bei 70,1 / 108,5 … mm-genau aus berechne
+# Rechnung in Ruby = DC-Formeln (Standard): ohne Lochraster unterster Kasten 57 (19 + 38), Teilung auf ganze mm
 r = A.berechne(A::DEFAULTS)
-check((r['A'][:teilung] - 38.4).abs < EPS && (r['A'][:z][4] - 6.7 - 3.2).abs < EPS, "berechne: Teilung #{r['A'][:teilung]}, unten #{r['A'][:z][4]}")
+check((r['A'][:teilung] - 40.4).abs < EPS && (r['A'][:z][4] - 5.7).abs < EPS, "berechne: Teilung #{r['A'][:teilung]}, unten #{r['A'][:z][4]}")
 
 # --- Tag-Schema ---------------------------------------------------------------
 Sketchup.active_model = Sketchup::Model.new

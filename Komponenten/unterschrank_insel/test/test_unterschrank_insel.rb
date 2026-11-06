@@ -5,6 +5,17 @@ load File.expand_path('../src/unterschrank_insel/main.rb', __dir__)
 
 H = UnterschrankInsel
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   return if bed
@@ -169,14 +180,13 @@ def pruefe(w, p, label)
       g = "Schublade#{i}"
       f, kb, kr = q.("#{g}/Front"), q.("#{g}/KastenBoden"), q.("#{g}/KastenRueckwand")
       check(nahe(kb[3] - kb[2], nl - 1) && nahe(kb[1] - kb[0], b - 2 * mk - 3.5), "#{label}: #{g} Kastenboden #{kb}")
-      rn = (kb[4] - p['Lochraster_Start']) / p['Lochraster']
       # mindestens 30 mm über der Front-Unterkante und Schiene mind. 38 mm über dem Korpusboden (LEGRABOX)
       min_ab = [f[4] + 3, mk + 3.8].max
-      check(kb[4] >= min_ab - EPS && (rn - rn.round).abs < 1e-6 && kb[4] < min_ab + 3.2, "#{label}: #{g} Kasten im Lochraster #{kb[4]}")
+      check(nahe(kb[4], min_ab), "#{label}: #{g} Kasten genau am Mindestabstand (kein Lochraster) #{kb[4]}")
       # Zarge C (Rückwand 148) oder M (62): oberste Schublade 30 mm unter der Frontoberkante, sonst bis an die Front
       ao = i == 1 ? 3.0 : 0.0
-      zarge = kr[5] - kr[4] > 14.0 ? 17.7 : 9.05
-      check((kb[4] + zarge <= f[5] - ao + EPS || f[5] - ao - kb[4] < 9.05) && nahe(kr[4], kb[5]),
+      zarge = zarge_zu(kr[5] - kr[4])
+      check((kb[4] + zarge <= f[5] - ao + EPS || f[5] - ao - kb[4] < 6.65) && nahe(kr[4], kb[5]),
             "#{label}: #{g} Kasten unter der Frontoberkante")
     end
     check(sichtbar.none? { |x| x[:name].start_with?('Einlegeboden') }, "#{label}: keine Einlegeböden bei Schubladen")

@@ -3,9 +3,9 @@
 #
 # Wird aus denselben Werkstücken wie der TCN-Export berechnet (nach Regeln.anwenden), damit
 # Bohrbilder und Beschläge zusammenpassen:
-#   Schubladen  Blum LEGRABOX free (Montageanleitung MD-015/4): Zargen C oder M (Regeln.zarge),
+#   Schubladen  Blum LEGRABOX free (Montageanleitung MD-015/4): Zargen N, M, K, C oder F (Regeln.zarge),
 #               Korpusschienen je Nennlänge (40 kg, NL 650 70 kg), Rückwand- und Fronthalter,
-#               Seiteneinsätze (S. 4: 138 bzw. 52 × NL − 112 × 10), Seitenstabilisierung ab KB 600 (S. 9),
+#               Seiteneinsätze (S. 4: C 138 / M 52, F/K abgeleitet, × NL − 112 × 10), Seitenstabilisierung ab KB 600 (S. 9),
 #               Schrauben 4 × 15 für Fronthalter und Boden (S. 5), Systemschrauben für die Schienen.
 #   Türen       Blum-Topfbänder Ø35 mit Montageplatte (Regeln.topfbaender), Systemschrauben dafür.
 #   Klappen     AVENTOS HK-top (Regeln.aventos).
@@ -67,7 +67,9 @@ module JTools
           add.(g, 'Korpusschienen', "#{nl_text}, #{nl && KG_70.include?(nl) ? 70 : 40} kg", 1, 'Paar', sk)
           add.(g, "Rückwandhalter Holzrückwand #{m}", "Holzrückwand #{Tcn.n(z[:rueckwand])} mm hoch", 1, 'Paar', sk)
           add.(g, "Fronthalter #{m}", 'Frontbefestigung links + rechts', 1, 'Paar', sk)
-          add.(g, 'Seiteneinsatz Glas 10 mm (oder 10-mm-Platte)', nl ? "#{z[:einsatz]} × #{nl - 112} mm" : "#{z[:einsatz]} × (NL − 112) mm", 2, 'Stück', sk)
+          if z[:einsatz] # Zarge N: kein Seiteneinsatz
+            add.(g, 'Seiteneinsatz Glas 10 mm (oder 10-mm-Platte)', nl ? "#{z[:einsatz]} × #{nl - 112} mm" : "#{z[:einsatz]} × (NL − 112) mm", 2, 'Stück', sk)
+          end
           add.(g, 'Seitenstabilisierung', "Korpusbreite ab #{KB_STABILISIERUNG.round} mm", 1, 'Stück', sk) if kb >= KB_STABILISIERUNG - Regeln::TOL
           s = GRUPPEN[1]
           add.(s, 'Spanplattenschraube 4 × 15', 'Fronthalter', 2 * z[:front].size, 'Stück', sk)
