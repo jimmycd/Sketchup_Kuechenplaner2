@@ -121,6 +121,20 @@ Danach fragt es nach einem Ordner, schreibt **`Etiketten.pdf`** und öffnet sie 
 ## Schrank-Beschriftung
 *Erweiterungen › Küchenplaner › Schrank-Beschriftung ein/aus* oder das Icon in der Symbolleiste. Jeder Schrank bekommt einen Text mit seinem Kürzel aus `JT_Schrank/schrank` – dieselbe Quelle wie Stückliste und Etiketten („Schrank · Teil“, Tag `<Kürzel>_…`). Die Texte stehen in der Gruppe „Schrank-Beschriftung“ auf dem Tag **Beschriftung**, als Text mit Pfeil wie das SketchUp-Werkzeug *Text* (immer lesbar, aus jedem Blickwinkel): die Pfeilspitze sitzt vorn mittig auf der größten sichtbaren Front (Tür, Klappe, Schubkasten), ohne Front vorn mittig am Schrank, bei der Arbeitsplatte oben mittig auf der größten Platte, der Text steht rechts davor und darüber (oberste Ebene, nicht im Schrank: TCN-Export, Stückliste und Andocken sehen sie nicht). Einschalten zeigt den Tag in den Szenen **Planung** und **Zuschnitt**, Ausschalten blendet ihn dort aus; in **Kunde** ist er nie zu sehen. Fehlen die Szenen, kommt ein Hinweis (*Geräte › Szenen Planung/Kunde/Zuschnitt anlegen*). Solange die Beschriftung an ist, folgt sie nach jedem Vorgang dem Modell (Schrank verschoben, neues Kürzel, Schrank neu oder gelöscht); die Anpassung hängt sich an den Vorgang davor, Rückgängig nimmt beides zurück.
 
+## Beschläge zeigen
+*Erweiterungen › Küchenplaner › Beschläge ein/aus* oder das Icon **Beschläge zeigen** in der Symbolleiste. Zeichnet die Beschläge, die nicht selbst gefertigt werden, als vereinfachte, maßhaltige Körper ins Modell:
+
+| Beschlag | Lage | bewegt sich mit |
+|---|---|---|
+| LEGRABOX-Zarge C/M links + rechts (12,8 mm, Zargenhöhe wie `Regeln.zarge`, NL − 1 lang) | neben dem Kastenboden ab Kastenunterkante | Schublade |
+| Korpusschiene (NL − 10, 4 mm stark, 20 hoch) | an den Schienenbohrungen der Seite, 4 mm hinter der Vorderkante | Schrank |
+| Fronthalter, Rückwandhalter | an der Frontbefestigung bzw. an der Holzrückwand | Schublade |
+| Blum-Topfband: Topf Ø35 × 13, Arm | an jeder Topfband-Bohrung der Tür | Tür (Türhalter) |
+| Montageplatte 48 × 20 × 4 | über den beiden Ø5-Löchern in der Seite | Schrank |
+| AVENTOS HK-top Kraftspeicher, Frontbeschlag | an den Bohrungen in Seite bzw. Klappe | Schrank / Klappe |
+
+Die Lagen kommen aus denselben Bohrbildern wie TCN-Export und Beschlagliste (`Regeln.anwenden`), passen also immer zu den Bohrungen. Die Körper liegen in einer Gruppe „Beschläge“ auf dem Tag **Beschlag** (Materialien „Beschlag Alu grau“, „Beschlag Stahl vernickelt“, „Beschlag Kunststoff grau“, im Rendern Metall) innerhalb des Schranks; sie haben kein `JT_Schrank/teil`, Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Andocken sehen sie nicht. Solange der Schalter an ist, folgen sie jeder Änderung an einem Schrank (Komponentenoptionen); Verschieben und Öffnen (Interagieren) ändern nichts. Ausschalten löscht alle Beschlag-Gruppen. Noch ohne Körper: Häfele HU Slim Base, Kesseböhmer LeMans, AVENTOS HF.
+
 ## Rendern (Blender)
 *Erweiterungen › Küchenplaner › Rendern (Blender)…* oder das Kamera-Icon in der Symbolleiste macht ein fotorealistisches Bild der Küche mit dem kostenlosen [Blender](https://www.blender.org/download/) (Renderer Cycles). Blender muss installiert sein; das Plugin sucht es selbst (`C:\Program Files\Blender Foundation\Blender …\blender.exe`, neueste Version zuerst, auch Steam, Mac und Linux), sonst im Fenster mit „…“ wählen. Der Pfad bleibt auf dem Rechner gemerkt.
 
