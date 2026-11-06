@@ -5,6 +5,17 @@ load File.expand_path('../src/unterschrank_kochfeld/main.rb', __dir__)
 
 U = UnterschrankKochfeld
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   unless bed
@@ -133,16 +144,16 @@ def pruefe(wurzel, anz, h, b, t, label)
     check(kz1 <= h - hb + EPS, "#{label}: Kasten S#{i} ragt in den Einbauraum (#{kz1.round(2)} > #{h - hb})")
     check(kz1 <= sv.wert('z') + EPS, "#{label}: Kasten S#{i} kollidiert mit der Strebe vorn")
     unten = z0 + kb.wert('z')
-    loch = (unten + wurzel.wert('Hoehenoffset_Schiene') - wurzel.wert('Lochraster_Start')) / wurzel.wert('Lochraster')
-    check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene S#{i} nicht im Lochraster")
+    min_ab = [z0 + wurzel.wert('Kasten_Abstand_unten'), mk + 3.8 - wurzel.wert('Hoehenoffset_Schiene')].max
+    check((unten - min_ab).abs < EPS, "#{label}: Kasten S#{i} genau am Mindestabstand, kein Lochraster (#{unten.round(3)})")
     # LEGRABOX free: Zarge C (Rückwand 148) oder M (Rückwand 62); oberste Schublade Kasten_Abstand_oben
     # unter der Frontoberkante, darunter bis an die Frontoberkante
     ao = i == 1 ? wurzel.wert('Kasten_Abstand_oben') : 0.0
     kc = f.wert('lenz') - kb.wert('z') - ao
-    zarge_c = kc >= 17.7 - 1e-4
-    soll_h = zarge_c ? wurzel.wert('Hoehe_Kastenrueckwand') : [6.2, [kc - wurzel.wert('Kasten_Abstand_oben') + ao, 2.0].max + wurzel.wert('Kasten_Abstand_oben') - ao - mb].min
+    zarge = zarge_zu(zarge_hrw(kc, wurzel.wert('Hoehe_Kastenrueckwand')))
+    soll_h = [zarge_hrw(kc, wurzel.wert('Hoehe_Kastenrueckwand')), [kc - wurzel.wert('Kasten_Abstand_oben') + ao, 2.0].max + wurzel.wert('Kasten_Abstand_oben') - ao - mb].min
     check((kr.wert('lenz') - soll_h).abs < EPS, "#{label}: Rückwandhöhe #{kr.wert('lenz')} statt #{soll_h} S#{i}")
-    check(z0 + kb.wert('z') + (zarge_c ? 17.7 : 9.05) <= z0 + f.wert('lenz') - ao + EPS || kc < 9.05 - EPS,
+    check(z0 + kb.wert('z') + zarge <= z0 + f.wert('lenz') - ao + EPS || kc < 6.65 - EPS,
           "#{label}: Kasten S#{i} Abstand oben")
     check(unten + wurzel.wert('Hoehenoffset_Schiene') >= mk + 3.8 - EPS, "#{label}: Schiene S#{i} mind. 38 mm über dem Boden")
   end

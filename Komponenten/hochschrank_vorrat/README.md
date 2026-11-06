@@ -27,7 +27,7 @@ Mit *Interagieren* öffnen die Türen nach außen und die Innenschubkästen fahr
 ## Aufbau
 * Korpus wie der Hochschrank: Seiten über die volle Höhe, Boden, Deckel, Rückwand 8 mm, Korpus 19 mm, Fugen 2 mm. Ein **fester Zwischenboden** (Oberkante = Höhe Bereich unten) trennt die Kästen vom Fach oben.
 * **Tür:** eine Tür von 0 bis zur Höhe, oder geteilt: unten bis 2 mm unter die Oberkante des Zwischenbodens, oben ab dort. Je Tür ein Flügel (Anschlag links oder rechts) oder zwei Flügel.
-* **Innenschubkästen** (Blum LEGRABOX free, MD-015/4): Der Bereich unten wird über die Anteile in Fächer geteilt. Im Fach sitzt der Kasten mit der Unterkante im 32-mm-Lochraster (mindestens 30 mm über dem Fach), oben bleiben **60 mm frei für das Scharnier** (`Freiraum_Scharnier`).
+* **Innenschubkästen** (Blum LEGRABOX free, MD-015/4): Der Bereich unten wird über die Anteile in Fächer geteilt. Im Fach sitzt der Kasten 38 mm über dem Fachboden (ohne Lochraster, Schiene mind. 38 mm über dem Boden), höchste Zarge, die passt, oben bleiben **60 mm frei für das Scharnier** (`Freiraum_Scharnier`).
   * **Innenfront** 12 mm, 3 mm hinter der Korpusvorderkante, 2 mm Luft zu den Seiten, so hoch wie der Kasten. Material wie der Korpus; eine andere Farbe setzt *Frontfarbe und Griffe ändern… → Bereich „Nur Innenfronten“* (Innenfronten bekommen keine Griffbohrungen).
   * Kasten (Boden LW − 35 × NL − 10, 16 mm; Holzrückwand LW − 38 × höchstens 148 mm) beginnt 17 mm hinter der Korpusvorderkante (3 + 12 + 2 mm Fuge). Die Nennlänge NL folgt deshalb der Tiefe minus 17 mm.
 * **Scharniere** (Blum, öffnen nach außen, so dass die Kästen herausfahren können): Sie sitzen in den Lücken über den Kästen, nie auf Höhe eines Kastens:
@@ -68,4 +68,4 @@ An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Hochschrank Vorrat), `kat
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/hochschrank_vorrat/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_hochschrank_vorrat.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Türen (ganz/geteilt, Flügel, Anschlag), Kästen im Lochraster, Innenfront, Scharnierhöhen (keine Kollision mit Kästen, Böden und Einlegeböden, Anzahl je Tür), Kollisionen, Formeln nach dem Umkonfigurieren, nachträgliche Tiefenänderung, Material, Anleimer, Tags und die Kurzhilfe. Der Export wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.
+`ruby test/test_hochschrank_vorrat.rb` prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Türen (ganz/geteilt, Flügel, Anschlag), Kästen, Innenfront, Scharnierhöhen (keine Kollision mit Kästen, Böden und Einlegeböden, Anzahl je Tür), Kollisionen, Formeln nach dem Umkonfigurieren, nachträgliche Tiefenänderung, Material, Anleimer, Tags und die Kurzhilfe. Der Export wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft.

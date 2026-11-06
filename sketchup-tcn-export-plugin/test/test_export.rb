@@ -202,10 +202,10 @@ lr = z.select { |x| x.include?('#8522=5 ') }
 check(lr.size == 4 && lr.map { |x| x[/#8510=(\S+) #8511=(\S+)/, 0] }.uniq.sort == ['#8510=738 #8511=x-831', '#8510=x-741 #8511=x-50'],
       "Hochschrank: Lochreihen nur in den Fächern ohne Schubladen: #{lr}")
 # Schienen (LEGRABOX): 37/69/261/293/357/453 ab Vorderkante roh (NL 650, 70 kg) = 35/67/259/291/355/451 im Fräsmaß,
-# Höhe = Kastenunterkante; unterste Schublade mind. 38 über dem Boden (19 + 38 = 57 -> Raster 67)
+# Höhe = Kastenunterkante; unterste Schublade 38 über dem Boden (19 + 38 = 57), kein Lochraster
 sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
 hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
-check(hoehen == { '67' => 6, '291' => 6, '515' => 6 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
+check(hoehen == { '57' => 6, '263.3333' => 6, '496.6667' => 6 }, "Hochschrank: Schienenbohrungen je Schublade (#{hoehen})")
 # Tiefe 800: NL 650 -> 37, 69, 37+224, 37+256, 37+320, 37+416 (roh) = 35, 67, 259, 291, 355, 451 im Fräsmaß (DH 798: 451 = y-347)
 check(sch.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[347 y-259 y-291 y-35 y-355 y-67], "Schienenbohrungen in der Tiefe (NL 650): #{sch}")
 nl = lambda do |tiefe|
@@ -217,32 +217,32 @@ end
 check([nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)] == [650, 550, 500, 350, nil],
       "Nennlänge aus der lichten Tiefe (NL + 3 <= LT): #{[nl.(80.0), nl.(56.0), nl.(55.2), nl.(35.5), nl.(30.0)]}")
 Sketchup.active_model = model
-check(z.any? { |x| x.include?('#1=291 #2=y-35 ') }, 'Schiene: alle vier Bohrungen, keine Lochreihe im Schubladenfach')
+check(z.any? { |x| x.include?('#1=263.3333 #2=y-35 ') }, 'Schiene: alle vier Bohrungen, keine Lochreihe im Schubladenfach')
 check(dateien.none? { |x| x.text.include?('W#89') } && !dateien.find { |x| x.name == 'HS1_Rueckwand' }.text.include?('fitting'),
       'Hochschrank: Rückwand ohne Nut und ohne Deckelschrauben')
 check(bearbeitungen(dateien.find { |x| x.name == 'HS1_Boden' }.text, 1).count { |x| x.include?('#8522=3 ') } == 8, 'Hochschrank: Sockelfüße')
 # Frontbefestigung LEGRABOX: Ø3 × 5 hinten in der Front, 14 mm von der Innenseite der Seite (x = 30 im Fräsmaß),
-# unterstes Loch 36 über Unterkante Kasten; Zarge M (Fronten 231 mm, Kasten ab 67 bzw. im Raster): Lochpaar 0/32
+# unterstes Loch 36 über Unterkante Kasten; Zarge M (Fronten 231 mm, Kasten ab 57 bzw. 30 über der Front): Lochpaar 0/32
 fb = ->(name) { bearbeitungen(dateien.find { |x| x.name == name }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
 u3 = fb.('HS1_U3_Front')
 check(u3.size == 4 && u3.map { |x| x[/#1=(\S+)/, 1] }.tally == { '30' => 2, 'x-30' => 2 } &&
-      u3.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[101 y-94.3333],
-      "Frontbefestigung Zarge M 0/32 ab 103 mm (unterste Schublade, Schiene 38 über Boden): #{u3}")
+      u3.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[91 y-104.3333],
+      "Frontbefestigung Zarge M 0/32 ab 93 mm (unterste Schublade, Schiene 38 über Boden): #{u3}")
 u1 = fb.('HS1_U1_Front')
-check(u1.size == 4 && u1.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[82.3333 y-113],
+check(u1.size == 4 && u1.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[64 96],
       "Frontbefestigung Zarge M: #{u1}")
-# Zarge C (hohe Front unten, 1;1;2 in 700): 4 Lochreihen 0/32/96/128 ab 36 über Kastenunterkante (67 + 36 = 103)
+# Zarge F (hohe Front unten, 1;1;2 in 700): 4 Lochreihen 0/32/96/128 wie C ab 36 über Kastenunterkante (57 + 36 = 93)
 mc = Sketchup.active_model = Sketchup::Model.new
 UnterschrankSchubladen.erstellen({ 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
 dc_, = S::Export.erzeugen(mc)
 fc = bearbeitungen(dc_.find { |x| x.name == 'USS1_S3_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
 dh3 = dc_.find { |x| x.name == 'USS1_S3_Front' }.lage.dh
 zc = fc.map { |x| v = x[/#2=(\S+)/, 1]; v.start_with?('y-') ? dh3 - v[2..].to_f : v.to_f }.uniq.sort.map { |v| v.round(2) }
-check(fc.size == 8 && zc == [101.0, 133.0, 197.0, 229.0], "Frontbefestigung Zarge C 0/32/96/128: #{zc}")
+check(fc.size == 8 && zc == [91.0, 123.0, 187.0, 219.0], "Frontbefestigung Zarge F 0/32/96/128: #{zc}")
 krc = dc_.find { |x| x.name == 'USS1_S3_KastenRueckwand' }
 krm = dc_.find { |x| x.name == 'USS1_S1_KastenRueckwand' }
-check(([krc.lage.dl, krc.lage.dh].min - 146).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 60).abs < 1e-6, # Fräsmaß = 148 / 62 − 2 mm Anleimer oben
-      "Kastenrückwand C 148 / M 62 (#{[krc.lage.dl, krc.lage.dh]} / #{[krm.lage.dl, krm.lage.dh]})")
+check(([krc.lage.dl, krc.lage.dh].min - 210).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 60).abs < 1e-6, # Fräsmaß = 212 / 62 − 2 mm Anleimer oben
+      "Kastenrückwand F 212 / M 62 (#{[krc.lage.dl, krc.lage.dh]} / #{[krm.lage.dl, krm.lage.dh]})")
 Sketchup.active_model = model
 check(fb.('HS1_O_Tuer').empty?, 'Tür ohne Frontbefestigung')
 # Kastenboden: Falz für die Zargen an beiden Enden der Breite, 38 und 20 breit, 8 tief (Schubkastenboden.tcn)
@@ -278,12 +278,12 @@ check(z.count { |x| x.include?('fittingy.tmcr') && x.include?('#8522=8 ') } == 3
 check(z.none? { |x| x.include?('#8522=5 ') }, 'Apothekerschrank: keine Lochreihen (nur Auszüge)')
 sch = z.select { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') }
 hoehen = sch.map { |x| x[/#1=(\S+)/, 1] }.tally
-# Kastenunterkanten 99/483/867/1251/1635 mm; die oberen zwei misst die TCN von oben (DL 2098: x-847 = 1251)
-check(hoehen == { '99' => 6, '483' => 6, '867' => 6, 'x-847' => 6, 'x-463' => 6 }, "Apothekerschrank: Schienen je Kasten (#{hoehen})")
+# Kastenunterkanten 57/461/865/1269/1673 mm (ohne Lochraster); die oberen zwei misst die TCN von oben (DL 2098: x-829 = 1269)
+check(hoehen == { '57' => 6, '461' => 6, '865' => 6, 'x-829' => 6, 'x-425' => 6 }, "Apothekerschrank: Schienen je Kasten (#{hoehen})")
 fb = bearbeitungen(dap.find { |x| x.name == 'AP1_A_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
 # die Hochfront liegt mit der Höhe in x: 14 mm von der Seiteninnenseite = 30 im Fräsmaß in y,
-# unterstes Loch je Kasten 36 über Kastenunterkante (99 + 36 - 2 Anleimer = 133)
-check(fb.size == 40 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 20, 'y-30' => 20 } && fb.any? { |x| x.include?('#1=133 ') },
+# unterstes Loch je Kasten 36 über Kastenunterkante (57 + 36 - 2 Anleimer = 91)
+check(fb.size == 40 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 20, 'y-30' => 20 } && fb.any? { |x| x.include?('#1=91 ') },
       "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 × 8): #{fb.size}")
 Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_Kaesten_B' => 3.0 })
 dap, = S::Export.erzeugen(model_ap)
@@ -585,9 +585,9 @@ end
   bm = Sketchup.active_model = Sketchup::Model.new
   UnterschrankBackofen.erstellen({ 'Tiefe' => 52.0, 'Hoehe' => hoehe })
   db_, mb_ = S::Export.erzeugen(bm)
-  # 76 cm: unter dem Backofen bleiben 141 mm, die Schiene muss 38 über dem Boden sitzen (Kasten ab 67) -> selbst
-  # LEGRABOX free M (90,5) ist 17 mm zu hoch, der Export meldet das
-  soll_m = schublade ? ['USB1_S1_KastenBoden: zu wenig Höhe für LEGRABOX free M (Zarge 90.5 mm, 17 mm zu hoch)'] : []
+  # 76 cm: unter dem Backofen bleiben 141 mm, die Schiene muss 38 über dem Boden sitzen (Kasten ab 57) -> M (90,5)
+  # wäre 7 mm zu hoch, die Komponente nimmt Zarge N (66,5): keine Meldung
+  soll_m = []
   check(mb_ == soll_m, "Herdumbau #{hoehe}: Meldungen #{mb_}")
   dbm = db_.to_h { |x| [x.name, x] }
   soll = %w[USB1_Boden USB1_Rueckwand USB1_SeiteL USB1_SeiteR USB1_ZwischenbodenUnten] +
@@ -604,6 +604,11 @@ end
     check(schiene_bohr.(dbm[sn].text) == (schublade ? 4 : 0), "Herdumbau #{hoehe} #{sn}: Schienenbohrungen #{schiene_bohr.(dbm[sn].text)}")
   end
   check(dbm['USB1_Boden'].text.include?('#8522=3 '), "Herdumbau #{hoehe}: Sockelfüße")
+  if schublade # Zarge N: Rückwand 37 mm, Fronthalter nur das unterste Loch je Seite
+    kr_ = dbm['USB1_S1_KastenRueckwand']
+    fn = bearbeitungen(dbm['USB1_S1_Front'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
+    check(([kr_.lage.dl, kr_.lage.dh].min - 35).abs < 1e-6 && fn == 2, "Herdumbau 76: Zarge N (Rückwand #{[kr_.lage.dl, kr_.lage.dh].min} + 2, Fronthalter #{fn})")
+  end
   check(S::Frontfarbe.fronten(bm, kategorie: 'Unterschrank').count(&:sichtbar?) == 1, "Herdumbau #{hoehe}: eine sichtbare Front")
 end
 Sketchup.active_model = model

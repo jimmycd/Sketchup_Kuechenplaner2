@@ -8,7 +8,7 @@
 # Aufbau: Korpus wie der Hochschrank (19 mm, Rückwand 8 mm, Fugen 2 mm). Eine
 # Hochfront (oder zwei Fronten, unten/oben getrennt) fährt komplett heraus und
 # nimmt 2–6 Innenkästen Blum LEGRABOX mit (Prinzip Blum SPACE TOWER). Die Kästen
-# sitzen gleichmäßig im 32-mm-Lochraster. Ein fester Mittelboden steift die Seiten
+# sitzen gleichmäßig verteilt (ohne Lochraster). Ein fester Mittelboden steift die Seiten
 # aus; bei zwei Fronten liegt er an der Teilung. Front und Kästen stecken in einer
 # Auszug-Komponente, damit sie mit "Interagieren" zusammen herausfahren.
 #
@@ -66,6 +66,30 @@ module Apothekerschrank
   SCHIENE_UEBER_BODEN = 3.8 # cm
   ZARGE_C = 17.7            # cm
   HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
+  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
+  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
+  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
+  ZARGE_F = 24.1
+  ZARGE_K = 12.85
+  ZARGE_M = 9.05
+  HRW_F = 21.2
+  HRW_K = 9.9
+  HRW_N = 3.7
+  def self.hrw_zarge(kc, soll)
+    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
+    [soll, if kc >= ZARGE_C - 0.0001 then soll
+           elsif kc >= ZARGE_K - 0.0001 then HRW_K
+           elsif kc >= ZARGE_M - 0.0001 then HRW_M
+           else HRW_N
+           end].min
+  end
+
+  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
+  def self.f_hrw_zarge(kc, soll)
+    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
+      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  end
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -121,25 +145,20 @@ module Apothekerschrank
     "MAX(#{a('Kasten_Abstand_unten')},#{SCHIENE_UEBER_BODEN})"
   end
 
-  # Unterkante des untersten Kastens: mindestens Kasten_Abstand_unten über zb und so, dass die
-  # Schienenbohrung (Unterkante Kasten + Höhenoffset) auf dem Lochraster der Seite liegt
+  # Unterkante des untersten Kastens: Kasten_Abstand_unten (mind. 38 mm) über zb. Kein Lochraster:
+  # die Schienenbohrungen sitzen genau dort, wo die Kästen sie brauchen (Jürgen 2026-11-06).
   def self.kasten_start(p, zb)
-    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    st + ra * ((zb + abst_unten(p) + off - st) / ra - 0.0001).ceil - off
+    zb + abst_unten(p)
   end
 
-  # Kästen einer Front: Teilung (Vielfaches des Rasters), Unterkanten (1 = oben), Höhe der Holzrückwand
+  # Kästen einer Front: Teilung (auf ganze mm abgerundet), Unterkanten (1 = oben), Höhe der Holzrückwand
   def self.kaesten(p, f)
     zb, zt = raum(p, f)
     n = p["Anz_Kaesten_#{f}"].to_i
-    ra = p['Lochraster']
     k0 = kasten_start(p, zb)
-    teilung = ra * ((zt - k0) / n / ra + 0.000001).floor
-    rest = zt - k0 - n * teilung
-    k0 += ra * (rest / 2 / ra + 0.000001).floor # Kästen mittig im Raum
-    kh = teilung - abstand_oben(p, f) # Platz für den Kasten; Zarge C (Rückwand 148), sonst M (62)
-    hrw = [[p['Hoehe_Kastenrueckwand'], kh - p['Materialstaerke_Kastenboden'],
-           kh >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : HRW_M].min, 1.0].max
+    teilung = ((zt - k0) / n * 10 + 0.000001).floor / 10.0
+    kh = teilung - abstand_oben(p, f) # Platz für den Kasten; höchste Zarge, die passt (hrw_zarge)
+    hrw = [[kh - p['Materialstaerke_Kastenboden'], hrw_zarge(kh, p['Hoehe_Kastenrueckwand'])].min, 1.0].max
     z = (1..MAX_K).map { |j| j <= n ? k0 + (n - j) * teilung : k0 }
     { teilung: teilung, z: z, hrw: hrw, n: n }
   end
@@ -180,23 +199,19 @@ module Apothekerschrank
   end
 
   def self.f_kasten_start(zb)
-    st, ra, off = a('Lochraster_Start'), a('Lochraster'), a('Hoehenoffset_Schiene')
-    # INT rundet ab, -INT(-x) also auf
-    "(#{st}+#{ra}*(-INT(-((#{zb}+#{f_abst_unten}+#{off}-#{st})/#{ra}-0.0001)))-#{off})"
+    "(#{zb}+#{f_abst_unten})"
   end
 
+  # INT rundet ab: Teilung auf ganze mm
   def self.f_teilung(f)
     zb, zt = f_raum(f)
-    ra = a('Lochraster')
-    "(#{ra}*INT((#{zt}-#{f_kasten_start(zb)})/#{a("Anz_Kaesten_#{f}")}/#{ra}+0.000001))"
+    "(INT((#{zt}-#{f_kasten_start(zb)})/#{a("Anz_Kaesten_#{f}")}*10+0.000001)/10)"
   end
 
-  # Unterkante des untersten Kastens, mittig verschoben
+  # Unterkante des untersten Kastens
   def self.f_k0(f)
-    zb, zt = f_raum(f)
-    ra = a('Lochraster')
-    k0 = f_kasten_start(zb)
-    "(#{k0}+#{ra}*INT((#{zt}-#{k0}-#{a("Anz_Kaesten_#{f}")}*#{f_teilung(f)})/2/#{ra}+0.000001))"
+    zb, _zt = f_raum(f)
+    f_kasten_start(zb)
   end
 
   # Unterkante Kasten j (1 = oben); j darf ein Ausdruck sein
@@ -212,8 +227,7 @@ module Apothekerschrank
 
   def self.f_hrw(f)
     kh = "#{f_teilung(f)}-#{f_abstand_oben(f)}"
-    "MAX(MIN(MIN(#{a('Hoehe_Kastenrueckwand')},#{kh}-#{a('Materialstaerke_Kastenboden')})," \
-      "IF(#{kh}>=#{ZARGE_C - 0.0001},#{a('Hoehe_Kastenrueckwand')},#{HRW_M})),1)"
+    "MAX(MIN(#{kh}-#{a('Materialstaerke_Kastenboden')},#{f_hrw_zarge(kh, a('Hoehe_Kastenrueckwand'))}),1)"
   end
 
   def self.f_mittelboden

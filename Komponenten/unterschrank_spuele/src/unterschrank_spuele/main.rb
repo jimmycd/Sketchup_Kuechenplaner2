@@ -66,6 +66,30 @@ module Spuelenschrank
   SCHIENE_UEBER_BODEN = 3.8 # cm
   ZARGE_C = 17.7            # cm
   HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
+  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
+  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
+  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
+  ZARGE_F = 24.1
+  ZARGE_K = 12.85
+  ZARGE_M = 9.05
+  HRW_F = 21.2
+  HRW_K = 9.9
+  HRW_N = 3.7
+  def self.hrw_zarge(kc, soll)
+    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
+    [soll, if kc >= ZARGE_C - 0.0001 then soll
+           elsif kc >= ZARGE_K - 0.0001 then HRW_K
+           elsif kc >= ZARGE_M - 0.0001 then HRW_M
+           else HRW_N
+           end].min
+  end
+
+  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
+  def self.f_hrw_zarge(kc, soll)
+    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
+      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  end
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -145,8 +169,8 @@ module Spuelenschrank
       h_auszug: h - p['Hoehe_Blende'] - sp,              # Front des Auszugs
       nl: nennlaenge(t_innen),
       ab: ab,                                            # Unterkante Kasten
-      hrw: [[p['Hoehe_Kastenrueckwand'], z_max - ab - p['Materialstaerke_Kastenboden'],
-            z_max - ab >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : HRW_M].min, 2.0].max, # Zarge C, sonst M
+      hrw: [[z_max - ab - p['Materialstaerke_Kastenboden'],
+            hrw_zarge(z_max - ab, p['Hoehe_Kastenrueckwand'])].min, 2.0].max, # höchste Zarge, die passt
       a_unten: a_unten,
       a_hoehe: [[p['Ausschnitt_Hoehe'], h - rand - a_unten].min, 0.0].max,
       a_breite: b - 2 * mk - 2 * rand
@@ -168,17 +192,16 @@ module Spuelenschrank
   end
 
   # Unterkante Kasten über Unterkante Front (= Unterkante Korpus): mindestens Kasten_Abstand_unten
-  # und so, dass die Schienenbohrung auf dem Lochraster der Seite liegt (wie Unterschrank mit Schubladen)
+  #, Schienenbohrung mind. 38 mm über dem Korpusboden, kein Lochraster (wie Unterschrank mit Schubladen)
   def self.kasten_unten(p)
-    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = (([p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
-    st + ra * n - off
+    off = p['Hoehenoffset_Schiene']
+    [p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off
   end
 
   def self.f_kasten_unten
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
-      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
+    "MAX(#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+      "-#{u}!Hoehenoffset_Schiene"
   end
 
   # ---------------------------------------------------------------------------
@@ -585,8 +608,7 @@ module Spuelenschrank
     # Höhe Holzrückwand: höchstens Hoehe_Kastenrueckwand, Oberkante Kasten Siphon_Freiraum unter der Blende
     kh = "#{u}!Hoehe-#{u}!Hoehe_Blende-#{u}!Siphon_Freiraum-(#{f_kasten_unten})"
     attribut(d, 'Hrw', r[:hrw], units: 'STRING',
-             formula: "MAX(MIN(MIN(#{u}!Hoehe_Kastenrueckwand,#{kh}-#{u}!Materialstaerke_Kastenboden)," \
-                      "IF(#{kh}>=#{ZARGE_C - 0.0001},#{u}!Hoehe_Kastenrueckwand,#{HRW_M})),2)")
+             formula: "MAX(MIN(#{kh}-#{u}!Materialstaerke_Kastenboden,#{f_hrw_zarge(kh, "#{u}!Hoehe_Kastenrueckwand")}),2)")
     attribut(d, 'Auszug', nl * p['Auszug_Anteil'], units: 'STRING', formula: "#{u}!NL*#{u}!Auszug_Anteil")
     sichtbarkeit(d, auszug, formel)
     # Mit "Interagieren" anklicken -> Auszug fährt heraus

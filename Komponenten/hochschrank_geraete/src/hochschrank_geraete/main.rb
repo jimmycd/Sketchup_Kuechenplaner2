@@ -88,6 +88,30 @@ module HochschrankGeraete
   SCHIENE_UEBER_BODEN = 3.8 # cm
   ZARGE_C = 17.7            # cm
   HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
+  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
+  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
+  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
+  ZARGE_F = 24.1
+  ZARGE_K = 12.85
+  ZARGE_M = 9.05
+  HRW_F = 21.2
+  HRW_K = 9.9
+  HRW_N = 3.7
+  def self.hrw_zarge(kc, soll)
+    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
+    [soll, if kc >= ZARGE_C - 0.0001 then soll
+           elsif kc >= ZARGE_K - 0.0001 then HRW_K
+           elsif kc >= ZARGE_M - 0.0001 then HRW_M
+           else HRW_N
+           end].min
+  end
+
+  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
+  def self.f_hrw_zarge(kc, soll)
+    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
+      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  end
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -164,20 +188,18 @@ module HochschrankGeraete
     erg
   end
 
-  # Unterkante Kasten über Unterkante Front (cm): mindestens Kasten_Abstand_unten und so, dass
-  # die Schienenbohrung (Unterkante Kasten + Höhenoffset) auf dem Lochraster der Seite liegt
-  # (Lochraster_Start + n * Lochraster, gemessen ab Unterkante Seite).
+  # Unterkante Kasten über Unterkante Front (cm): mindestens Kasten_Abstand_unten, Schienenbohrung mind. 38 mm über dem
+  # Korpusboden. Kein Lochraster: die Bohrung sitzt dort, wo der Kasten sie braucht (Jürgen 2026-11-06).
   def self.kasten_unten(p, z_front)
-    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = (([z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
-    st + ra * n - off - z_front
+    off = p['Hoehenoffset_Schiene']
+    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off - z_front
   end
 
   # dieselbe Rechnung als DC-Formel (INT rundet ab, -INT(-x) also auf)
   def self.f_kasten_unten(z_front)
     u = DC_NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
-      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_front}"
+    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+      "-#{u}!Hoehenoffset_Schiene-#{z_front}"
   end
 
   # ---------------------------------------------------------------------------
@@ -614,12 +636,12 @@ module HochschrankGeraete
     ao   = p['Kasten_Abstand_oben']
     hf   = fr[:h]
     lw   = b - 2 * mk                   # lichte Weite
-    ab   = kasten_unten(p, fr[:z])      # Unterkante Kasten im Lochraster
+    ab   = kasten_unten(p, fr[:z])      # Unterkante Kasten (ohne Lochraster)
     kh   = [hf - ab - ao, 2.0].max      # Höhe Kasten gesamt, mind. 2 cm
     # Platz für die Zarge: oberste Schublade bis Kasten_Abstand_oben unter die Frontoberkante (Strebe),
     # darunter bis an die Frontoberkante (die Front muss die Zarge und den Fronthalter abdecken)
     kc   = i == 1 ? kh : kh + ao
-    hrw  = kc >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : [HRW_M, kc - mb].min # Zarge C, sonst M
+    hrw  = [hrw_zarge(kc, p['Hoehe_Kastenrueckwand']), kc - mb].min # höchste Zarge, die passt
     bt   = ->(teil) { [model, kz, teil, "#{bb}#{i}"] }
     sichtbar = i <= p[bereiche[bb][:anz]].to_i
 
@@ -658,7 +680,7 @@ module HochschrankGeraete
     f_kh   = "IF(#{roh_kh}>2,#{roh_kh},2)"
     f_kc   = i == 1 ? f_kh : "#{f_kh}+#{s}!Ab_oben"
     krw = platte(model, "Kasten Rueckwand #{bb}#{i}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "IF(#{f_kc}>=#{ZARGE_C - 0.0001},#{s}!Hrw,MIN(#{HRW_M},#{f_kc}-#{s}!Mb))"], kanten: %i[zmax])
+                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{f_hrw_zarge(f_kc, "#{s}!Hrw")},#{f_kc}-#{s}!Mb)"], kanten: %i[zmax])
     einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + nl - 1.0 - mrw, ab + mb],
               ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: bt.('KastenRueckwand'))

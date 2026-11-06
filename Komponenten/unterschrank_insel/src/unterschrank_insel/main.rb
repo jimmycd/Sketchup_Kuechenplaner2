@@ -69,6 +69,30 @@ module UnterschrankInsel
   SCHIENE_UEBER_BODEN = 3.8 # cm
   ZARGE_C = 17.7            # cm
   HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
+  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
+  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
+  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
+  ZARGE_F = 24.1
+  ZARGE_K = 12.85
+  ZARGE_M = 9.05
+  HRW_F = 21.2
+  HRW_K = 9.9
+  HRW_N = 3.7
+  def self.hrw_zarge(kc, soll)
+    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
+    [soll, if kc >= ZARGE_C - 0.0001 then soll
+           elsif kc >= ZARGE_K - 0.0001 then HRW_K
+           elsif kc >= ZARGE_M - 0.0001 then HRW_M
+           else HRW_N
+           end].min
+  end
+
+  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
+  def self.f_hrw_zarge(kc, soll)
+    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
+      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  end
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -113,12 +137,12 @@ module UnterschrankInsel
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
-  # Holzrückwand: Zarge C (148 mm), wenn der Kasten 177 mm hoch sein kann, sonst M (62 mm)
+  # Holzrückwand der höchsten Zarge, die passt (F/C/K/M/N, hrw_zarge)
   # platz: Oberkante Kastenboden bis Grenze oben (oberste Schublade Kasten_Abstand_oben unter der Front,
   # darunter bis an die Frontoberkante: die Front deckt Zarge und Fronthalter ab)
   def self.hrw(p, platz)
     soll = p['Hoehe_Kastenrueckwand']
-    [platz + p['Materialstaerke_Kastenboden'] >= ZARGE_C - 0.0001 ? soll : [HRW_M, platz].min, 2.0].max
+    [[hrw_zarge(platz + p['Materialstaerke_Kastenboden'], soll), platz].min, 2.0].max
   end
 
   def self.berechne(p)
@@ -162,17 +186,16 @@ module UnterschrankInsel
   end
 
   # Unterkante Kasten über Unterkante Korpus: mindestens Kasten_Abstand_unten über der Unterkante
-  # der Front (z_front) und so, dass die Schienenbohrung auf dem Lochraster der Seite liegt
+  # der Front (z_front), Schienenbohrung mind. 38 mm über dem Korpusboden, kein Lochraster
   def self.kasten_unten(p, z_front)
-    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = (([z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - st) / ra - 0.0001).ceil
-    st + ra * n - off
+    off = p['Hoehenoffset_Schiene']
+    [z_front + p['Kasten_Abstand_unten'] + off, p['Materialstaerke_Korpus'] + SCHIENE_UEBER_BODEN].max - off
   end
 
   def self.f_kasten_unten(z_front)
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
-      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene"
+    "MAX(#{z_front}+#{u}!Kasten_Abstand_unten+#{u}!Hoehenoffset_Schiene,#{u}!Materialstaerke_Korpus+#{SCHIENE_UEBER_BODEN})" \
+      "-#{u}!Hoehenoffset_Schiene"
   end
 
   # Formeln der Schubladen, nur auf Attribute des Schranks gestützt (SketchUp rechnet die Formeln eines
@@ -581,8 +604,7 @@ module UnterschrankInsel
     ao = i == 1 ? "-#{u}!Kasten_Abstand_oben" : ''
     platz = "#{f_z(i)}+#{f_hf}#{ao}-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', w[:hrw], units: 'STRING',
-             formula: "MAX(IF(#{platz}+#{u}!Materialstaerke_Kastenboden>=#{ZARGE_C - 0.0001},#{u}!Hoehe_Kastenrueckwand," \
-                      "MIN(#{HRW_M},#{platz})),2)")
+             formula: "MAX(MIN(#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand")},#{platz}),2)")
     d.set_attribute(DICT, 'onclick', 'ANIMATE("Y",0,-Auszug)')
     d.set_attribute(DICT, '_onclick_label', 'onClick')
     sichtbarkeit(d, sichtbar, "IF(AND(#{u}!Frontart=1,#{u}!Anz_Schubladen>=#{i}),0,1)")

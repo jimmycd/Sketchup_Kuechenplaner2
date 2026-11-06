@@ -5,6 +5,17 @@ load File.expand_path('../src/unterschrank_spuele/main.rb', __dir__)
 
 H = Spuelenschrank
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   return if bed
@@ -200,12 +211,11 @@ def pruefe(w, p, label)
     check(nl + 0.3 <= t - ve + EPS && nl >= 35, "#{label}: NL #{nl} passt vor die Rückwand")
     check(nahe(kb[3] - kb[2], nl - 1) && nahe(kb[2], mk) && nahe(kb[1] - kb[0], b - 2 * mk - 3.5), "#{label}: Kastenboden LW-35 x NL-10 #{kb}")
     check(nahe(kr[3], mk + nl - 1) && nahe(kr[1] - kr[0], b - 2 * mk - 3.8) && nahe(kr[4], kb[5]), "#{label}: Kastenrückwand #{kr}")
-    n = (kb[4] - p['Lochraster_Start']) / p['Lochraster']
-    check(kb[4] >= [p['Kasten_Abstand_unten'], mk + 3.8].max - EPS && (n - n.round).abs < 1e-6, "#{label}: Kasten im Lochraster, Schiene mind. 38 über dem Boden #{kb[4]}")
+    check(nahe(kb[4], [p['Kasten_Abstand_unten'], mk + 3.8].max), "#{label}: Kasten ohne Lochraster, Schiene 38 über dem Boden #{kb[4]}")
     check(kr[5] <= h - hb - sf + EPS || nahe(kr[5] - kr[4], 2.0), "#{label}: Siphon-Freiraum unter der Blende (Kasten oben #{kr[5]})")
     # Zarge C (Rückwand 148), wenn der Kasten 177 mm hoch sein kann, sonst M (Rückwand 62)
     kh = h - hb - sf - kb[4]
-    check(nahe(kr[5] - kr[4], (kh >= 17.7 - 1e-4 ? p['Hoehe_Kastenrueckwand'] : [6.2, kh - 1.6].min).clamp(2.0, 99)),
+    check(nahe(kr[5] - kr[4], [zarge_hrw(kh, p['Hoehe_Kastenrueckwand']), kh - 1.6].min.clamp(2.0, 99)),
           "#{label}: Kastenrückwand so hoch wie möglich #{kr[5] - kr[4]}")
   end
 end
@@ -279,7 +289,7 @@ r = H.berechne(H::DEFAULTS)
 check(nahe(r[:nl], 65) && nahe(r[:t_innen], 75.0), "Standard: NL 650 bei 750 mm bis zur Rückwand (#{r[:nl]}, #{r[:t_innen]})")
 r0 = H.berechne(H::DEFAULTS.merge('Rueckwand_Versatz' => 0.0, 'Tiefe' => 52.0))
 check(nahe(r0[:t_innen], 52.0) && nahe(r0[:t_korpus], 52.0) && nahe(r0[:nl], 50), "Installationsebene 0: wie Unterschrank (#{r0})")
-check(nahe(r[:ab], 6.7) && nahe(r[:hrw], 14.8) && nahe(r[:h_auszug], 49.8), "Standard: Kasten ab 67 mm (Schiene 38 über Boden), Rückwand 148, Front 498 (#{r})")
+check(nahe(r[:ab], 5.7) && nahe(r[:hrw], 21.2) && nahe(r[:h_auszug], 49.8), "Standard: Kasten ab 57 mm (Schiene 38 über Boden), Zarge F (Rückwand 212), Front 498 (#{r})")
 check(nahe(r[:a_unten], 25) && nahe(r[:a_hoehe], 40) && nahe(r[:a_breite], 66.2), "Standard: Ausschnitt 662 x 400 ab 250 mm (#{r})")
 r = H.berechne(H::DEFAULTS.merge('Hoehe' => 55.0))
 check(nahe(r[:hrw], 6.2), "niedrig: Zarge M, Kastenrückwand #{r[:hrw]} (Oberkante 150 mm)")

@@ -18,14 +18,14 @@ Unterschrank mit einem Müllauszug: Die Front fährt mit einem Blum-LEGRABOX-Kas
 | Anzahl Abfallbehälter | 3 (1–4) |
 | Höhe Abfallbehälter | 400 mm, wird begrenzt, wenn der Auszug niedriger ist |
 
-Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `BreiteStreben` 100 mm, `Spaltbreite` 2 mm, LEGRABOX wie beim Unterschrank mit Schubladen (Kastenboden/-rückwand 16 mm, Rückwand höchstens 148 mm, Lochraster 32 mm ab 35 mm), `Kasten_Abstand_unten`/`_oben` 30 mm, `Behaelter_Abstand` 10 mm.
+Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `BreiteStreben` 100 mm, `Spaltbreite` 2 mm, LEGRABOX wie beim Unterschrank mit Schubladen (Kastenboden/-rückwand 16 mm, Holzrückwand nach Zarge, kein Lochraster), `Kasten_Abstand_unten`/`_oben` 30 mm, `Behaelter_Abstand` 10 mm.
 
 Mit *Interagieren* fahren Auszug und Schublade heraus.
 
 ## Aufbau
 * **Korpus** wie beim Unterschrank mit Schubladen: Seiten über die volle Höhe und Tiefe, Boden zwischen den Seiten, Streben vorn und hinten oben, Rückwand hinter dem Korpus. Der Korpus beginnt bei y = 19 mm, die Fronten liegen davor (2 mm Spalt).
-* **Auszug** (Bereich `A`): Front ab Unterkante Korpus, über die volle Höhe oder bis 2 mm unter die Schublade. LEGRABOX free: Kastenboden LW−35 × NL−10, Holzrückwand LW−38, höchstens 148 mm und mindestens 30 mm unter der Oberkante der Front. Die Nennlänge NL folgt der Tiefe (größte NL 350…650 mit NL + 3 mm ≤ Tiefe). Unterkante Kasten liegt auf dem Lochraster der Seite.
-* **Schublade oben** (Bereich `B`, nur bei Schublade oben): gleicher LEGRABOX-Kasten, Kasten ab ≥ 30 mm über Unterkante ihrer Front im Lochraster.
+* **Auszug** (Bereich `A`): Front ab Unterkante Korpus, über die volle Höhe oder bis 2 mm unter die Schublade. LEGRABOX free: Kastenboden LW−35 × NL−10, Holzrückwand LW−38, höchstens 148 mm und mindestens 30 mm unter der Oberkante der Front. Die Nennlänge NL folgt der Tiefe (größte NL 350…650 mit NL + 3 mm ≤ Tiefe). Unterkante Kasten 38 mm über dem Korpusboden (kein Lochraster). Zarge: die höchste LEGRABOX-free-Zarge, die Platz hat (F 241, C 177, K 128,5, M 90,5, N 66,5 mm; Holzrückwand F 212, C 148, K 99, M 62, N 37 – nur C aus der Anleitung, die anderen abgeleitet).
+* **Schublade oben** (Bereich `B`, nur bei Schublade oben): gleicher LEGRABOX-Kasten, Kasten 30 mm über Unterkante ihrer Front (kein Lochraster).
 * **Abfallbehälter** als Platzhalter: gleich breit über die Breite des Kastenbodens verteilt (10 mm Luft dazwischen), vom Kastenanfang bis 10 mm vor die Kastenrückwand, auf dem Kastenboden. Die Höhe endet mindestens 30 mm unter der Oberkante der Auszugsfront, so passen sie beim Herausfahren unter der Schublade bzw. der Strebe vorn durch. Die Behälter stehen für ein Abfallsystem nach Wahl (z. B. Einsätze aus dem Fachhandel); die echten Maße folgen, sobald das System feststeht.
 
 ## Material und Anleimer
@@ -52,4 +52,4 @@ Ohne Änderung am Plugin, wie beim Unterschrank mit Schubladen: Dübel der Böde
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_abfall/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
 ## Tests
-`ruby test/test_unterschrank_abfall.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Fronten, LEGRABOX-Kästen im Lochraster, Behälter (Anzahl, Breite, Höhe, unter der Schublade), Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, Materialien, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft Schienen- und Frontbohrungen beider Varianten.
+`ruby test/test_unterschrank_abfall.rb` – prüft ohne SketchUp (Mock-API und DC-Formel-Auswerter) Korpus, Fronten, LEGRABOX-Kästen, Behälter (Anzahl, Breite, Höhe, unter der Schublade), Formeln nach Umkonfigurieren, nachträgliche Tiefenänderung, Materialien, Anleimer, Tags, `JT_Schrank` und die Kurzhilfe. Der Plugin-Test `sketchup-tcn-export-plugin/test/test_export.rb` prüft Schienen- und Frontbohrungen beider Varianten.
