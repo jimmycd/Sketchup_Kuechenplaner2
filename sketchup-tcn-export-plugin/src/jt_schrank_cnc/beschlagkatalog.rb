@@ -33,13 +33,21 @@ module JTools
       ARTEN = {
         'schubladen' => { name: 'Schubladenauszug', standard: 'blum-legrabox-free', bauarten: %w[auszug_zarge] },
         'topfband' => { name: 'Topfband (Türen)', standard: 'blum-clip-top', bauarten: %w[topfband_platte] },
-        'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] }
+        'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
+        'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
+        'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] }
       }.freeze
+
+      # Schränke, die einen Beschlag dieser Art tragen, sind in JT_Schrank/beschlag markiert
+      # (Wert aus der Komponente, steht so auch in alten Küchen)
+      JT_BESCHLAG = { 'Haefele HU Slim Base' => 'hochauszug', 'Kesseboehmer LeMans II' => 'eckauszug' }.freeze
 
       # Pflichtteile je Bauart (der Test prüft jeden Eintrag)
       PFLICHT = {
         'auszug_zarge' => %w[schiene zargen standard_zarge kasten front boden_falz stabilisierung_ab liste koerper],
         'klappe_seite' => %w[seite front liste koerper],
+        'hochauszug_seite' => %w[schiene front bauraum liste koerper],
+        'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper]
       }.freeze
 
@@ -50,6 +58,18 @@ module JTools
         @eintraege ||= Dir.glob(File.join(ORDNER, '*.json')).sort.map do |f|
           JSON.parse(File.read(f, encoding: 'UTF-8')).merge('datei' => File.basename(f))
         end
+      end
+
+      # Eintrag mit Symbol-Schlüsseln (Zahlen-Schlüssel wie "40" als Integer) für die Rechnung
+      def werte(e)
+        tief = lambda do |v|
+          case v
+          when Hash then v.map { |k, x| [k =~ /\A\d+\z/ ? k.to_i : k.to_sym, tief.(x)] }.to_h
+          when Array then v.map { |x| tief.(x) }
+          else v
+          end
+        end
+        tief.(e)
       end
 
       def neu_laden

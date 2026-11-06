@@ -450,12 +450,10 @@ module JTools
       # Weite - 28, also 14 mm von der Innenseite der Seiten, 103 und 103 + 384 = 487 mm über der
       # Oberkante Boden. Mitgeliefert sind Schrauben Ø4 × 16: vorgebohrt Ø3, Schiene 10 tief (Annahme),
       # Front 5 tief (Jürgen: Frontbohrungen immer 5 tief).
-      HU_SLIM_BASE = {
-        name: 'Haefele HU Slim Base',
-        schiene: { d: 3, tiefe: 10, vorn: [56, 280, 330], hoehen: [52, 436] },
-        front: { d: 3, tiefe: 5, innen: 14, hoehen: [103, 487] },
-        bauraum: { weite: 112, tiefe: 485, hoehe: 565 } # Mindestmaße (S. 2)
-      }.freeze
+      # Maße aus dem Beschlag-Katalog (Hochauszug der Küche, Standard katalog/haefele-hu-slim-base.json)
+      def self.hu(e = Beschlagkatalog.gewaehlt('hochauszug'))
+        Beschlagkatalog.werte(e)
+      end
 
       # Klappenbeschlag (Bauart klappe_seite: Kraftspeicher bzw. Mechanismus an beiden Seiten, Frontbeschlag
       # auf der Innenseite der Klappe). Modell und alle Maße aus dem Beschlag-Katalog (katalog/*.json),
@@ -683,7 +681,7 @@ module JTools
       end
 
       def self.hu_slim_base?(teile)
-        Schraenke.definition(teile.first.teil.schrank).get_attribute(JT_DICT, 'beschlag') == HU_SLIM_BASE[:name]
+        Beschlagkatalog::JT_BESCHLAG[Schraenke.definition(teile.first.teil.schrank).get_attribute(JT_DICT, 'beschlag')] == 'hochauszug'
       end
 
       def self.hu_slim_base(teile, meldungen)
@@ -701,11 +699,12 @@ module JTools
         vorn_max = f && mitte.(f, t) > mitte.(s, t)
         vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
         z0 = boden.hi[2]
-        c = HU_SLIM_BASE[:schiene]
+        hw = hu
+        c = hw[:schiene]
         c[:hoehen].each do |hz|
           c[:vorn].each do |d|
             s.ops << Op.new(:bohrung, seite, punkt(k => flaeche, t => vorne + dir * d, 2 => z0 + hz), nil, c[:d], c[:tiefe],
-                            nil, nil, 'Schiene HU Slim Base')
+                            nil, nil, c[:titel])
           end
         end
 
@@ -715,9 +714,9 @@ module JTools
         oben = teile.select { |w| w.rolle == 'Strebe' && w.lo[2] > z0 }.map { |w| w.lo[2] }.min || s.hi[2]
         rw = teile.select { |w| w.rolle == 'Rueckwand' }.map { |w| vorn_max ? vorne - w.hi[t] : w.lo[t] - vorne }.select(&:positive?).min
         lt = rw || (s.hi[t] - s.lo[t])
-        b = HU_SLIM_BASE[:bauraum]
+        b = hw[:bauraum]
         { 'lichte Weite' => [lw, b[:weite]], 'lichte Höhe' => [oben - z0, b[:hoehe]], 'Tiefe' => [lt, b[:tiefe]] }.each do |was, (ist, min)|
-          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, HU Slim Base braucht mindestens #{min} mm" if ist < min - TOL
+          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, #{hw[:name]} braucht mindestens #{min} mm" if ist < min - TOL
         end
 
         return unless f
@@ -725,11 +724,11 @@ module JTools
         hinten = mitte.(boden, da) > mitte.(f, da)
         fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
         fl = hinten ? f.hi[da] : f.lo[da]
-        fc = HU_SLIM_BASE[:front]
+        fc = hw[:front]
         fc[:hoehen].each do |hz|
           [innen[0] + fc[:innen], innen[1] - fc[:innen]].each do |x|
             f.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => z0 + hz), nil, fc[:d], fc[:tiefe], nil, nil,
-                            'Front HU Slim Base')
+                            fc[:titel])
           end
         end
       end
@@ -889,28 +888,24 @@ module JTools
       # Boden bohrt der Durchgangsbohrer Ø5 (Werkzeugliste: durch nur Ø5/6/8/10).
       # Seitenprofil 500 an der Seite der Tür: 8 Löcher Ø5 (Systemschraube) im Raster 64,
       # 52 mm ab Vorderkante, das unterste 28 mm über dem Boden.
-      LEMANS = {
-        name: 'Kesseboehmer LeMans II',
-        x: { 40 => 426, 45 => 476, 50 => 526, 60 => 626 },
-        korpus_min: { 40 => 764, 45 => 800, 50 => 910, 60 => 960 },
-        lager: { d: 5, tiefe: 13, vorn: 69 },
-        lager_schraube: { d: 3, d_durch: 5, tiefe: 10, vorn: 37, seitlich: 16 },
-        profil: { d: 5, tiefe: 13, vorn: 52, unten: 28, raster: 64, anzahl: 8 },
-        tiefe_min: 500, strebe_min: 60
-      }.freeze
+      # Maße aus dem Beschlag-Katalog (Eckauszug der Küche, Standard katalog/kesseboehmer-lemans-ii.json)
+      def self.lemans_werte(e = Beschlagkatalog.gewaehlt('eckauszug'))
+        Beschlagkatalog.werte(e)
+      end
 
       def self.lemans?(teile)
         sd = Schraenke.definition(teile.first.teil.schrank)
-        eckschrank?(teile) && sd.get_attribute(JT_DICT, 'beschlag') == LEMANS[:name] &&
+        eckschrank?(teile) && Beschlagkatalog::JT_BESCHLAG[sd.get_attribute(JT_DICT, 'beschlag')] == 'eckauszug' &&
           Schraenke.dc(teile.first.teil.schrank, 'variante').to_f.round == 2
       end
 
       def self.lemans(teile, meldungen)
         sk = teile.first.teil.schrank
+        lm = lemans_werte
         groesse = Schraenke.dc(sk, 'lemans').to_f.round
-        x = LEMANS[:x][groesse]
+        x = lm[:groessen][groesse]
         unless x
-          meldungen << "LeMans #{groesse} gibt es nicht (40, 45, 50, 60)"
+          meldungen << "#{lm[:name]} #{groesse} gibt es nicht (#{lm[:groessen].keys.join(', ')})"
           return
         end
         # Blindseite links (0) -> Tür und Beschlag rechts
@@ -930,24 +925,24 @@ module JTools
         vorne, dir = vorn_max ? [s.hi[t], -1] : [s.lo[t], 1]
 
         # Seitenprofil
-        pr = LEMANS[:profil]
+        pr = lm[:profil]
         pr[:anzahl].times do |i|
           p = punkt(k => flaeche, t => vorne + dir * pr[:vorn], 2 => boden.hi[2] + pr[:unten] + i * pr[:raster])
-          s.ops << Op.new(:bohrung, seite, p, nil, pr[:d], pr[:tiefe], nil, nil, 'Profil LeMans')
+          s.ops << Op.new(:bohrung, seite, p, nil, pr[:d], pr[:tiefe], nil, nil, pr[:titel])
         end
 
         # Säulenlager unten (durch den Boden, von unten) und oben (Unterseite Strebe vorn)
         sx = flaeche + richtung * x
-        la, ls = LEMANS[:lager], LEMANS[:lager_schraube]
+        la, ls = lm[:lager], lm[:lager_schraube]
         [[boden, :durch], [strebe, :unten]].each do |w, art|
           next unless w
           z = w.lo[2]
           tief = ->(normal) { art == :durch ? w.mass(2) + DURCH : normal }
           w.ops << Op.new(:bohrung, :zmin, punkt(k => sx, t => vorne + dir * la[:vorn], 2 => z), nil, la[:d], tief.(la[:tiefe]),
-                          nil, nil, 'Lager LeMans')
+                          nil, nil, la[:titel])
           [-1, 1].each do |sg|
             w.ops << Op.new(:bohrung, :zmin, punkt(k => sx + sg * ls[:seitlich], t => vorne + dir * ls[:vorn], 2 => z), nil,
-                            art == :durch ? ls[:d_durch] : ls[:d], tief.(ls[:tiefe]), nil, nil, 'Lager LeMans Schraube')
+                            art == :durch ? ls[:d_durch] : ls[:d], tief.(ls[:tiefe]), nil, nil, ls[:titel])
           end
         end
 
@@ -955,9 +950,9 @@ module JTools
         breite = [s.hi[k], andere.hi[k]].max - [s.lo[k], andere.lo[k]].min
         rw = teile.select { |w| w.rolle == 'Rueckwand' }.map { |w| vorn_max ? vorne - w.hi[t] : w.lo[t] - vorne }.select(&:positive?).min
         tiefe = rw || (s.hi[t] - s.lo[t])
-        { "Korpusbreite für LeMans #{groesse}" => [breite, LEMANS[:korpus_min][groesse]], 'Tiefe' => [tiefe, LEMANS[:tiefe_min]],
-          'Strebe vorn' => [strebe ? strebe.hi[t] - strebe.lo[t] : 0, LEMANS[:strebe_min]] }.each do |was, (ist, min)|
-          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, LeMans II braucht mindestens #{min} mm" if ist < min - TOL
+        { "Korpusbreite für LeMans #{groesse}" => [breite, lm[:korpus_min][groesse]], 'Tiefe' => [tiefe, lm[:tiefe_min]],
+          'Strebe vorn' => [strebe ? strebe.hi[t] - strebe.lo[t] : 0, lm[:strebe_min]] }.each do |was, (ist, min)|
+          meldungen << "#{s.name}: #{was} #{ist.round(1)} mm, #{lm[:name]} braucht mindestens #{min} mm" if ist < min - TOL
         end
       end
 

@@ -1,0 +1,19 @@
+{
+  "kennung": "haefele-hu-slim-base",
+  "name": "Häfele UTENSIO Matrix HU Slim Base",
+  "hersteller": "Häfele",
+  "art": "hochauszug",
+  "bauart": "hochauszug_seite",
+  "quelle": "Häfele Montageanleitung 4004110659MKT, Dimensions for CNC S. 4 und 6, Bauraum S. 2; Schienenbohrung 10 tief angenommen, Front 5 tief (Jürgen)",
+  "schiene": { "d": 3, "tiefe": 10, "vorn": [56, 280, 330], "hoehen": [52, 436], "titel": "Schiene HU Slim Base" },
+  "front": { "d": 3, "tiefe": 5, "innen": 14, "hoehen": [103, 487], "titel": "Front HU Slim Base" },
+  "bauraum": { "weite": 112, "tiefe": 485, "hoehe": 565 },
+  "liste": {
+    "gruppe": "Hochauszug (HU Slim Base)",
+    "posten": [
+      ["Häfele HU Slim Base, Auszug mit Gestell und 2 Körben", "Seite nach Seite_Beschlag", 1, "Satz"],
+      ["Schraube Ø4 × 16 (mitgeliefert)", "Schienen und Fronthalter (vorgebohrt Ø3)", "loecher", "Stück"]
+    ]
+  },
+  "koerper": { "schiene": [12.0, 30.0], "korb_h": 80.0, "korb_d": 3.0, "halter": [20.0, 40.0, 10.0], "gestell": 10.0, "schiene_kuerzer": 30 }
+}

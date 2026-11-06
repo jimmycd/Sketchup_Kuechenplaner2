@@ -1,0 +1,25 @@
+{
+  "kennung": "kesseboehmer-lemans-ii",
+  "name": "Kesseböhmer LeMans II",
+  "hersteller": "Kesseböhmer",
+  "art": "eckauszug",
+  "bauart": "eckauszug_saeule",
+  "quelle": "Kesseböhmer Montageanleitung MA 406954 0000, S. 3 und 11; Vorbohrung der Lagerschrauben Ø3 angenommen",
+  "groessen": { "40": 426, "45": 476, "50": 526, "60": 626 },
+  "korpus_min": { "40": 764, "45": 800, "50": 910, "60": 960 },
+  "lager": { "d": 5, "tiefe": 13, "vorn": 69, "titel": "Lager LeMans" },
+  "lager_schraube": { "d": 3, "d_durch": 5, "tiefe": 10, "vorn": 37, "seitlich": 16, "titel": "Lager LeMans Schraube" },
+  "profil": { "d": 5, "tiefe": 13, "vorn": 52, "unten": 28, "raster": 64, "anzahl": 8, "titel": "Profil LeMans" },
+  "tiefe_min": 500,
+  "strebe_min": 60,
+  "liste": {
+    "gruppe": "Eckauszug (LeMans II)",
+    "posten": [
+      ["Kesseböhmer LeMans II {groesse}", "Säule, Seitenprofil 500, 2 Tablare", 1, "Satz"],
+      ["Systemschraube Ø6,3 × 13", "Seitenprofil und Säulenlager", "profil_lager", "Stück"],
+      ["Schraube Ø4,5", "neben den Säulenlagern", "lager_schrauben", "Stück"]
+    ]
+  },
+  "koerper": { "saeule_r": 15.0, "tablar": 6.0, "rand_h": 50.0, "rand_d": 3.0, "radius": 120.0, "ueber_saeule": 40.0,
+               "tiefe_max": 490.0, "abstand": 10.0, "profil": [30.0, 10.0] }
+}

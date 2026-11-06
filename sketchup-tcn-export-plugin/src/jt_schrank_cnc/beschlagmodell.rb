@@ -34,13 +34,10 @@ module JTools
         glas: ['Beschlag Glas klar', [205, 225, 230], 0.35],
         chrom: ['Beschlag Chrom', [215, 218, 222]]
       }.freeze
-      # LeMans II (vereinfacht): Säule Ø30, Tablar 6 mm Boden mit 50 mm Rand (Ecken R120) im Einbauraum
-      # von der Seite bis 40 mm hinter das Säulenlager, Tiefe bis 490; Seitenprofil 30 × 10.
-      LEMANS = { saeule_r: 15.0, tablar: 6.0, rand_h: 50.0, rand_d: 3.0, radius: 120.0, ueber_saeule: 40.0,
-                 tiefe_max: 490.0, abstand: 10.0, profil: [30.0, 10.0] }.freeze
-      # Häfele HU Slim Base (vereinfacht): 2 Schienen 12 × 30 an der Seite (Bauraumtiefe − 30 lang),
-      # Gestell mit 2 Körben (80 hoch) auf Höhe der Fronthalter, Fronthalter 20 × 40 × 10.
-      HU = { schiene: [12.0, 30.0], korb_h: 80.0, korb_d: 3.0, halter: [20.0, 40.0, 10.0], gestell: 10.0 }.freeze
+      # LeMans II und HU Slim Base (vereinfacht): Maße unter koerper im Katalogeintrag (Eckauszug bzw.
+      # Hochauszug der Küche): LeMans Säule, Tablare mit Rand im Einbauraum von der Seite bis hinter das
+      # Säulenlager, Seitenprofil; HU Schienen an der Seite (Bauraumtiefe − schiene_kuerzer lang),
+      # Gestell mit 2 Körben auf Höhe der Fronthalter, Fronthalter.
 
       # LEGRABOX free (vereinfacht): Zarge 12,8 mm stark, Korpusschiene 4 mm an der Seite,
       # Zarge davor; Schiene 4 mm hinter der Vorderkante der Seite, NL − 10 lang.
@@ -247,14 +244,14 @@ module JTools
       # 2 Tablare im Einbauraum von der Seite an der Tür bis hinter die Säule
       def lemans(teile, add)
         return if teile.empty? || !Regeln.lemans?(teile)
-        lg = Regeln::LEMANS
-        le = LEMANS
+        lg = Regeln.lemans_werte
+        le = lg[:koerper]
         chrom = MATERIALIEN[:chrom][0]
-        s = teile.find { |w| w.ops.any? { |o| o.titel == 'Profil LeMans' } } or return
+        s = teile.find { |w| w.ops.any? { |o| o.titel == lg[:profil][:titel] } } or return
         boden = teile.find { |w| w.rolle == 'Boden' } or return
-        lager = boden.ops.find { |o| o.titel == 'Lager LeMans' } or return
+        lager = boden.ops.find { |o| o.titel == lg[:lager][:titel] } or return
         strebe = teile.find { |w| w.teil.jt('teil') == 'StrebeVorn' }
-        profil = s.ops.select { |o| o.titel == 'Profil LeMans' }
+        profil = s.ops.select { |o| o.titel == lg[:profil][:titel] }
         k = Geometrie.achse(profil[0].seite)
         innen = Geometrie.max?(profil[0].seite) ? 1 : -1
         t = ([0, 1] - [k]).first
@@ -287,26 +284,26 @@ module JTools
       # und Fronthaltern im Auszug (fährt mit der Front heraus)
       def hu_slim_base(teile, add)
         return if teile.empty? || !Regeln.hu_slim_base?(teile)
-        hu = HU
+        c = Regeln.hu
+        hu = c[:koerper]
         stahl = MATERIALIEN[:stahl][0]
-        s = teile.find { |w| w.ops.any? { |o| o.titel == 'Schiene HU Slim Base' } } or return
+        s = teile.find { |w| w.ops.any? { |o| o.titel == c[:schiene][:titel] } } or return
         boden = teile.find { |w| w.rolle == 'Boden' } or return
-        sch = s.ops.select { |o| o.titel == 'Schiene HU Slim Base' }
+        sch = s.ops.select { |o| o.titel == c[:schiene][:titel] }
         k = Geometrie.achse(sch[0].seite)
         innen = Geometrie.max?(sch[0].seite) ? 1 : -1
         t = ([0, 1] - [k]).first
         fl = sch[0].p0[k]
         ys = sch.map { |o| o.p0[t] }
-        c = Regeln::HU_SLIM_BASE
         dir = (s.hi[t] - ys.max) > (ys.min - s.lo[t]) ? 1 : -1
         vorne = dir > 0 ? ys.min - c[:schiene][:vorn][0] : ys.max + c[:schiene][:vorn][0]
-        laenge = c[:bauraum][:tiefe] - 30
+        laenge = c[:bauraum][:tiefe] - hu[:schiene_kuerzer]
         sch.map { |o| o.p0[2] }.uniq.each_with_index do |z, i|
           add.(s, quader("Schiene HU Slim Base #{i + 1}", stahl, p3(k => fl, t => vorne + dir * 10, 2 => z - hu[:schiene][1] / 2.0),
                          p3(k => fl + innen * hu[:schiene][0], t => vorne + dir * (10 + laenge), 2 => z + hu[:schiene][1] / 2.0)))
         end
-        f = teile.find { |w| w.ops.any? { |o| o.titel == 'Front HU Slim Base' } } or return
-        fo = f.ops.select { |o| o.titel == 'Front HU Slim Base' }
+        f = teile.find { |w| w.ops.any? { |o| o.titel == c[:front][:titel] } } or return
+        fo = f.ops.select { |o| o.titel == c[:front][:titel] }
         da = Geometrie.achse(fo[0].seite)
         rein = Geometrie.max?(fo[0].seite) ? 1 : -1
         ff = fo[0].p0[da]
