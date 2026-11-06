@@ -27,7 +27,7 @@ zs, meldungen = S::Stueckliste.erzeugen(model)
 check(zs.size == dateien.size, "eine Zeile je TCN (#{zs.size}/#{dateien.size})")
 check(zs.sum(&:anzahl) == dateien.sum(&:anzahl), 'Stückzahl wie im TCN-Export')
 check(zs.map(&:nr) == (1..zs.size).to_a, 'Nummern 1 … n')
-check(zs.map(&:datei).sort == dateien.map { |d| "#{d.name}.tcn" }.sort, 'TCN-Dateinamen wie im Export')
+check(zs.map(&:datei).sort == dateien.map(&:datei).sort, 'TCN-Dateinamen wie im Export')
 check(meldungen.empty?, "keine Meldungen: #{meldungen}")
 
 # --- Maße: Boden des Hochschranks (60 breit, 82 tief), Anleimer nur vorn an der
@@ -100,7 +100,7 @@ zeilen = csv.split("\r\n")
 check(zeilen.first == 'Nr;Tag;TCN-Datei;Anzahl;Schrank;Teil;Rolle;Material;Stärke;Roh L;Roh B;Fräs L;Fräs B;Fertig L;Fertig B;Kante L1;Kante L2;Kante B1;Kante B2;Maserung;Kante Kontur', "CSV-Kopf: #{zeilen.first}")
 check(zeilen.size == zs.size + 1 && zeilen.all? { |l| l.count(';') == 20 }, 'CSV: eine Zeile je Teil, 21 Spalten')
 bz = zeilen.find { |l| l.split(';')[1] == 'HS1_Boden' }.to_s.split(';')
-check(bz[2] == 'HS1_Boden.tcn' && bz[8] == '19' && bz[9, 6] == %w[808 572 798 562 800 562] && bz[15, 5] == ['', '', 'Anleimer Melamin weiss', '', 'nein'] && bz[20].nil?, "CSV Boden: #{bz}")
+check(bz[2] == "#{bz[0]}_HS1_Boden.tcn" && bz[8] == '19' && bz[9, 6] == %w[808 572 798 562 800 562] && bz[15, 5] == ['', '', 'Anleimer Melamin weiss', '', 'nein'] && bz[20].nil?, "CSV Boden: #{bz}")
 check(S::Stueckliste.zahl(12.25) == '12,3' || S::Stueckliste.zahl(12.25) == '12,2', 'Dezimalkomma')
 check(S::Stueckliste.zahl(564.0) == '564', 'ganze Zahl ohne Komma')
 

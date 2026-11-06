@@ -24,7 +24,7 @@ module JTools
                 Fräs\ L Fräs\ B Fertig\ L Fertig\ B Kante\ L1 Kante\ L2 Kante\ B1 Kante\ B2 Maserung Kante\ Kontur].freeze
 
       Zeile = Struct.new(:nr, :tag, :datei, :anzahl, :schrank, :teil, :rolle, :material, :ds,
-                         :fertig, :fraes, :roh, :kanten, :maserung, :hinweis, :kontur) do
+                         :fertig, :fraes, :roh, :kanten, :maserung, :hinweis, :kontur, :quelle) do
         # Kantenlänge je Kante (Fertigmaß), L1/L2 entlang der Länge
         def kantenlaenge(k)
           k.to_s.start_with?('l') ? fertig[0] : fertig[1]
@@ -35,8 +35,9 @@ module JTools
         ws = d.ws
         t = ws.teil
         mat = t.inst.material
-        z = Zeile.new(nil, t.name, "#{d.name}.tcn", d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle,
+        z = Zeile.new(nil, t.name, d.datei, d.anzahl, t.jt('schrank'), t.jt('teil'), t.rolle,
                       mat ? mat.name.to_s : '', d.lage.ds.round(1))
+        z.quelle = d
         z.maserung = Materialien.maserung?(mat)
         z.kontur = ws.respond_to?(:kontur_kanten) && ws.kontur_kanten ? ws.kontur_kanten.to_h : {}
         if ws.respond_to?(:kanten)
