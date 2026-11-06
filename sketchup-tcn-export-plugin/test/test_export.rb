@@ -835,6 +835,36 @@ _, ml2 = S::Export.erzeugen(lm2)
 check(ml2.any? { |m| m.include?('Korpusbreite für LeMans 60 900') } && ml2.any? { |m| m.include?('Tiefe 480') },
       "Le Mans: zu kleiner Korpus gemeldet: #{ml2}")
 
+# --- Hochauszug und Eckauszug aus dem Katalog: Beschlagliste, Wechsel des Modells ändert die Bohrungen ---
+bk = S::Beschlagkatalog
+am2 = Sketchup.active_model = Sketchup::Model.new
+UnterschrankHandtuch.erstellen({})
+Eckschrank.erstellen({ 'Variante' => 2.0 })
+aws = []
+S::Export.erzeugen(am2, alle_ws: aws)
+abl = S::Beschlaege.liste(aws).map(&:to_a)
+check(abl.include?(['Hochauszug (HU Slim Base)', 'Häfele HU Slim Base, Auszug mit Gestell und 2 Körben', 'Seite nach Seite_Beschlag', 1, 'Satz', ['USH1']]) &&
+      abl.include?(['Hochauszug (HU Slim Base)', 'Schraube Ø4 × 16 (mitgeliefert)', 'Schienen und Fronthalter (vorgebohrt Ø3)', 10, 'Stück', ['USH1']]),
+      "Beschlagliste HU Slim Base: Satz und 6 + 4 Schrauben: #{abl.select { |p| p[0].start_with?('Hoch') }}")
+check(abl.include?(['Eckauszug (LeMans II)', 'Kesseböhmer LeMans II 50', 'Säule, Seitenprofil 500, 2 Tablare', 1, 'Satz', ['UES1']]) &&
+      abl.include?(['Eckauszug (LeMans II)', 'Systemschraube Ø6,3 × 13', 'Seitenprofil und Säulenlager', 8 + 2, 'Stück', ['UES1']]) &&
+      abl.include?(['Eckauszug (LeMans II)', 'Schraube Ø4,5', 'neben den Säulenlagern', 4, 'Stück', ['UES1']]),
+      "Beschlagliste LeMans II 50: #{abl.select { |p| p[0].start_with?('Eck') }}")
+th = JSON.parse(JSON.dump(bk.eintrag('haefele-hu-slim-base'))).merge('kennung' => 'test-hu', 'name' => 'Test-HU', 'datei' => 'test-hu.json')
+th['schiene']['vorn'] = [60, 300]
+th['liste']['gruppe'] = 'Hochauszug (Test)'
+check(bk.fehler(th).empty?, "Test-HU gültig: #{bk.fehler(th)}")
+bk.eintraege << th
+bk.waehlen('hochauszug', 'test-hu', am2)
+tws2 = []
+S::Export.erzeugen(am2, alle_ws: tws2)
+ths = tws2.flat_map(&:ops).select { |o| o.titel == 'Schiene HU Slim Base' }
+check(ths.size == 4, "Test-HU: 2 × 2 Schienenbohrungen statt 2 × 3 (#{ths.size})")
+check(S::Beschlaege.liste(tws2).any? { |p| p.gruppe == 'Hochauszug (Test)' && p.anzahl == 8 }, 'Test-HU in der Beschlagliste (4 + 4 Schrauben)')
+bk.waehlen('hochauszug', 'haefele-hu-slim-base', am2)
+bk.eintraege.delete(th)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_hochauszug'])
+
 # --- Eckschrank L-Form: Innenecke ausfräsen, Sockelfüße je Schenkel, Streben in der Ecke ---
 lf = Sketchup.active_model = Sketchup::Model.new
 Eckschrank.erstellen({}, l_form: true)

@@ -9,6 +9,7 @@
 #               Schrauben 4 × 15 für Fronthalter und Boden (S. 5), Systemschrauben für die Schienen.
 #   Türen       Blum-Topfbänder Ø35 mit Montageplatte (Regeln.topfbaender), Systemschrauben dafür.
 #   Klappen     gewähltes Modell aus dem Beschlag-Katalog (katalog/*.json, Posten unter liste).
+#   Hoch-/Eckauszug  HU Slim Base bzw. LeMans II aus dem Katalog (Satz und Schrauben).
 # Blum-Artikelnummern stehen nicht in der Anleitung; die Liste nennt deshalb Typ, Größe und Anzahl.
 
 module JTools
@@ -35,6 +36,7 @@ module JTools
           schubladen(teile, add)
           tueren(teile, add)
           klappen(teile, add)
+          auszuege(teile, add)
         end
         # je Gruppe nach Beschlagart (Zargen, Schienen, Halter …), dann Größe
         sammler.values.each_with_index.sort_by do |p, i|
@@ -43,7 +45,7 @@ module JTools
       end
 
       GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
-                 'Klappen (Häfele Free Slim)'].freeze
+                 'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)'].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
                      'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
                      'Blum AVENTOS HK-top Front', 'Systemschraube'].freeze
@@ -115,6 +117,30 @@ module JTools
           e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
             add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
           end
+        end
+      end
+
+      # Hochauszug und Eckauszug: Posten aus dem Katalogeintrag der Küche; Anzahl „loecher“ (HU: Schiene
+      # und Front), „profil_lager“ (LeMans: Seitenprofil und Säulenlager), „lager_schrauben“; im Namen
+      # steht {groesse} für die LeMans-Größe des Schranks
+      def auszuege(teile, add)
+        return if teile.empty?
+        ops = teile.flat_map(&:ops)
+        anzahl = ->(*titel) { ops.count { |o| titel.include?(o.titel) } }
+        if Regeln.hu_slim_base?(teile)
+          e = Beschlagkatalog.gewaehlt('hochauszug')
+          n = { 'loecher' => anzahl.(e['schiene']['titel'], e['front']['titel']) }
+        elsif Regeln.lemans?(teile)
+          e = Beschlagkatalog.gewaehlt('eckauszug')
+          n = { 'profil_lager' => anzahl.(e['profil']['titel'], e['lager']['titel']), 'lager_schrauben' => anzahl.(e['lager_schraube']['titel']) }
+          groesse = Schraenke.dc(teile.first.teil.schrank, 'lemans').to_f.round
+        else
+          return
+        end
+        return if n.values.sum.zero?
+        sk = teile.first.teil.jt('schrank')
+        e['liste']['posten'].each do |name, hinweis, a, einheit|
+          add.(e['liste']['gruppe'], name.sub('{groesse}', groesse.to_s).strip, hinweis, a.is_a?(String) ? n.fetch(a) : a, einheit, sk)
         end
       end
 
