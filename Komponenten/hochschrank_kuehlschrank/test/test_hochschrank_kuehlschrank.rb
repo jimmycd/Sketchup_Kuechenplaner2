@@ -203,8 +203,7 @@ def pruefe(w, p, label)
   check(boeden.size == n_u, "#{label}: #{boeden.size} Kastenböden")
   boeden.each do |kb|
     q = kb[:q]
-    loch = (q[4] + p['Hoehenoffset_Schiene'] - p['Lochraster_Start']) / p['Lochraster']
-    check((loch - loch.round).abs < 1e-6, "#{label}: #{kb[:pfad]} nicht im Lochraster")
+    check(q[4] + p['Hoehenoffset_Schiene'] >= mk + 3.8 - EPS, "#{label}: #{kb[:pfad]} Schiene mind. 38 mm über dem Boden")
     check((q[3] - (mk + nl - 1.0)).abs < EPS && q[3] <= mk + ti + EPS, "#{label}: #{kb[:pfad]} Länge NL-10")
   end
   eb = sichtbar.count { |t2| t2[:name].start_with?('Einlegeboden') }

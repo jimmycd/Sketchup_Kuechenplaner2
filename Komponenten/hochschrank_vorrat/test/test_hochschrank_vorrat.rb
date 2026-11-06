@@ -167,8 +167,7 @@ def pruefe(w, p, label)
     i = idx + 1
     q = k[:q]
     fach = r[:faecher][idx]
-    loch = (q[4] + p['Hoehenoffset_Schiene'] - p['Lochraster_Start']) / p['Lochraster']
-    check((loch - loch.round).abs < 1e-6, "#{label}: #{k[:pfad]} nicht im Lochraster")
+    check((q[4] - fach[:z] - [p['Kasten_Abstand_unten'], 3.8].max).abs < EPS, "#{label}: #{k[:pfad]} genau am Mindestabstand im Fach, kein Lochraster")
     check(q[4] >= fach[:z] + p['Kasten_Abstand_unten'] - EPS, "#{label}: #{k[:pfad]} zu tief im Fach")
     check((q[0] - (mk + 1.75)).abs < EPS && (q[1] - (b - mk - 1.75)).abs < EPS, "#{label}: #{k[:pfad]} Breite LW-35")
     check((q[2] - (mk + 1.7)).abs < EPS && (q[3] - (mk + 1.7 + nl - 1.0)).abs < EPS, "#{label}: #{k[:pfad]} Länge NL-10 hinter der Innenfront")

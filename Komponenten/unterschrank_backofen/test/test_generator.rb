@@ -125,8 +125,8 @@ def pruefe(w, h, b, t, nh, schublade, label)
   kz1 = kr.wert('z') + kr.wert('lenz')
   if schublade
     check(kz1 <= z_eb - mk - w.wert('Kasten_Abstand_oben') + EPS, "#{label}: Kasten stößt an den Einbauboden (#{kz1.round(2)})")
-    loch = (kb.wert('z') + w.wert('Hoehenoffset_Schiene') - w.wert('Lochraster_Start')) / w.wert('Lochraster')
-    check((loch - loch.round).abs < 1e-6 && loch.round >= 0, "#{label}: Schiene nicht im Lochraster")
+    min_ab = [w.wert('Kasten_Abstand_unten'), mk + 3.8 - w.wert('Hoehenoffset_Schiene')].max
+    check((kb.wert('z') - min_ab).abs < EPS, "#{label}: Kasten genau am Mindestabstand, kein Lochraster (#{kb.wert('z').round(3)})")
   else
     check(kz1 <= h + EPS, "#{label}: versteckter Kasten außerhalb")
   end

@@ -5,6 +5,17 @@ load File.expand_path('../src/hochschrank_geraete/main.rb', __dir__)
 
 H = HochschrankGeraete
 EPS = 1e-6
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
+# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+def zarge_hrw(kc, c)
+  return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+end
+
+# Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
+def zarge_zu(hrw)
+  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+end
 $fehler = 0
 def check(bed, msg)
   return if bed
@@ -179,8 +190,7 @@ def pruefe(w, p, label)
   check(boeden.size == p['Anz_Schubladen_Unten'], "#{label}: #{boeden.size} Kastenböden")
   boeden.each do |kb|
     q = kb[:q]
-    loch = (q[4] + off - p['Lochraster_Start']) / p['Lochraster']
-    check((loch - loch.round).abs < 1e-6, "#{label}: #{kb[:pfad]} nicht im Lochraster (#{q[4].round(3)})")
+    check(q[4] + off >= mk + 3.8 - EPS, "#{label}: #{kb[:pfad]} Schiene mind. 38 mm über dem Boden (#{q[4].round(3)})")
     check((q[0] - (mk + 1.75)).abs < EPS && (q[1] - (b - mk - 1.75)).abs < EPS, "#{label}: #{kb[:pfad]} Breite LW-35")
     check((q[2] - mk).abs < EPS && (q[3] - (mk + nl - 1.0)).abs < EPS, "#{label}: #{kb[:pfad]} Länge NL-10")
     check((q[5] - q[4] - mb).abs < EPS, "#{label}: #{kb[:pfad]} Stärke")
@@ -188,7 +198,7 @@ def pruefe(w, p, label)
     r = kr[:q]
     check((r[0] - (mk + 1.9)).abs < EPS && (r[1] - (b - mk - 1.9)).abs < EPS, "#{label}: #{kr[:pfad]} Breite LW-38")
     check((r[3] - q[3]).abs < EPS && (r[3] - r[2] - mrw).abs < EPS, "#{label}: #{kr[:pfad]} hinten am Boden")
-    check((r[4] - q[5]).abs < EPS && r[5] - r[4] <= p['Hoehe_Kastenrueckwand'] + EPS, "#{label}: #{kr[:pfad]} auf dem Boden")
+    check((r[4] - q[5]).abs < EPS && r[5] - r[4] <= [p['Hoehe_Kastenrueckwand'], 21.2].max + EPS, "#{label}: #{kr[:pfad]} auf dem Boden")
   end
   eb = sichtbar.count { |t2| t2[:name].start_with?('Einlegeboden') }
   check(eb == p['Anz_Einlegeboeden_Oben'], "#{label}: Einlegeböden #{eb}")

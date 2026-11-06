@@ -71,6 +71,30 @@ module HochschrankVorrat
   SCHIENE_UEBER_BODEN = 3.8 # cm
   ZARGE_C = 17.7            # cm
   HRW_M = 6.2               # cm, Holzrückwand bei Zargenhöhe M
+  # LEGRABOX free, alle Zargenhöhen (cm): F 241, C 177, K 128,5, M 90,5, N 66,5 (Blum-Programm).
+  # Holzrückwand: C = Hoehe_Kastenrueckwand (148, Anleitung MD-015/4); F 212, K 99, M 62, N 37 abgeleitet
+  # (Zarge − 29 mm wie bei C), von Jürgen nicht bestätigt. Gewählt wird die höchste Zarge, die in kc
+  # (Kastenunterkante bis Grenze oben) passt; F nur, wenn Hoehe_Kastenrueckwand nicht unter 148 gesenkt ist.
+  ZARGE_F = 24.1
+  ZARGE_K = 12.85
+  ZARGE_M = 9.05
+  HRW_F = 21.2
+  HRW_K = 9.9
+  HRW_N = 3.7
+  def self.hrw_zarge(kc, soll)
+    return HRW_F if kc >= ZARGE_F - 0.0001 && soll >= 14.8 - 0.0001
+    [soll, if kc >= ZARGE_C - 0.0001 then soll
+           elsif kc >= ZARGE_K - 0.0001 then HRW_K
+           elsif kc >= ZARGE_M - 0.0001 then HRW_M
+           else HRW_N
+           end].min
+  end
+
+  # dieselbe Wahl als DC-Formel (ohne AND: MIN(a,b)>=0 heißt a>=0 und b>=0)
+  def self.f_hrw_zarge(kc, soll)
+    "IF(MIN(#{kc}-#{ZARGE_F - 0.0001},#{soll}-#{14.8 - 0.0001})>=0,#{HRW_F},MIN(#{soll},IF(#{kc}>=#{ZARGE_C - 0.0001},#{soll}," \
+      "IF(#{kc}>=#{ZARGE_K - 0.0001},#{HRW_K},IF(#{kc}>=#{ZARGE_M - 0.0001},#{HRW_M},#{HRW_N})))))"
+  end
 
   # Standardwerte in cm
   DEFAULTS = {
@@ -150,18 +174,15 @@ module HochschrankVorrat
     erg
   end
 
-  # Unterkante Kasten über Unterkante Fach (cm): mindestens Kasten_Abstand_unten und so, dass die
-  # Schienenbohrung (Unterkante Kasten + Höhenoffset) auf dem Lochraster der Seite liegt.
-  def self.kasten_unten(p, z_fach)
-    st, ra, off = p['Lochraster_Start'], p['Lochraster'], p['Hoehenoffset_Schiene']
-    n = ((z_fach + [p['Kasten_Abstand_unten'], SCHIENE_UEBER_BODEN].max + off - st) / ra - 0.0001).ceil
-    st + ra * n - off - z_fach
+  # Unterkante Kasten über Unterkante Fach (cm): mindestens Kasten_Abstand_unten (mind. 38 mm über
+  # dem Fachboden). Kein Lochraster (Jürgen 2026-11-06).
+  def self.kasten_unten(p, _z_fach)
+    [p['Kasten_Abstand_unten'], SCHIENE_UEBER_BODEN].max
   end
 
-  def self.f_kasten_unten(z_fach)
+  def self.f_kasten_unten(_z_fach)
     u = NAME
-    "#{u}!Lochraster_Start+#{u}!Lochraster*(-INT(-((#{z_fach}+MAX(#{u}!Kasten_Abstand_unten,#{SCHIENE_UEBER_BODEN})+#{u}!Hoehenoffset_Schiene" \
-      "-#{u}!Lochraster_Start)/#{u}!Lochraster-0.0001)))-#{u}!Hoehenoffset_Schiene-#{z_fach}"
+    "MAX(#{u}!Kasten_Abstand_unten,#{SCHIENE_UEBER_BODEN})"
   end
 
   # ---------------------------------------------------------------------------
@@ -570,7 +591,7 @@ module HochschrankVorrat
   end
 
   # Innenschubkasten i (1 = oben) im Fach i: Innenfront, LEGRABOX-Boden und -Holzrückwand.
-  # Unterkante im Lochraster, oben bleibt Freiraum_Scharnier bis zur Oberkante des Fachs frei.
+  # Unterkante ohne Lochraster, oben bleibt Freiraum_Scharnier bis zur Oberkante des Fachs frei.
   def self.kasten(model, ents, p, fa, i, mat, kz)
     u  = NAME
     s  = "Kasten#{i}"
@@ -587,7 +608,7 @@ module HochschrankVorrat
     lw   = b - 2 * mk
     ab   = kasten_unten(p, fa[:z])
     kh   = [fa[:h] - ab - fr, 2.0].max
-    hrw  = [p['Hoehe_Kastenrueckwand'], kh - mb, kh >= ZARGE_C - 0.0001 ? p['Hoehe_Kastenrueckwand'] : HRW_M].min # Zarge C, sonst M
+    hrw  = [kh - mb, hrw_zarge(kh, p['Hoehe_Kastenrueckwand'])].min # höchste Zarge, die passt
     sicht = i <= p['Anz_Kaesten'].to_i
     bt   = ->(teil) { [model, kz, teil, "U#{i}"] }
 
@@ -630,7 +651,7 @@ module HochschrankVorrat
 
     # Holzrückwand LW-38 x 148 (höchstens bis zur Kastenoberkante), hinten auf dem Boden
     krw = platte(model, "Kasten Rueckwand #{i}", 'KastenRueckwand', [lw - 3.8, mrw, hrw],
-                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(MIN(#{s}!Hrw,#{f_kh}-#{s}!Mb),IF(#{f_kh}>=#{ZARGE_C - 0.0001},#{s}!Hrw,#{HRW_M}))"], kanten: %i[zmax])
+                 ["#{s}!Breite-2*#{s}!Mk-3.8", "#{s}!Mrw", "MIN(#{f_kh}-#{s}!Mb,#{f_hrw_zarge(f_kh, "#{s}!Hrw")})"], kanten: %i[zmax])
     einsetzen(de, krw, 'KastenRueckwand', [mk + 1.9, mk + v + nl - 1.0 - mrw, ab + mb],
               ["#{s}!Mk+1.9", "#{s}!Mk+#{s}!V+#{s}!NL-1-#{s}!Mrw", "#{s}!Ab_unten+#{s}!Mb"],
               mat: mat, kz: bt.('KastenRueckwand'))
