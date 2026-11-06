@@ -181,7 +181,9 @@ module JTools
       def topfband(ws, lage, op)
         x = ausdruck(lage.x(op.p0), lage.dl, 'x')
         y = ausdruck(lage.y(op.p0), lage.dh, 'y')
-        "W#1506{ ::WT2 WS=#{ws}  #8098=..\\custom\\mcr\\inge100.tmcr #8500=#{n(op.d)} #8501=8 #8502=45 #8503=9,5 " \
+        sc = (op.daten && op.daten[:schraub]) || { d: 8, abstand: 45, versatz: 9.5 }
+        "W#1506{ ::WT2 WS=#{ws}  #8098=..\\custom\\mcr\\inge100.tmcr #8500=#{n(op.d)} #8501=#{n(sc[:d])} #8502=#{n(sc[:abstand])} " \
+          "#8503=#{n(sc[:versatz]).tr('.', ',')} " \
           "#8504=#{n(op.tiefe)} #8505=14 #8506=1 #8507=#{x} #8508=#{y} }W"
       end
 

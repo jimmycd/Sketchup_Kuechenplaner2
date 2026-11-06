@@ -79,18 +79,20 @@ module JTools
         end
       end
 
+      # Türen: Posten aus dem Beschlag-Katalog (Modell am Topfband); Anzahl „baender“ (ohne Eckscharnier),
+      # „eck“, „platten“ (Bänder mit Montageplatte), „platten_loecher“ (2 je Platte)
       def tueren(teile, add)
         teile.select { |w| w.rolle == 'Tuer' }.each do |t|
           sk = t.teil.jt('schrank')
-          baender = t.ops.select { |o| o.art == :topfband }
-          next if baender.empty?
-          g = GRUPPEN[2]
-          eck = baender.count { |o| o.daten && o.daten[:eck] }
-          add.(g, 'Blum Topfband Ø35 (CLIP top), mit Einpressdübeln', 'Topf 14 tief, Anschlag lt. TCN', baender.size - eck, 'Stück', sk)
-          add.(g, 'Blum Falttür-Scharnier Ø35', 'kurze Tür am Eckscharnier', eck, 'Stück', sk)
-          platten = baender.count { |o| o.daten && o.daten[:platte] }
-          add.(g, 'Blum Montageplatte (CLIP)', 'Abstand 0, im 32er-Raster', platten, 'Stück', sk)
-          add.(g, SYSTEMSCHRAUBE, 'Montageplatten (vorgebohrt Ø5)', 2 * platten, 'Stück', sk)
+          t.ops.select { |o| o.art == :topfband }.group_by { |o| o.daten && o.daten[:modell] }.each do |kennung, baender|
+            e = Beschlagkatalog.eintrag(kennung) || Beschlagkatalog.gewaehlt('topfband')
+            eck = baender.count { |o| o.daten && o.daten[:eck] }
+            platten = baender.count { |o| o.daten && o.daten[:platte] }
+            n = { 'baender' => baender.size - eck, 'eck' => eck, 'platten' => platten, 'platten_loecher' => 2 * platten }
+            e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
+              add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
+            end
+          end
         end
       end
 

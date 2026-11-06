@@ -87,16 +87,20 @@ module JTools
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
       DURCH = 1 # mm: Durchbruch = Stärke + 1 mm (wie Durchgangsbohrung Rückwand, von Jürgen bestätigt)
       FESTE_BOEDEN = %w[Boden Deckel Zwischenboden Strebe].freeze
-      # Blum-Topfband (Vorlagen T_re_L_Topfband.tcn / T_rR.tcn): Makro inge100 mit Topf Ø35 × 14,
-      # Schraublöchern Ø8 (45 / 9,5), Topfmitte 21,5 mm von der Anschlagkante (Fräsmaß).
-      # Höhen wie in den Vorlagen im 32er-Raster der Lochreihe: die Montageplatte sitzt mit zwei
-      # Systemschrauben Ø5 in der Seite, 37 mm ab Vorderkante (= Lochreihe 35 im Fräsmaß), 16 mm über
-      # und unter der Topfmitte. Oberstes und unterstes Band möglichst 80 mm, mindestens 60 mm vom
-      # Türrand (Vorlagen: 73/66 bzw. 90/94). Anzahl nach Türhöhe (Blum): bis 900 mm 2, bis 1600 3,
-      # bis 2000 4, bis 2400 5, darüber 6. Hochschrank Vorrat: Höhen aus Scharnier_1..6 am Schrank.
-      TOPFBAND = { d: 35, tiefe: 14, kante: 21.5, ziel: 80, min: 60,
-                   anzahl: [[900, 2], [1600, 3], [2000, 4], [2400, 5]], max_anzahl: 6,
-                   platte: { d: 5, tiefe: 12, abstand: 16 } }.freeze
+      # Topfband (Bauart topfband_platte, Modell aus dem Beschlag-Katalog, gewählt für die ganze Küche;
+      # Standard Blum CLIP top nach den Vorlagen T_re_L_Topfband.tcn / T_rR.tcn): Makro inge100 mit Topf
+      # (topf.d × topf.tiefe) und Schraublöchern, Topfmitte topf.kante von der Anschlagkante (Fräsmaß).
+      # Höhen im 32er-Raster der Lochreihe: die Montageplatte sitzt mit zwei Schrauben in der Seite,
+      # 37 mm ab Vorderkante (= Lochreihe 35 im Fräsmaß), platte.abstand über und unter der Topfmitte.
+      # Oberstes und unterstes Band möglichst verteilung.ziel, mindestens verteilung.min vom Türrand;
+      # Anzahl nach Türhöhe (verteilung.anzahl). Hochschrank Vorrat: Höhen aus Scharnier_1..6 am Schrank.
+      def self.topfband_werte(e = Beschlagkatalog.gewaehlt('topfband'))
+        t, v, pl = e['topf'], e['verteilung'], e['platte']
+        { kennung: e['kennung'], d: t['d'], tiefe: t['tiefe'], kante: t['kante'], ziel: v['ziel'], min: v['min'],
+          anzahl: v['anzahl'], max_anzahl: v['max_anzahl'],
+          schraub: { d: t['schraub_d'], abstand: t['schraub_abstand'], versatz: t['schraub_versatz'] },
+          platte: { d: pl['d'], tiefe: pl['tiefe'], abstand: pl['abstand'] } }
+      end
 
       def self.anwenden(werkstuecke)
         werkstuecke.each { |w| w.ops.clear }
@@ -498,8 +502,8 @@ module JTools
         Geometrie.punkt(Geometrie.welt(pfad.first(n)), [0, 0, 0]).map { |v| v * Geometrie::MM }
       end
 
-      def self.anzahl_baender(hoehe)
-        (TOPFBAND[:anzahl].find { |h, _| hoehe <= h + TOL } || [nil, TOPFBAND[:max_anzahl]]).last
+      def self.anzahl_baender(hoehe, tb = topfband_werte)
+        (tb[:anzahl].find { |h, _| hoehe <= h + TOL } || [nil, tb[:max_anzahl]]).last
       end
 
       # Seite hinter der Anschlagkante (kante: Weltseite der Tür, z. B. :xmin)
@@ -516,8 +520,7 @@ module JTools
       end
 
       # Topfhöhen (Welt-z): im Raster der Lochreihe der Seite, sonst frei nach Türhöhe
-      def self.band_hoehen(tuer, seite, teile)
-        tb = TOPFBAND
+      def self.band_hoehen(tuer, seite, teile, tb = topfband_werte)
         lo, hi = tuer.lo_f(2) + tb[:min], tuer.hi_f(2) - tb[:min]
         schrank = tuer.teil.schrank
         if Schraenke.dc(schrank, 'scharnier_1')
@@ -526,7 +529,7 @@ module JTools
           return (1..6).map { |i| Schraenke.dc(schrank, "scharnier_#{i}").to_f * Geometrie::MM }
                        .select(&:positive?).map { |z| z0 + z }.select { |z| z.between?(lo - TOL, hi + TOL) }.sort
         end
-        n = anzahl_baender(tuer.mass(2))
+        n = anzahl_baender(tuer.mass(2), tb)
         ziele = (0...n).map { |i| (tuer.lo_f(2) + tb[:ziel]) + (tuer.hi_f(2) - tuer.lo_f(2) - 2 * tb[:ziel]) * i / (n - 1) }
         kand = []
         if seite
@@ -551,12 +554,14 @@ module JTools
       # Anschlagkante, Montageplatte in der Seite dahinter
       def self.topfbaender(teile, meldungen)
         tueren = teile.select { |w| w.rolle == 'Tuer' && w.dicke_achse != 2 }
+        return if tueren.empty?
+        tb = topfband_werte
         tueren.each do |t|
           schrank = t.teil.schrank
           # Schlepptür (Hochschrank Kühlschrank): die Nischentür hängt am Gerät, nicht am Korpus
           next if t.teil.jt('bereich') == 'N' && Schraenke.dc(schrank, 'tuertechnik').to_f.round == 1
           kante, eck = anschlag(t, tueren, teile)
-          topfband(t, kante, eck, teile, meldungen)
+          topfband(t, kante, eck, teile, meldungen, tb)
         end
       end
 
@@ -580,8 +585,7 @@ module JTools
       end
 
       # eck: kurze Tür einer Falttür, hängt am Eckscharnier an der langen Tür (nur Topf, dahinter keine Seite)
-      def self.topfband(t, kante, eck, teile, meldungen)
-        tb = TOPFBAND
+      def self.topfband(t, kante, eck, teile, meldungen, tb = topfband_werte)
         da = t.dicke_achse
         wa = Geometrie.achse(kante)
         max = Geometrie.max?(kante)
@@ -594,16 +598,16 @@ module JTools
         tseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
         tfl = hinten ? t.hi[da] : t.lo[da]
         x = max ? t.hi_f(wa) - tb[:kante] : t.lo_f(wa) + tb[:kante]
-        zs = band_hoehen(t, s, teile)
+        zs = band_hoehen(t, s, teile, tb)
         if s
           sseite, sfl = flaeche_innen(s, wa, !max)
           # wie die Lochreihe: 35 im Fräsmaß (= 37 ab der fertigen Vorderkante mit 2-mm-Anleimer)
           y = hinten ? s.lo_f(da) + LOCHREIHE[:rand] : s.hi_f(da) - LOCHREIHE[:rand]
-          zs = zs.map { |z| ins_raster(s, sseite, wa, da, y, z) }
+          zs = zs.map { |z| ins_raster(s, sseite, wa, da, y, z, tb[:platte][:abstand]) }
         end
         zs.each do |z|
           t.ops << Op.new(:topfband, tseite, punkt(da => tfl, wa => x, 2 => z), nil, tb[:d], tb[:tiefe], nil, nil,
-                          'Topfband', { kante: kante, eck: eck, platte: !s.nil? })
+                          'Topfband', { kante: kante, eck: eck, platte: !s.nil?, modell: tb[:kennung], schraub: tb[:schraub] })
         end
         unless s
           meldungen << "#{t.name}: keine Seite hinter dem Anschlag – Montageplatten der Topfbänder nicht gebohrt" unless eck
@@ -620,8 +624,7 @@ module JTools
 
       # Liegt die Montageplatte im Bereich einer Lochreihe, kommt sie in deren Raster
       # (Hochschrank Vorrat: Scharnier im Fach mit Einlegeböden)
-      def self.ins_raster(s, seite, wa, da, y, z)
-        ab = TOPFBAND[:platte][:abstand]
+      def self.ins_raster(s, seite, wa, da, y, z, ab)
         r = s.ops.find do |o|
           o.art == :reihe && o.seite == seite && (o.d - LOCHREIHE[:d]).abs < TOL && (o.p0[da] - y).abs < 0.5 &&
             (o.p0[2] - o.p1[2]).abs > TOL && z.between?([o.p0[2], o.p1[2]].min + ab - TOL, [o.p0[2], o.p1[2]].max - ab + TOL)
