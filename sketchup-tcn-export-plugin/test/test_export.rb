@@ -1147,6 +1147,25 @@ check(bearbeitungen(od.text, 1).any? { |x| x.include?('W#89') && x.include?('#3=
 check(%w[OES1_Rueckwand1 OES1_Rueckwand2].all? { |n| o[n].text.include?('#8513=-9 ') && o[n].text.include?('#8522=5 ') }, 'Eck-Oberschrank: Rückwände für die Deckelschrauben gebohrt')
 check(S::Frontfarbe.fronten(eo).select(&:sichtbar?).map { |t| t.jt('teil') }.sort == %w[TuerL TuerR], 'Eck-Oberschrank: Frontfarbe findet beide Türen')
 
+# --- Topfband aus dem Katalog: ein zweites Modell (nur im Test) ändert TCN und Beschlagliste der ganzen Küche ---
+tk = S::Beschlagkatalog
+probe = JSON.parse(JSON.dump(tk.eintrag('blum-clip-top'))).merge('kennung' => 'test-band', 'name' => 'Test-Band', 'datei' => 'test-band.json')
+probe['topf'].merge!('kante' => 22.5, 'schraub_abstand' => 48)
+probe['liste']['posten'][0][0] = 'Test-Band Ø35'
+tk.eintraege << probe
+tm = Sketchup.active_model = Sketchup::Model.new
+Oberschrank.erstellen({})
+tk.waehlen('topfband', 'test-band', tm)
+tws = []
+tdk, = S::Export.erzeugen(tm, alle_ws: tws)
+tl = bearbeitungen(tdk.find { |x| x.name == 'OS1_TuerL' }.text, 1).grep(/inge100/)
+check(tl.size == 2 && tl.all? { |l| l.include?('#8502=48 ') && l.include?('#8508=y-22.5 ') }, "Test-Band: Topf 22,5 von der Kante, Schraublöcher 48 (#{tl.first})")
+tbl = S::Beschlaege.liste(tws).map(&:to_a)
+check(tbl.any? { |p| p[1] == 'Test-Band Ø35' && p[3] == 4 } && tbl.none? { |p| p[1].start_with?('Blum Topfband') }, "Test-Band in der Beschlagliste: #{tbl.map { |p| [p[1], p[3]] }}")
+tk.waehlen('topfband', 'blum-clip-top', tm)
+tk.eintraege.delete(probe)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_topfband'])
+
 # --- Blum-Topfbänder an allen Türen (inge100 wie T_re_L_Topfband.tcn, Montageplatte im Raster der Lochreihe) ---
 VORLAGE_TB = beispiel('T_re_L_Topfband.tcn').split(/\r?\n/).grep(/inge100/).first.sub(/WS=\d+ +/, 'WS ').sub(/ #8507=\S+/, '').tr(',', '.')
 def topfbaender(d) = bearbeitungen(d.text, 1).grep(/inge100/)

@@ -47,10 +47,7 @@ module JTools
       # LEGRABOX free (vereinfacht): Zarge 12,8 mm stark, Korpusschiene 4 mm an der Seite,
       # Zarge davor; Schiene 4 mm hinter der Vorderkante der Seite, NL − 10 lang.
       LEGRABOX = { schiene: 4.0, schiene_h: 20.0, zarge: 12.8, fronthalter: 12.0, rueckwandhalter: 2.2 }.freeze
-      # Blum-Topfband (vereinfacht): Topf Ø35 × 13 in der Tür, Arm 16 hoch, 16 breit, endet 25 mm
-      # hinter den Löchern der Montageplatte; Montageplatte 48 × 20 × 4.
-      TOPFBAND = { topf_tiefe: 13.0, arm_h: 16.0, arm_b: 16.0, arm_ueber: 25.0,
-                   platte: [48.0, 20.0, 4.0] }.freeze
+      # Topfband: Körper aus dem Beschlag-Katalog (koerper: topf_tiefe, arm_h, arm_b, arm_ueber, platte)
       # Klappen: Körper aus dem Beschlag-Katalog (koerper.seite/arm/front, siehe klappen)
 
       def an?(model = Sketchup.active_model)
@@ -334,10 +331,12 @@ module JTools
 
       def topfbaender(teile, add)
         stahl = MATERIALIEN[:stahl][0]
-        tb = TOPFBAND
-        r = Regeln::TOPFBAND[:d] / 2.0
         teile.select { |w| w.rolle == 'Tuer' }.each do |t|
           t.ops.select { |o| o.art == :topfband }.each_with_index do |o, i|
+            e = (o.daten && Beschlagkatalog.eintrag(o.daten[:modell])) || Beschlagkatalog.gewaehlt('topfband')
+            kp = e['koerper']
+            tb = { topf_tiefe: kp['topf_tiefe'], arm_h: kp['arm_h'], arm_b: kp['arm_b'], arm_ueber: kp['arm_ueber'], platte: kp['platte'] }
+            r = o.d / 2.0
             da = Geometrie.achse(o.seite)
             rein = Geometrie.max?(o.seite) ? 1 : -1 # aus der Innenseite der Tür zum Korpus
             tfl = o.p0[da]

@@ -27,12 +27,14 @@ module JTools
 
       # Beschlagart => Bezeichnung im Dialog, Standardmodell, Bauarten, die sie annimmt
       ARTEN = {
+        'topfband' => { name: 'Topfband (Türen)', standard: 'blum-clip-top', bauarten: %w[topfband_platte] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] }
       }.freeze
 
       # Pflichtteile je Bauart (der Test prüft jeden Eintrag)
       PFLICHT = {
-        'klappe_seite' => %w[seite front liste koerper]
+        'klappe_seite' => %w[seite front liste koerper],
+        'topfband_platte' => %w[topf verteilung platte liste koerper]
       }.freeze
 
       # Frühere Klappen-Option im Oberschrank mit Klappe (Art_Klappe 3 = Free Slim)
