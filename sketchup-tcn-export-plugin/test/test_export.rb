@@ -933,6 +933,35 @@ check(fsl.map { |p| [p[1], p[3]] } == [['Häfele Free Slim Dübel', 4], ['Häfel
       "Beschlagliste Free Slim: #{fsl.map { |p| [p[1], p[3]] }}")
 check(bl.none? { |p| p[1].include?('AVENTOS') }, 'Beschlagliste Free Slim: kein AVENTOS')
 
+# --- Beschlag-Katalog: Einträge vollständig, Wahl gilt für die ganze Küche ---
+K = S::Beschlagkatalog
+K.eintraege.each { |e| check(K.fehler(e).empty?, "Katalog #{e['datei']}: #{K.fehler(e)}") }
+check(K.eintraege.map { |e| e['kennung'] }.uniq.size == K.eintraege.size, 'Katalog: Kennungen eindeutig')
+K::ARTEN.each { |a, v| check(K.eintrag(v[:standard]) && K.eintrag(v[:standard])['art'] == a, "Katalog: Standard für #{a} vorhanden") }
+check(K.zur_art('klappe').map { |e| e['kennung'] } == %w[blum-aventos-hk-top haefele-free-slim-1.12], "Katalog: Klappen #{K.zur_art('klappe').map { |e| e['kennung'] }}")
+# alte Küche ohne Einstellung: Schrank mit Art_Klappe 3 behält Free Slim, Vorschlag im Dialog = Free Slim
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_klappe'])
+check(K.gespeichert('klappe', fm).nil? && K.vorschlag('klappe', fm)['kennung'] == 'haefele-free-slim-1.12', 'alte Küche: Vorschlag Free Slim')
+# ganze Küche auf HK-top: auch der frühere Free-Slim-Schrank bekommt HK-top
+OberschrankKlappe.erstellen({})
+K.waehlen('klappe', 'blum-aventos-hk-top', fm)
+wd = S::Export.erzeugen(fm).first.to_h { |x| [x.name, x] }
+%w[OK1 OK2].each do |kz|
+  check(bo.(wd["#{kz}_SeiteL"], 5, 12).size == 4 && bo.(wd["#{kz}_SeiteL"], 5, 10).empty?, "#{kz}: HK-top für die ganze Küche")
+end
+# und auf Free Slim: beide Schränke Free Slim
+K.waehlen('klappe', 'haefele-free-slim-1.12', fm)
+wd = S::Export.erzeugen(fm).first.to_h { |x| [x.name, x] }
+%w[OK1 OK2].each do |kz|
+  check(bo.(wd["#{kz}_SeiteL"], 5, 10).size == 2 && bo.(wd["#{kz}_SeiteL"], 5, 12).empty?, "#{kz}: Free Slim für die ganze Küche")
+end
+# Einsatzbereich: Free Slim bis 650 Korpushöhe -> Meldung beim hohen Schrank
+OberschrankKlappe.erstellen({ 'Hoehe' => 72.0 })
+_, hm = S::Export.erzeugen(fm)
+check(hm.any? { |m| m.start_with?('OK3: Häfele Free Slim') && m.include?('720') }, "Free Slim 720 hoch: Meldung (#{hm})")
+K.waehlen('klappe', 'blum-aventos-hk-top', fm)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_klappe'])
+
 check([3, 4, 5, 6].flat_map { |sd| bearbeitungen(d['OK1_Deckel'].text, sd) }.none? { |x| x.include?('#8522=3 ') }, 'Deckel: Kante nicht vorgebohrt')
 # --- Abschlussregal: Schräge und Bogen als Kontur (Fräser 1004, Ø 20) ---
 # Unterschrank 300 x 700 x 520, Seite außen rechts 150 tief: Schräge im Boden von (0, 0) nach

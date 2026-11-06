@@ -7,8 +7,8 @@
 #   Schubladen  Blum LEGRABOX free: Zargen C oder M (Regeln.zarge) links und rechts, Korpusschienen an den
 #               Schienenbohrungen, Fronthalter an der Frontbefestigung, Rückwandhalter an der Holzrückwand.
 #   Türen       Blum-Topfband: Topf Ø35 in der Tür, Arm zur Seite, Montageplatte an der Seite.
-#   Klappen     Blum AVENTOS HK-top: Kraftspeicher an beiden Seiten, Frontbeschlag an der Klappe.
-#               Häfele Free Slim: Mechanismus an beiden Seiten, Arm zum Frontbeschlag an der Klappe.
+#   Klappen     gewähltes Modell aus dem Beschlag-Katalog (AVENTOS HK-top, Free Slim): Kraftspeicher bzw.
+#               Mechanismus an beiden Seiten, Arm zum Frontbeschlag an der Klappe.
 # Vereinfachte, aber maßhaltige Körper (Quader, Topf als Zylinder). Sie liegen in einer Gruppe
 # „Beschläge“ auf dem Tag „Beschlag“ in dem Teil des Schranks, das sich mitbewegt (Schublade,
 # Türhalter, sonst der Schrank), und haben kein JT_Schrank/teil: Stückliste, Etiketten, Zuschnitt
@@ -25,7 +25,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 4
+      VERSION = 5
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -51,16 +51,7 @@ module JTools
       # hinter den Löchern der Montageplatte; Montageplatte 48 × 20 × 4.
       TOPFBAND = { topf_tiefe: 13.0, arm_h: 16.0, arm_b: 16.0, arm_ueber: 25.0,
                    platte: [48.0, 20.0, 4.0] }.freeze
-      # AVENTOS HK-top (vereinfacht): Kraftspeicher 30 stark, 20 vor dem ersten bis 60 hinter dem
-      # letzten Loch, 60 unter bis 15 über der Lochreihe; Frontbeschlag 20 × 52 × 10; Hebelarm 8 × 8
-      # schräg vom Kraftspeicher (40 hinter seinem vorderen Ende) zur Mitte des Frontbeschlags.
-      AVENTOS = { dicke: 30.0, vor: 20.0, hinter: 60.0, unter: 60.0, ueber: 15.0, front: [20.0, 10.0],
-                  arm: 8.0, arm_ein: 40.0 }.freeze
-      # Häfele Free Slim (vereinfacht, Montageanleitung 732.23.046 S. 2–4): Mechanismus 245 × 165 × 22 an der
-      # Seite, mittig über den Dübellöchern (122,5 ab Vorderkante), vorne 10 mm frei für den Arm; Arm 10 stark
-      # vom Mechanismus zur Mitte des Frontbeschlags; Frontbeschlag 20 breit, 10 stark, 12 über die Löcher hinaus.
-      FREE_SLIM = { laenge: 245.0, hoehe: 165.0, dicke: 22.0, vorn_frei: 10.0, arm: 10.0, arm_ein: 30.0,
-                    front: [20.0, 10.0], front_ueber: 12.0 }.freeze
+      # Klappen: Körper aus dem Beschlag-Katalog (koerper.seite/arm/front, siehe klappen)
 
       def an?(model = Sketchup.active_model)
         model ? model.get_attribute(DICT, 'an') == true : false
@@ -104,8 +95,7 @@ module JTools
         end
         schubladen(teile, add)
         topfbaender(teile, add)
-        aventos(teile, add)
-        free_slim(teile, add)
+        klappen(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
         out
@@ -377,88 +367,55 @@ module JTools
         end
       end
 
-      def aventos(teile, add)
-        kst = MATERIALIEN[:kunststoff][0]
-        stahl = MATERIALIEN[:stahl][0]
-        av = AVENTOS
-        teile.select { |w| w.rolle == 'Seite' }.each do |s|
-          ops = s.ops.select { |o| o.titel == 'Kraftspeicher AVENTOS HK-top' }
-          next if ops.empty?
-          k = Geometrie.achse(ops[0].seite)
-          innen = Geometrie.max?(ops[0].seite) ? 1 : -1
-          t = ([0, 1] - [k]).first
-          ys = ops.map { |o| o.p0[t] }
-          vorn_min = (ys.min - s.lo[t]) <= (s.hi[t] - ys.max)
-          y0, y1 = vorn_min ? [ys.min - av[:vor], ys.max + av[:hinter]] : [ys.max + av[:vor], ys.min - av[:hinter]]
-          z = ops[0].p0[2]
-          add.(s, quader('Kraftspeicher AVENTOS HK-top', kst, p3(k => ops[0].p0[k], t => y0, 2 => z - av[:unter]),
-                         p3(k => ops[0].p0[k] + innen * av[:dicke], t => y1, 2 => z + av[:ueber])))
-          # Hebelarm (Stange) vom Kraftspeicher zum Frontbeschlag dieser Seite, fest im Schrank
-          # (Lage bei geschlossener Klappe)
-          fb = teile.flat_map(&:ops).select { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' }
-          next if fb.empty?
-          naechst = fb.min_by { |o| (o.p0[k] - ops[0].p0[k]).abs }
-          paar = fb.select { |o| (o.p0[k] - naechst.p0[k]).abs < 0.5 }
-          xm = naechst.p0[k]
-          start = p3(k => xm, t => y0 + (vorn_min ? 1 : -1) * av[:arm_ein], 2 => z - av[:unter] / 2.0)
-          ende = p3(k => xm, t => naechst.p0[t] + (vorn_min ? 1 : -1) * av[:front][1] / 2.0, 2 => paar.sum { |o| o.p0[2] } / paar.size)
-          add.(s, Koerper.new('Hebelarm AVENTOS HK-top', stahl, :stab, start, ende, k, av[:arm] / 2.0))
-        end
-        teile.select { |w| w.ops.any? { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' } }.each do |kl|
-          ops = kl.ops.select { |o| o.titel == 'Frontbeschlag AVENTOS HK-top' }
-          da = Geometrie.achse(ops[0].seite)
-          rein = Geometrie.max?(ops[0].seite) ? 1 : -1
-          wa = (kl.flaechen_achsen - [2]).first
-          fl = ops[0].p0[da]
-          ops.group_by { |o| o.p0[wa].round(1) }.each_value do |paar|
-            x = paar[0].p0[wa]
-            zs = paar.map { |o| o.p0[2] }
-            add.(kl, quader('Frontbeschlag AVENTOS HK-top', stahl, p3(wa => x - av[:front][0] / 2.0, da => fl, 2 => zs.min - 10),
-                            p3(wa => x + av[:front][0] / 2.0, da => fl + rein * av[:front][1], 2 => zs.max + 10)))
+      # Klappenbeschlag der Bauart klappe_seite (Katalog, koerper):
+      #   seite  Kraftspeicher/Mechanismus an der Seite: dicke, vor/hinter = über das vorderste/hinterste
+      #          Loch hinaus, unter/ueber = unter das unterste / über das oberste Loch hinaus
+      #   arm    Stab vom Körper an der Seite (ein = hinter seiner Vorderkante, hoehe = über seiner
+      #          Unterkante) zur Mitte des Frontbeschlags dieser Seite, fest im Schrank (geschlossene Klappe)
+      #   front  Frontbeschlag an der Klappe: breite, dicke, ueber = über das oberste/unterste Loch hinaus
+      def klappen(teile, add)
+        katalog = Beschlagkatalog.eintraege.select { |e| e['bauart'] == 'klappe_seite' && e['koerper'] }
+        ops_alle = teile.flat_map(&:ops)
+        katalog.each do |e|
+          kp = e['koerper']
+          ks, ka, kf = kp['seite'], kp['arm'], kp['front']
+          mat = ->(k) { MATERIALIEN.fetch(k['material'].to_sym)[0] }
+          fb = ops_alle.select { |o| o.titel == e['front']['titel'] }
+          teile.select { |w| w.rolle == 'Seite' }.each do |s|
+            ops = s.ops.select { |o| o.titel == e['seite']['titel'] }
+            next if ops.empty?
+            k = Geometrie.achse(ops[0].seite)
+            innen = Geometrie.max?(ops[0].seite) ? 1 : -1
+            t = ([0, 1] - [k]).first
+            ys = ops.map { |o| o.p0[t] }
+            zs = ops.map { |o| o.p0[2] }
+            vorn_min = (ys.min - s.lo[t]) <= (s.hi[t] - ys.max)
+            dir = vorn_min ? 1 : -1
+            y0, y1 = vorn_min ? [ys.min - ks['vor'], ys.max + ks['hinter']] : [ys.max + ks['vor'], ys.min - ks['hinter']]
+            fl = ops[0].p0[k]
+            unten = zs.min - ks['unter']
+            add.(s, quader(ks['titel'], mat.(ks), p3(k => fl, t => y0, 2 => unten),
+                           p3(k => fl + innen * ks['dicke'], t => y1, 2 => zs.max + ks['ueber'])))
+            next if fb.empty? || ka.nil?
+            naechst = fb.min_by { |o| (o.p0[k] - fl).abs }
+            reihe = fb.select { |o| (o.p0[k] - naechst.p0[k]).abs < 0.5 }
+            xm = naechst.p0[k]
+            start = p3(k => xm, t => y0 + dir * ka['ein'], 2 => unten + ka['hoehe'])
+            ende = p3(k => xm, t => naechst.p0[t] + dir * kf['dicke'] / 2.0, 2 => reihe.sum { |o| o.p0[2] } / reihe.size)
+            add.(s, Koerper.new(ka['titel'], mat.(ka), :stab, start, ende, k, ka['staerke'] / 2.0))
           end
-        end
-      end
-
-      def free_slim(teile, add)
-        kst = MATERIALIEN[:kunststoff][0]
-        stahl = MATERIALIEN[:stahl][0]
-        fs = FREE_SLIM
-        fb = teile.flat_map(&:ops).select { |o| o.titel == 'Frontbeschlag Free Slim' }
-        teile.select { |w| w.rolle == 'Seite' }.each do |s|
-          ops = s.ops.select { |o| o.titel == 'Mechanismus Free Slim' }
-          next if ops.empty?
-          k = Geometrie.achse(ops[0].seite)
-          innen = Geometrie.max?(ops[0].seite) ? 1 : -1
-          t = ([0, 1] - [k]).first
-          y = ops[0].p0[t]
-          vorn_min = (y - s.lo[t]) <= (s.hi[t] - y)
-          dir = vorn_min ? 1 : -1
-          vorne = y - dir * fs[:laenge] / 2.0
-          zm = ops.sum { |o| o.p0[2] } / ops.size
-          fl = ops[0].p0[k]
-          add.(s, quader('Mechanismus Free Slim', kst, p3(k => fl, t => vorne + dir * fs[:vorn_frei], 2 => zm - fs[:hoehe] / 2.0),
-                         p3(k => fl + innen * fs[:dicke], t => vorne + dir * fs[:laenge], 2 => zm + fs[:hoehe] / 2.0)))
-          # Arm vom Mechanismus zum Frontbeschlag dieser Seite, fest im Schrank (Lage bei geschlossener Klappe)
-          next if fb.empty?
-          naechst = fb.min_by { |o| (o.p0[k] - fl).abs }
-          reihe = fb.select { |o| (o.p0[k] - naechst.p0[k]).abs < 0.5 }
-          xm = naechst.p0[k]
-          zf = reihe.sum { |o| o.p0[2] } / reihe.size
-          start = p3(k => xm, t => vorne + dir * fs[:arm_ein], 2 => zm)
-          ende = p3(k => xm, t => naechst.p0[t] + dir * fs[:front][1] / 2.0, 2 => zf)
-          add.(s, Koerper.new('Arm Free Slim', stahl, :stab, start, ende, k, fs[:arm] / 2.0))
-        end
-        teile.select { |w| w.ops.any? { |o| o.titel == 'Frontbeschlag Free Slim' } }.each do |kl|
-          ops = kl.ops.select { |o| o.titel == 'Frontbeschlag Free Slim' }
-          da = Geometrie.achse(ops[0].seite)
-          rein = Geometrie.max?(ops[0].seite) ? 1 : -1
-          wa = (kl.flaechen_achsen - [2]).first
-          fl = ops[0].p0[da]
-          ops.group_by { |o| o.p0[wa].round(1) }.each_value do |reihe|
-            x = reihe[0].p0[wa]
-            zs = reihe.map { |o| o.p0[2] }
-            add.(kl, quader('Frontbeschlag Free Slim', stahl, p3(wa => x - fs[:front][0] / 2.0, da => fl, 2 => zs.min - fs[:front_ueber]),
-                            p3(wa => x + fs[:front][0] / 2.0, da => fl + rein * fs[:front][1], 2 => zs.max + fs[:front_ueber])))
+          teile.select { |w| w.ops.any? { |o| o.titel == e['front']['titel'] } }.each do |kl|
+            ops = kl.ops.select { |o| o.titel == e['front']['titel'] }
+            da = Geometrie.achse(ops[0].seite)
+            rein = Geometrie.max?(ops[0].seite) ? 1 : -1
+            wa = (kl.flaechen_achsen - [2]).first
+            fl = ops[0].p0[da]
+            ops.group_by { |o| o.p0[wa].round(1) }.each_value do |reihe|
+              x = reihe[0].p0[wa]
+              zs = reihe.map { |o| o.p0[2] }
+              add.(kl, quader(kf['titel'], mat.(kf), p3(wa => x - kf['breite'] / 2.0, da => fl, 2 => zs.min - kf['ueber']),
+                              p3(wa => x + kf['breite'] / 2.0, da => fl + rein * kf['dicke'], 2 => zs.max + kf['ueber'])))
+            end
           end
         end
       end
@@ -589,7 +546,7 @@ module JTools
           next '' unless dict
           dict.to_a.reject { |k, _| k.to_s.start_with?('_') }.map { |k, v| "#{k}=#{v.is_a?(Float) ? v.round(4) : v}" }.sort.join(';')
         end
-        "v#{VERSION}|#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
+        "v#{VERSION}|#{Beschlagkatalog.fingerabdruck(s.respond_to?(:model) ? s.model : nil)}|#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
       end
 
       # Werkstücke eines Schranks mit Bearbeitungen (wie im TCN-Export)
