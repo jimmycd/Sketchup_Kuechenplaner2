@@ -3,7 +3,7 @@
 Offenes Regal, das **frei an der Wand hängt**: es steht nicht in einer Zeile mit den Oberschränken und wird nicht an andere Schränke angedockt (Jürgen, 2026-11-07). Kürzel `WR`, Kategorie `Wandregal`.
 
 ## Installieren und benutzen
-1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `wandregal.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner). Für das Platzieren an der Wand braucht es das Plugin Schrank-CNC ab 0.18.0.
+1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `wandregal.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner). Für das Platzieren an der Wand braucht es das Plugin Schrank-CNC ab 0.19.0.
 2. *Erweiterungen → Küchenplaner → Oberschränke → Wandregal…* (oder Symbolleiste *Schrank einfügen*) fragt Breite, Höhe, Tiefe, Unterkante über der Arbeitsplatte, Spalten, Reihen je Spalte und Rückwand ab.
 3. Das Regal hängt dann an der Maus: Rücken direkt an der Wand, nur entlang der Wand verschiebbar, **Tab** = andere Wand, **Pfeil hoch/runter** = 10 mm höher/tiefer, Klick setzt ab. Auch wenn ein Oberschrank markiert ist, reiht es sich nicht an; in Wände oder Schränke hinein lässt es sich nicht setzen. Ohne Raum folgt es der Maus auf seiner Höhe.
 4. Alles Weitere in den *Komponentenoptionen*. Nach *Übernehmen* baut die Erweiterung das Regal neu auf (eine andere Aufteilung lässt sich nicht per Formel umbauen). Ungültige Werte werden mit einer Meldung zurückgesetzt.

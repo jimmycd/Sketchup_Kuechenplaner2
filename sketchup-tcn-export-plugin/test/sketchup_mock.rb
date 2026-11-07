@@ -410,3 +410,21 @@ module Sketchup
     def valid? = true
   end
 end
+
+# Definitionen aufzählen wie in SketchUp (Enumerable)
+module Sketchup
+  class Definitions
+    include Enumerable
+    def each(&) = @h.values.each(&)
+  end
+end
+
+# false bleibt false (wie in SketchUp), nur nil nimmt den Vorgabewert
+module Sketchup
+  module Attr
+    def get_attribute(d, k, default = nil)
+      v = dicts.dig(d, k)
+      v.nil? ? default : v
+    end
+  end
+end
