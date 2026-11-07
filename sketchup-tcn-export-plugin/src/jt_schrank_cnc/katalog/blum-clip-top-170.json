@@ -1,0 +1,84 @@
+{
+  "kennung": "blum-clip-top-170",
+  "name": "Blum CLIP top 170° Weitwinkel Ø35",
+  "hersteller": "Blum",
+  "art": "topfband",
+  "bauart": "topfband_platte",
+  "quelle": "Blum Katalog 2024/2025 S. 88–89 (170°-Scharnier, DQDI3Y): Topf Ø35, Topfbohrabstand 3–7 (hier 4 → Topfmitte 21,5), Schraublöcher 45/9,5 wie 110°; Montageplatte wie CLIP top. Blum: bei Kindern im Haushalt besser 155° (0-Einsprung).",
+  "topf": {
+    "d": 35,
+    "tiefe": 14,
+    "kante": 21.5,
+    "schraub_d": 8,
+    "schraub_abstand": 45,
+    "schraub_versatz": 9.5
+  },
+  "verteilung": {
+    "ziel": 80,
+    "min": 60,
+    "anzahl": [
+      [
+        900,
+        2
+      ],
+      [
+        1600,
+        3
+      ],
+      [
+        2000,
+        4
+      ],
+      [
+        2400,
+        5
+      ]
+    ],
+    "max_anzahl": 6
+  },
+  "platte": {
+    "d": 5,
+    "tiefe": 12,
+    "abstand": 16
+  },
+  "liste": {
+    "gruppe": "Türen (Topfbänder)",
+    "posten": [
+      [
+        "Blum 170°-Scharnier CLIP top 71T6580 (Eckanschlag, Topf einpressen)",
+        "Topf 14 tief, Anschlag lt. TCN",
+        "baender",
+        "Stück"
+      ],
+      [
+        "Blum Falttür-Scharnier Ø35",
+        "kurze Tür am Eckscharnier",
+        "eck",
+        "Stück"
+      ],
+      [
+        "Blum Montageplatte (CLIP)",
+        "Abstand 0, im 32er-Raster",
+        "platten",
+        "Stück"
+      ],
+      [
+        "Systemschraube Ø5 (Blum)",
+        "Montageplatten (vorgebohrt Ø5)",
+        "platten_loecher",
+        "Stück"
+      ]
+    ]
+  },
+  "koerper": {
+    "topf_tiefe": 13,
+    "arm_h": 16,
+    "arm_b": 16,
+    "arm_ueber": 25,
+    "platte": [
+      48,
+      20,
+      4
+    ]
+  }
+}

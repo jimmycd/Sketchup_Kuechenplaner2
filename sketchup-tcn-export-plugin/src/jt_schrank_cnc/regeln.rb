@@ -588,13 +588,28 @@ module JTools
       def self.topfbaender(teile, meldungen)
         tueren = teile.select { |w| w.rolle == 'Tuer' && w.dicke_achse != 2 }
         return if tueren.empty?
-        tb = topfband_werte
+        tb_std = topfband_werte
+        tb_innen = nil
         tueren.each do |t|
+          # Tür vor Innenauszügen (Kastenboden dahinter): eigenes Topfband (Standard 155°, 0-Einsprung)
+          tb = if innenauszug_hinter?(t, teile)
+                 tb_innen ||= topfband_werte(Beschlagkatalog.gewaehlt('topfband_innen'))
+               else
+                 tb_std
+               end
           schrank = t.teil.schrank
           # Schlepptür (Hochschrank Kühlschrank): die Nischentür hängt am Gerät, nicht am Korpus
           next if t.teil.jt('bereich') == 'N' && Schraenke.dc(schrank, 'tuertechnik').to_f.round == 1
           kante, eck = anschlag(t, tueren, teile)
           topfband(t, kante, eck, teile, meldungen, tb)
+        end
+      end
+
+      # Liegt hinter der Tür ein Innenauszug (Kastenboden, der sich in Breite und Höhe mit ihr deckt)?
+      def self.innenauszug_hinter?(t, teile)
+        wa = (t.flaechen_achsen - [2]).first
+        teile.any? do |k|
+          k.rolle == 'KastenBoden' && ueberlapp(k, t, wa) > 1.0 && k.lo[2] > t.lo[2] - TOL && k.hi[2] < t.hi[2] + TOL
         end
       end
 

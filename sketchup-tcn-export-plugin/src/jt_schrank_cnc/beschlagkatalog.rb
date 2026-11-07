@@ -33,6 +33,9 @@ module JTools
       ARTEN = {
         'schubladen' => { name: 'Schubladenauszug', standard: 'blum-legrabox-free', bauarten: %w[auszug_zarge] },
         'topfband' => { name: 'Topfband (Türen)', standard: 'blum-clip-top', bauarten: %w[topfband_platte] },
+        # Türen vor Innenauszügen (Hochschrank Vorrat): Blum empfiehlt das 155°-Scharnier mit 0-Einsprung,
+        # damit die geöffnete Tür die lichte Weite freigibt (Katalog 2024/2025 S. 84)
+        'topfband_innen' => { name: 'Topfband vor Innenauszügen', standard: 'blum-clip-top-155', bauarten: %w[topfband_platte] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
         'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
         'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] }
@@ -80,8 +83,14 @@ module JTools
         eintraege.find { |e| e['kennung'] == kennung }
       end
 
+      # Modelle, die für die Beschlagart passen: ihre eigene Art oder eine Bauart, die die Art annimmt
+      # (jedes Topfband kann auch vor Innenauszügen gewählt werden)
+      def passt?(e, art)
+        e['art'] == art || (ARTEN[art] && ARTEN[art][:bauarten].include?(e['bauart']))
+      end
+
       def zur_art(art)
-        eintraege.select { |e| e['art'] == art }.sort_by { |e| e['name'] }
+        eintraege.select { |e| passt?(e, art) }.sort_by { |e| e['name'] }
       end
 
       # Fehlerliste eines Eintrags (leer = in Ordnung)
@@ -159,7 +168,7 @@ module JTools
       # Liste der Schränke, die das nicht können, weil sie mit einer älteren Version angelegt sind)
       def waehlen(art, kennung, model = nil)
         e = eintrag(kennung)
-        raise ArgumentError, "Unbekannter Beschlag: #{kennung}" unless e && e['art'] == art
+        raise ArgumentError, "Unbekannter Beschlag: #{kennung}" unless e && passt?(e, art)
         m = modell(model)
         m.set_attribute(DICT, schluessel(art), kennung) if m.respond_to?(:set_attribute)
         Sketchup.write_default(SEKTION, schluessel(art), kennung) if defined?(Sketchup) && Sketchup.respond_to?(:write_default)
