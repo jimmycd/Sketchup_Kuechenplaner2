@@ -50,7 +50,10 @@ module JTools
         'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] },
         # Griffe oder grifflos (Blum TIP-ON / SERVO-DRIVE): Türen bekommen TIP-ON an der Öffnungskante,
         # Schubladen und Klappen die Öffnungsunterstützung in der Beschlagliste
-        'oeffnung' => { name: 'Öffnung (Griffe oder grifflos)', standard: 'griffe', bauarten: %w[oeffnung] }
+        'oeffnung' => { name: 'Öffnung (Griffe oder grifflos)', standard: 'griffe', bauarten: %w[oeffnung] },
+        # Sockelversteller unter dem Korpusboden (Unter- und Hochschränke): Bohrbild im Boden, Fuß passend
+        # zur Sockelhöhe der Küche in der Beschlagliste (Häfele MB 2026, Kap. 9; Jürgen 2026-11-07)
+        'sockelfuss' => { name: 'Sockelfuß (Sockelversteller)', standard: 'haefele-axilo-78-schrauben', bauarten: %w[sockelfuss] }
       }.freeze
 
       # Schränke, die einen Beschlag dieser Art tragen, sind in JT_Schrank/beschlag markiert
@@ -66,7 +69,8 @@ module JTools
         'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper],
         'falttuer_eck' => %w[topf platte liste koerper],
-        'oeffnung' => %w[liste]
+        'oeffnung' => %w[liste],
+        'sockelfuss' => %w[hoehen bohrung lage verteilung liste]
       }.freeze
 
       # Frühere Klappen-Option im Oberschrank mit Klappe (Art_Klappe 3 = Free Slim)
@@ -117,7 +121,38 @@ module JTools
         (PFLICHT[e['bauart']] || []).each { |k| f << "#{k} fehlt" unless e[k] }
         f << "Datei #{e['datei']} passt nicht zur Kennung" if e['datei'] && e['datei'] != "#{e['kennung']}.json"
         f.concat(fehler_auszug(e)) if e['bauart'] == 'auszug_zarge' && e['zargen'] && e['schiene'] && e['kasten']
+        f.concat(fehler_sockelfuss(e)) if e['bauart'] == 'sockelfuss' && e['hoehen'] && e['bohrung'] && e['liste']
         f
+      end
+
+      # Sockelfuß: Höhen aufsteigend mit Einstellbereich und Artikel-Nr., Bohrbild mit Punkten ab (0, 0)
+      def fehler_sockelfuss(e)
+        f = []
+        h = e['hoehen']
+        f << 'Höhen nicht aufsteigend' unless h.map { |x| x['bauhoehe'] } == h.map { |x| x['bauhoehe'] }.sort
+        h.each { |x| f << "Höhe #{x['bauhoehe']}: Einstellbereich oder Artikel fehlt" unless x['von'] && x['bis'] && x['von'] <= x['bis'] && x['artikel'] }
+        pk = e['bohrung']['punkte']
+        f << 'Bohrbild ohne Punkte' if pk.to_a.empty?
+        f << 'Bohrbild beginnt nicht bei 0' unless pk.to_a.empty? || pk.map(&:first).min.zero? && pk.map(&:last).min.zero?
+        f << 'Bohrtiefe fehlt' unless e['bohrung']['tiefe'] || e['bohrung']['durch']
+        f << 'liste.fuss fehlt' unless e['liste']['fuss']
+        f
+      end
+
+      # Sockelfuß für eine Sockelhöhe (mm): die Höhe, deren Einstellbereich sie enthält (bei zweien die,
+      # in deren Mitte sie näher liegt), sonst die nächste mit passt = false
+      def sockelfuss_hoehe(e, sockel)
+        s = sockel.to_f
+        mitte = ->(x) { ((x['von'] + x['bis']) / 2.0 - s).abs }
+        drin = e['hoehen'].select { |x| s >= x['von'] - 0.01 && s <= x['bis'] + 0.01 }
+        return drin.min_by(&mitte).merge('passt' => true) unless drin.empty?
+        n = e['hoehen'].min_by { |x| [(x['von'] - s).abs, (x['bis'] - s).abs].min }
+        n.merge('passt' => false)
+      end
+
+      # Einstellbereich aller Höhen eines Sockelfußes [von, bis]
+      def sockelfuss_bereich(e)
+        [e['hoehen'].map { |x| x['von'] }.min, e['hoehen'].map { |x| x['bis'] }.max]
       end
 
       # Auszug: Zargen von hoch nach niedrig (die Schränke nehmen die höchste, die passt), höchstens

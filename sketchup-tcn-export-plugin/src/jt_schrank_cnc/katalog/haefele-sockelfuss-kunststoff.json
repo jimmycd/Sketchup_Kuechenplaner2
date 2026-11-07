@@ -1,0 +1,28 @@
+{
+  "kennung": "haefele-sockelfuss-kunststoff",
+  "name": "Häfele Sockelverstellfuß Kunststoff (637.38.45x)",
+  "hersteller": "Häfele",
+  "art": "sockelfuss",
+  "bauart": "sockelfuss",
+  "quelle": "Häfele Möbelbeschläge MB 2026, Kap. 9 S. 9.118 (Sockelverstellfuß Kunststoff, Teller oben Ø60, Fuß Ø50, −5 bis +15 mm, 400 kg, 4 Spanplattenschrauben Senkkopf Ø4 bzw. HOSPA 3,5; Sockelblendenclip für Spanplatten 637.38.406, Schrauben Ø4 × 6 separat). Lage der Füße (Mitte 50 vom Seitenrand, 100 von vorn/hinten) und Anzahl Schrauben am Clip angenommen; Bohrung = Ø3-Markierung der Fußmitte.",
+  "hoehen": [
+    { "bauhoehe": 80, "von": 75, "bis": 95, "artikel": "637.38.450" },
+    { "bauhoehe": 100, "von": 95, "bis": 115, "artikel": "637.38.451" },
+    { "bauhoehe": 120, "von": 115, "bis": 135, "artikel": "637.38.452" },
+    { "bauhoehe": 150, "von": 145, "bis": 165, "artikel": "637.38.453" }
+  ],
+  "bohrung": { "d": 3, "tiefe": 3, "punkte": [[0, 0]] },
+  "lage": { "rand_x": 50, "rand_y": 100 },
+  "verteilung": { "mitte_ab": 900 },
+  "liste": {
+    "gruppe": "Sockelfüße (Häfele Kunststoff)",
+    "fuss": "Häfele Sockelverstellfuß Kunststoff H {bauhoehe}, {artikel}",
+    "je_fuss": [
+      ["Spanplattenschraube Senkkopf Ø3,5 × 16", "Fußteller, 4 je Fuß (Länge angenommen)", 4, "Stück"]
+    ],
+    "je_vorn": [
+      ["Häfele Sockelblendenclip für Spanplatten, 637.38.406", "Sockelblende, je vorderer Fuß", 1, "Stück"],
+      ["Schraube Ø4 × 6", "Sockelblendenclip (2 je Clip angenommen)", 2, "Stück"]
+    ]
+  }
+}

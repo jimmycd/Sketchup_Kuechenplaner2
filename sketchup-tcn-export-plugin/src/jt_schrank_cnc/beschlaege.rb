@@ -10,6 +10,8 @@
 #   Türen       Blum-Topfbänder Ø35 mit Montageplatte (Regeln.topfbaender), Systemschrauben dafür.
 #   Klappen     gewähltes Modell aus dem Beschlag-Katalog (katalog/*.json, Posten unter liste).
 #   Hoch-/Eckauszug  HU Slim Base bzw. LeMans II aus dem Katalog (Satz und Schrauben).
+#   Sockelfüße  gewählter Sockelversteller (Häfele AXILO 78 …) je Fuß im Boden, Höhe nach der Sockelhöhe
+#               der Küche, Befestigung und Sockelblendenclips (Regeln.sockelfuesse, Katalog liste).
 # Blum-Artikelnummern stehen nicht in der Anleitung; die Liste nennt deshalb Typ, Größe und Anzahl.
 
 module JTools
@@ -41,6 +43,7 @@ module JTools
             auszuege(teile, add)
             oeffnung(teile, add)
             griffe(teile, add)
+            sockelfuesse(teile, add)
           end
         end
         # SERVO-DRIVE: Netzteil, Halterung und Verteilerkabel einmal für die ganze Küche
@@ -58,7 +61,8 @@ module JTools
       GRIFFE = 'Griffe'.freeze
       GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schubladen (LEGRABOX pure)', 'Schubladen (MERIVOBOX)', 'Schubladen (TANDEMBOX antaro)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
                  'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)',
-                 'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)', GRIFFE].freeze
+                 'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)', GRIFFE,
+                 'Sockelfüße (Häfele AXILO 78)', 'Sockelfüße (Häfele Kunststoff)', 'Sockelfüße (Häfele Stahl)'].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
                      'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum 155°', 'Blum 170°', 'Blum Eckschrank-Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
                      'Blum AVENTOS HK-top Front', 'Systemschraube'].freeze
@@ -71,6 +75,34 @@ module JTools
           g = o.daten[:griff]
           add.(GRIFFE, Griffkatalog.bezeichnung(g), Griffkatalog.hinweis(g), 1, 'Stück', w.teil.jt('schrank'))
         end
+      end
+
+      # Sockelfüße (Beschlag-Katalog, Beschlagart sockelfuss): je Fuß im Boden (Regeln.sockelfuesse) der Fuß
+      # in der Höhe passend zur Sockelhöhe der Küche und die Teile je_fuss; je vorderem Fuß (vordere Reihe,
+      # beim schmalen Boden jeder) die Teile je_vorn (Sockelblendenclip). Vorn/hinten ist im Boden nicht
+      # bekannt, die Reihe :lo zählt als vorn (gleich viele Füße wie hinten).
+      def sockelfuesse(teile, add)
+        fuesse = teile.flat_map do |w|
+          w.ops.select { |o| o.titel == 'Sockelfuss' && o.daten }.map { |o| [w, o.daten[:fuss], o.daten[:reihe]] }.uniq
+        end
+        return if fuesse.empty?
+        e = Beschlagkatalog.gewaehlt('sockelfuss')
+        li = e['liste']
+        sk = fuesse.first[0].teil.jt('schrank')
+        sockel = defined?(Kuechenplaner::Einstellungen) ? Kuechenplaner::Einstellungen.sockelhoehe.to_f : 100.0
+        h = Beschlagkatalog.sockelfuss_hoehe(e, sockel)
+        name = li['fuss'].gsub('{bauhoehe}', h['bauhoehe'].to_s).gsub('{artikel}', h['artikel'].to_s)
+        hinweis = if h['passt']
+                    "Sockelhöhe #{Tcn.n(sockel)} mm (einstellbar #{h['von']}–#{h['bis']} mm)"
+                  else
+                    von, bis = Beschlagkatalog.sockelfuss_bereich(e)
+                    "Sockelhöhe #{Tcn.n(sockel)} mm passt nicht (Modell #{von}–#{bis} mm), nächste Höhe"
+                  end
+        n = fuesse.size
+        vorn = fuesse.count { |_, _, r| r != :hi }
+        add.(li['gruppe'], name, hinweis, n, 'Stück', sk)
+        (li['je_fuss'] || []).each { |b, hw, a, einheit| add.(li['gruppe'], b, hw, a * n, einheit, sk) }
+        (li['je_vorn'] || []).each { |b, hw, a, einheit| add.(li['gruppe'], b, hw, a * vorn, einheit, sk) }
       end
 
       def schubladen(teile, add)

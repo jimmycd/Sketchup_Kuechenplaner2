@@ -57,6 +57,16 @@ module JTools
         a >= b ? [uebermass_laenge, uebermass_breite] : [uebermass_breite, uebermass_laenge]
       end
 
+      # Passt der Sockelfuß der Küche zur Sockelhöhe? nil oder Hinweis
+      def sockelfuss_hinweis(model)
+        e = Beschlagkatalog.kueche('sockelfuss', model)
+        s = Kuechenplaner::Einstellungen.sockelhoehe(model).to_f
+        return nil if Beschlagkatalog.sockelfuss_hoehe(e, s)['passt']
+        bereiche = e['hoehen'].map { |x| "#{x['von']}–#{x['bis']}" }.join(', ')
+        "#{e['name']} passt nicht zur Sockelhöhe #{Tcn.n(s)} mm (einstellbar #{bereiche} mm). " \
+          'Die Beschlagliste nennt die nächste Höhe; bitte anderes Modell oder andere Sockelhöhe wählen.'
+      end
+
       CNC_GRUPPE = 'CNC und Zuschnitt – alle Modelle'.freeze
       BESCHLAG_GRUPPE = 'Beschläge – ganze Küche'.freeze
 
@@ -107,6 +117,9 @@ module JTools
             model.commit_operation if model.respond_to?(:commit_operation)
           end
           keys.zip(zahlen).each { |k, s| setzen(k, s.to_f) }
+          if (h = sockelfuss_hinweis(model))
+            UI.messagebox(h)
+          end
           unless nicht.empty?
             UI.messagebox("Diese Schränke sind mit einer älteren Version angelegt und passen sich nicht an den " \
                           "Schubladenauszug an: #{nicht.uniq.join(', ')}. Bitte neu anlegen.")

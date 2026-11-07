@@ -1,0 +1,26 @@
+{
+  "kennung": "haefele-sockelfuss-stahl",
+  "name": "Häfele Sockelverstellfuß Stahl (637.19.2xx)",
+  "hersteller": "Häfele",
+  "art": "sockelfuss",
+  "bauart": "sockelfuss",
+  "quelle": "Häfele Möbelbeschläge MB 2026, Kap. 9 S. 9.119 (Sockelverstellfuß Stahl verzinkt, Topf Ø60, Rohr Ø28, Fuß Ø48, +20 mm, 160 kg, mit Befestigungsschraube M10 durch den Boden; Sockelclip mit Stahlfeder zum Schrauben 637.19.906), S. 9.118 (Befestigungsschraube M10 × 32, 637.45.999). Durchbohrung Ø10 und Lage der Füße (Mitte 50 vom Seitenrand, 100 von vorn/hinten) angenommen.",
+  "hoehen": [
+    { "bauhoehe": 100, "von": 100, "bis": 120, "artikel": "637.19.219" },
+    { "bauhoehe": 120, "von": 120, "bis": 140, "artikel": "637.19.228" },
+    { "bauhoehe": 150, "von": 150, "bis": 170, "artikel": "637.19.237" }
+  ],
+  "bohrung": { "d": 10, "durch": true, "punkte": [[0, 0]] },
+  "lage": { "rand_x": 50, "rand_y": 100 },
+  "verteilung": { "mitte_ab": 900 },
+  "liste": {
+    "gruppe": "Sockelfüße (Häfele Stahl)",
+    "fuss": "Häfele Sockelverstellfuß Stahl H {bauhoehe}, {artikel}",
+    "je_fuss": [
+      ["Befestigungsschraube M10 × 32, 637.45.999", "von oben durch den Boden (Ø10 gebohrt)", 1, "Stück"]
+    ],
+    "je_vorn": [
+      ["Häfele Sockelclip mit Stahlfeder zum Schrauben, 637.19.906", "Sockelblende, je vorderer Fuß", 1, "Stück"]
+    ]
+  }
+}
