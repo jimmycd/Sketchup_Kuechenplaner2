@@ -6,13 +6,16 @@
 # (alle TCN zusammen, größte Teile zuerst, siehe fraesliste.rb). Gleiche Teile (gleicher Tag, gleiche TCN) werden einmal
 # geschrieben und gezählt; weicht ein gleichnamiges Teil ab, bekommt es _2, _3 …
 # Arbeitsplatten: je Stoßende eine TCN mit der Verbindungsfräsung (arbeitsplatte.rb).
+# Bohrungen auf der Unterseite (Fläche 2, z. B. Mittelwand des Wandregals mit Fachböden auf
+# beiden Seiten): zweites Programm <Nr>_<Tag>_Rueckseite.tcn fürs gewendete Werkstück, ohne
+# Formatieren; es gehört zur selben Stücklistenzeile.
 # Eine eigene Teileliste gibt es nicht mehr: alle Angaben (TCN-Datei, Anzahl, Maße, Material)
 # stehen in der Stückliste. Den Dialog für alle Ausgaben hat ausgabe.rb.
 
 module JTools
   module SchrankCnc
     module Export
-      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage, :nr) do
+      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage, :nr, :wende) do
         # Dateiname der TCN: "<Nr>_<Tag>.tcn" (ohne Nummer nur der Tag)
         def datei
           nr ? "#{nr}_#{name}.tcn" : "#{name}.tcn"
@@ -27,6 +30,25 @@ module JTools
         end.map { |t| Geometrie.werkstueck(t) }
       end
 
+      WENDE = '_Rueckseite'.freeze
+
+      # Programme eines Werkstücks als [[Lage, gewendet?], …]: normal eines; liegen Bohrungen auf
+      # der Unterseite (Fläche 2), ein zweites fürs gewendete Werkstück mit nur diesen (dort
+      # Fläche 1). Die Lagen hängen an Kopien des Werkstücks mit den jeweiligen Bearbeitungen,
+      # das Werkstück selbst behält alle (Beschlagliste).
+      def self.programme(w)
+        lage = Geometrie.lage(w, Regeln.flaeche1(w))
+        unten = w.ops.select { |o| o.art != :kontur && lage.side(o.seite) == 2 }
+        return [[lage, false]] if unten.empty?
+        oben = w.dup
+        oben.ops = w.ops.reject { |o| unten.any? { |u| u.equal?(o) } }
+        rueck = w.dup
+        rueck.ops = unten
+        f = lage.flaeche1.to_s
+        f2 = f.end_with?('max') ? f.sub(/max\z/, 'min') : f.sub(/min\z/, 'max')
+        [[Geometrie::Lage.new(oben, *lage.to_a[1..]), false], [Geometrie.lage(rueck, f2.to_sym), true]]
+      end
+
       def self.dateiname(name)
         name.to_s.gsub(/[\\\/:*?"<>|\s]+/, '_')
       end
@@ -39,18 +61,19 @@ module JTools
         alle_ws&.concat(ws)
         dateien = []
         ws.each do |w|
-          lage = Geometrie.lage(w, Regeln.flaeche1(w))
-          text = Tcn.text(lage, meldungen)
-          basis = dateiname(w.name)
-          gleich = dateien.find { |d| d.name.sub(/_\d+\z/, '') == basis && d.text == text } ||
-                   dateien.find { |d| d.name == basis && d.text == text }
-          if gleich
-            gleich.anzahl += 1
-          else
-            name = basis
-            k = 1
-            name = "#{basis}_#{k += 1}" while dateien.any? { |d| d.name == name }
-            dateien << Datei.new(name, text, 1, w, lage)
+          programme(w).each do |lage, wende|
+            text = Tcn.text(lage, meldungen, formatieren: !wende)
+            basis = dateiname(w.name) + (wende ? WENDE : '')
+            gleich = dateien.find { |d| d.name.sub(/_\d+\z/, '') == basis && d.text == text } ||
+                     dateien.find { |d| d.name == basis && d.text == text }
+            if gleich
+              gleich.anzahl += 1
+            else
+              name = basis
+              k = 1
+              name = "#{basis}_#{k += 1}" while dateien.any? { |d| d.name == name }
+              dateien << Datei.new(name, text, 1, w, lage, nil, wende)
+            end
           end
         end
         ap, ap_meldungen = Arbeitsplatten.dateien(model, auswahl: auswahl)

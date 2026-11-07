@@ -39,6 +39,7 @@ Nach Änderungen an einem `src/`-Ordner alle `.rbz` neu bauen (der Test prüft, 
 | [`Komponenten/oberschrank_klappe/`](Komponenten/oberschrank_klappe/) | Oberschrank mit Klappe Blum AVENTOS HK-top oder HF (Faltklappe) (`.rbz`) |
 | [`Komponenten/apothekerschrank/`](Komponenten/apothekerschrank/) | Apothekerschrank: Hochfront mit Vollauszug und 2–6 LEGRABOX-Kästen (`.rbz`) |
 | [`Komponenten/regal_abschluss/`](Komponenten/regal_abschluss/) | Abschlussregal fürs Zeilenende: offen, gerade, schräg oder rund, als Unter-, Ober- oder Hochschrank (`.rbz`) |
+| [`Komponenten/wandregal/`](Komponenten/wandregal/) | Frei hängendes Wandregal: 1–4 Spalten mit Mittelwand, je Spalte eigene Reihen und Fachhöhen, feste Fachböden, Rückwand ja/nein (`.rbz`) |
 | [`Komponenten/geraete/`](Komponenten/geraete/) | Geräte für Planung und Kundenrendering: Spüler, Kochfeld mit und ohne Abzug, Spüle, Backofen, Kompaktgerät, Mikrowelle, Wärmeschublade (`.rbz`) |
 | [`Komponenten/raum/`](Komponenten/raum/) | Raum gestalten: Wände (Rechteck oder aus Linien), Fenster, Türen, Durchgänge; Schränke docken an die Wände an (`.rbz`) |
 | [`docs/`](docs/) | Pläne und Vorschläge aus den Projekt-Threads, Übersicht welcher Schrank in welchem Ordner liegt, Beschlag-Unterlagen |

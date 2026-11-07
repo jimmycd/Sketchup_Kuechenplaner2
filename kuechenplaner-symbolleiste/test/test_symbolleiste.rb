@@ -132,7 +132,7 @@ gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.
 soll = {
   'Unterschränke' => ['Abschlussregal…', 'Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Inselschrank…', 'Spülenschrank…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…',
                       'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank Mülltrennung…', 'Unterschrank mit Doppeltür…', 'Unterschrank mit Schubladen…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Abschlussregal…', 'Eck-Oberschrank L-Form…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Oberschrank…'],
+  'Oberschränke' => ['Abschlussregal…', 'Eck-Oberschrank L-Form…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Oberschrank…', 'Wandregal…'],
   'Hochschränke' => ['Abschlussregal…', 'Apothekerschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Hochschrank…'],
   'Blenden & Wangen' => ['Passblende…', 'Sockelblende…', 'Wange…']
 }

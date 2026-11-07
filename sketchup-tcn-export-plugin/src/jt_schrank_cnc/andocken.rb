@@ -30,6 +30,9 @@
 #     (Kuechenplaner::Einstellungen); keine freie Lage im Raum.
 #   * an einer Raumwand: Unter-/Hochschränke auf Fußboden + Sockelhöhe, Rückseite mit
 #     Wandabstand.
+#   * Wandregal (Jürgen 2026-11-07): hängt frei an der Wand, nie in einer Zeile mit anderen
+#     Schränken und nie angedockt; Rücken direkt an der Wand, Unterkante = Arbeitsplatte +
+#     Abstand_AP des Regals, Pfeil hoch/runter ändert die Höhe beim Platzieren um 10 mm.
 #
 # Die Rechnung (Modul Rechnung) braucht kein SketchUp und ist getestet.
 # Lage = [winkel, x, y, z]: Drehung um die senkrechte Achse (Bogenmaß), dann
@@ -142,6 +145,7 @@ module JTools
         #     höchstens bis unter die Decke
         def hoehe(k, kat, n, nz, nkat, eigene_z, v = nil)
           v ||= vorgaben_zoll(VORGABEN)
+          return eigene_z if kat == WANDREGAL
           return sockel_z(k, v) unless kat == 'Oberschrank'
           z = if nkat == 'Oberschrank' then nz + n[4] - k[4]
               elsif nkat == 'Hochschrank' then (v[:boden] || 0) + v[:ober] - k[4]
@@ -164,7 +168,9 @@ module JTools
         def vorgaben_zoll(m)
           platte = m[:arbeitsplatte_staerke].to_f + m[:abstand_oberschrank].to_f
           { sockel: m[:sockelhoehe].to_f * MM, aufbau: platte * MM, wand: m[:wandabstand].to_f * MM,
-            ober: (m[:sockelhoehe].to_f + m[:unterschrank_hoehe].to_f + platte) * MM, boden: 0.0, decke: nil }
+            ober: (m[:sockelhoehe].to_f + m[:unterschrank_hoehe].to_f + platte) * MM,
+            ap: (m[:sockelhoehe].to_f + m[:unterschrank_hoehe].to_f + m[:arbeitsplatte_staerke].to_f) * MM,
+            boden: 0.0, decke: nil }
         end
 
         # Oberschrank über einem Unterschrank (Bezug n, Lage nl): Rückseiten in einer Flucht,
@@ -179,7 +185,9 @@ module JTools
 
         # Jürgen 2026-11-05: Ober- und Hochschränke stehen IMMER mit dem Rücken direkt an der
         # Wand, der Wandabstand der Einstellungen gilt nur für Unterschränke.
-        WAND_DIREKT = %w[Oberschrank Hochschrank].freeze
+        WAND_DIREKT = %w[Oberschrank Hochschrank Wandregal].freeze
+        # frei hängendes Wandregal: eigene Kategorie, keine Zeile, kein Andocken
+        WANDREGAL = 'Wandregal'.freeze
 
         # Abstand Rückseite–Wand (Zoll) für einen Schrank der Kategorie kat (v wie #hoehe)
         def wandabstand(kat, v)
@@ -468,9 +476,11 @@ module JTools
         end
 
         # Höhe an einer Wand (boden_z = Fußboden): Unter- und Hochschränke stehen mit der
-        # Seitenunterkante auf Fußboden + Sockel, Oberschränke auf der festen Höhe (v wie #hoehe).
-        def raum_hoehe(kat, boden_z, k, v)
+        # Seitenunterkante auf Fußboden + Sockel, Oberschränke auf der festen Höhe (v wie #hoehe),
+        # das Wandregal mit der Unterkante abstand_ap (Zoll) über der Arbeitsplatte.
+        def raum_hoehe(kat, boden_z, k, v, abstand_ap = 0)
           return unter_decke(boden_z + v[:ober] - k[4], k, v) if kat == 'Oberschrank'
+          return unter_decke(boden_z + v[:ap] + abstand_ap.to_f - k[4], k, v) if kat == WANDREGAL
           boden_z + v[:sockel] - k[4]
         end
 
@@ -478,7 +488,7 @@ module JTools
         # Arbeitsplatte, Sockelblenden um d; Oberschränke auch, aber höchstens bis unter die
         # Decke (stehen sie schon höher, bleiben sie).
         def sockel_neu_z(kat, z, k, d, decke)
-          return z + d unless kat == 'Oberschrank' && decke && d > 0
+          return z + d unless %w[Oberschrank Wandregal].include?(kat) && decke && d > 0
           grenze = decke - k[5]
           z >= grenze ? z : [z + d, grenze].min
         end
@@ -604,9 +614,9 @@ module JTools
         Schraenke.definition(inst).get_attribute(JT_DICT, 'typ') == 'Eckschrank'
       end
 
-      # feste Höhe (z der Lage) eines Schranks mit Kasten k
-      def self.feste_hoehe(kat, k, v)
-        Rechnung.raum_hoehe(kat, v[:boden] || 0, k, v)
+      # feste Höhe (z der Lage) eines Schranks mit Kasten k; inst: Wandregal mit Abstand_AP
+      def self.feste_hoehe(kat, k, v, inst = nil)
+        Rechnung.raum_hoehe(kat, v[:boden] || 0, k, v, inst ? Schraenke.dc(inst, 'abstand_ap').to_f : 0)
       end
 
       KORPUS_DICT = 'JT_Korpus'.freeze
@@ -708,7 +718,8 @@ module JTools
         model = inst.model
         sockel_angleichen(inst, vorgabe(:sockelhoehe))
         auswahl = model.selection.to_a.select { |e| e != inst && schrank?(e) }
-        ziel = freies_ende(inst, auswahl.size == 1 ? auswahl.first : nil)
+        # Wandregal: nie anreihen, immer frei an der Wand platzieren
+        ziel = kategorie(inst) == Rechnung::WANDREGAL ? nil : freies_ende(inst, auswahl.size == 1 ? auswahl.first : nil)
         if ziel
           setzen(inst, ziel, 'Schrank anreihen')
         else
@@ -736,6 +747,7 @@ module JTools
       def self.zeile?(kat, insel, s)
         sk = kategorie(s)
         return false if insel != insel?(s) || KEINE_ZEILE.include?(sk)
+        return false if [kat, sk].include?(Rechnung::WANDREGAL) # Wandregal: frei, keine Zeile
         kat == 'Oberschrank' ? %w[Oberschrank Hochschrank].include?(sk) : sk != 'Oberschrank'
       end
 
@@ -833,6 +845,7 @@ module JTools
 
       # neuen Schrank ohne Maus rechts neben den Nachbarn setzen
       def self.anreihen(inst, nachbar)
+        return if kategorie(inst) == Rechnung::WANDREGAL
         ziel = freies_ende(inst, nachbar)
         setzen(inst, ziel, 'Schrank anreihen') if ziel
       end
@@ -877,7 +890,8 @@ module JTools
           @waende = Andocken.raumwaende(model)
           @hind = Andocken.hindernisse(model, inst, @kat)
           @abstand = Rechnung.wandabstand(@kat, @v)
-          @z = Andocken.feste_hoehe(@kat, @kasten, @v)
+          @z = Andocken.feste_hoehe(@kat, @kasten, @v, @inst)
+          @regal = @kat == Rechnung::WANDREGAL
           @wand = nil
           @q = 0
           @drehung = 0
@@ -922,7 +936,7 @@ module JTools
           when SHIFT then @shift = true
           when STRG then @frei = true
           when HOCH, RUNTER
-            return false unless @frei
+            return false unless @frei || @regal
             hoehe_aendern(key == HOCH ? SCHRITT : -SCHRITT)
           else return false
           end
@@ -947,6 +961,10 @@ module JTools
           model = view.model
           model.start_operation('Schrank platzieren', true)
           @inst.transformation = Andocken.transformation(@ziel)
+          # Wandregal: neue Höhe als Unterkante über Arbeitsplatte im Regal merken
+          if @regal && defined?(::Wandregal) && ::Wandregal.respond_to?(:abstand_setzen)
+            ::Wandregal.abstand_setzen(@inst, @ziel[3] + @kasten[4] - (@v[:boden] || 0) - @v[:ap])
+          end
           model.commit_operation
           model.selection.clear
           model.selection.add(@inst)
@@ -993,7 +1011,9 @@ module JTools
           end
         end
 
+        # Freihand: eigene Höhe; Wandregal an der Wand: seine Höhe (z) selbst
         def hoehe_aendern(d)
+          return @z += d if @regal && !@frei
           @frei_z = (@frei_z || (@ziel ? @ziel[3] : @z)) + d
         end
 
@@ -1007,6 +1027,11 @@ module JTools
         end
 
         private
+
+        # Unterkante des Regals über der Arbeitsplatte (Zoll) bei der aktuellen Höhe
+        def abstand_ap
+          @z + @kasten[4] - (@v[:boden] || 0) - @v[:ap]
+        end
 
         def wandlos?
           @waende.empty? || @insel
@@ -1037,6 +1062,7 @@ module JTools
             @ziel = l[0, 3] + [@z]
             b = (Rechnung.rechteck(@kasten, @q * VIERTEL)[1] - Rechnung.rechteck(@kasten, @q * VIERTEL)[0])
             @info = "Wand #{@wand + 1}: links #{(l[3] / MM).round} mm, rechts #{((w[:laenge] - l[3] - b) / MM).round} mm"
+            @info += ", Unterkante #{(abstand_ap / MM).round} mm über Arbeitsplatte (Pfeil hoch/runter)" if @regal
           else
             @info = "Wand #{@wand + 1}: kein Platz"
           end

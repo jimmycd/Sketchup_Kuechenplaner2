@@ -2,7 +2,7 @@
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 komp = File.expand_path('../../Komponenten', __dir__)
-%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden eckschrank eck_oberschrank].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
+%w[unterschrank_schubladen hochschrank oberschrank unterschrank_geschirrspueler unterschrank_kuehlschrank blenden eckschrank eck_oberschrank wandregal].each { |k| load File.join(komp, k, 'src', k, 'main.rb') }
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 
 A = JTools::SchrankCnc::Andocken
@@ -590,6 +590,31 @@ Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'wandabstand'])
 # Werkzeug: Tasten
 check(!wl.onKeyDown(65, false, 0, fview), 'andere Tasten gehen an SketchUp')
 check(!wl.onKeyDown(38, false, 0, fview), 'Pfeil hoch ohne Strg geht an SketchUp')
+
+# --- Wandregal (Jürgen 2026-11-07): frei an der Wand, nie angereiht oder angedockt ----------
+model.select_tool(nil)
+model.selection.clear
+os = Oberschrank.erstellen({})
+model.select_tool(nil)
+model.selection.clear
+model.selection.add(os)
+wr = Wandregal.erstellen({})
+wzr = model.werkzeug
+check(wzr.is_a?(A::Werkzeug), 'Wandregal: markierter Oberschrank, trotzdem nicht angereiht, hängt an der Maus')
+check(!A.zeile?('Oberschrank', false, wr) && !A.zeile?('Wandregal', false, os), 'Wandregal: keine Zeile mit Oberschränken')
+check(A.freies_ende(Oberschrank.erstellen({}), wr).nil?, 'Oberschrank reiht sich nicht an ein markiertes Wandregal')
+model.select_tool(nil)
+br = A.bezug(wr)
+ap = (100.0 + 700.0 + 40.0) / 25.4 # Sockel + Unterschrank + Arbeitsplatte (Vorgaben)
+wzr = A::Werkzeug.new(wr)
+wzr.setze_punkt(150.cm, 280.cm)
+check(wzr.ziel && nah(wzr.ziel[2] + br[3], 300.cm, 1e-6), "Wandregal: Rücken direkt an der Wand (#{wzr.ziel && (wzr.ziel[2] + br[3]) * 2.54})")
+check(wzr.ziel && nah(wzr.ziel[3] + br[4], ap + 50.cm, 1e-6), "Wandregal: Unterkante 500 mm über der Arbeitsplatte (#{wzr.ziel && (wzr.ziel[3] + br[4]) * 25.4})")
+check(wzr.onKeyDown(38, false, 0, fview) && nah(wzr.ziel[3] + br[4], ap + 51.cm, 1e-6), 'Wandregal: Pfeil hoch hebt um 10 mm (ohne Strg)')
+wzr.onLButtonDown(0, 0, 0, fake_view)
+check(nah(o(wr)[2] + br[4], ap + 51.cm, 1e-6), 'Wandregal: Klick setzt auf der neuen Höhe ab')
+check(nah(wr.get_attribute('dynamic_attributes', 'abstand_ap') * 25.4, 510), "Wandregal: Unterkante über Arbeitsplatte im Regal gemerkt (#{wr.get_attribute('dynamic_attributes', 'abstand_ap').to_f * 25.4})")
+check(nah(R.sockel_neu_z('Wandregal', 150, br, 5, nil), 155), 'Wandregal: geht mit dem Sockel mit')
 
 # alle Schrank-Komponenten rufen den Haken nach dem Erzeugen auf
 Dir[File.join(komp, '*/src/*/main.rb')].each do |f|
