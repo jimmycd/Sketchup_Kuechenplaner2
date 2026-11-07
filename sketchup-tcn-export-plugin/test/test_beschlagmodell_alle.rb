@@ -63,7 +63,9 @@ FAELLE = {
   'haefele-axilo-78-schrauben' => ['sockelfuss', schubladen, []],
   'haefele-axilo-78-einpressen' => ['sockelfuss', schubladen, []],
   'haefele-sockelfuss-kunststoff' => ['sockelfuss', schubladen, []],
-  'haefele-sockelfuss-stahl' => ['sockelfuss', schubladen, []]
+  'haefele-sockelfuss-stahl' => ['sockelfuss', schubladen, []],
+  # Griffmulde: kein Beschlagkörper, die Mulde wird in die Front geschnitten (Griffmodell, test_griffmulde.rb)
+  'griffmulde' => ['oeffnung', -> { [schubladen.()] }, []]
 }.freeze
 
 # --- Jedes Katalogmodell hat einen Fall (und damit eine geprüfte Zeichenroutine) ---
