@@ -1,0 +1,13 @@
+{
+  "kennung": "griffe",
+  "name": "Griffe (keine Öffnungshilfe)",
+  "hersteller": "ohne",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Standard: Fronten mit Griff (Frontfarbe und Griffe ändern), keine Öffnungsunterstützung",
+  "liste": {
+    "gruppe": "Öffnung",
+    "tuer": [],
+    "klappe": []
+  }
+}

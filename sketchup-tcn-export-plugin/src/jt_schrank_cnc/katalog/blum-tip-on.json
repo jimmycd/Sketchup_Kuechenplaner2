@@ -1,0 +1,73 @@
+{
+  "kennung": "blum-tip-on",
+  "name": "Blum TIP-ON (Türen, Klappen) + TIP-ON BLUMOTION (Schubladen)",
+  "hersteller": "Blum",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Blum Katalog 2024/2025 S. 190–193 (TIP-ON für Türen: 956.1004 bis ca. 1300 mm Fronthöhe, 956A1004 darüber, nur mit Scharnieren ohne Feder; gerade Adapterplatte 956.1201 20/17 bzw. 956A1201 20/32 innen an der Seite, Schrauben 20 und 37 bzw. 52 ab Vorderkante), S. 50 (AVENTOS HK top TIP-ON: Kraftspeicher-Set 22K2x10T, TIP-ON 956.1004, Adapterplatte 956.1201), S. 394–397 (TIP-ON BLUMOTION für LEGRABOX, Werte im Schubladenauszug). Doppeltür (keine Seite an der Öffnungskante): Kreuzadapterplatte 956A1501 37/32 (S. 193: 2 Schrauben 37 ab Vorderkante, 32 auseinander) mit Langversion im Boden (Oberschrank) bzw. Deckel, Mitte 50 mm von der Öffnungskante (abgeleitet). Höhe der Adapterplatte 100 mm vom Türrand (oben, beim Oberschrank unten) ist abgeleitet, im Katalog nicht bemaßt.",
+  "tuer": {
+    "titel": "TIP-ON Adapterplatte",
+    "d": 5,
+    "tiefe": 12,
+    "rand": 100,
+    "versionen": [
+      {
+        "bis": 1300,
+        "name": "Blum TIP-ON 956.1004 Kurzversion mit Magnet",
+        "platte": "Blum gerade Adapterplatte 956.1201 (Kurzversion 20/17)",
+        "loecher": [
+          20,
+          37
+        ]
+      },
+      {
+        "bis": 3000,
+        "name": "Blum TIP-ON 956A1004 Langversion mit Magnet",
+        "platte": "Blum gerade Adapterplatte 956A1201 (Langversion 20/32)",
+        "loecher": [
+          20,
+          52
+        ]
+      }
+    ],
+    "kreuz": {
+      "name": "Blum TIP-ON 956A1004 Langversion mit Magnet",
+      "platte": "Blum Kreuzadapterplatte 956A1501 (Langversion 37/32)",
+      "vorne": 37,
+      "abstand": 32,
+      "rand": 50
+    }
+  },
+  "schublade": "tip_on_blumotion",
+  "liste": {
+    "gruppe": "Öffnung grifflos (TIP-ON)",
+    "tuer": [
+      [
+        "Topfbänder ohne Feder",
+        "TIP-ON-Türen: Blum-Scharnier ohne Feder bestellen",
+        "tueren",
+        "Tür"
+      ]
+    ],
+    "klappe": [
+      [
+        "Blum AVENTOS Kraftspeicher-Set TIP-ON",
+        "statt Standard-Kraftspeicher (HK top 22K2x10T nach Leistungsfaktor)",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum TIP-ON 956.1004 Kurzversion mit Magnet",
+        "Klappe",
+        1,
+        "Stück"
+      ],
+      [
+        "Blum gerade Adapterplatte 956.1201 (Kurzversion 20/17)",
+        "Klappe, von Hand setzen",
+        1,
+        "Stück"
+      ]
+    ]
+  }
+}

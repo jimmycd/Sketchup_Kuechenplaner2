@@ -166,5 +166,43 @@
     ],
     "schienen": "Korpusschienen SPACE TWIN (diagonal versetzt)",
     "quelle": "Blum Katalog 2024/2025 S. 232–233: schmale Schränke KB 185–250, Schubkasten M/K, Frontauszug C, 20 kg je Auszug, Korpusschienen diagonal versetzt, Schiene min. 38 über dem Boden"
+  },
+  "tip_on_blumotion": {
+    "quelle": "Blum Katalog 2024/2025 S. 396 (TIP-ON BLUMOTION für LEGRABOX)",
+    "schiene_hinweis": "Ausführung TIP-ON BLUMOTION S (750/753.xxx1S)",
+    "sets": [
+      {
+        "nl_bis": 300,
+        "kg": 40,
+        "name": "Blum TIP-ON BLUMOTION-Set S1 T60L7140",
+        "hinweis": "Auszug 10–20 kg (bis 10 kg: S0 T60L7040)"
+      },
+      {
+        "nl_bis": 650,
+        "kg": 40,
+        "name": "Blum TIP-ON BLUMOTION-Set L3 T60L7540",
+        "hinweis": "Auszug 15–40 kg (bis 20 kg: L1 T60L7340)"
+      },
+      {
+        "nl_bis": 650,
+        "kg": 70,
+        "name": "Blum TIP-ON BLUMOTION-Set L5 T60L7570",
+        "hinweis": "Auszug 35–70 kg"
+      }
+    ],
+    "sync": [
+      {
+        "lw_ab": 245,
+        "lw_bis": 293,
+        "name": "Blum TIP-ON BLUMOTION-Synchronisierung T60.300D (quadratisch)",
+        "abzug": 221
+      },
+      {
+        "lw_ab": 294,
+        "lw_bis": 1372,
+        "name": "Blum TIP-ON BLUMOTION-Synchronisierungswelle T60.1125W (rund)",
+        "abzug": 247
+      }
+    ]
   }
 }

@@ -1439,6 +1439,61 @@ check(hv_bl.any? { |p| p[1].include?('155°') && p[3] == 5 }, "Beschlagliste Hoc
   check(ok, "SPACE TWIN bei #{(b * 10).round} mm (#{tws.size} Teile, #{tl.size} Posten): #{tl.select { |p| p[1].include?('schienen') }.map { |p| [p[1], p[2]] }}")
 end
 
+# Grifflos (Beschlagart „oeffnung“, Blum-Katalog 2024/2025 S. 190–193, 362–367, 394–397): Türen mit TIP-ON an der
+# Öffnungskante, Schubladen TIP-ON BLUMOTION bzw. SERVO-DRIVE in der Beschlagliste; Standard: Griffe, nichts davon
+gk = S::Beschlagkatalog
+check(gk.zur_art('oeffnung').map { |e| e['kennung'] }.sort == %w[blum-servo-drive blum-tip-on griffe] &&
+      gk.zur_art('oeffnung').all? { |e| gk.fehler(e).empty? } && gk.gewaehlt('oeffnung')['kennung'] == 'griffe',
+      "Öffnung: Griffe (Standard), TIP-ON, SERVO-DRIVE (#{gk.zur_art('oeffnung').map { |e| [e['kennung'], gk.fehler(e)] }})")
+def gl_export(art)
+  m = Sketchup.active_model = Sketchup::Model.new
+  yield
+  S::Beschlagkatalog.waehlen('oeffnung', art, m)
+  ws = []
+  _, me = S::Export.erzeugen(m, alle_ws: ws)
+  [ws, me, S::Beschlaege.liste(ws).map(&:to_a)]
+end
+tip_loecher = ->(ws) { ws.flat_map { |w| w.ops.select { |o| o.titel == 'TIP-ON Adapterplatte' }.map { |o| [w, o] } } }
+ws, _, bl = gl_export('griffe') { Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 }) }
+check(tip_loecher.(ws).empty? && bl.none? { |p| p[0].start_with?('Öffnung') }, 'Griffe: kein TIP-ON')
+# eine Tür, Anschlag links: TIP-ON rechts, gerade Adapterplatte 20/17 innen an der rechten Seite, 100 über der Unterkante
+ws, _, bl = gl_export('blum-tip-on') { Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 }) }
+tl = tip_loecher.(ws)
+tuer = ws.find { |w| w.rolle == 'Tuer' }
+# 37 ab Vorderkante liegt in der Lochreihe (Loch schon da), 20 wird gebohrt; beide auf der Höhe ~100 über der Türunterkante
+sr = ws.find { |w| w.teil.jt('teil') == 'SeiteR' }
+z_t = tl.first && tl.first[1].p0[2]
+soll = [20, 37].map { |l| S::Regeln.punkt(0 => sr.lo[0], 1 => sr.lo[1] + l, 2 => z_t.to_f) }
+check(tl.size == 1 && tl.first[0].equal?(sr) && tl.first[1].seite == :xmin && tl.all? { |_, o| o.d == 5 && o.tiefe == 12 } &&
+      soll.all? { |q| S::Regeln.loch_da?(sr, :xmin, q, 5) } && (z_t - (tuer.lo_f(2) + 100)).abs <= 16,
+      "TIP-ON Oberschrank eine Tür: Adapterplatte rechts 20/37 ab Vorderkante (#{tl.map { |w, o| [w.name, o.seite, o.p0.map { |v| v.round(1) }] }}, Tür ab #{tuer.lo_f(2).round(1)})")
+check(bl.any? { |p| p[1].include?('956.1004') && p[3] == 1 } && bl.any? { |p| p[1].include?('956.1201') && p[3] == 1 } &&
+      bl.any? { |p| p[1] == 'Topfbänder ohne Feder' && p[3] == 1 } && bl.any? { |p| p[1] == 'Systemschraube Ø5' && p[0].include?('TIP-ON') && p[3] == 2 },
+      "TIP-ON in der Beschlagliste: #{bl.select { |p| p[0].include?('TIP-ON') }.map { |p| [p[1], p[3]] }}")
+# Doppeltür: keine Seite an der Öffnungskante, Kreuzadapterplatte 37/32 im obersten Boden, Langversion
+ws, me, bl = gl_export('blum-tip-on') { UnterschrankDoppeltuer.erstellen({}) }
+tl = tip_loecher.(ws)
+check(tl.size == 4 && tl.all? { |w, o| w.dicke_achse == 2 && o.daten[:kreuz] } && tl.map { |_, o| o.p0[0].round(1) }.uniq.size == 4,
+      "TIP-ON Doppeltür: 4 Löcher im Boden (#{tl.map { |w, o| [w.name, o.p0.map { |v| v.round(1) }] }}, #{me.grep(/TIP-ON/)})")
+check(bl.any? { |p| p[1].include?('956A1004') && p[3] == 2 } && bl.any? { |p| p[1].include?('956A1501') && p[3] == 2 },
+      "TIP-ON Doppeltür in der Beschlagliste: #{bl.select { |p| p[0].include?('TIP-ON') }.map { |p| [p[1], p[3]] }}")
+# Schubladen: TIP-ON BLUMOTION-Set je Auszug (NL 500, 40 kg → L3), Synchronisierungswelle LW − 247
+ws, _, bl = gl_export('blum-tip-on') { UnterschrankSchubladen.erstellen({ 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 }) }
+check(bl.any? { |p| p[1].include?('T60L7540') && p[3] == 3 } && bl.any? { |p| p[1].include?('T60.1125W') && p[3] == 3 && p[2].include?('Zuschnitt 315') } &&
+      bl.select { |p| p[1] == 'Korpusschienen' }.all? { |p| p[2].include?('TIP-ON BLUMOTION') },
+      "TIP-ON BLUMOTION: #{bl.select { |p| p[0].include?('TIP-ON') || p[1] == 'Korpusschienen' }.map { |p| [p[1], p[2], p[3]] }}")
+ws, _, bl = gl_export('blum-servo-drive') { UnterschrankSchubladen.erstellen({ 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 }) }
+sd = bl.select { |p| p[0].include?('SERVO-DRIVE') }
+check(sd.any? { |p| p[1].include?('Antriebseinheit') && p[3] == 3 } && sd.any? { |p| p[1].include?('Netzteil und') && p[3] == 1 } &&
+      sd.any? { |p| p[1].include?('Trägerprofil') && p[3] == 1 && p[2] =~ /\A\d+ mm, Zuschnitt \d+0 mm/ } &&
+      sd.any? { |p| p[1].include?('Distanzpuffer') && p[3] >= 6 } && bl.none? { |p| p[1].include?('TIP-ON BLUMOTION') },
+      "SERVO-DRIVE: #{sd.map { |p| [p[1], p[2], p[3]] }}")
+# Kühlschranknische: kein TIP-ON an der Schlepptür
+ws, = gl_export('blum-tip-on') { HochschrankKuehlschrank.erstellen({}) }
+check(tip_loecher.(ws).none? { |_, o| o.daten[:tuer].include?('_N_') }, 'Kühlschrank-Schlepptür ohne TIP-ON')
+gk.waehlen('oeffnung', 'griffe', Sketchup.active_model)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_oeffnung'])
+
 if $fehler.zero?
   puts 'test_export: alles OK'
 else
