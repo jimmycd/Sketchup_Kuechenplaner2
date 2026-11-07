@@ -25,7 +25,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 5
+      VERSION = 6
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -596,12 +596,28 @@ module JTools
 
       # Türen und Klappen geschlossen? Offen (Interagieren) stimmen die Bohrbilder nicht
       # (die Tür steht schräg oder quer), dann bleiben die Beschläge, wie sie sind.
+      # Offen heißt: eine Instanz zwischen Schrank und Tür (Tür, Türhalter, Falttür-Halter) ist gedreht.
+      # Früher wurde die Dickenrichtung der Tür mit der Tiefe der ersten Seite verglichen; beim
+      # Eckschrank L zeigen die Türen aber in zwei Richtungen: geschlossen galt er als offen (keine
+      # Beschläge), nach dem Falten (kurze Tür vor der langen) als geschlossen, und die Bänder wurden
+      # an der gefalteten Tür quer durch den Schrank gezeichnet (Jürgen 2026-11-07).
       def geschlossen?(ws)
-        seiten = ws.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }
-        return true if seiten.empty?
-        tiefe = 1 - seiten.first.dicke_achse
         ws.select { |w| w.rolle == 'Tuer' || w.teil.jt('teil').to_s.start_with?('Klappe') }.all? do |w|
-          w.dicke_achse == tiefe && w.mass(tiefe) < 40
+          w.dicke_achse != 2 && w.mass(w.dicke_achse) < 40 && ungedreht?(w.teil)
+        end
+      end
+
+      # Keine Instanz unterhalb des Schranks gedreht (gespiegelt zählt nicht als gedreht). Die
+      # Animationen enden bei ±0,01/0,02° (siehe Eckschrank), das gilt noch als zu.
+      def ungedreht?(teil)
+        i0 = teil.pfad.index(teil.schrank) || 0
+        teil.pfad[(i0 + 1)..].all? do |inst|
+          m = Geometrie.matrix(inst.transformation)
+          (0..2).all? do |c|
+            spalte = m[c * 4, 3]
+            l = Math.sqrt(spalte.sum { |v| v * v })
+            l < 1e-9 || spalte.each_with_index.all? { |v, r| r == c || v.abs / l < 0.01 }
+          end
         end
       end
 

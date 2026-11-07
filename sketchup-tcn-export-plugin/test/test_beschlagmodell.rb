@@ -308,6 +308,29 @@ if halter
 end
 check(B.geschlossen?(B.werkstuecke(model, os)), 'geschlossene Tür erkannt')
 
+# --- Eckschrank L (Falttür, Jürgen 2026-11-07): Türen in zwei Richtungen gelten zu als geschlossen;
+# nach dem Falten (kurze Tür vor der langen) wird nichts neu berechnet, sonst lagen die Bänder quer ---
+lf = Eckschrank.erstellen({}, l_form: true)
+check(B.geschlossen?(B.werkstuecke(model, lf)), 'L-Form zu: geschlossen')
+B.schrank_aktualisieren(model, lf)
+lf_k = koerper(model).select { |x| x[:pfad].first == lf }
+check(lf_k.count { |x| x[:name].end_with?('Topf') } >= 4, "L-Form zu: Töpfe gezeichnet (#{lf_k.map { |x| x[:name] }})")
+lf_gr = B.alle_gruppen(S::Schraenke.definition(lf).entities).map(&:object_id).sort
+fa = S::Schraenke.definition(lf).entities.instances.find { |i| i.name == 'FaltHalter' }
+fi = S::Schraenke.definition(fa).entities.instances.find { |i| i.name == 'FaltHalterInnen' }
+alt_t = fi.transformation
+fi.instance_variable_set(:@transformation, Geom::Transformation.axes(alt_t.origin, [0.5, Math.sqrt(0.75), 0], [-Math.sqrt(0.75), 0.5, 0], [0, 0, 1]))
+check(!B.geschlossen?(B.werkstuecke(model, lf)), 'L-Form gefaltet: offen erkannt')
+check(B.schrank_aktualisieren(model, lf).nil?, 'L-Form gefaltet: nicht neu berechnet')
+check(B.alle_gruppen(S::Schraenke.definition(lf).entities).map(&:object_id).sort == lf_gr, 'L-Form gefaltet: Beschläge unverändert')
+fi.instance_variable_set(:@transformation, alt_t)
+# Endstand der Animation (0,02°) gilt als zu
+fa_t = fa.transformation
+w = 0.02 * Math::PI / 180
+fa.instance_variable_set(:@transformation, Geom::Transformation.axes(fa_t.origin, [Math.cos(w), Math.sin(w), 0], [-Math.sin(w), Math.cos(w), 0], [0, 0, 1]))
+check(B.geschlossen?(B.werkstuecke(model, lf)), 'L-Form nach Klick 3 (0,02°): geschlossen')
+fa.instance_variable_set(:@transformation, fa_t)
+
 # --- Inverse ---
 m = [0.0, 1, 0, 0, -2, 0, 0, 0, 0, 0, 1, 0, 5, 6, 7, 1]
 inv = B.invers(m)
