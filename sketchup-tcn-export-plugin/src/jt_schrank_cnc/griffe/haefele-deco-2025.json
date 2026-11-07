@@ -1,0 +1,6521 @@
+{
+ "kennung": "haefele-deco-2025",
+ "name": "Häfele DÉCO Kollektion 2025",
+ "hersteller": "Häfele",
+ "quelle": "Häfele DÉCO Kollektion 2025 (732.01.005 -07/25), Tabellen „Oberfläche / Maße in mm / Lochabstand in mm / Artikel-Nr.“; Seite = PDF-Seite",
+ "serien": [
+  {
+   "kennung": "H2510",
+   "bauart": "griff",
+   "seite": 12,
+   "tabelle": 15,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.000"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.001"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 39,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.002"
+      }
+     ]
+    },
+    {
+     "name": "edelstahlfarben",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.010"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.011"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 39,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.012"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.020"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.021"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 39,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.022"
+      }
+     ]
+    },
+    {
+     "name": "bronzefarben metallic",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.030"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.031"
+      }
+     ]
+    },
+    {
+     "name": "kupferrot",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.040"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.041"
+      }
+     ]
+    },
+    {
+     "name": "ozeanblau",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.050"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.051"
+      }
+     ]
+    },
+    {
+     "name": "moosgrau",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 39,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.060"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 39,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.061"
+      }
+     ]
+    }
+   ],
+   "bildseite": 14,
+   "bild": "H2510.jpg"
+  },
+  {
+   "kennung": "H2515",
+   "bauart": "knopf",
+   "seite": 16,
+   "tabelle": 16,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.070"
+      }
+     ]
+    },
+    {
+     "name": "edelstahlfarben",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.071"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.072"
+      }
+     ]
+    },
+    {
+     "name": "bronzefarben metallic",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.073"
+      }
+     ]
+    },
+    {
+     "name": "kupferrot",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.074"
+      }
+     ]
+    },
+    {
+     "name": "ozeanblau",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.075"
+      }
+     ]
+    },
+    {
+     "name": "moosgrau",
+     "groessen": [
+      {
+       "laenge": 44,
+       "hoehe": 39,
+       "artikel": "106.71.076"
+      }
+     ]
+    }
+   ],
+   "bildseite": 17,
+   "bild": "H2515.jpg"
+  },
+  {
+   "kennung": "H2520",
+   "bauart": "griff",
+   "seite": 18,
+   "tabelle": 21,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 112,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.080"
+      },
+      {
+       "laenge": 144,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.081"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.082"
+      },
+      {
+       "laenge": 208,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.083"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 112,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.090"
+      },
+      {
+       "laenge": 144,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.091"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.092"
+      },
+      {
+       "laenge": 208,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.093"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 112,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.100"
+      },
+      {
+       "laenge": 144,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.101"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.102"
+      },
+      {
+       "laenge": 208,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.103"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 112,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.110"
+      },
+      {
+       "laenge": 144,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.111"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.112"
+      },
+      {
+       "laenge": 208,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.113"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 112,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.120"
+      },
+      {
+       "laenge": 144,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.121"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.122"
+      },
+      {
+       "laenge": 208,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.123"
+      }
+     ]
+    },
+    {
+     "name": "Eiche natur lackiert",
+     "groessen": [
+      {
+       "laenge": 144.5,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.590"
+      },
+      {
+       "laenge": 176.5,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.592"
+      }
+     ]
+    },
+    {
+     "name": "Eiche schwarz gebeizt",
+     "groessen": [
+      {
+       "laenge": 144.5,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.591"
+      },
+      {
+       "laenge": 176.5,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.593"
+      }
+     ]
+    }
+   ],
+   "bildseite": 20,
+   "bild": "H2520.jpg"
+  },
+  {
+   "kennung": "H2525",
+   "bauart": "knopf",
+   "seite": 22,
+   "tabelle": 23,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 26,
+       "hoehe": 31,
+       "artikel": "106.71.130"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 26,
+       "hoehe": 31,
+       "artikel": "106.71.131"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 26,
+       "hoehe": 31,
+       "artikel": "106.71.132"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 26,
+       "hoehe": 31,
+       "artikel": "106.71.133"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 26,
+       "hoehe": 31,
+       "artikel": "106.71.134"
+      }
+     ]
+    },
+    {
+     "name": "Eiche natur lackiert",
+     "groessen": [
+      {
+       "laenge": 26.7,
+       "hoehe": 30,
+       "artikel": "106.71.580"
+      }
+     ]
+    },
+    {
+     "name": "Eiche schwarz gebeizt",
+     "groessen": [
+      {
+       "laenge": 26.7,
+       "hoehe": 30,
+       "artikel": "106.71.581"
+      }
+     ]
+    }
+   ],
+   "bildseite": 22,
+   "bild": "H2525.jpg"
+  },
+  {
+   "kennung": "H2530",
+   "bauart": "griff",
+   "seite": 26,
+   "tabelle": 29,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 33,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.140"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 33,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.141"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.142"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 33,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.150"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 33,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.151"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.152"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 33,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.160"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 33,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.161"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.162"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 33,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.170"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 33,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.171"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.172"
+      }
+     ]
+    }
+   ],
+   "bildseite": 28,
+   "bild": "H2530.jpg"
+  },
+  {
+   "kennung": "H2535",
+   "bauart": "knopf",
+   "seite": 28,
+   "tabelle": 29,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 33,
+       "artikel": "106.71.180"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 33,
+       "artikel": "106.71.181"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 33,
+       "artikel": "106.71.182"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 33,
+       "artikel": "106.71.183"
+      }
+     ]
+    }
+   ],
+   "bildseite": 28,
+   "bild": "H2535.jpg"
+  },
+  {
+   "kennung": "H2540",
+   "bauart": "griff",
+   "seite": 30,
+   "tabelle": 33,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 152,
+       "hoehe": 30.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.190"
+      },
+      {
+       "laenge": 184,
+       "hoehe": 30.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.191"
+      },
+      {
+       "laenge": 348,
+       "hoehe": 36,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.192"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 152,
+       "hoehe": 30.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.200"
+      },
+      {
+       "laenge": 184,
+       "hoehe": 30.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.201"
+      },
+      {
+       "laenge": 348,
+       "hoehe": 36,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.202"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 152,
+       "hoehe": 30.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.210"
+      },
+      {
+       "laenge": 184,
+       "hoehe": 30.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.211"
+      },
+      {
+       "laenge": 348,
+       "hoehe": 36,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.212"
+      }
+     ]
+    }
+   ],
+   "bildseite": 32,
+   "bild": "H2540.jpg"
+  },
+  {
+   "kennung": "H2545",
+   "bauart": "knopf",
+   "seite": 32,
+   "tabelle": 33,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 40,
+       "hoehe": 31.5,
+       "artikel": "106.71.220"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 40,
+       "hoehe": 31.5,
+       "artikel": "106.71.221"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 40,
+       "hoehe": 31.5,
+       "artikel": "106.71.222"
+      }
+     ]
+    }
+   ],
+   "bildseite": 32,
+   "bild": "H2545.jpg"
+  },
+  {
+   "kennung": "H2550",
+   "bauart": "griff",
+   "seite": 34,
+   "tabelle": 37,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 42.5,
+       "lochabstand": [
+        32
+       ],
+       "artikel": "106.71.230"
+      },
+      {
+       "laenge": 84,
+       "hoehe": 42.5,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.71.231"
+      },
+      {
+       "laenge": 148,
+       "hoehe": 42.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.232"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 42.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.233"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 42.5,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.234"
+      },
+      {
+       "laenge": 340,
+       "hoehe": 42.5,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.235"
+      }
+     ]
+    },
+    {
+     "name": "edelstahlfarben",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 42.5,
+       "lochabstand": [
+        32
+       ],
+       "artikel": "106.71.240"
+      },
+      {
+       "laenge": 84,
+       "hoehe": 42.5,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.71.241"
+      },
+      {
+       "laenge": 148,
+       "hoehe": 42.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.242"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 42.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.243"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 42.5,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.244"
+      },
+      {
+       "laenge": 340,
+       "hoehe": 42.5,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.245"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 42.5,
+       "lochabstand": [
+        32
+       ],
+       "artikel": "106.71.250"
+      },
+      {
+       "laenge": 84,
+       "hoehe": 42.5,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.71.251"
+      },
+      {
+       "laenge": 148,
+       "hoehe": 42.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.252"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 42.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.253"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 42.5,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.254"
+      },
+      {
+       "laenge": 340,
+       "hoehe": 42.5,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.255"
+      }
+     ]
+    },
+    {
+     "name": "silberfarben",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 42.5,
+       "lochabstand": [
+        32
+       ],
+       "artikel": "106.71.260"
+      },
+      {
+       "laenge": 84,
+       "hoehe": 42.5,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.71.261"
+      },
+      {
+       "laenge": 148,
+       "hoehe": 42.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.262"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 42.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.263"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 42.5,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.264"
+      },
+      {
+       "laenge": 340,
+       "hoehe": 42.5,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.265"
+      }
+     ]
+    }
+   ],
+   "bildseite": 36,
+   "bild": "H2550.jpg"
+  },
+  {
+   "kennung": "H2555",
+   "bauart": "griff",
+   "seite": 38,
+   "tabelle": 38,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.270"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.271"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.280"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.281"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.290"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.291"
+      }
+     ]
+    },
+    {
+     "name": "olivgrau strukturiert",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.300"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.301"
+      }
+     ]
+    },
+    {
+     "name": "perlweiß strukturiert",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.310"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.311"
+      }
+     ]
+    }
+   ],
+   "bildseite": 38,
+   "bild": "H2555.jpg"
+  },
+  {
+   "kennung": "H2560",
+   "bauart": "knopf",
+   "seite": 39,
+   "tabelle": 39,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 41,
+       "hoehe": 26,
+       "artikel": "106.71.320"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 41,
+       "hoehe": 26,
+       "artikel": "106.71.321"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 41,
+       "hoehe": 26,
+       "artikel": "106.71.322"
+      }
+     ]
+    },
+    {
+     "name": "olivgrau strukturiert",
+     "groessen": [
+      {
+       "laenge": 41,
+       "hoehe": 26,
+       "artikel": "106.71.323"
+      }
+     ]
+    },
+    {
+     "name": "perlweiß strukturiert",
+     "groessen": [
+      {
+       "laenge": 41,
+       "hoehe": 26,
+       "artikel": "106.71.324"
+      }
+     ]
+    }
+   ],
+   "bildseite": 39,
+   "bild": "H2560.jpg"
+  },
+  {
+   "kennung": "H2565",
+   "bauart": "griff",
+   "seite": 40,
+   "tabelle": 40,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 109,
+       "hoehe": 31.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.330"
+      },
+      {
+       "laenge": 141,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.331"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.332"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 109,
+       "hoehe": 31.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.340"
+      },
+      {
+       "laenge": 141,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.341"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.342"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 109,
+       "hoehe": 31.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.350"
+      },
+      {
+       "laenge": 141,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.351"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.352"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 109,
+       "hoehe": 31.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.360"
+      },
+      {
+       "laenge": 141,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.361"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.362"
+      }
+     ]
+    },
+    {
+     "name": "Eiche natur lackiert",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.550"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.552"
+      }
+     ]
+    },
+    {
+     "name": "Eiche schwarz gebeizt",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 31.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.551"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 31.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.553"
+      }
+     ]
+    }
+   ],
+   "bildseite": 40,
+   "bild": "H2565.jpg"
+  },
+  {
+   "kennung": "H2570",
+   "bauart": "knopf",
+   "seite": 42,
+   "tabelle": 42,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 31.5,
+       "hoehe": 31.5,
+       "artikel": "106.71.370"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 31.5,
+       "hoehe": 31.5,
+       "artikel": "106.71.371"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 31.5,
+       "hoehe": 31.5,
+       "artikel": "106.71.372"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 31.5,
+       "hoehe": 31.5,
+       "artikel": "106.71.373"
+      }
+     ]
+    },
+    {
+     "name": "Eiche natur lackiert",
+     "groessen": [
+      {
+       "laenge": 32,
+       "hoehe": 31.5,
+       "artikel": "106.71.540"
+      }
+     ]
+    },
+    {
+     "name": "Eiche schwarz gebeizt",
+     "groessen": [
+      {
+       "laenge": 32,
+       "hoehe": 31.5,
+       "artikel": "106.71.541"
+      }
+     ]
+    }
+   ],
+   "bildseite": 42,
+   "bild": "H2570.jpg"
+  },
+  {
+   "kennung": "H2575",
+   "bauart": "griff",
+   "seite": 44,
+   "tabelle": 44,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.380"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.381"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.382"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.390"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.391"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.392"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.400"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.401"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.402"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 106,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.410"
+      },
+      {
+       "laenge": 138,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.411"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.412"
+      }
+     ]
+    }
+   ],
+   "bildseite": 44,
+   "bild": "H2575.jpg"
+  },
+  {
+   "kennung": "H2580",
+   "bauart": "knopf",
+   "seite": 45,
+   "tabelle": 45,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 28,
+       "artikel": "106.71.420"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 28,
+       "artikel": "106.71.421"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 28,
+       "artikel": "106.71.422"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 28,
+       "artikel": "106.71.423"
+      }
+     ]
+    }
+   ],
+   "bildseite": 45,
+   "bild": "H2580.jpg"
+  },
+  {
+   "kennung": "H2585",
+   "bauart": "griff",
+   "seite": 46,
+   "tabelle": 46,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.430"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.431"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.432"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.433"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.434"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.440"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.441"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.442"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.443"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.444"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.450"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.451"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.452"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.453"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.454"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.460"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.461"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.462"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.71.463"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.71.464"
+      }
+     ]
+    }
+   ],
+   "bildseite": 46,
+   "bild": "H2585.jpg"
+  },
+  {
+   "kennung": "H2590",
+   "bauart": "griff",
+   "seite": 47,
+   "tabelle": 47,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 107.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.470"
+      },
+      {
+       "laenge": 139.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.471"
+      },
+      {
+       "laenge": 171.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.472"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 107.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.480"
+      },
+      {
+       "laenge": 139.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.481"
+      },
+      {
+       "laenge": 171.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.482"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 107.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.490"
+      },
+      {
+       "laenge": 139.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.491"
+      },
+      {
+       "laenge": 171.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.492"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 107.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.500"
+      },
+      {
+       "laenge": 139.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.501"
+      },
+      {
+       "laenge": 171.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.502"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 107.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.71.510"
+      },
+      {
+       "laenge": 139.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.71.511"
+      },
+      {
+       "laenge": 171.5,
+       "hoehe": 37.5,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.71.512"
+      }
+     ]
+    }
+   ],
+   "bildseite": 47,
+   "bild": "H2590.jpg"
+  },
+  {
+   "kennung": "H2305",
+   "bauart": "griff",
+   "seite": 48,
+   "tabelle": 50,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.380"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.381"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.382"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.383"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.390"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.391"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.392"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.393"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.400"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.401"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.402"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.403"
+      }
+     ]
+    }
+   ],
+   "bildseite": 51,
+   "bild": "H2305.jpg"
+  },
+  {
+   "kennung": "H2310",
+   "bauart": "knopf",
+   "seite": 52,
+   "tabelle": 53,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 50,
+       "hoehe": 30,
+       "artikel": "106.70.410"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 50,
+       "hoehe": 30,
+       "artikel": "106.70.411"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 50,
+       "hoehe": 30,
+       "artikel": "106.70.412"
+      }
+     ]
+    }
+   ],
+   "bildseite": 52,
+   "bild": "H2310.jpg"
+  },
+  {
+   "kennung": "H2315",
+   "bauart": "knopf",
+   "seite": 53,
+   "tabelle": 53,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 80,
+       "hoehe": 25,
+       "artikel": "106.70.420"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 80,
+       "hoehe": 25,
+       "artikel": "106.70.421"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 80,
+       "hoehe": 25,
+       "artikel": "106.70.422"
+      }
+     ]
+    }
+   ],
+   "bildseite": 53,
+   "bild": "H2315.jpg"
+  },
+  {
+   "kennung": "H2320",
+   "bauart": "griff",
+   "seite": 54,
+   "tabelle": 57,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 118,
+       "hoehe": 29,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.320"
+      },
+      {
+       "laenge": 150,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.321"
+      },
+      {
+       "laenge": 182,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.322"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 29,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.323"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 118,
+       "hoehe": 29,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.330"
+      },
+      {
+       "laenge": 150,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.331"
+      },
+      {
+       "laenge": 182,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.332"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 29,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.333"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 118,
+       "hoehe": 29,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.340"
+      },
+      {
+       "laenge": 150,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.341"
+      },
+      {
+       "laenge": 182,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.342"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 29,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.343"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 118,
+       "hoehe": 29,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.350"
+      },
+      {
+       "laenge": 150,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.351"
+      },
+      {
+       "laenge": 182,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.352"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 29,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.353"
+      }
+     ]
+    },
+    {
+     "name": "titanfarben grau matt",
+     "groessen": [
+      {
+       "laenge": 118,
+       "hoehe": 29,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.360"
+      },
+      {
+       "laenge": 150,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.361"
+      },
+      {
+       "laenge": 182,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.362"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 29,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.363"
+      }
+     ]
+    }
+   ],
+   "bildseite": 56,
+   "bild": "H2320.jpg"
+  },
+  {
+   "kennung": "H2325",
+   "bauart": "knopf",
+   "seite": 58,
+   "tabelle": 58,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 24,
+       "hoehe": 29,
+       "artikel": "106.70.370"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 24,
+       "hoehe": 29,
+       "artikel": "106.70.371"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 24,
+       "hoehe": 29,
+       "artikel": "106.70.372"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 24,
+       "hoehe": 29,
+       "artikel": "106.70.373"
+      }
+     ]
+    },
+    {
+     "name": "titanfarben grau matt",
+     "groessen": [
+      {
+       "laenge": 24,
+       "hoehe": 29,
+       "artikel": "106.70.374"
+      }
+     ]
+    }
+   ],
+   "bildseite": 59,
+   "bild": "H2325.jpg"
+  },
+  {
+   "kennung": "H2330",
+   "bauart": "griff",
+   "seite": 60,
+   "tabelle": 63,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 114,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.430"
+      },
+      {
+       "laenge": 146,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.431"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.432"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 114,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.440"
+      },
+      {
+       "laenge": 146,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.441"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.442"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 114,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.450"
+      },
+      {
+       "laenge": 146,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.451"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.452"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 114,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.460"
+      },
+      {
+       "laenge": 146,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.461"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.462"
+      }
+     ]
+    }
+   ],
+   "bildseite": 62,
+   "bild": "H2330.jpg"
+  },
+  {
+   "kennung": "H2335",
+   "bauart": "knopf",
+   "seite": 62,
+   "tabelle": 63,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 32,
+       "artikel": "106.70.470"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 32,
+       "artikel": "106.70.471"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 32,
+       "artikel": "106.70.472"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 47,
+       "hoehe": 32,
+       "artikel": "106.70.473"
+      }
+     ]
+    }
+   ],
+   "bildseite": 62,
+   "bild": "H2335.jpg"
+  },
+  {
+   "kennung": "H2340",
+   "bauart": "griff",
+   "seite": 64,
+   "tabelle": 67,
+   "oberflaechen": [
+    {
+     "name": "titanfarben grau matt",
+     "groessen": [
+      {
+       "laenge": 140,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.640"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.641"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 140,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.650"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.651"
+      }
+     ]
+    }
+   ],
+   "bildseite": 66,
+   "bild": "H2340.jpg"
+  },
+  {
+   "kennung": "H2345",
+   "bauart": "griff",
+   "seite": 68,
+   "tabelle": 71,
+   "oberflaechen": [
+    {
+     "name": "gold bronzefarben",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.660"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.661"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.670"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.671"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik gebürstet",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 29,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.680"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.681"
+      }
+     ]
+    }
+   ],
+   "bildseite": 70,
+   "bild": "H2345.jpg"
+  },
+  {
+   "kennung": "H2350",
+   "bauart": "griff",
+   "seite": 72,
+   "tabelle": 75,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.560"
+      },
+      {
+       "laenge": 244,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.561"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.570"
+      },
+      {
+       "laenge": 244,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.571"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.580"
+      },
+      {
+       "laenge": 244,
+       "hoehe": 31,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.581"
+      }
+     ]
+    }
+   ],
+   "bildseite": 74,
+   "bild": "H2350.jpg"
+  },
+  {
+   "kennung": "H2355",
+   "bauart": "knopf",
+   "seite": 74,
+   "tabelle": 75,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 31,
+       "artikel": "106.70.590"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 31,
+       "artikel": "106.70.591"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 52,
+       "hoehe": 31,
+       "artikel": "106.70.592"
+      }
+     ]
+    }
+   ],
+   "bildseite": 74,
+   "bild": "H2355.jpg"
+  },
+  {
+   "kennung": "H2360",
+   "bauart": "griff",
+   "seite": 76,
+   "tabelle": 76,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 188,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.480"
+      },
+      {
+       "laenge": 252,
+       "hoehe": 27,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.481"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 188,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.490"
+      },
+      {
+       "laenge": 252,
+       "hoehe": 27,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.491"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 188,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.500"
+      },
+      {
+       "laenge": 252,
+       "hoehe": 27,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.501"
+      }
+     ]
+    }
+   ],
+   "bildseite": 76,
+   "bild": "H2360.jpg"
+  },
+  {
+   "kennung": "H2365",
+   "bauart": "knopf",
+   "seite": 77,
+   "tabelle": 77,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 27,
+       "artikel": "106.70.510"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 27,
+       "artikel": "106.70.511"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 27,
+       "artikel": "106.70.512"
+      }
+     ]
+    }
+   ],
+   "bildseite": 77,
+   "bild": "H2365.jpg"
+  },
+  {
+   "kennung": "H2370",
+   "bauart": "griff",
+   "seite": 78,
+   "tabelle": 78,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 30,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.520"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.521"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 30,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.530"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.531"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 30,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.540"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.541"
+      }
+     ]
+    }
+   ],
+   "bildseite": 78,
+   "bild": "H2370.jpg"
+  },
+  {
+   "kennung": "H2375",
+   "bauart": "knopf",
+   "seite": 79,
+   "tabelle": 79,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 37,
+       "hoehe": 30,
+       "artikel": "106.70.550"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 37,
+       "hoehe": 30,
+       "artikel": "106.70.551"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 37,
+       "hoehe": 30,
+       "artikel": "106.70.552"
+      }
+     ]
+    }
+   ],
+   "bildseite": 79,
+   "bild": "H2375.jpg"
+  },
+  {
+   "kennung": "H2380",
+   "bauart": "griff",
+   "seite": 80,
+   "tabelle": 80,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.270"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.271"
+      },
+      {
+       "laenge": 200,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.272"
+      },
+      {
+       "laenge": 232,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.273"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.280"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.281"
+      },
+      {
+       "laenge": 200,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.282"
+      },
+      {
+       "laenge": 232,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.283"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.290"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.291"
+      },
+      {
+       "laenge": 200,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.292"
+      },
+      {
+       "laenge": 232,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.293"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 136,
+       "hoehe": 28,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.300"
+      },
+      {
+       "laenge": 168,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.301"
+      },
+      {
+       "laenge": 200,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.302"
+      },
+      {
+       "laenge": 232,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.303"
+      }
+     ]
+    }
+   ],
+   "bildseite": 80,
+   "bild": "H2380.jpg"
+  },
+  {
+   "kennung": "H2385",
+   "bauart": "knopf",
+   "seite": 81,
+   "tabelle": 81,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 27,
+       "hoehe": 28,
+       "artikel": "106.70.310"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 27,
+       "hoehe": 28,
+       "artikel": "106.70.311"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 27,
+       "hoehe": 28,
+       "artikel": "106.70.312"
+      }
+     ]
+    },
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 27,
+       "hoehe": 28,
+       "artikel": "106.70.313"
+      }
+     ]
+    }
+   ],
+   "bildseite": 81,
+   "bild": "H2385.jpg"
+  },
+  {
+   "kennung": "H2390",
+   "bauart": "griff",
+   "seite": 82,
+   "tabelle": 82,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 137,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.600"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 137,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.601"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 137,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.602"
+      }
+     ]
+    }
+   ],
+   "bildseite": 82,
+   "bild": "H2390.jpg"
+  },
+  {
+   "kennung": "H2395",
+   "bauart": "griff",
+   "seite": 83,
+   "tabelle": 83,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.610"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.611"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.620"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.621"
+      }
+     ]
+    },
+    {
+     "name": "zinnfarben dunkel",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.630"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.631"
+      }
+     ]
+    }
+   ],
+   "bildseite": 83,
+   "bild": "H2395.jpg"
+  },
+  {
+   "kennung": "H2110",
+   "bauart": "griff",
+   "seite": 84,
+   "tabelle": 87,
+   "oberflaechen": [
+    {
+     "name": "zinnfarben dunkel",
+     "groessen": [
+      {
+       "laenge": 181,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.090"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.200"
+      }
+     ]
+    },
+    {
+     "name": "metallic grau matt",
+     "groessen": [
+      {
+       "laenge": 181,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.091"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.201"
+      }
+     ]
+    },
+    {
+     "name": "bronzefarben hell",
+     "groessen": [
+      {
+       "laenge": 181,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.212"
+      },
+      {
+       "laenge": 214,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.202"
+      }
+     ]
+    }
+   ],
+   "bildseite": 86,
+   "bild": "H2110.jpg"
+  },
+  {
+   "kennung": "H2115",
+   "bauart": "griff",
+   "seite": 88,
+   "tabelle": 89,
+   "oberflaechen": [
+    {
+     "name": "schwarz vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 25,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.190"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 25,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.011"
+      },
+      {
+       "laenge": 373,
+       "hoehe": 28,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.191"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 25,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.170"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 25,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.010"
+      },
+      {
+       "laenge": 373,
+       "hoehe": 28,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.171"
+      }
+     ]
+    }
+   ],
+   "bildseite": 88,
+   "bild": "H2115.jpg"
+  },
+  {
+   "kennung": "H2120",
+   "bauart": "griff",
+   "seite": 90,
+   "tabelle": 92,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 143,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.110"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.020"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 35,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.111"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 143,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.160"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.021"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 35,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.161"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 143,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.162"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.022"
+      },
+      {
+       "laenge": 334,
+       "hoehe": 35,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.163"
+      }
+     ]
+    }
+   ],
+   "bildseite": 93,
+   "bild": "H2120.jpg"
+  },
+  {
+   "kennung": "H2125",
+   "bauart": "griff",
+   "seite": 94,
+   "tabelle": 94,
+   "oberflaechen": [
+    {
+     "name": "used look gebürstet schwarz",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 27,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.130"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.131"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 27,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.031"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 27,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.120"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.121"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 27,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.030"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 27,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.140"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 27,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.141"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 27,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.032"
+      }
+     ]
+    }
+   ],
+   "bildseite": 94,
+   "bild": "H2125.jpg"
+  },
+  {
+   "kennung": "H2130",
+   "bauart": "knopf",
+   "seite": 95,
+   "tabelle": 95,
+   "oberflaechen": [
+    {
+     "name": "used look gebürstet schwarz",
+     "groessen": [
+      {
+       "laenge": 34,
+       "hoehe": 29,
+       "artikel": "106.69.151"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 34,
+       "hoehe": 29,
+       "artikel": "106.69.150"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 34,
+       "hoehe": 29,
+       "artikel": "106.69.152"
+      }
+     ]
+    }
+   ],
+   "bildseite": 95,
+   "bild": "H2130.jpg"
+  },
+  {
+   "kennung": "H2135",
+   "bauart": "griff",
+   "seite": 96,
+   "tabelle": 99,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 141,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.100"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.101"
+      },
+      {
+       "laenge": 205,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.102"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 141,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.103"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.104"
+      },
+      {
+       "laenge": 205,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.105"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 141,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.106"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.107"
+      },
+      {
+       "laenge": 205,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.108"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 141,
+       "hoehe": 31,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.109"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 31,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.110"
+      },
+      {
+       "laenge": 205,
+       "hoehe": 31,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.111"
+      }
+     ]
+    }
+   ],
+   "bildseite": 98,
+   "bild": "H2135.jpg"
+  },
+  {
+   "kennung": "H2140",
+   "bauart": "knopf",
+   "seite": 98,
+   "tabelle": 99,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 46,
+       "hoehe": 31,
+       "artikel": "106.70.120"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 46,
+       "hoehe": 31,
+       "artikel": "106.70.121"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 46,
+       "hoehe": 31,
+       "artikel": "106.70.122"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 46,
+       "hoehe": 31,
+       "artikel": "106.70.123"
+      }
+     ]
+    }
+   ],
+   "bildseite": 98,
+   "bild": "H2140.jpg"
+  },
+  {
+   "kennung": "H2145",
+   "bauart": "knopf",
+   "seite": 100,
+   "tabelle": 100,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 62,
+       "hoehe": 42,
+       "artikel": "106.70.130"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt gebürstet",
+     "groessen": [
+      {
+       "laenge": 62,
+       "hoehe": 42,
+       "artikel": "106.70.131"
+      }
+     ]
+    }
+   ],
+   "bildseite": 100,
+   "bild": "H2145.jpg"
+  },
+  {
+   "kennung": "H2150",
+   "bauart": "knopf",
+   "seite": 101,
+   "tabelle": 101,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 56,
+       "hoehe": 50,
+       "artikel": "106.70.135"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 56,
+       "hoehe": 50,
+       "artikel": "106.70.136"
+      }
+     ]
+    }
+   ],
+   "bildseite": 101,
+   "bild": "H2150.jpg"
+  },
+  {
+   "kennung": "H2155",
+   "bauart": "griff",
+   "seite": 102,
+   "tabelle": 105,
+   "oberflaechen": [
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "rechts",
+       "artikel": "101.69.504"
+      },
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "links",
+       "artikel": "101.69.505"
+      }
+     ]
+    },
+    {
+     "name": "zinnfarben dunkel",
+     "groessen": [
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "rechts",
+       "artikel": "101.69.506"
+      },
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "links",
+       "artikel": "101.69.507"
+      }
+     ]
+    },
+    {
+     "name": "perlenbeige",
+     "groessen": [
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "rechts",
+       "artikel": "101.69.508"
+      },
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "links",
+       "artikel": "101.69.509"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt antibakteriell",
+     "groessen": [
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "rechts",
+       "artikel": "101.69.510"
+      },
+      {
+       "laenge": 100,
+       "hoehe": 23,
+       "lochabstand": [
+        16
+       ],
+       "ausfuehrung": "links",
+       "artikel": "101.69.511"
+      }
+     ]
+    }
+   ],
+   "bildseite": 104,
+   "bild": "H2155.jpg"
+  },
+  {
+   "kennung": "H2160",
+   "bauart": "knopf",
+   "seite": 106,
+   "tabelle": 106,
+   "oberflaechen": [
+    {
+     "name": "graphitfarben",
+     "groessen": [
+      {
+       "laenge": 51,
+       "hoehe": 22,
+       "artikel": "106.70.185"
+      }
+     ]
+    },
+    {
+     "name": "bronzefarben",
+     "groessen": [
+      {
+       "laenge": 51,
+       "hoehe": 22,
+       "artikel": "106.70.186"
+      }
+     ]
+    },
+    {
+     "name": "metallic grau matt",
+     "groessen": [
+      {
+       "laenge": 51,
+       "hoehe": 22,
+       "artikel": "106.70.187"
+      }
+     ]
+    }
+   ],
+   "bildseite": 106,
+   "bild": "H2160.jpg"
+  },
+  {
+   "kennung": "H2165",
+   "bauart": "knopf",
+   "seite": 107,
+   "tabelle": 107,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 29,
+       "artikel": "106.69.070"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 29,
+       "artikel": "106.69.072"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 35,
+       "hoehe": 29,
+       "artikel": "106.69.073"
+      }
+     ]
+    }
+   ],
+   "bildseite": 107,
+   "bild": "H2165.jpg"
+  },
+  {
+   "kennung": "H2170",
+   "bauart": "griff",
+   "seite": 108,
+   "tabelle": 111,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt / marmorfarbene Einlage",
+     "groessen": [
+      {
+       "laenge": 167,
+       "hoehe": 29,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.175"
+      }
+     ]
+    }
+   ],
+   "bildseite": 110,
+   "bild": "H2170.jpg"
+  },
+  {
+   "kennung": "H2175",
+   "bauart": "knopf",
+   "seite": 110,
+   "tabelle": 111,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt / marmorfarbene Einlage",
+     "groessen": [
+      {
+       "laenge": 32,
+       "hoehe": 29,
+       "artikel": "106.70.180"
+      }
+     ]
+    }
+   ],
+   "bildseite": 110,
+   "bild": "H2175.jpg"
+  },
+  {
+   "kennung": "H2180",
+   "bauart": "griff",
+   "seite": 112,
+   "tabelle": 112,
+   "oberflaechen": [
+    {
+     "name": "oil rubbed bronze",
+     "groessen": [
+      {
+       "laenge": 130,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.220"
+      },
+      {
+       "laenge": 161,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.221"
+      },
+      {
+       "laenge": 236,
+       "hoehe": 35,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.222"
+      },
+      {
+       "laenge": 367,
+       "hoehe": 50,
+       "lochabstand": [
+        304.8,
+        320
+       ],
+       "artikel": "106.70.223"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 130,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.150"
+      },
+      {
+       "laenge": 161,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.151"
+      },
+      {
+       "laenge": 236,
+       "hoehe": 35,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.152"
+      },
+      {
+       "laenge": 367,
+       "hoehe": 50,
+       "lochabstand": [
+        304.8,
+        320
+       ],
+       "artikel": "106.70.153"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 130,
+       "hoehe": 32,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.70.160"
+      },
+      {
+       "laenge": 161,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.161"
+      },
+      {
+       "laenge": 236,
+       "hoehe": 35,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.162"
+      },
+      {
+       "laenge": 367,
+       "hoehe": 50,
+       "lochabstand": [
+        304.8,
+        320
+       ],
+       "artikel": "106.70.163"
+      }
+     ]
+    }
+   ],
+   "bildseite": 112,
+   "bild": "H2180.jpg"
+  },
+  {
+   "kennung": "H2185",
+   "bauart": "knopf",
+   "seite": 113,
+   "tabelle": 113,
+   "oberflaechen": [
+    {
+     "name": "oil rubbed bronze",
+     "groessen": [
+      {
+       "laenge": 36,
+       "hoehe": 31,
+       "artikel": "106.70.173"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 36,
+       "hoehe": 31,
+       "artikel": "106.70.171"
+      }
+     ]
+    },
+    {
+     "name": "goldfarben gebürstet",
+     "groessen": [
+      {
+       "laenge": 36,
+       "hoehe": 31,
+       "artikel": "106.70.172"
+      }
+     ]
+    }
+   ],
+   "bildseite": 113,
+   "bild": "H2185.jpg"
+  },
+  {
+   "kennung": "H2190",
+   "bauart": "griff",
+   "seite": 114,
+   "tabelle": 115,
+   "oberflaechen": [
+    {
+     "name": "schwarz vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 74,
+       "hoehe": 32,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.69.320"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.321"
+      },
+      {
+       "laenge": 329,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.322"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 74,
+       "hoehe": 32,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.69.100"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.101"
+      },
+      {
+       "laenge": 329,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.102"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 74,
+       "hoehe": 32,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.69.310"
+      },
+      {
+       "laenge": 170,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.311"
+      },
+      {
+       "laenge": 329,
+       "hoehe": 32,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.69.312"
+      }
+     ]
+    }
+   ],
+   "bildseite": 114,
+   "bild": "H2190.jpg"
+  },
+  {
+   "kennung": "H2195",
+   "bauart": "griff",
+   "seite": 116,
+   "tabelle": 119,
+   "oberflaechen": [
+    {
+     "name": "zinnfarben dunkel",
+     "groessen": [
+      {
+       "laenge": 124,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.240"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.241"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 124,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.250"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.251"
+      }
+     ]
+    },
+    {
+     "name": "schiefergraufarben",
+     "groessen": [
+      {
+       "laenge": 124,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.260"
+      },
+      {
+       "laenge": 173,
+       "hoehe": 23,
+       "lochabstand": [
+        64
+       ],
+       "artikel": "106.70.261"
+      }
+     ]
+    }
+   ],
+   "bildseite": 118,
+   "bild": "H2195.jpg"
+  },
+  {
+   "kennung": "H1910",
+   "bauart": "griff",
+   "seite": 120,
+   "tabelle": 123,
+   "oberflaechen": [
+    {
+     "name": "champagner matt",
+     "groessen": [
+      {
+       "laenge": 190,
+       "hoehe": 19,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.70.000"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 190,
+       "hoehe": 19,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.70.003"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt poliert",
+     "groessen": [
+      {
+       "laenge": 190,
+       "hoehe": 19,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.70.005"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 190,
+       "hoehe": 19,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.70.006"
+      }
+     ]
+    }
+   ],
+   "bildseite": 122,
+   "bild": "H1910.jpg"
+  },
+  {
+   "kennung": "H1920",
+   "bauart": "griff",
+   "seite": 124,
+   "tabelle": 127,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 169,
+       "hoehe": 22,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.461"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt schwarz gebürstet",
+     "groessen": [
+      {
+       "laenge": 169,
+       "hoehe": 22,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.462"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 169,
+       "hoehe": 22,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.463"
+      }
+     ]
+    }
+   ],
+   "bildseite": 126,
+   "bild": "H1920.jpg"
+  },
+  {
+   "kennung": "H1925",
+   "bauart": "griff",
+   "seite": 128,
+   "tabelle": 130,
+   "oberflaechen": [
+    {
+     "name": "vermessingt gebürstet",
+     "groessen": [
+      {
+       "laenge": 176,
+       "hoehe": 36,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.402"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 176,
+       "hoehe": 36,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.404"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 176,
+       "hoehe": 36,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.403"
+      }
+     ]
+    }
+   ],
+   "bildseite": 131,
+   "bild": "H1925.jpg"
+  },
+  {
+   "kennung": "H1930",
+   "bauart": "griff",
+   "seite": 132,
+   "tabelle": 135,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 220,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.415"
+      }
+     ]
+    },
+    {
+     "name": "bronze gebürstet",
+     "groessen": [
+      {
+       "laenge": 220,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.414"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 220,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.413"
+      }
+     ]
+    }
+   ],
+   "bildseite": 134,
+   "bild": "H1930.jpg"
+  },
+  {
+   "kennung": "H1935",
+   "bauart": "griff",
+   "seite": 136,
+   "tabelle": 138,
+   "oberflaechen": [
+    {
+     "name": "schwarz rau matt",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 34,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.060"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 34,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.061"
+      },
+      {
+       "laenge": 206,
+       "hoehe": 34,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.062"
+      }
+     ]
+    },
+    {
+     "name": "schwarz",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 34,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.040"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 34,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.041"
+      },
+      {
+       "laenge": 206,
+       "hoehe": 34,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.042"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 34,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.70.030"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 34,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.70.031"
+      },
+      {
+       "laenge": 206,
+       "hoehe": 34,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.70.032"
+      }
+     ]
+    }
+   ],
+   "bildseite": 139,
+   "bild": "H1935.jpg"
+  },
+  {
+   "kennung": "H1950",
+   "bauart": "griff",
+   "seite": 140,
+   "tabelle": 140,
+   "oberflaechen": [
+    {
+     "name": "used look gebürstet schwarz",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 26,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.420"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.421"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.422"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 26,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.69.423"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 26,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.430"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.431"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.432"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 26,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.69.433"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 26,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.440"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.441"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.442"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 26,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.69.443"
+      }
+     ]
+    },
+    {
+     "name": "silberfarben",
+     "groessen": [
+      {
+       "laenge": 108,
+       "hoehe": 26,
+       "lochabstand": [
+        96
+       ],
+       "artikel": "106.69.450"
+      },
+      {
+       "laenge": 140,
+       "hoehe": 26,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.451"
+      },
+      {
+       "laenge": 172,
+       "hoehe": 26,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.452"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 26,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "106.69.453"
+      }
+     ]
+    }
+   ],
+   "bildseite": 140,
+   "bild": "H1950.jpg"
+  },
+  {
+   "kennung": "H1955",
+   "bauart": "griff",
+   "seite": 141,
+   "tabelle": 141,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.471"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.472"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 142,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.69.491"
+      },
+      {
+       "laenge": 174,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.69.492"
+      }
+     ]
+    }
+   ],
+   "bildseite": 141,
+   "bild": "H1955.jpg"
+  },
+  {
+   "kennung": "H1960",
+   "bauart": "knopf",
+   "seite": 142,
+   "tabelle": 142,
+   "oberflaechen": [
+    {
+     "name": "vermessingt gebürstet",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 28,
+       "artikel": "106.69.502"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 28,
+       "artikel": "106.69.501"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 60,
+       "hoehe": 28,
+       "artikel": "106.69.500"
+      }
+     ]
+    }
+   ],
+   "bildseite": 142,
+   "bild": "H1960.jpg"
+  },
+  {
+   "kennung": "H1970",
+   "bauart": "griff",
+   "seite": 143,
+   "tabelle": 143,
+   "oberflaechen": [
+    {
+     "name": "dunkel zinnfarben durchgerieben",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 25,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.69.000"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 25,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.69.001"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 25,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "106.69.002"
+      }
+     ]
+    }
+   ],
+   "bildseite": 143,
+   "bild": "H1970.jpg"
+  },
+  {
+   "kennung": "H1715",
+   "bauart": "griff",
+   "seite": 144,
+   "tabelle": 145,
+   "oberflaechen": [
+    {
+     "name": "vermessingt gebürstet",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.515"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.516"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.115"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.116"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.215"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.216"
+      }
+     ]
+    },
+    {
+     "name": "verkupfert poliert",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.015"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.016"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.915"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.916"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.715"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.716"
+      }
+     ]
+    }
+   ],
+   "bildseite": 144,
+   "bild": "H1715.jpg"
+  },
+  {
+   "kennung": "H1725",
+   "bauart": "knopf",
+   "seite": 146,
+   "tabelle": 146,
+   "oberflaechen": [
+    {
+     "name": "anthrazitfarben",
+     "groessen": [
+      {
+       "laenge": 30,
+       "hoehe": 35,
+       "artikel": "106.65.450"
+      }
+     ]
+    },
+    {
+     "name": "silberfarben matt",
+     "groessen": [
+      {
+       "laenge": 30,
+       "hoehe": 35,
+       "artikel": "106.65.650"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 30,
+       "hoehe": 35,
+       "artikel": "106.65.150"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 30,
+       "hoehe": 35,
+       "artikel": "106.65.350"
+      }
+     ]
+    }
+   ],
+   "bildseite": 146,
+   "bild": "H1725.jpg"
+  },
+  {
+   "kennung": "H1730",
+   "bauart": "griff",
+   "seite": 147,
+   "tabelle": 147,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 35,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.65.366"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 35,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.65.066"
+      }
+     ]
+    },
+    {
+     "name": "champagner matt",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 35,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.65.566"
+      }
+     ]
+    }
+   ],
+   "bildseite": 147,
+   "bild": "H1730.jpg"
+  },
+  {
+   "kennung": "H1735",
+   "bauart": "griff",
+   "seite": 148,
+   "tabelle": 149,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 139,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.225"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.226"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 139,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.625"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.626"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 139,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.525"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.526"
+      }
+     ]
+    },
+    {
+     "name": "used look schwarz gebürstet",
+     "groessen": [
+      {
+       "laenge": 139,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.62.425"
+      },
+      {
+       "laenge": 171,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.62.426"
+      }
+     ]
+    }
+   ],
+   "bildseite": 148,
+   "bild": "H1735.jpg"
+  },
+  {
+   "kennung": "H1510",
+   "bauart": "griff",
+   "seite": 150,
+   "tabelle": 150,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 212,
+       "hoehe": 30,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.214"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 212,
+       "hoehe": 30,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.014"
+      },
+      {
+       "laenge": 340,
+       "hoehe": 30,
+       "lochabstand": [
+        288,
+        320
+       ],
+       "artikel": "106.61.017"
+      }
+     ]
+    }
+   ],
+   "bildseite": 150,
+   "bild": "H1510.jpg"
+  },
+  {
+   "kennung": "H1515",
+   "bauart": "griff",
+   "seite": 151,
+   "tabelle": 151,
+   "oberflaechen": [
+    {
+     "name": "vernickelt schwarz poliert",
+     "groessen": [
+      {
+       "laenge": 230,
+       "hoehe": 27,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.304"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 230,
+       "hoehe": 27,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.004"
+      }
+     ]
+    }
+   ],
+   "bildseite": 151,
+   "bild": "H1515.jpg"
+  },
+  {
+   "kennung": "H1520",
+   "bauart": "griff",
+   "seite": 152,
+   "tabelle": 152,
+   "oberflaechen": [
+    {
+     "name": "bleifarben",
+     "groessen": [
+      {
+       "laenge": 218,
+       "hoehe": 21,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.464"
+      }
+     ]
+    },
+    {
+     "name": "titanfarben",
+     "groessen": [
+      {
+       "laenge": 218,
+       "hoehe": 21,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.964"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 218,
+       "hoehe": 21,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.764"
+      }
+     ]
+    },
+    {
+     "name": "verkupfert antik",
+     "groessen": [
+      {
+       "laenge": 218,
+       "hoehe": 21,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "106.61.164"
+      }
+     ]
+    }
+   ],
+   "bildseite": 152,
+   "bild": "H1520.jpg"
+  },
+  {
+   "kennung": "H1525",
+   "bauart": "griff",
+   "seite": 153,
+   "tabelle": 153,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.054"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 33,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.61.059"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt schwarz gebürstet",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.554"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 33,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.61.559"
+      }
+     ]
+    },
+    {
+     "name": "bronze matt",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.154"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 33,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.61.159"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.954"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 33,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.61.959"
+      }
+     ]
+    },
+    {
+     "name": "verkupfert antik",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 33,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.454"
+      },
+      {
+       "laenge": 332,
+       "hoehe": 33,
+       "lochabstand": [
+        320
+       ],
+       "artikel": "106.61.459"
+      }
+     ]
+    }
+   ],
+   "bildseite": 153,
+   "bild": "H1525.jpg"
+  },
+  {
+   "kennung": "H1530",
+   "bauart": "griff",
+   "seite": 154,
+   "tabelle": 154,
+   "oberflaechen": [
+    {
+     "name": "dunkel zinnfarben durchgerieben",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.043"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.044"
+      }
+     ]
+    },
+    {
+     "name": "verzinnt antik",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.943"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.944"
+      }
+     ]
+    },
+    {
+     "name": "vermessingt antik",
+     "groessen": [
+      {
+       "laenge": 148,
+       "hoehe": 30,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.143"
+      },
+      {
+       "laenge": 180,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.144"
+      }
+     ]
+    }
+   ],
+   "bildseite": 154,
+   "bild": "H1530.jpg"
+  },
+  {
+   "kennung": "H1565",
+   "bauart": "griff",
+   "seite": 155,
+   "tabelle": 155,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.223"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.224"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt schwarz gebürstet",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.323"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.324"
+      }
+     ]
+    },
+    {
+     "name": "dunkel zinnfarben durchgerieben",
+     "groessen": [
+      {
+       "laenge": 144,
+       "hoehe": 32,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "106.61.123"
+      },
+      {
+       "laenge": 176,
+       "hoehe": 32,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "106.61.124"
+      }
+     ]
+    }
+   ],
+   "bildseite": 155,
+   "bild": "H1565.jpg"
+  },
+  {
+   "kennung": "H1310",
+   "bauart": "griff",
+   "seite": 156,
+   "tabelle": 156,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.306"
+      },
+      {
+       "laenge": 202,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.307"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.706"
+      },
+      {
+       "laenge": 202,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.707"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 170,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.606"
+      },
+      {
+       "laenge": 202,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.607"
+      }
+     ]
+    }
+   ],
+   "bildseite": 156,
+   "bild": "H1310.jpg"
+  },
+  {
+   "kennung": "H1315",
+   "bauart": "griff",
+   "seite": 157,
+   "tabelle": 157,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 196,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.216"
+      },
+      {
+       "laenge": 228,
+       "hoehe": 30,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.217"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 196,
+       "hoehe": 30,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.616"
+      },
+      {
+       "laenge": 228,
+       "hoehe": 30,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.617"
+      }
+     ]
+    }
+   ],
+   "bildseite": 157,
+   "bild": "H1315.jpg"
+  },
+  {
+   "kennung": "H1325",
+   "bauart": "griff",
+   "seite": 158,
+   "tabelle": 158,
+   "oberflaechen": [
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.386"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.387"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.686"
+      },
+      {
+       "laenge": 212,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.687"
+      }
+     ]
+    }
+   ],
+   "bildseite": 158,
+   "bild": "H1325.jpg"
+  },
+  {
+   "kennung": "H1340",
+   "bauart": "knopf",
+   "seite": 159,
+   "tabelle": 159,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 20,
+       "hoehe": 31,
+       "artikel": "110.35.271"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 20,
+       "hoehe": 31,
+       "artikel": "110.35.671"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 20,
+       "hoehe": 31,
+       "artikel": "110.35.771"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 20,
+       "hoehe": 31,
+       "artikel": "110.35.371"
+      }
+     ]
+    },
+    {
+     "name": "used look eisenfarben",
+     "groessen": [
+      {
+       "laenge": 20,
+       "hoehe": 31,
+       "artikel": "110.35.040"
+      }
+     ]
+    }
+   ],
+   "bildseite": 159,
+   "bild": "H1340.jpg"
+  },
+  {
+   "kennung": "H1345",
+   "bauart": "griff",
+   "seite": 160,
+   "tabelle": 160,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 215,
+       "hoehe": 30,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.34.227"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 215,
+       "hoehe": 30,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.34.627"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 215,
+       "hoehe": 30,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.34.327"
+      }
+     ]
+    }
+   ],
+   "bildseite": 160,
+   "bild": "H1345.jpg"
+  },
+  {
+   "kennung": "H1350",
+   "bauart": "griff",
+   "seite": 161,
+   "tabelle": 161,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 26,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.34.236"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 26,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.34.636"
+      },
+      {
+       "laenge": 244,
+       "hoehe": 26,
+       "lochabstand": [
+        192,
+        224
+       ],
+       "artikel": "110.34.638"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 180,
+       "hoehe": 26,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.34.336"
+      }
+     ]
+    }
+   ],
+   "bildseite": 161,
+   "bild": "H1350.jpg"
+  },
+  {
+   "kennung": "H1380",
+   "bauart": "griff",
+   "seite": 162,
+   "tabelle": 163,
+   "oberflaechen": [
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.34.655"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.34.657"
+      }
+     ]
+    },
+    {
+     "name": "schwarz matt",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.34.355"
+      },
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.34.357"
+      }
+     ]
+    },
+    {
+     "name": "aluminiumfarben weiß matt",
+     "groessen": [
+      {
+       "laenge": 172,
+       "hoehe": 32,
+       "lochabstand": [
+        128,
+        160
+       ],
+       "artikel": "110.35.620"
+      }
+     ]
+    },
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.35.257"
+      }
+     ]
+    },
+    {
+     "name": "weiß matt",
+     "groessen": [
+      {
+       "laenge": 204,
+       "hoehe": 32,
+       "lochabstand": [
+        160,
+        192
+       ],
+       "artikel": "110.35.358"
+      }
+     ]
+    }
+   ],
+   "bildseite": 162,
+   "bild": "H1380.jpg"
+  },
+  {
+   "kennung": "H1385",
+   "bauart": "griff",
+   "seite": 164,
+   "tabelle": 164,
+   "oberflaechen": [
+    {
+     "name": "verchromt poliert",
+     "groessen": [
+      {
+       "laenge": 146,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "110.34.265"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.266"
+      }
+     ]
+    },
+    {
+     "name": "vernickelt gebürstet",
+     "groessen": [
+      {
+       "laenge": 146,
+       "hoehe": 28,
+       "lochabstand": [
+        128
+       ],
+       "artikel": "110.34.665"
+      },
+      {
+       "laenge": 178,
+       "hoehe": 28,
+       "lochabstand": [
+        160
+       ],
+       "artikel": "110.34.666"
+      },
+      {
+       "laenge": 210,
+       "hoehe": 28,
+       "lochabstand": [
+        192
+       ],
+       "artikel": "110.34.667"
+      }
+     ]
+    }
+   ],
+   "bildseite": 164,
+   "bild": "H1385.jpg"
+  }
+ ],
+ "erklaerung": {
+  "laenge": "Länge (Knopf: Durchmesser) in mm, 1. Zahl der Spalte Maße",
+  "hoehe": "Ausladung/Höhe über der Front in mm, 2. Zahl",
+  "lochabstand": "Lochabstände in mm (mehrere = passt für beide, z. B. 128/160); fehlt = Knopf mit einer Schraube",
+  "ausfuehrung": "rechts/links bei asymmetrischen Griffen",
+  "seite": "PDF-Seite, auf der die Serie beginnt",
+  "tabelle": "PDF-Seite der Tabelle",
+  "bildseite": "PDF-Seite, aus der das Bild stammt"
+ }
+}

@@ -637,7 +637,12 @@ module JTools
         bb = Geom::BoundingBox.new
         korpus = virtueller_korpus(d)
         teile = korpus ? [korpus] : d.entities.to_a
-        teile.each { |e| bb.add(e.bounds) if e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?) }
+        teile.each do |e|
+          next unless e.respond_to?(:bounds) && !(e.respond_to?(:hidden?) && e.hidden?)
+          # gezeichnete Beschläge und Griffe zählen nicht zum Kasten (Griffe stehen vor der Front)
+          next if e.respond_to?(:get_attribute) && (e.get_attribute('JT_Griff', 'gruppe') || e.get_attribute('JT_Beschlag', 'gruppe'))
+          bb.add(e.bounds)
+        end
         bb = d.bounds if bb.empty?
         mn = bb.min.to_a
         mx = bb.max.to_a

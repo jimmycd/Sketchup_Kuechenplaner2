@@ -179,12 +179,13 @@ module JTools
         griffe(teile)
       end
 
-      # Griffbohrungen (Frontfarbe und Griffe: griff_lochmass, griff_lage, griff_hoehe an der Front, mm):
-      # zwei Bohrungen Ø3, 5 tief (wie in der Plugin-Beschreibung; Durchbohren von Hand) im Abstand Lochmaß,
-      # waagrecht, griff_hoehe über der fertigen Unterkante der Front; Lage von vorn gesehen: Mitte = Frontmitte,
+      # Griffbohrungen (Griffkatalog.griff: Lochmaß, Lage, Höhe an der Front von Hand gesetzt oder automatisch
+      # aus der Griffserie der Küche mit dem Vorschlag nach der Frontbreite; Knopf: Lochmaß 0 = eine Bohrung):
+      # Bohrungen Ø3, 5 tief (wie in der Plugin-Beschreibung; Durchbohren von Hand) im Abstand Lochmaß,
+      # waagrecht, Höhe über der fertigen Unterkante der Front; Lage von vorn gesehen: Mitte = Frontmitte,
       # links/rechts = äußeres Loch GRIFF[:rand] vom Rand (abgeleitet). Gebohrt von der Innenseite (dort sitzen
       # die Griffschrauben). Schränke mit grifflosem Öffnen (TIP-ON, SERVO-DRIVE, Wahl der Küche oder des
-      # Schranks) bekommen keine Griffbohrungen.
+      # Schranks) bekommen keine Griffbohrungen. Op.daten: { griff: (Griffkatalog.griff), front: Name }
       GRIFF = { d: 3, tiefe: 5, rand: 35 }.freeze
 
       def self.griffe(teile)
@@ -193,29 +194,27 @@ module JTools
         korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
         korpus = teile if korpus.empty?
         teile.each do |w|
-          next unless %w[Front Tuer].include?(w.rolle) && w.teil.jt('teil') != 'Blende'
-          lm = w.teil.jt('griff_lochmass') or next
+          g = Griffkatalog.griff(w) or next
           da = w.dicke_achse
-          next if da == 2
           wa = da.zero? ? 1 : 0
           km = korpus.sum { |k| k.lo[da] + k.hi[da] } / (2.0 * korpus.size)
           hinten = km > (w.lo[da] + w.hi[da]) / 2.0
           # von vorn gesehen rechts: Blickrichtung zum Korpus × oben
           rechts_plus = da == 1 ? hinten : !hinten
-          lm = lm.to_f
+          lm = g[:lochmass]
           rand = GRIFF[:rand]
-          xs = case w.teil.jt('griff_lage').to_s
+          xs = case g[:lage]
                when 'links' then rechts_plus ? [w.lo[wa] + rand, w.lo[wa] + rand + lm] : [w.hi[wa] - rand, w.hi[wa] - rand - lm]
                when 'rechts' then rechts_plus ? [w.hi[wa] - rand, w.hi[wa] - rand - lm] : [w.lo[wa] + rand, w.lo[wa] + rand + lm]
                else m = (w.lo[wa] + w.hi[wa]) / 2.0
                     lm > 0 ? [m - lm / 2.0, m + lm / 2.0] : [m]
                end
-          z = w.lo[2] + w.teil.jt('griff_hoehe').to_f
+          z = w.lo[2] + g[:hoehe]
           seite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
           fl = hinten ? w.hi[da] : w.lo[da]
           xs.uniq.each do |x|
             w.ops << Op.new(:bohrung, seite, punkt(da => fl, wa => x, 2 => z), nil, GRIFF[:d], GRIFF[:tiefe],
-                            nil, nil, 'Griff')
+                            nil, nil, 'Griff', { griff: g, front: w.name, aussen: hinten ? -1 : 1, quer: wa })
           end
         end
       end

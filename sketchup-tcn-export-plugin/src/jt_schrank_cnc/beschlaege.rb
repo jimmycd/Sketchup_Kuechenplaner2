@@ -40,6 +40,7 @@ module JTools
             klappen(teile, add)
             auszuege(teile, add)
             oeffnung(teile, add)
+            griffe(teile, add)
           end
         end
         # SERVO-DRIVE: Netzteil, Halterung und Verteilerkabel einmal für die ganze Küche
@@ -54,12 +55,23 @@ module JTools
         end.map(&:first)
       end
 
+      GRIFFE = 'Griffe'.freeze
       GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schubladen (LEGRABOX pure)', 'Schubladen (MERIVOBOX)', 'Schubladen (TANDEMBOX antaro)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
                  'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)',
-                 'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)'].freeze
+                 'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)', GRIFFE].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
                      'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum 155°', 'Blum 170°', 'Blum Eckschrank-Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
                      'Blum AVENTOS HK-top Front', 'Systemschraube'].freeze
+
+      # Griffe (Griffkatalog): je Front ein Griff bzw. Knopf mit Artikel-Nr. aus dem Katalog; ein von Hand
+      # gesetztes Lochmaß, das die Serie nicht hat, steht ohne Artikel-Nr. da
+      def griffe(teile, add)
+        teile.each do |w|
+          o = w.ops.find { |x| x.titel == 'Griff' && x.daten } or next
+          g = o.daten[:griff]
+          add.(GRIFFE, Griffkatalog.bezeichnung(g), Griffkatalog.hinweis(g), 1, 'Stück', w.teil.jt('schrank'))
+        end
+      end
 
       def schubladen(teile, add)
         Regeln.kaesten(teile).each do |kasten|
