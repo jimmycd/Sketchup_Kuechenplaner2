@@ -25,7 +25,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 7
+      VERSION = 8
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -95,6 +95,7 @@ module JTools
         klappen(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
+        oeffnung(teile, add)
         out
       end
 
@@ -362,6 +363,78 @@ module JTools
             add.(s, quader("Topfband #{n} Arm", stahl,
                            p3(wa => sfl + innen * pl[2], da => vorne, 2 => z - tb[:arm_h] / 2.0),
                            p3(wa => sfl + innen * (pl[2] + tb[:arm_b]), da => y + rein * tb[:arm_ueber], 2 => z + tb[:arm_h] / 2.0)))
+          end
+        end
+      end
+
+      # Grifflos (Beschlagart „oeffnung“ der Küche oder des Schranks), vereinfacht:
+      # * TIP-ON an der Tür: Adapterplatte (20 hoch, 12 stark) innen an der Seite bzw. Kreuzadapterplatte
+      #   (37 breit) im Boden an den TIP-ON-Bohrungen, darin der Stößel Ø10 (Kurzversion 50 lang, Langversion 76,
+      #   Katalog 2024/2025 S. 192), 1,5 mm vor die Korpuskante bis an die Tür (Frontspalt); fest im Schrank
+      # * Schubladen: TIP-ON BLUMOTION-Einheit bzw. SERVO-DRIVE-Antrieb als Block (120 × 15 × 12) unter dem
+      #   hinteren Ende jeder Korpusschiene einer grifflosen Schublade
+      TIP_ON = { kurz: 50.0, lang: 76.0, r: 5.0, platte_h: 20.0, platte_d: 12.0, kreuz_b: 37.0, spalt: 1.5,
+                 einheit: [120.0, 15.0, 12.0] }.freeze
+
+      def oeffnung(teile, add)
+        e = Beschlagkatalog.gewaehlt('oeffnung')
+        return unless e && (e['tuer'] || e['schublade'])
+        tip_on_tueren(teile, add, e) if e['tuer']
+        auszug_einheiten(teile, add, e) if e['schublade']
+      end
+
+      def tip_on_tueren(teile, add, e)
+        ks = MATERIALIEN[:kunststoff][0]
+        tu = e['tuer']
+        c = TIP_ON
+        teile.each do |w|
+          w.ops.select { |o| o.titel == tu['titel'] && o.daten }.group_by { |o| o.daten[:tuer] }.each do |tname, ops|
+            t = teile.find { |x| x.name == tname && x.rolle == 'Tuer' } or next
+            kreuz = ops.any? { |o| o.daten[:kreuz] }
+            fa = Geometrie.achse(ops[0].seite) # Achse der Fläche, auf der die Platte sitzt
+            innen = Geometrie.max?(ops[0].seite) ? 1 : -1
+            fl = ops[0].p0[fa]
+            da = t.dicke_achse
+            tm = mitte(t, da)
+            vorne, rein = (w.lo[da] - tm).abs < (w.hi[da] - tm).abs ? [w.lo[da], 1] : [w.hi[da], -1]
+            lang = kreuz || Regeln.tip_on_version(e, t)['name'].to_s.include?('Lang')
+            l = lang ? c[:lang] : c[:kurz]
+            # Lage quer zur Tiefe: Höhe (Seite) bzw. Mitte der beiden Löcher (Boden)
+            qa = ([0, 1, 2] - [fa, da]).first
+            q = ops.sum { |o| o.p0[qa] } / ops.size
+            b = kreuz ? c[:kreuz_b] : c[:platte_h]
+            add.(w, quader("TIP-ON #{tname} Adapterplatte", ks, p3(fa => fl, da => vorne, qa => q - b / 2.0),
+                           p3(fa => fl + innen * c[:platte_d], da => vorne + rein * l, qa => q + b / 2.0)))
+            mitte_p = p3(fa => fl + innen * c[:platte_d] / 2.0, da => 0, qa => q)
+            add.(w, zylinder("TIP-ON #{tname} #{lang ? 'Langversion' : 'Kurzversion'}", ks, mitte_p, da,
+                             vorne - rein * c[:spalt], vorne + rein * l, c[:r]))
+          end
+        end
+      end
+
+      def auszug_einheiten(teile, add, e)
+        ks = MATERIALIEN[:kunststoff][0]
+        name = e['schublade'] == 'servo_drive' ? 'SERVO-DRIVE Antriebseinheit' : 'TIP-ON BLUMOTION-Einheit'
+        bereiche = Regeln.kaesten(teile).select { |k| Beschlaege.grifflos?(k, teile) }.map do |k|
+          b = k.find { |w| w.rolle == 'KastenBoden' }
+          b && b.teil.jt('bereich')
+        end.compact
+        lg, hh, dd = TIP_ON[:einheit]
+        sh = auszug_koerper[:schiene_h]
+        teile.select { |w| w.rolle == 'Seite' }.each do |s|
+          s.ops.select { |o| o.titel.to_s.start_with?('Schiene ') && o.daten }.group_by(&:titel).each do |titel, ops|
+            next unless bereiche.include?(titel.sub('Schiene ', ''))
+            k = Geometrie.achse(ops[0].seite)
+            innen = Geometrie.max?(ops[0].seite) ? 1 : -1
+            t = ([0, 1] - [k]).first
+            fl = ops[0].p0[k]
+            z = ops[0].p0[2] - sh / 2.0
+            ys = ops.map { |o| o.p0[t] }
+            vorn_min = (ys.min - s.lo[t]) <= (s.hi[t] - ys.max)
+            hinten = vorn_min ? ys.max : ys.min
+            dir = vorn_min ? -1 : 1 # nach vorn
+            add.(s, quader("#{name} #{titel.sub('Schiene ', '')}", ks, p3(k => fl, t => hinten, 2 => z - dd),
+                           p3(k => fl + innen * hh, t => hinten + dir * lg, 2 => z)))
           end
         end
       end

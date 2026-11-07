@@ -331,6 +331,36 @@ fa.instance_variable_set(:@transformation, Geom::Transformation.axes(fa_t.origin
 check(B.geschlossen?(B.werkstuecke(model, lf)), 'L-Form nach Klick 3 (0,02°): geschlossen')
 fa.instance_variable_set(:@transformation, fa_t)
 
+# --- Grifflos (Jürgen 2026-11-07: TIP-ON wurde bei „Beschläge ein/aus“ nicht gezeichnet) ---
+tm = Sketchup.active_model = Sketchup::Model.new
+os1 = Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 })
+us1 = UnterschrankSchubladen.erstellen({ 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 })
+S::Beschlagkatalog.waehlen('oeffnung', 'blum-tip-on', tm)
+B.umschalten(tm) unless B.an?(tm)
+[os1, us1].each { |x| B.schrank_aktualisieren(tm, x) }
+tk = koerper(tm)
+tip = tk.select { |x| x[:name].start_with?('TIP-ON') }
+check(tip.count { |x| x[:name].include?('Adapterplatte') && x[:pfad].first == os1 } == 1 &&
+      tip.count { |x| x[:name].include?('Kurzversion') && x[:pfad].first == os1 } == 1,
+      "TIP-ON an der Tür gezeichnet: #{tip.map { |x| x[:name] }}")
+ein = tk.select { |x| x[:name].start_with?('TIP-ON BLUMOTION-Einheit') && x[:pfad].first == us1 }
+check(ein.size == 6, "TIP-ON BLUMOTION je Schublade links + rechts: #{ein.map { |x| x[:name] }}")
+# Ausstößer reicht bis vor die Korpuskante (Frontspalt), nicht in die Tür
+st = tip.find { |x| x[:name].include?('Kurzversion') }
+ws1 = B.werkstuecke(tm, os1)
+sr1 = ws1.find { |w| w.teil.jt('teil') == 'SeiteR' }
+tu1 = ws1.find { |w| w.rolle == 'Tuer' }
+y0 = st && st[:pts].map { |q| q[1] }.min
+check(y0 && (y0 - (sr1.lo[1] - 1.5)).abs < 0.01 && y0 > tu1.hi[1] - 0.01,
+      "TIP-ON Stößel 1,5 vor der Seite (#{y0 && y0.round(2)}, Seite #{sr1.lo[1].round(2)}, Tür bis #{tu1.hi[1].round(2)})")
+S::Beschlagkatalog.schrank_waehlen(os1, 'oeffnung', 'griffe', tm)
+B.schrank_aktualisieren(tm, os1)
+check(koerper(tm).none? { |x| x[:name].start_with?('TIP-ON') && x[:pfad].first == os1 }, 'Schrank mit Griffen: kein TIP-ON')
+S::Beschlagkatalog.waehlen('oeffnung', 'griffe', tm)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_oeffnung'])
+B.umschalten(tm) if B.an?(tm)
+Sketchup.active_model = model
+
 # --- Inverse ---
 m = [0.0, 1, 0, 0, -2, 0, 0, 0, 0, 0, 1, 0, 5, 6, 7, 1]
 inv = B.invers(m)
