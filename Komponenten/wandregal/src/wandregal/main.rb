@@ -362,8 +362,17 @@ module Wandregal
   # ---------------------------------------------------------------------------
   # Aufbau
   # ---------------------------------------------------------------------------
-  def self.listen_optionen(namen)
-    '&' + namen.each_with_index.map { |n, i| "#{n.gsub(' ', '%20').gsub('ä', '%C3%A4').gsub('ü', '%C3%BC')}=#{i}" }.join('&') + '&'
+  # Listenauswahl "Name=Wert": ohne Werte zählt der Wert ab 0 (ja=0, nein=1); Zahlenlisten wie
+  # Spalten und Reihen übergeben ihre Werte selbst (1=1, 2=2 …), sonst zeigt das Fenster
+  # Komponentenoptionen eine Zahl zu viel an (Jürgen 2026-11-07: Spalten/Reihen um 1 zu hoch)
+  def self.listen_optionen(namen, werte = nil)
+    werte ||= namen.each_index.to_a
+    '&' + namen.zip(werte).map { |n, w| "#{n.gsub(' ', '%20').gsub('ä', '%C3%A4').gsub('ü', '%C3%BC')}=#{w}" }.join('&') + '&'
+  end
+
+  # Zahlenliste a..b, Anzeige = Wert
+  def self.zahlen_optionen(bereich)
+    listen_optionen(bereich.map(&:to_s), bereich.to_a)
   end
 
   # Werte wie gebaut (Zahlen gerundet, Texte bereinigt); Spalten über der Anzahl zählen nicht
@@ -413,13 +422,13 @@ module Wandregal
     attribut(haupt, 'Farbe', ff ? 1.0 : 0.0, laenge: false, access: 'LIST', formlabel: 'Farbe',
              units: 'INTEGER', options: listen_optionen(%w[Korpusfarbe Frontfarbe]))
     attribut(haupt, 'Spalten', s.to_f, laenge: false, access: 'LIST', formlabel: 'Spalten (mit Mittelwand)',
-             units: 'INTEGER', options: listen_optionen((1..MAX_SPALTEN).map(&:to_s)))
+             units: 'INTEGER', options: zahlen_optionen(1..MAX_SPALTEN))
     attribut(haupt, 'Breiten', text(p['Breiten']), laenge: false, access: 'TEXTBOX', units: 'STRING', formulaunits: 'STRING',
              formlabel: 'Breiten lichte mm von links (gleich oder z. B. 400;200)')
     # nur die vorhandenen Spalten; mehr Spalten -> Neuaufbau legt die Felder an
     (1..s).each do |c|
       attribut(haupt, "Reihen_#{c}", reihen(p, c).to_f, laenge: false, access: 'LIST', formlabel: "Spalte #{c}: Reihen",
-               units: 'INTEGER', options: listen_optionen((1..MAX_REIHEN).map(&:to_s)))
+               units: 'INTEGER', options: zahlen_optionen(1..MAX_REIHEN))
       attribut(haupt, "Hoehen_#{c}", text(p["Hoehen_#{c}"]), laenge: false, access: 'TEXTBOX', units: 'STRING',
                formulaunits: 'STRING', formlabel: "Spalte #{c}: Höhen lichte mm von unten (gleich oder z. B. 150;250)")
     end
