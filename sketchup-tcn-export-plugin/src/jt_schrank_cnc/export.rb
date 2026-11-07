@@ -12,7 +12,8 @@
 module JTools
   module SchrankCnc
     module Export
-      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage, :nr) do
+      # zweite: zweite Aufspannung desselben Teils (freier Schrank: Mittelwand, auf beiden Flächen gebohrt)
+      Datei = Struct.new(:name, :text, :anzahl, :ws, :lage, :nr, :zweite) do
         # Dateiname der TCN: "<Nr>_<Tag>.tcn" (ohne Nummer nur der Tag)
         def datei
           nr ? "#{nr}_#{name}.tcn" : "#{name}.tcn"
@@ -40,24 +41,57 @@ module JTools
         alle_ws&.concat(ws)
         dateien = []
         ws.each do |w|
-          lage = Geometrie.lage(w, Regeln.flaeche1(w))
-          text = Tcn.text(lage, meldungen)
-          basis = dateiname(w.name)
-          gleich = dateien.find { |d| d.name.sub(/_\d+\z/, '') == basis && d.text == text } ||
-                   dateien.find { |d| d.name == basis && d.text == text }
-          if gleich
-            gleich.anzahl += 1
+          f1 = Regeln.flaeche1(w)
+          lage = Geometrie.lage(w, f1)
+          w2 = zweite_seite(w, f1)
+          if w2
+            m = []
+            text = Tcn.text(lage, m)
+            meldungen.concat(m.reject { |x| x.include?('auf der Unterseite') })
           else
-            name = basis
-            k = 1
-            name = "#{basis}_#{k += 1}" while dateien.any? { |d| d.name == name }
-            dateien << Datei.new(name, text, 1, w, lage)
+            text = Tcn.text(lage, meldungen)
           end
+          ablegen(dateien, w, lage, text)
+          next unless w2
+          l2 = Geometrie.lage(w2, gegenseite(f1))
+          ablegen(dateien, w2, l2, Tcn.text(l2, meldungen), zweite: true)
         end
         ap, ap_meldungen = Arbeitsplatten.dateien(model, auswahl: auswahl)
         ap.each { |name, text, teil, lage| dateien << Datei.new(name, text, 1, Arbeitsplatten::Ws.new(teil), lage) }
         nummerieren(dateien)
         [dateien, (meldungen + ap_meldungen).uniq]
+      end
+
+      def self.gegenseite(f)
+        f.to_s.end_with?('max') ? f.to_s.sub('max', 'min').to_sym : f.to_s.sub('min', 'max').to_sym
+      end
+
+      # Freier Schrank: Teil mit Bearbeitungen auf beiden Flächen (Mittelwand: Schienen auf der einen,
+      # Lochreihe auf der anderen Seite) bekommt eine zweite TCN „…_Seite2“ für die gewendete Platte
+      # mit den Bearbeitungen der Gegenseite; in der Stückliste bleibt es eine Zeile.
+      def self.zweite_seite(w, f1)
+        return nil unless w.teil.jt('typ') == FreierSchrank::TYP
+        g = gegenseite(f1)
+        ops = w.ops.select { |o| o.seite == g && o.art != :kontur }
+        return nil if ops.empty?
+        w2 = w.dup
+        w2.ops = ops
+        w2
+      end
+
+      def self.ablegen(dateien, w, lage, text, zweite: false)
+        basis = dateiname(w.name)
+        basis = "#{basis}_Seite2" if zweite
+        gleich = dateien.find { |d| d.name.sub(/_\d+\z/, '') == basis && d.text == text } ||
+                 dateien.find { |d| d.name == basis && d.text == text }
+        if gleich
+          gleich.anzahl += 1
+        else
+          name = basis
+          k = 1
+          name = "#{basis}_#{k += 1}" while dateien.any? { |d| d.name == name }
+          dateien << Datei.new(name, text, 1, w, lage, nil, zweite)
+        end
       end
 
       # Laufende Nummer je Datei aus der Stückliste (gleiche Sortierung, gleiche Nummer wie

@@ -72,7 +72,8 @@ module JTools
         gesehen = {}.compare_by_identity
         zs = dateien.each_with_object([]) do |d, out|
           # eine Arbeitsplatte mit zwei Stoßenden hat zwei TCN, aber nur eine Zeile (beide Dateien darin)
-          if !d.ws.respond_to?(:kanten) && (z = gesehen[d.ws.teil.inst])
+          # ebenso ein Teil, das gewendet ein zweites Mal gebohrt wird (Datei.zweite, freier Schrank)
+          if (!d.ws.respond_to?(:kanten) || (d.respond_to?(:zweite) && d.zweite)) && (z = gesehen[d.ws.teil.inst])
             z.datei = "#{z.datei}, #{d.datei}"
             next
           end

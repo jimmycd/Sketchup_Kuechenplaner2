@@ -147,6 +147,7 @@ module JTools
             end
           end
           eckschrank_streben(teile, meldungen)
+          mittelwand_stoesse(teile, meldungen)
           teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
             ausschnitt(rw)
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
@@ -280,6 +281,42 @@ module JTools
         end
       end
 
+      # Mittelwand (freier Schrank): steht mit ihren Stirnseiten auf Boden/Zwischenboden und unter
+      # Deckel/Streben; Dübel aus der Stirnseite der Mittelwand in die Fläche des Bodens
+      # (wie Seite und Boden, nur umgekehrt; ohne Schraubenreihe)
+      # Boden mit Sockelfüßen (Fläche 1 = Unterseite): die Oberseite wird nicht gebohrt, die Mittelwand
+      # wird von unten verschraubt (Durchgangsbohrung Ø5 im Boden, Mittelwand ohne Bohrung).
+      MITTELWAND_SCHRAUBE = { d: 5, rand: 50, max_abstand: 200 }.freeze
+
+      def self.mittelwand_stoesse(teile, meldungen)
+        teile.select { |w| w.rolle == 'Seite' && w.teil.jt('teil').to_s.start_with?('Mittelwand') }.each do |mw|
+          teile.each do |b|
+            next unless FESTE_BOEDEN.include?(b.rolle) && VERBINDUNGEN[b.rolle]
+            if b.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(b.teil))
+              mittelwand_von_unten(mw, b)
+            else
+              regel = VERBINDUNGEN[b.rolle].reject { |k, _| %i[schrauben_reihe schraube].include?(k) }
+              stoss(mw, b, regel, meldungen, b.dicke_achse)
+            end
+          end
+        end
+      end
+
+      def self.mittelwand_von_unten(mw, b)
+        k = b.dicke_achse
+        return unless (mw.lo[k] - b.hi[k]).abs < TOL
+        ca = mw.dicke_achse
+        la = ([0, 1, 2] - [k, ca]).first
+        return unless ueberlapp(mw, b, ca) > 1.0
+        r = MITTELWAND_SCHRAUBE
+        lo = [mw.lo[la], b.lo[la]].max + r[:rand]
+        hi = [mw.hi[la], b.hi[la]].min - r[:rand]
+        return if hi <= lo
+        pt = ->(l) { punkt(k => b.lo[k], ca => (mw.lo[ca] + mw.hi[ca]) / 2.0, la => l) }
+        b.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", pt.(lo), pt.(hi), r[:d], b.mass(k) + DURCH,
+                        schritt(hi - lo, r[:max_abstand]), false, "Schraube #{mw.teil.jt('teil')}")
+      end
+
       # Mittelwand (freier Schrank, Teil „Mittelwand…“): steht zwischen durchlaufenden Böden,
       # die auf beiden Seiten über sie hinausgehen; diese begrenzen die Fächer auf beiden Flächen
       def self.mittelwand_boeden(s, teile)
@@ -293,6 +330,18 @@ module JTools
         end
       end
 
+      # Liegt der Kasten auf dieser Seite der Wand s, ohne eine andere Wand dazwischen?
+      # (Schrank mit Mittelwand: Schubladen im einen Fach, Einlegeböden im anderen)
+      def self.kasten_an?(s, k, nach_max, kasten, teile)
+        m = kasten.map { |w| (w.lo[k] + w.hi[k]) / 2.0 }.sum / kasten.size
+        return false unless nach_max ? m > s.hi[k] - TOL : m < s.lo[k] + TOL
+        a, b = nach_max ? [s.hi[k], m] : [m, s.lo[k]]
+        teile.none? do |w|
+          !w.equal?(s) && w.rolle == 'Seite' && w.dicke_achse == k && w.lo[k] > a - TOL && w.hi[k] < b + TOL &&
+            ueberlapp(w, s, 2) > 1.0
+        end
+      end
+
       def self.lochreihen_flaeche(s, teile, boeden, nach_max)
         k = s.dicke_achse
         v = boeden.first.dicke_achse
@@ -302,7 +351,7 @@ module JTools
         nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
         hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
         lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
-        schubladen = kaesten(teile).map { |ka| ka.map { |w| w.lo[v] }.min }
+        schubladen = kaesten(teile).select { |ka| kasten_an?(s, k, nach_max, ka, teile) }.map { |ka| ka.map { |w| w.lo[v] }.min }
         nischen = boeden.select { |f| f.teil.jt('nische') }.map { |f| f.hi[v] }
         lagen.each_cons(2) do |(_, unten), (oben, _)|
           # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
