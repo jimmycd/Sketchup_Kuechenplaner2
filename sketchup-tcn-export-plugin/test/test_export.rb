@@ -26,6 +26,7 @@ load File.join(komp, 'eck_oberschrank/src/eck_oberschrank/main.rb')
 load File.join(komp, 'hochschrank_vorrat/src/hochschrank_vorrat/main.rb')
 load File.join(komp, 'hochschrank_kuehlschrank/src/hochschrank_kuehlschrank/main.rb')
 load File.join(komp, 'regal_abschluss/src/regal_abschluss/main.rb')
+load File.join(komp, 'wandregal/src/wandregal/main.rb')
 load File.expand_path('../src/jt_schrank_cnc/main.rb', __dir__)
 # Blenden & Wangen bringt eine eigene (gleiche) Kopie der Küchen-Einstellungen mit
 v, $VERBOSE = $VERBOSE, nil
@@ -1134,6 +1135,42 @@ rm = Sketchup.active_model = Sketchup::Model.new
 RegalAbschluss.erstellen
 rd, = S::Export.erzeugen(rm)
 check(rd.none? { |x| x.text.include?('W#89') }, 'Regal gerade: keine Kontur')
+
+# --- Wandregal: Mittelwand gedübelt mit Boden und Deckel, Fachböden an Seite und Mittelwand,
+# keine Lochreihen (feste Böden); Fachböden auf beiden Seiten der Mittelwand -> Programm für die Rückseite
+wm = Sketchup.active_model = Sketchup::Model.new
+Wandregal.erstellen('Spalten' => 2.0, 'Reihen_1' => 2.0, 'Reihen_2' => 3.0, 'Breiten' => '300')
+wd, wmeld = S::Export.erzeugen(wm)
+wf = wd.to_h { |x| [x.name, x] }
+check(wmeld.empty?, "Wandregal: keine Meldungen #{wmeld}")
+check(wf.keys.sort == %w[WR1_Boden WR1_Deckel WR1_Mittelboden1 WR1_Mittelboden2 WR1_Mittelboden3 WR1_Mittelwand1
+                         WR1_Mittelwand1_Rueckseite WR1_Rueckwand WR1_SeiteL WR1_SeiteR], "Wandregal: Dateien #{wf.keys}")
+alle = ->(x, sides = 1..6) { sides.flat_map { |sd| bearbeitungen(x.text, sd) } }
+duebel = ->(z) { z.select { |x| x.include?('#8522=8 ') } }
+mw, mr = wf['WR1_Mittelwand1'], wf['WR1_Mittelwand1_Rueckseite']
+check(duebel.(alle.(mw, [4, 6])).size == 2 && duebel.(alle.(mw, [4, 6])).all? { |x| x.include?('#8513=-22 ') },
+      'Wandregal: Mittelwand an beiden Enden Dübel in die Kante (Boden und Deckel)')
+check(duebel.(bearbeitungen(mw.text, 1)).size == 2, 'Wandregal: Mittelwand oben die Dübel der beiden Fachböden rechts')
+check(mr && duebel.(bearbeitungen(mr.text, 1)).size == 1 && alle.(mr, 3..6).empty?, 'Wandregal: Rückseite mit dem Dübel des Fachbodens links')
+check(mr && !mr.text.include?('squad.tmcr') && mw.text.include?('squad.tmcr'), 'Wandregal: Rückseite ohne Formatieren')
+check(mr && mr.lage.dl == mw.lage.dl && mr.lage.dh == mw.lage.dh, 'Wandregal: Rückseite gleiches Werkstück')
+%w[Boden Deckel].each do |n|
+  check(duebel.(bearbeitungen(wf["WR1_#{n}"].text, 1)).size == 1 && duebel.(alle.(wf["WR1_#{n}"], [4, 6])).size == 2,
+        "Wandregal: #{n} Dübel für die Mittelwand und an beiden Seiten")
+end
+check(%w[SeiteL SeiteR Mittelwand1].none? { |n| alle.(wf["WR1_#{n}"]).any? { |x| x.include?('#8522=5 ') } }, 'Wandregal: keine Lochreihen')
+check(%w[SeiteL SeiteR Boden Deckel].all? { |n| wf["WR1_#{n}"].text.include?('#205=2200') }, 'Wandregal: Rückwandnut in Seiten, Boden, Deckel')
+wz = S::Stueckliste.zeilen(wd)
+mz = wz.find { |z| z.tag == 'WR1_Mittelwand1' }
+check(wz.size == 9 && mz && mz.datei == "#{mz.nr}_WR1_Mittelwand1.tcn, #{mz.nr}_WR1_Mittelwand1_Rueckseite.tcn",
+      "Wandregal: Rückseite in derselben Stücklistenzeile (#{mz&.datei}, #{wz.size} Zeilen)")
+check(wf['WR1_Mittelwand1_Rueckseite'].nr == mz&.nr, 'Wandregal: Rückseite mit derselben Nummer')
+# eine Spalte ohne Rückwand: keine Rückseite, keine Nut
+wm = Sketchup.active_model = Sketchup::Model.new
+Wandregal.erstellen('Rueckwand' => 1.0, 'Reihen_1' => 3.0)
+wd, wmeld = S::Export.erzeugen(wm)
+check(wmeld.empty? && wd.none? { |x| x.name.end_with?('Rueckseite') } && wd.none? { |x| x.text.include?('#205=2200') },
+      "Wandregal ohne Rückwand: kein Programm für die Rückseite, keine Nut (#{wd.map(&:name)})")
 
 # --- Wange mit Sockelausklinkung (Blenden & Wangen): Ausklinkung als Kontur mit 1004 ---
 # Wange 19 mm, Unterschrank 700 + Sockel 100, Tiefe 520: Ausklinkung 100 hoch, bis 71 mm hinter

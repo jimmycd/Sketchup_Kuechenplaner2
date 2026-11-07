@@ -60,13 +60,13 @@ Was geändert wird:
 Ein Schrank, den es als Komponente nicht gibt, kann frei modelliert werden und läuft trotzdem in Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Rendern mit (Jürgen, 2026-11-07). Menü *Küchenplaner › Freier Schrank*:
 
 **Neu anlegen:** *Freien Schrank anlegen…* fragt Kategorie, Name, Breite, Höhe, Tiefe, Korpusstärke und Rückwand ab (Standard: Unterschrank aufgesetzt mit Streben vorn/hinten 100 mm, Ober-/Hochschrank genutet 8 mm in 9 mm Nut 25 mm von hinten mit Deckel) und dockt den Schrank an. Danach in den gewählten Schrank, je Fach (zwischen Seiten/Mittelwänden):
-* *Mittelwand einsetzen…* (Abstand von links, leer = Mitte; Dübel zu Deckel/Streben/Zwischenböden, zum Boden mit Sockelfüßen von unten verschraubt: Ø5 durch),
+* *Mittelwand einsetzen…* (Abstand von links, leer = Mitte; gedübelt mit Boden, Deckel/Streben und Zwischenböden),
 * *Einlegeboden einsetzen…* (vorn 10 mm zurück) und *Zwischenboden einsetzen…* (volle Tiefe, gedübelt), Höhe über dem Boden, leer = Mitte,
 * *Tür einsetzen…* (Anschlag links, rechts oder doppelt; außen voller, an Mittelwänden halber Aufschlag, 2 mm Spalt; Tür im Halter, Topfbänder an der Anschlagseite, öffnet mit Interagieren),
 * *Schublade einsetzen…* (Unterkante und Höhe der Front; Kastenboden, Holzrückwand und Zarge nach dem Schubladenauszug der Küche, Bereich S1, S2 … automatisch, fährt mit Interagieren aus),
 * *Blende einsetzen…* (feste Front).
 
-Hat ein Teil des freien Schranks Bearbeitungen auf beiden Flächen (Mittelwand: Schienen zur einen, Lochreihe zur anderen Seite), schreibt der Export eine zweite TCN `<Nr>_<Tag>_Seite2.tcn` für die gewendete Platte; in Stückliste, Etiketten und Zuschnitt bleibt es ein Teil. Lochreihen gibt es nur in Fächern ohne Schubladen, bei Mittelwänden je Fach.
+Bearbeitungen auf beiden Flächen (Mittelwand: Schienen zur einen, Lochreihe zur anderen Seite; Boden mit Sockelfüßen unten und Mittelwand-Dübeln oben) bekommen wie beim Wandregal ein zweites Programm `<Nr>_<Tag>_Rueckseite.tcn` fürs gewendete Werkstück; in Stückliste, Etiketten und Zuschnitt bleibt es ein Teil. Lochreihen gibt es nur in Fächern ohne Schubladen, bei Mittelwänden je Fach.
 
 **Von Hand modelliert:**
 
@@ -84,6 +84,7 @@ Neue Schränke muss man nicht von Hand verschieben und drehen. Gilt für alle Sc
 * **Höhen fest:** Unter- und Hochschränke stehen auf Fußboden + Sockelhöhe, Oberschränke auf Arbeitsplattenhöhe + lichter Abstand Arbeitsplatte/Oberschrank (*Einstellungen*, Vorgabe 40 + 550 mm), höchstens bis unter die Decke.
 * **Nachbarn berühren sich:** Unter-/Hochschränke und Oberschränke untereinander berühren sich an der **unteren vorderen Korpusecke** (Korpus, nicht Front). Ist der neue Schrank flacher als der Nachbar, kommt er mit der Vorderkante bündig nach vorn; ist er tiefer, bleibt die Rückseite im Wandabstand. Gemessen wird nur an Seiten, Wangen und Rückwand, nicht an Fronten, Geräten oder Arbeitsplatte. Geräteschränke ohne eigene Seite (Geschirrspüler, Unterbau-Kühlschrank) haben eine virtuelle Seite; ihr Gerät steht auf dem Fußboden. Neben einem L-Eckschrank oder Eck-Oberschrank zählt der Schenkel, an dem der neue Schrank steht: Vorderkante bündig mit dessen Seite, nicht mit der Vorderkante des ganzen Ecks.
 * **Inselschränke** folgen der Maus frei im Raum (Kollision wird trotzdem geprüft).
+* **Wandregal** (Kategorie `Wandregal`, Jürgen 2026-11-07): hängt frei an der Wand, reiht sich nie an Oberschränke an und wird nicht angedockt (auch nicht, wenn ein Schrank markiert ist), andere Schränke reihen sich auch nicht an ihm an. Es hängt immer an der Maus, Rücken direkt an der Wand, nur entlang der Wand verschiebbar (Tab = andere Wand), Kollision wie bei allen. Höhe: Unterkante = Arbeitsplattenoberkante (Sockel + Unterschrankhöhe + Arbeitsplatte, *Einstellungen*) + *Unterkante über Arbeitsplatte* des Regals, höchstens bis unter die Decke; Pfeil hoch/runter ändert sie beim Platzieren um 10 mm, die neue Höhe steht danach im Regal.
 
 **Einfügen:** Gibt es noch keinen Schrank, hängt der neue an der Maus (Andock-Werkzeug). Ist ein Schrank markiert, kommt der neue an dessen freie Seite (rechts, wenn beide frei sind); ist keine Seite frei, hängt er an der Maus. Ohne Markierung kommt er ans freie Ende der Zeile seiner Art (Unter-/Hochschränke eine Zeile, Oberschränke eine, Inselschränke eine eigene); der erste Oberschrank über den Anfang der Unterschrank-Zeile.
 
@@ -288,6 +289,8 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * **Deckel–Rückwand** (nur Oberschrank): 3 Schrauben 50 mm von den Seiten und in der Mitte, Ø5 durch die Rückwand (1 mm tiefer als ihre Stärke, Durchgangsbohrer). Die Deckelkante wird nicht vorgebohrt, weil es waagrecht nur Ø8 gibt (Werkzeugliste).
 * Die Bearbeitungen einer Seite sind nach Inhalt sortiert, so ergeben gespiegelte Teile mit gleichem Bohrbild dieselbe TCN.
 * Fläche 1 (oben auf der Maschine) ist die große Fläche mit den meisten Bohrungen, bei Seiten also die Innenseite. Die linke Seite ist die gespiegelte rechte.
+* **Rückseite** (z. B. Mittelwand mit Böden auf beiden Seiten im Wandregal oder freien Schrank, Boden mit Sockelfüßen und Mittelwand): Bohrungen auf der Unterseite kann die Maschine nicht. Hat ein Teil welche, gibt es ein zweites Programm `<Nr>_<Tag>_Rueckseite.tcn` fürs gewendete Werkstück, nur mit diesen Bohrungen und ohne Formatieren. Es hat dieselbe Nummer und steht in derselben Stücklistenzeile wie das erste.
+* **Wandregal:** Mittelwände (Rolle Seite) bekommen die Fachböden wie eine Seite und sind selbst mit Boden und Deckel gedübelt wie ein Zwischenboden mit der Seite (Dübel in die Kante der Mittelwand, Reihe in Boden bzw. Deckel). Keine Lochreihen, die Fachböden sind fest.
 * Jede TCN beginnt mit `squad` (Formatieren). Das Feld `s` im Kopf kommt aus den Vorlagen (Boden 13, Deckel 11, Strebe 10, Seite 54, sonst 1).
 * Gleiche Teile (gleicher Tag, gleiche TCN, z. B. zweimal derselbe Schrank) werden einmal geschrieben und gezählt. Weicht ein gleichnamiges Teil ab, heißt die Datei `<Tag>_2.tcn`.
 * **Arbeitsplatten** (`Komponenten/arbeitsplatte`): je Stoßende eine TCN mit Stoßkontur, Hundeknochen (Ø 35 + Steg, 20 tief) und Ausschnitten, Dekor unten, Stoß am Anschlag links; Einzelheiten in `Komponenten/arbeitsplatte/README.md`. Kein `squad`, abgelängt wird bauseits.

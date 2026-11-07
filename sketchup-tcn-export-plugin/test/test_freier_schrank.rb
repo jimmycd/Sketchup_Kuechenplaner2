@@ -141,7 +141,11 @@ check(meld.any? { |m| m.include?('klotz') && m.include?('keine Rolle') }, "Teil 
 ws = []
 dateien, export_meld = S::Export.erzeugen(model, alle_ws: ws)
 check(export_meld.any? { |m| m.include?('klotz') }, 'Export zeigt die Prüf-Meldungen')
-check(dateien.map(&:name).sort == %w[FS1_Boden FS1_Deckel FS1_Einlegeboden FS1_Mittelwand FS1_Mittelwand_Seite2 FS1_SeiteL FS1_SeiteR], "Dateien: #{dateien.map(&:name)}")
+# Mittelwand mit Bohrungen auf beiden Flächen, Boden mit Sockelfüßen unten und Mittelwand-Dübeln oben:
+# je ein zweites Programm fürs gewendete Werkstück (_Rueckseite), keine Bohrung fällt weg
+check(dateien.map(&:name).sort == %w[FS1_Boden FS1_Boden_Rueckseite FS1_Deckel FS1_Einlegeboden FS1_Mittelwand FS1_Mittelwand_Rueckseite FS1_SeiteL FS1_SeiteR],
+      "Dateien: #{dateien.map(&:name)}")
+check(export_meld.none? { |m| m.include?('fehlt in der TCN') }, "keine Bohrung fehlt in der TCN: #{export_meld}")
 
 w = ws.to_h { |x| [x.name, x] }
 reihen = ->(n) { w[n].ops.select { |o| o.titel == 'Lochreihe' } }
@@ -193,17 +197,16 @@ dat, meld = S::Export.erzeugen(model, alle_ws: ws)
 w = ws.to_h { |x| [x.name, x] }
 mw = w['FS1_Mittelwand']
 check(mw && mw.ops.count { |o| o.titel.to_s.start_with?('Duebel') } >= 2, "Mittelwand: Dübel zu Boden und Streben (#{mw&.ops&.map(&:titel)})")
-bo = w['FS1_Boden'].ops.find { |o| o.titel == 'Schraube Mittelwand' }
-check(bo && bo.seite == :zmin && bo.d == 5 && bo.tiefe == 20, "Unterschrank-Boden (Sockelfüße unten): Mittelwand von unten verschraubt, Ø5 durch (#{bo.to_a.first(7)})")
-check(w['FS1_Boden'].ops.none? { |o| o.seite == :zmax }, 'Unterschrank-Boden: Oberseite bleibt ohne Bohrung')
-check(meld.none? { |m| m.include?('Unterseite') }, "keine Bearbeitung fehlt in der TCN: #{meld.grep(/Unterseite/)}")
-mw2 = dat.find { |x| x.name == 'FS1_Mittelwand_Seite2' }
-mw1 = dat.find { |x| x.name == 'FS1_Mittelwand' }
-check(mw1 && mw2 && mw2.zweite && mw2.nr == mw1.nr, 'Mittelwand: zweite TCN „_Seite2“ mit derselben Nummer')
-check(mw2 && mw2.ws.ops.all? { |o| o.seite == mw2.ws.ops.first.seite } && mw2.ws.ops.first.seite != mw1.ws.ops.select { |o| o.titel == 'Lochreihe' }.map(&:seite).find { |x| x != mw2.ws.ops.first.seite }, 'Seite2 enthält nur die Gegenseite')
+check(w['FS1_Boden'].ops.any? { |o| o.titel == 'Duebel Mittelwand' && o.seite == :zmax }, 'Boden: Dübel von oben für die Mittelwand')
+check(meld.none? { |m| m.include?('fehlt in der TCN') }, "keine Bearbeitung fehlt in der TCN: #{meld.grep(/fehlt/)}")
+%w[FS1_Boden FS1_Mittelwand].each do |n|
+  r = dat.find { |x| x.name == "#{n}_Rueckseite" }
+  v = dat.find { |x| x.name == n }
+  check(r && v && r.wende && r.nr == v.nr, "#{n}: Programm für die Rückseite mit derselben Nummer")
+end
 zs = S::Stueckliste.zeilen(dat)
 z = zs.find { |x| x.tag == 'FS1_Mittelwand' }
-check(zs.count { |x| x.tag == 'FS1_Mittelwand' } == 1 && z.datei.include?('_Seite2.tcn'), "Stückliste: eine Zeile, beide TCN (#{z&.datei})")
+check(zs.count { |x| x.tag == 'FS1_Mittelwand' } == 1 && z.datei.include?('_Rueckseite.tcn'), "Stückliste: eine Zeile, beide TCN (#{z&.datei})")
 check(w['FS1_StrebeVorn'].ops.any? { |o| o.titel == 'Duebel Mittelwand' && o.seite == :zmin }, 'Strebe: Dübel von unten für die Mittelwand')
 check(mw.ops.select { |o| o.titel == 'Lochreihe' }.map(&:seite).uniq.sort == %i[xmax xmin], 'Mittelwand: Lochreihen beidseitig')
 zb = w['FS1_Zwischenboden']
@@ -211,7 +214,7 @@ check(zb && zb.ops.count { |o| o.titel.to_s.start_with?('Duebel') } == 2, "Zwisc
 eb = w['FS1_Einlegeboden']
 check(eb && (eb.lo[1] - w['FS1_SeiteL'].lo[1]).round == 10, 'Einlegeboden vorn 10 mm zurück')
 check(eb.kanten.keys == [:ymin], "Einlegeboden: Anleimer vorn (#{eb.kanten})")
-check(dat.reject(&:zweite).size == ws.size, 'alle Teile exportiert')
+check(dat.reject(&:wende).size == ws.size, 'alle Teile exportiert')
 begin
   F.einlegeboden(model, us, fach: 3)
   check(false, 'Fach 3 abgelehnt')
@@ -274,7 +277,7 @@ check((kb.hi[0] - kb.lo[0]).round(1) == (421.5 - 35).round(1), "Kastenboden = li
 check(meld.none? { |m| m.include?('Zarge') && m.include?('FS1') }, "Zargen passen: #{meld.grep(/Zarge/)}")
 check(s1.definition.get_attribute('dynamic_attributes', 'onclick').to_s.include?('ANIMATE'), 'Schublade fährt mit Interagieren aus')
 check(s1.layer.name == 'FS1_S1_Schublade' && s2.layer.name == 'FS1_S2_Schublade', 'Schubladen-Tags S1, S2')
-check(dat.reject(&:zweite).size == ws.size, 'alle Teile exportiert')
+check(dat.reject(&:wende).size == ws.size, 'alle Teile exportiert')
 # Doppeltür, Anschlag rechts
 model = Sketchup.active_model = Sketchup::Model.new
 os = F.anlegen(model, kategorie: 'Oberschrank', breite: 800, hoehe: 720, tiefe: 350)

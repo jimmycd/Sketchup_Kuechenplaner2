@@ -298,13 +298,15 @@ module JTools
         out << 'SIDE#0{' << '$=F #0' << '}SIDE'
       end
 
-      def build(lage, meldungen = [])
+      # formatieren: false beim zweiten Programm fürs gewendete Werkstück (schon formatiert)
+      def build(lage, meldungen = [], formatieren: true)
         w = lage.ws
         s = seiten(lage, meldungen)
         aktiv = ([1] + s.keys).uniq.sort
         out = kopf(lage.dl, lage.dh, lage.ds, FELD.fetch(w.rolle, 1), aktiv)
-        ws = 1
-        out << 'SIDE#1{' << '$=F #1' << "W#1510{ ::WT2 WS=#{ws}  #{SQUAD} }W"
+        ws = formatieren ? 1 : 0
+        out << 'SIDE#1{' << '$=F #1'
+        out << "W#1510{ ::WT2 WS=#{ws}  #{SQUAD} }W" if formatieren
         z = zeilen(lage, 1, s[1], ws)
         ws += z.count { |l| l.include?(' WS=') }
         out.concat(z) << '}SIDE'
@@ -317,8 +319,8 @@ module JTools
         out
       end
 
-      def text(lage, meldungen = [])
-        build(lage, meldungen).join("\r\n") + "\r\n"
+      def text(lage, meldungen = [], formatieren: true)
+        build(lage, meldungen, formatieren: formatieren).join("\r\n") + "\r\n"
       end
 
       def write(path, text)

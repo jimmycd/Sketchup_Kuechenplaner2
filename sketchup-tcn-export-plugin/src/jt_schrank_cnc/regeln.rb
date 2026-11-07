@@ -146,8 +146,8 @@ module JTools
               stoss(a, b, regel, meldungen)
             end
           end
+          mittelwaende(teile, meldungen)
           eckschrank_streben(teile, meldungen)
-          mittelwand_stoesse(teile, meldungen)
           teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
             ausschnitt(rw)
             teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
@@ -155,7 +155,8 @@ module JTools
           end
           hu = hu_slim_base?(teile)
           lm = lemans?(teile)
-          lochreihen(teile) unless hu || lm # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen)
+          # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen); Wandregal: nur feste Fachböden
+          lochreihen(teile) unless hu || lm || wandregal?(teile)
           hu_slim_base(teile, meldungen) if hu
           lemans(teile, meldungen) if lm
           schienen(teile, meldungen)
@@ -170,6 +171,20 @@ module JTools
           teile.each { |w| kontur(w) }
         end
         meldungen
+      end
+
+      # Mittelwand (Wandregal, freier Schrank; Rolle Seite): Fachböden stoßen an sie wie an eine Seite,
+      # sie selbst steht zwischen Boden/Zwischenboden und Deckel/Streben und wird mit ihnen gedübelt wie
+      # ein Zwischenboden mit der Seite (Bohrungen in der Bodenoberseite: Programm für die Rückseite)
+      def self.mittelwaende(teile, meldungen)
+        teile.select { |w| w.rolle == 'Seite' && w.teil.jt('teil').to_s.start_with?('Mittelwand') }.each do |mw|
+          teile.each { |b| stoss(mw, b, VERBINDUNGEN['Zwischenboden'], meldungen) if FESTE_BOEDEN.include?(b.rolle) }
+        end
+      end
+
+      # Wandregal (Jürgen 2026-11-07): Fachböden immer fest, keine Lochreihen
+      def self.wandregal?(teile)
+        teile.any? { |w| w.teil.jt('typ') == 'Wandregal' }
       end
 
       def self.ueberlapp(a, b, i)
@@ -279,42 +294,6 @@ module JTools
             lochreihen_flaeche(s, teile, boeden, nach_max) unless boeden.empty?
           end
         end
-      end
-
-      # Mittelwand (freier Schrank): steht mit ihren Stirnseiten auf Boden/Zwischenboden und unter
-      # Deckel/Streben; Dübel aus der Stirnseite der Mittelwand in die Fläche des Bodens
-      # (wie Seite und Boden, nur umgekehrt; ohne Schraubenreihe)
-      # Boden mit Sockelfüßen (Fläche 1 = Unterseite): die Oberseite wird nicht gebohrt, die Mittelwand
-      # wird von unten verschraubt (Durchgangsbohrung Ø5 im Boden, Mittelwand ohne Bohrung).
-      MITTELWAND_SCHRAUBE = { d: 5, rand: 50, max_abstand: 200 }.freeze
-
-      def self.mittelwand_stoesse(teile, meldungen)
-        teile.select { |w| w.rolle == 'Seite' && w.teil.jt('teil').to_s.start_with?('Mittelwand') }.each do |mw|
-          teile.each do |b|
-            next unless FESTE_BOEDEN.include?(b.rolle) && VERBINDUNGEN[b.rolle]
-            if b.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(b.teil))
-              mittelwand_von_unten(mw, b)
-            else
-              regel = VERBINDUNGEN[b.rolle].reject { |k, _| %i[schrauben_reihe schraube].include?(k) }
-              stoss(mw, b, regel, meldungen, b.dicke_achse)
-            end
-          end
-        end
-      end
-
-      def self.mittelwand_von_unten(mw, b)
-        k = b.dicke_achse
-        return unless (mw.lo[k] - b.hi[k]).abs < TOL
-        ca = mw.dicke_achse
-        la = ([0, 1, 2] - [k, ca]).first
-        return unless ueberlapp(mw, b, ca) > 1.0
-        r = MITTELWAND_SCHRAUBE
-        lo = [mw.lo[la], b.lo[la]].max + r[:rand]
-        hi = [mw.hi[la], b.hi[la]].min - r[:rand]
-        return if hi <= lo
-        pt = ->(l) { punkt(k => b.lo[k], ca => (mw.lo[ca] + mw.hi[ca]) / 2.0, la => l) }
-        b.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", pt.(lo), pt.(hi), r[:d], b.mass(k) + DURCH,
-                        schritt(hi - lo, r[:max_abstand]), false, "Schraube #{mw.teil.jt('teil')}")
       end
 
       # Mittelwand (freier Schrank, Teil „Mittelwand…“): steht zwischen durchlaufenden Böden,
