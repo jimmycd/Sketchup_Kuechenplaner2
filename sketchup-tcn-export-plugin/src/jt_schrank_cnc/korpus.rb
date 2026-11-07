@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Korpusmaterial ändern (Gegenstück zu „Frontfarbe und Griffe ändern“).
+# Schrank-CNC – Korpusmaterial ändern (Gegenstück zu „Frontfarbe ändern“).
 #
 # Setzt eine Platte mit Verwendung Korpus (bzw. Rückwand) aus Küchenplaner › Materialien…
 # auf die Korpusteile (Seiten, Böden, Deckel, Streben, Zwischen- und Einlegeböden, Leisten,

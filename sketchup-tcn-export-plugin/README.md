@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Materialien, Frontfarbe, Andocken)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe (Blum AVENTOS HK-top oder Häfele Free Slim) kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen bekommen Blum-Topfbänder (Topf in der Tür, Montageplatte in der Seite); Fronten mit Griff bekommen die Griffbohrungen.
+**Stand:** *Frontfarbe ändern* und der *Griffkatalog* sind fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe (Blum AVENTOS HK-top oder Häfele Free Slim) kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen bekommen Blum-Topfbänder (Topf in der Tür, Montageplatte in der Seite); Fronten mit Griff bekommen die Griffbohrungen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu die Fräsliste (`.xmlst`), und erzeugt Stückliste, Etiketten und Zuschnittplan; alles zusammen über einen [Export-Dialog](#export) ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
 
@@ -33,18 +33,18 @@ Anleimer: Name, Farbe, Dicke (wird in Stückliste und TCN abgezogen), Breite.
 ## Korpusmaterial ändern
 *Erweiterungen › Küchenplaner › Korpusmaterial ändern…*: Teile (Korpus = Seiten, Böden, Deckel, Streben, Zwischen-/Einlegeböden, Leisten, Wangen; oder Rückwände), Material, Bereich (alle, Ober-, Unter-, Hochschränke) und *Nur ausgewählte Schränke*. Fronten, Sichtteile und Schubkästen bleiben, die Anleimer der Teile bekommen den zugeordneten Anleimer. Kopien eines Schranks werden wie bei der Frontfarbe vorher eindeutig gemacht.
 
-## Frontfarbe und Griffe ändern
-*Erweiterungen › Küchenplaner › Frontfarbe und Griffe ändern…*
+## Frontfarbe ändern
+*Erweiterungen › Küchenplaner › Frontfarbe ändern…*
+
+Griffe stehen hier nicht mehr (Jürgen 2026-11-07): Serie und Oberfläche wählt man im *Griffkatalog*, Größe, Lage und Höhe je Schrank in *Beschläge und Griffe der gewählten Schränke…* (siehe *Griffkatalog*).
 
 | Feld | Bedeutung |
 |---|---|
 | Frontmaterial | alle Platten mit Verwendung „Front“ aus Modell und Bibliothek (siehe *Materialien*; alte Modelle: Name beginnt mit „Front“). *Neues Frontmaterial…* legt eins an; gibt es noch keins, öffnet sich gleich dieses Formular. |
 | Bereich | alle Schränke, nur Oberschränke, nur Unterschränke oder nur Hochschränke (`kategorie` in `JT_Schrank`) |
 | Nur ausgewählte Schränke | Ja: nur Schränke, die gerade ausgewählt sind |
-| Griffe | unverändert lassen, setzen oder entfernen |
 
-Das Frontmaterial kommt auf Fronten und Türen (`rolle` Front, Tuer) und auf die Sichtteile ohne Griff: Verkleidung der Inselrückseite (`Verkleidung`) und Abschlusswangen (`Wange`, Inselschrank und Geschirrspüler). Griffe bekommen nur Fronten und Türen.
-| Griff: Lochmaß, Lage, Höhe | Lochmaß in mm (z. B. 160), Lage seitlich links / Mitte / rechts, Höhe in mm ab Unterkante der Front |
+Das Frontmaterial kommt auf Fronten und Türen (`rolle` Front, Tuer) und auf die Sichtteile ohne Griff: Verkleidung der Inselrückseite (`Verkleidung`) und Abschlusswangen (`Wange`, Inselschrank und Geschirrspüler).
 
 Vor dem Ändern fragt das Plugin nach, z. B. „5 Fronten in 3 Schränken bekommen „Front Eiche 19mm“. Übernehmen?“ (gezählt werden sichtbare Fronten). Ein Schritt *Rückgängig* macht alles zurück.
 
@@ -54,7 +54,7 @@ Was geändert wird:
 * Das Material kommt an die Instanz und als DC-Attribut `material`, damit es ein Neuzeichnen der Dynamic Component übersteht.
 * Die Anleimer der Fronten (Kantenflächen mit einem Anleimer-Material) bekommen den zugeordneten Anleimer der Platte; ohne Zuordnung eine Kante mit dem Dekor im Namen („Anleimer Eiche“ zu „Front Eiche 19mm“), sonst legt das Plugin „Anleimer <Dekor>“ an (2 mm, Abzug an) und merkt sich die Zuordnung.
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
-* Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief, von der Innenseite; links/rechts: äußeres Loch 35 mm vom Rand, von vorn gesehen). Schränke mit grifflosem Öffnen (TIP-ON, SERVO-DRIVE) bekommen keine.
+* Griffe (aus Griffkatalog und Schrank-Dialog) bleiben unverändert.
 
 ## Griffkatalog
 *Erweiterungen › Küchenplaner › Griffkatalog…* (Jürgen, 2026-11-07)
@@ -63,7 +63,8 @@ Der Griffkatalog enthält alle Griffe und Knöpfe der **Häfele DÉCO Kollektion
 
 * **Fenster Griffkatalog**: alle Serien als Karten mit Bild (Klick vergrößert), Lochabständen, Oberfläche zur Auswahl und Tabelle der Größen mit Artikel-Nr.; Suche und Filter Griffe/Knöpfe. *Für diese Küche wählen* setzt **Griffserie und Oberfläche der Küche** (im Modell gespeichert, auch unter *Einstellungen › Beschläge – ganze Küche*). *Keine Serie* schaltet das ab.
 * **Automatisch**: Hat die Küche eine Griffserie, bekommt jede Front und Tür (nicht Blenden, Innenfronten, Wangen) einen Griff in der vorgeschlagenen Größe, mittig, auf der automatischen Höhe. Ohne Serie bleibt es wie vorher: Griffe nur dort, wo sie von Hand gesetzt sind.
-* **Vorschlag** (Regel, nicht aus dem Katalog): Ziel-Lochabstand = 30 % der **Frontbreite**, genommen wird der nächstliegende Lochabstand der Serie (bei Gleichstand der kleinere), dessen Griff mit 20 mm Abstand je Seite auf die Front passt. Grundlage ist die Front, nicht der Schrank (Doppeltür am 800er-Schrank: zwei 400er-Türen → 128). Beispiele mit 96/128/160/192/320: 300 → 96, 450 → 128, 600 → 192, 900 → 320. Knopf-Serien: eine Bohrung in der Mitte.
+* **Vorschlag** (Regel, nicht aus dem Katalog): Ziel-Lochabstand = 20 % der **Frontbreite** (30 % war Jürgen zu groß), genommen wird der nächstliegende Lochabstand der Serie (bei Gleichstand der kleinere), dessen Griff mit 20 mm Abstand je Seite auf die Front passt. Grundlage ist die Front, nicht der Schrank (Doppeltür am 800er-Schrank: zwei 400er-Türen → 96). Beispiele mit 96/128/160/192/320: 300 → 96, 450 → 96, 600 → 128, 900 → 192. Knopf-Serien: eine Bohrung in der Mitte.
+* **Eckschrank L (Falttür)**: nur die kurze Tür (am Eckscharnier, an ihr zieht man) bekommt einen Griff, äußeres Loch 35 mm von ihrer freien Kante; die lange Tür am Korpus keinen (außer von Hand gesetzt).
 * **Höhe automatisch**: Griffmitte möglichst 1000 mm über dem Boden, mindestens 35 mm von Ober- und Unterkante der Front: Unterschrank-Fronten oben, Oberschränke unten, hohe Türen auf 1000 mm. **Lage automatisch**: Mitte.
 * **Je Schrank änderbar** (*Beschläge und Griffe der gewählten Schränke…*): Griff = *Vorschlag nach Frontbreite*, eine Größe der Serie, *eigenes Lochmaß* oder *kein Griff*; Lage *automatisch (Mitte)*, links, Mitte, rechts; Höhe leer = unverändert, `auto` oder mm ab Unterkante Front. Der Dialog zeigt den Vorschlag je Frontbreite der gewählten Schränke. Die Angaben stehen an der Front (`griff_lochmass`, `griff_lage`, `griff_hoehe`, `griff_aus`).
 * **TCN**: die Griffbohrungen (Ø3, 5 tief, von innen) nehmen den Lochabstand aus dem Katalog (Griffe mit zwei Lochabständen wie 128/160 werden mit dem gewählten gebohrt). Grifflos (TIP-ON, SERVO-DRIVE): keine Griffe.
@@ -330,7 +331,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/materialien.rb` – Materialangaben lesen/schreiben, Bibliothek, Maserrichtung
 * `src/jt_schrank_cnc/materialdialog.rb` – Fenster „Materialien…“
 * `src/jt_schrank_cnc/korpus.rb` – Korpusmaterial ändern
-* `src/jt_schrank_cnc/frontfarbe.rb` – Frontfarbe und Griffe
+* `src/jt_schrank_cnc/frontfarbe.rb` – Frontfarbe ändern
 * `src/jt_schrank_cnc/griffkatalog.rb`, `griffdialog.rb`, `griffmodell.rb`, `griffe/` – Griffkatalog (Daten, Fenster, Griffe im Modell)
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten

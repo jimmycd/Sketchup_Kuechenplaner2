@@ -1,5 +1,5 @@
 # encoding: UTF-8
-# Schrank-CNC – Frontfarbe und Griffe ändern.
+# Schrank-CNC – Frontfarbe ändern (Griffe: Griffkatalog und „Beschläge und Griffe der gewählten Schränke…“).
 #
 # Frontmaterialien sind Platten mit Verwendung „Front“ aus Küchenplaner › Materialien…
 # (Material-Konfigurator); „Neues Frontmaterial…“ in der Auswahl legt eins an.
@@ -149,14 +149,13 @@ module JTools
           Materialdialog.platte_formular(model, verwendung: 'Front') { dialog(model) }
           return
         end
-        griff_opt = ['unverändert lassen', 'setzen', 'entfernen']
-        prompts = ['Frontmaterial', 'Bereich', 'Nur ausgewählte Schränke', 'Griffe',
-                   'Griff: Lochmaß (mm)', 'Griff: Lage seitlich', 'Griff: Höhe ab Unterkante Front (mm)']
+        # Griffe stehen hier nicht mehr (Jürgen 2026-11-07): sie kommen aus dem Griffkatalog und werden je
+        # Schrank in „Beschläge und Griffe der gewählten Schränke…“ geändert
+        prompts = ['Frontmaterial', 'Bereich', 'Nur ausgewählte Schränke']
         auswahl_da = !model.selection.to_a.empty?
-        defaults = [namen.first, BEREICHE.keys.first, auswahl_da ? 'Ja' : 'Nein', griff_opt.first, '160', 'Mitte', '35']
-        lists = [(namen + [NEU]).join('|'), BEREICHE.keys.join('|'), 'Ja|Nein', griff_opt.join('|'), '',
-                 LAGEN.join('|'), '']
-        Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Frontfarbe und Griffe ändern', ok: 'Übernehmen') do |res|
+        defaults = [namen.first, BEREICHE.keys.first, auswahl_da ? 'Ja' : 'Nein']
+        lists = [(namen + [NEU]).join('|'), BEREICHE.keys.join('|'), 'Ja|Nein']
+        Kuechenplaner::Eingabe.abfragen(prompts, defaults, lists, 'Frontfarbe ändern', ok: 'Übernehmen') do |res|
           if res[0] == NEU
             Materialdialog.platte_formular(model, verwendung: 'Front') { dialog(model) }
             next
@@ -168,17 +167,12 @@ module JTools
             UI.messagebox('Im gewählten Bereich gibt es keine Fronten (Teile mit JT_Schrank-Rolle Front oder Tür).')
             next
           end
-          griff = case res[3]
-                  when 'setzen' then { lochmass: zahl(res[4]), lage: res[5], hoehe: zahl(res[6]) }
-                  when 'entfernen' then false
-                  end
-          frage = "#{vorschau(f)} bekommen „#{res[0]}“#{griff ? ' und Griffbohrungen' : ''}. Übernehmen?"
+          frage = "#{vorschau(f)} bekommen „#{res[0]}“. Übernehmen?"
           next unless UI.messagebox(frage, MB_OKCANCEL) == IDOK
 
           begin
             model.start_operation('Frontfarbe ändern', true)
-            anwenden(model, f, Materialien.holen(model, res[0]), griff: griff) # aus der Bibliothek, falls nötig
-            Griffmodell.aktualisieren(model) if !griff.nil? && defined?(Griffmodell)
+            anwenden(model, f, Materialien.holen(model, res[0])) # aus der Bibliothek, falls nötig
             model.commit_operation
           rescue StandardError
             model.abort_operation

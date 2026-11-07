@@ -193,8 +193,12 @@ module JTools
         return if e && (e['tuer'] || e['schublade'])
         korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
         korpus = teile if korpus.empty?
+        # Falttür (Eckschrank L): Griff nur an der kurzen Tür, an ihrer freien Kante (weg von der langen Tür);
+        # die lange Tür am Korpus geht mit auf und bekommt keinen, außer von Hand gesetzt
+        lang, kurz = falt_paar(teile.select { |w| w.rolle == 'Tuer' && w.dicke_achse != 2 && w.teil.sichtbar? })
         teile.each do |w|
           g = Griffkatalog.griff(w) or next
+          next if lang && w.equal?(lang) && w.teil.jt('griff_lochmass').nil?
           da = w.dicke_achse
           wa = da.zero? ? 1 : 0
           km = korpus.sum { |k| k.lo[da] + k.hi[da] } / (2.0 * korpus.size)
@@ -203,6 +207,10 @@ module JTools
           rechts_plus = da == 1 ? hinten : !hinten
           lm = g[:lochmass]
           rand = GRIFF[:rand]
+          if kurz && w.equal?(kurz) && g[:lage_auto]
+            frei_hi = (w.lo[wa] + w.hi[wa]) / 2.0 > (lang.lo[wa] + lang.hi[wa]) / 2.0
+            g = g.merge(lage: frei_hi == rechts_plus ? 'rechts' : 'links')
+          end
           xs = case g[:lage]
                when 'links' then rechts_plus ? [w.lo[wa] + rand, w.lo[wa] + rand + lm] : [w.hi[wa] - rand, w.hi[wa] - rand - lm]
                when 'rechts' then rechts_plus ? [w.hi[wa] - rand, w.hi[wa] - rand - lm] : [w.lo[wa] + rand, w.lo[wa] + rand + lm]

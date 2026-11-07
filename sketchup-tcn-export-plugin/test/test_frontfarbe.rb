@@ -113,25 +113,23 @@ module UI
     def messagebox(m, *_) = ((self.meldungen ||= []) << m) && IDOK
   end
 end
-UI.antwort = ['Front Eiche 19mm', 'Nur Hochschränke', 'Nein', 'setzen', '128', 'Mitte', '40,5']
+griffe_vorher = F.fronten(model, kategorie: 'Hochschrank').map { |t| t.jt('griff_lochmass') }
+UI.antwort = ['Front Eiche 19mm', 'Nur Hochschränke', 'Nein']
 F.dialog(model)
-check(UI.meldungen.last.start_with?('4 Fronten in 1 Schrank bekommen „Front Eiche 19mm“ und Griffbohrungen'), "Dialog-Frage: #{UI.meldungen.last}")
+check(UI.meldungen.last.start_with?('4 Fronten in 1 Schrank bekommen „Front Eiche 19mm“. Übernehmen?'), "Dialog-Frage: #{UI.meldungen.last}")
 check(mat_von(model, 'Hochschrank') == ['Front Eiche 19mm'], 'Dialog: Hochschrank Eiche')
-check(F.fronten(model, kategorie: 'Hochschrank').all? { |t| t.jt('griff_hoehe') == 40.5 && t.jt('griff_lochmass') == 128.0 }, 'Dialog: Griff')
-UI.antwort = ['Front Eiche 19mm', 'Alle Schränke', 'Nein', 'setzen', 'abc', 'Mitte', '35']
-F.dialog(model)
-check(UI.meldungen.last.include?('keine Zahl'), 'Dialog: ungültiges Lochmaß')
+check(F.fronten(model, kategorie: 'Hochschrank').map { |t| t.jt('griff_lochmass') } == griffe_vorher, 'Dialog: Griffe bleiben unverändert (keine Griff-Felder mehr)')
 # ohne Frontmaterial: erst „Neue Platte“ (Verwendung Front), danach geht es mit Frontfarbe weiter
 m2 = Sketchup.active_model = Sketchup::Model.new
 Sketchup.defaults.clear # leere Materialbibliothek
 os_m2 = Oberschrank.erstellen({})
 antworten = [['Front Nuss 19mm', 'Front', '#8B5A2B', '', '1000', '19', '2800', '2070', 'Ja', '(automatisch)'],
-             ['Front Nuss 19mm', 'Alle Schränke', 'Nein', 'unverändert lassen', '160', 'Mitte', '35']]
+             ['Front Nuss 19mm', 'Alle Schränke', 'Nein']]
 fragen = []
 UI.define_singleton_method(:inputbox) { |*a| fragen << a; antworten.shift }
 F.dialog(m2)
 nuss = m2.materials['Front Nuss 19mm']
-check(fragen.size == 2 && fragen[0][-1] == 'Neue Platte' && fragen[1][-1] == 'Frontfarbe und Griffe ändern',
+check(fragen.size == 2 && fragen[0][-1] == 'Neue Platte' && fragen[1][-1] == 'Frontfarbe ändern',
       "ohne Frontmaterial: erst Neue Platte, dann Frontfarbe (#{fragen.map(&:last).inspect})")
 check(nuss && S::Materialien.verwendung(nuss) == 'Front' && S::Materialien.maserung?(nuss), 'neues Frontmaterial angelegt')
 check(F.fronten(m2).all? { |t| t.inst.material.equal?(nuss) }, 'Fronten haben das neue Material')

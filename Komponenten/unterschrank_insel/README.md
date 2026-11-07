@@ -40,7 +40,7 @@ Mit *Interagieren* öffnen sich Türen und Schubladen.
 Ab etwa 350 mm Überstand braucht die Platte Stützen oder Konsolen; die sind nicht gezeichnet.
 
 ## Material und Anleimer
-Gezeichnet ist immer das **Endmaß**. Anleimer sind Kantenflächen mit dem Material „Anleimer Melamin weiss“ (2 mm, die Stückliste zieht sie ab). Platten haben „Melamin weiss“. *Frontfarbe und Griffe ändern* setzt das Frontmaterial auch auf Verkleidung und Wangen; Griffe bekommen nur Fronten und Türen.
+Gezeichnet ist immer das **Endmaß**. Anleimer sind Kantenflächen mit dem Material „Anleimer Melamin weiss“ (2 mm, die Stückliste zieht sie ab). Platten haben „Melamin weiss“. *Frontfarbe ändern* setzt das Frontmaterial auch auf Verkleidung und Wangen; Griffe bekommen nur Fronten und Türen.
 
 | Teil | Kanten mit Anleimer |
 |---|---|

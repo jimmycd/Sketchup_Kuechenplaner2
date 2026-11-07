@@ -42,7 +42,7 @@ Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, sichtba
 
 Bei Schräge und Bogen sind Roh-, Fräs- und Fertigmaß das umschließende Rechteck: zugeschnitten wird das Rechteck, die Kontur fräst die CNC. In der Stückliste steht die Schräg- oder Bogenkante unter *Kante Kontur* mit ihrer Länge und zählt in die Anleimer-Laufmeter; auf dem Etikett steht „Kontur mit Anleimer (CNC)“.
 
-**Farbe Frontfarbe:** alle Teile tragen `JT_Schrank/frontfarbe`. *Frontfarbe und Griffe ändern* gibt ihnen das Frontmaterial und den passenden Anleimer, aber keine Griffbohrungen.
+**Farbe Frontfarbe:** alle Teile tragen `JT_Schrank/frontfarbe`. *Frontfarbe ändern* gibt ihnen das Frontmaterial und den passenden Anleimer, aber keine Griffbohrungen.
 
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Teil>`: `RA1_SeiteL`, `RA1_SeiteR`, `RA1_Boden`, `RA1_Deckel`, `RA1_Rueckwand`, `RA1_Einlegeboden1` … bzw. `RA1_Mittelboden1` … (fest). Das Kürzel ist `RA1`, oder `RA2` usw., wenn es schon vergeben ist. An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (`Abschlussregal`), `kategorie`, `teil` und `rolle` (gemeinsame Rollen-Tabelle, unverändert).

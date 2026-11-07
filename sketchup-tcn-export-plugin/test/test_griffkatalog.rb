@@ -76,9 +76,9 @@ check(G.serie('H2515')['bauart'] == 'knopf' && G.lochabstaende(G.serie('H2515'))
 check(G.lochabstaende(G.serie('H1910')) == [128.0, 160.0], 'H1910: Griff für 128 und 160')
 check(G.groesse(G.serie('H2110'), 192, 'bronzefarben hell')['artikel'] == '106.70.202', 'H2110: Artikel-Nr. nicht fortlaufend')
 
-# --- Vorschlag nach Frontbreite (30 %, nächstliegender Lochabstand, Griff muss passen) ---
+# --- Vorschlag nach Frontbreite (20 %, nächstliegender Lochabstand, Griff muss passen) ---
 h2585 = G.serie('H2585') # 96/128/160/192/320
-vs = { 300 => 96, 450 => 128, 600 => 192, 900 => 320, 150 => 96 }
+vs = { 300 => 96, 450 => 96, 600 => 128, 900 => 192, 1200 => 192, 150 => 96 }
 vs.each { |b, l| check(G.vorschlag(h2585, b) == l, "Vorschlag #{b} → #{l} (#{G.vorschlag(h2585, b)})") }
 check(G.vorschlag(G.serie('H2510'), 300) == 128, 'kleinster Lochabstand, wenn nichts näher liegt')
 check(G.vorschlag(G.serie('H2515'), 600) == 0, 'Knopf: Lochabstand 0')
@@ -144,7 +144,7 @@ check(lam.call(tag), 'Rendern: Tag Griffe immer im Bild')
 # --- Je Schrank änderbar: feste Größe, kein Griff, Lage/Höhe ---
 check(S::Schrankbeschlag.groessen(model).keys.include?('H2585 Lochabstand 320 mm (332 lang)'), 'Schrank-Dialog bietet die Größen der Serie')
 vt = S::Schrankbeschlag.vorschlag_text(model, [usd])
-check(vt.to_s.include?('→ 128 mm'), "Vorschlag im Dialog: #{vt}")
+check(vt.to_s.include?('→ 96 mm'), "Vorschlag im Dialog: #{vt}")
 wahl = S::Schrankbeschlag.griff_wahl(model, ['H2585 Lochabstand 320 mm (332 lang)', '', 'links', '100'])
 S::Schrankbeschlag.anwenden(model, [usd], {}, griff: wahl)
 wahl_os = S::Schrankbeschlag.griff_wahl(model, [S::Schrankbeschlag::KEIN, '', S::Schrankbeschlag::UNVERAENDERT, ''])
@@ -175,6 +175,21 @@ ws, mit, bl = griffe.()
 check(!mit.empty? && mit.all? { |w| w.ops.count { |o| o.titel == 'Griff' } == 1 }, 'Knopf: eine Bohrung')
 check(bl.any? { |p| p[1] == 'Häfele H2515 Knopf, ozeanblau' && p[2].include?('106.71.075') }, "Knopf in der Beschlagliste: #{bl.select { |p| p[0] == 'Griffe' }}")
 check(GM.koerper(mit).values.flatten.map(&:name).include?('Knopf'), 'Knopf gezeichnet')
+
+# --- Eckschrank L (Falttür, Jürgen 2026-11-07 „Griffbelegung falsch“): nur die kurze Tür, an ihrer freien Kante ---
+em = Sketchup.active_model = Sketchup::Model.new
+Eckschrank.erstellen({}, l_form: true)
+G.waehlen('H2585', 'schwarz matt', em)
+ews = []
+S::Export.erzeugen(em, alle_ws: ews)
+lang = ews.find { |w| w.rolle == 'Tuer' && w.ops.any? { |o| o.titel == 'Falttürscharnier Topf' } }
+kurz = ews.find { |w| w.rolle == 'Tuer' && w.ops.any? { |o| o.titel == 'Montageplatte Falttürscharnier' } }
+kl = kurz && kurz.ops.select { |o| o.titel == 'Griff' }
+wa = kurz && (kurz.dicke_achse.zero? ? 1 : 0)
+frei = kurz && ((kurz.lo[wa] + kurz.hi[wa]) / 2 > (lang.lo[wa] + lang.hi[wa]) / 2 ? kurz.hi[wa] : kurz.lo[wa])
+check(lang && lang.ops.none? { |o| o.titel == 'Griff' }, 'Falttür: lange Tür ohne Griff')
+check(kl && kl.size == 2 && kl.map { |o| (o.p0[wa] - frei).abs.round(1) }.min == 35.0,
+      "Falttür: Griff an der kurzen Tür, äußeres Loch 35 von der freien Kante (#{kl && kl.map { |o| o.p0.map(&:round) }})")
 
 # --- Fenster Griffkatalog: alle Serien mit Bild ---
 html = S::Griffdialog.html(model, bild_url: ->(s) { "bild/#{s['kennung']}.jpg" })
