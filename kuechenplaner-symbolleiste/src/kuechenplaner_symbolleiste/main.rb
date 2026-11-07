@@ -74,7 +74,7 @@ module KuechenplanerSymbolleiste
     ['beschlag', 'Beschläge zeigen', 'Schalter: Beschläge (LEGRABOX-Zargen und Schienen, Topfbänder, AVENTOS) im Modell zeigen bzw. ausblenden; nicht in Stückliste und TCN',
      -> { defined?(JTools::SchrankCnc::Beschlagmodell) }, -> { JTools::SchrankCnc::Beschlagmodell.umschalten },
      -> { JTools::SchrankCnc::Beschlagmodell.an? }],
-    ['frontfarbe', 'Frontfarbe und Griffe', 'Frontfarbe und Griffe der gewählten Schränke ändern',
+    ['frontfarbe', 'Frontfarbe', 'Frontfarbe der gewählten Schränke ändern (Griffe: Griffkatalog)',
      -> { defined?(JTools::SchrankCnc::Frontfarbe) }, -> { JTools::SchrankCnc::Frontfarbe.dialog }],
     ['tcn', 'Export', 'Export: Stückliste (mit Beschlagliste), Etiketten, Zuschnittplan und TCN-Dateien in einen Zielordner, je einzeln an- und abwählbar',
      -> { defined?(JTools::SchrankCnc::Export) }, -> { JTools::SchrankCnc::Export.dialog }],

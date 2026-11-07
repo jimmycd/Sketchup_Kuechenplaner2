@@ -43,7 +43,7 @@ Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, sichtba
 | Boden, Deckel, Mittelwände, Fachböden | vorne; ohne Rückwand auch hinten |
 | Rückwand | keine (steckt ringsum in der Nut) |
 
-**Farbe Frontfarbe:** alle Teile tragen `JT_Schrank/frontfarbe` und bekommen mit *Frontfarbe und Griffe ändern* das Frontmaterial.
+**Farbe Frontfarbe:** alle Teile tragen `JT_Schrank/frontfarbe` und bekommen mit *Frontfarbe ändern* das Frontmaterial.
 
 ## Tags
 Jedes Teil hat einen eigenen Tag `<Kürzel>_<Teil>`: `WR1_SeiteL`, `WR1_SeiteR`, `WR1_Boden`, `WR1_Deckel`, `WR1_Rueckwand`, `WR1_Mittelwand1` … (von links), `WR1_Mittelboden1` … (Spalte für Spalte von links, in der Spalte von unten; die Spalte steht zusätzlich als `JT_Schrank/spalte` am Fachboden). Rollen: Mittelwand = `Seite`, Fachboden (`Mittelboden`) = `Zwischenboden` (gemeinsame Rollen-Tabelle, um `Mittelwand` ergänzt).

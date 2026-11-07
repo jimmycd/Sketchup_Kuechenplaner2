@@ -28,7 +28,7 @@ Mit *Interagieren* öffnen die Türen nach außen und die Innenschubkästen fahr
 * Korpus wie der Hochschrank: Seiten über die volle Höhe, Boden, Deckel, Rückwand 8 mm, Korpus 19 mm, Fugen 2 mm. Ein **fester Zwischenboden** (Oberkante = Höhe Bereich unten) trennt die Kästen vom Fach oben.
 * **Tür:** eine Tür von 0 bis zur Höhe, oder geteilt: unten bis 2 mm unter die Oberkante des Zwischenbodens, oben ab dort. Je Tür ein Flügel (Anschlag links oder rechts) oder zwei Flügel.
 * **Innenschubkästen** (Blum LEGRABOX free, MD-015/4): Der Bereich unten wird über die Anteile in Fächer geteilt. Im Fach sitzt der Kasten 38 mm über dem Fachboden (ohne Lochraster, Schiene mind. 38 mm über dem Boden), höchste Zarge, die passt, oben bleiben **60 mm frei für das Scharnier** (`Freiraum_Scharnier`).
-  * **Innenfront** 12 mm, 3 mm hinter der Korpusvorderkante, 2 mm Luft zu den Seiten, so hoch wie der Kasten. Material wie der Korpus; eine andere Farbe setzt *Frontfarbe und Griffe ändern… → Bereich „Nur Innenfronten“* (Innenfronten bekommen keine Griffbohrungen).
+  * **Innenfront** 12 mm, 3 mm hinter der Korpusvorderkante, 2 mm Luft zu den Seiten, so hoch wie der Kasten. Material wie der Korpus; eine andere Farbe setzt *Frontfarbe ändern… → Bereich „Nur Innenfronten“* (Innenfronten bekommen keine Griffbohrungen).
   * Kasten (Boden LW − 35 × NL − 10, 16 mm; Holzrückwand LW − 38 × höchstens 148 mm) beginnt 17 mm hinter der Korpusvorderkante (3 + 12 + 2 mm Fuge). Die Nennlänge NL folgt deshalb der Tiefe minus 17 mm.
 * **Scharniere** (Blum, öffnen nach außen, so dass die Kästen herausfahren können): Sie sitzen in den Lücken über den Kästen, nie auf Höhe eines Kastens:
   1. über dem untersten Kasten,

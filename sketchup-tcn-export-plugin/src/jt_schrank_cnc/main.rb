@@ -59,7 +59,7 @@ module JTools
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }
         menu.add_item('Materialien…') { Materialdialog.dialog }
         menu.add_item('Griffkatalog…') { Griffdialog.zeigen }
-        menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
+        menu.add_item('Frontfarbe ändern…') { Frontfarbe.dialog }
         menu.add_item('Beschläge und Griffe der gewählten Schränke…') { Schrankbeschlag.dialog }
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
         menu.add_item('Schrank andocken…') { Andocken.starten }

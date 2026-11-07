@@ -15,13 +15,16 @@
 #   Front     Mit Serie bekommt jede Front und Tür automatisch einen Griff in der vorgeschlagenen Größe.
 #             Ändern je Schrank (Beschläge und Griffe der gewählten Schränke…): feste Größe (griff_lochmass),
 #             kein Griff (griff_aus), Lage (griff_lage), Höhe (griff_hoehe) – stehen an der Front im Wörterbuch
-#             JT_Schrank wie bisher bei „Frontfarbe und Griffe ändern“.
+#             JT_Schrank wie bisher bei „Frontfarbe ändern“.
 #
-# Vorschlag (Regel, nicht aus dem Katalog): Ziel-Lochabstand = 30 % der Frontbreite, genommen wird der
+# Vorschlag (Regel, nicht aus dem Katalog): Ziel-Lochabstand = 20 % der Frontbreite (Jürgen 2026-11-07:
+# 30 % war zu groß), genommen wird der
 # nächstliegende Lochabstand der Serie (bei Gleichstand der kleinere), der mit VORSCHLAG[:rand] Abstand
 # je Seite auf die Front passt. Grundlage ist die Breite der Front, nicht die des Schranks (Doppeltür am
-# 800er-Schrank: zwei 400er-Türen → 128 statt 256). Beispiele mit 96/128/160/192/320:
-# 300 → 96, 450 → 128, 600 → 192, 900 → 320 (270 liegt näher an 320 als an 192).
+# 800er-Schrank: zwei 400er-Türen). Beispiele mit 96/128/160/192/320:
+# 300 → 96, 450 → 96, 600 → 128, 900 → 192, 1200 → 192.
+# Eckschrank L (Falttür): nur die kurze Tür (am Eckscharnier, die man zieht) bekommt einen Griff, mit dem
+# äußeren Loch Regeln::GRIFF[:rand] von ihrer freien Kante; die lange Tür am Korpus keinen (Regeln.griffe).
 # Knopf-Serien: eine Bohrung in der Mitte (Lochabstand 0).
 # Höhe (automatisch): Griffmitte möglichst 1000 mm über dem Boden, aber mindestens VORSCHLAG[:kante] von
 # Ober- und Unterkante der Front: Unterschrank-Fronten oben, Oberschränke unten, hohe Türen auf 1000 mm.
@@ -37,7 +40,7 @@ module JTools
       ORDNER = File.join(__dir__, 'griffe')
       DICT = 'Kuechenplaner_Einstellungen'.freeze
       SEKTION = 'Kuechenplaner_Einstellungen'.freeze
-      VORSCHLAG = { anteil: 0.3, rand: 20.0, kante: 35.0, griffhoehe: 1000.0 }.freeze
+      VORSCHLAG = { anteil: 0.2, rand: 20.0, kante: 35.0, griffhoehe: 1000.0 }.freeze
       KEINE = 'keine (Griffe von Hand)'.freeze
 
       def kataloge
@@ -175,8 +178,9 @@ module JTools
         g = s && groesse(s, lm, oberflaeche(model))
         g = nil if g && !knopf?(s) && lm <= 0
         lage = t.jt('griff_lage').to_s
-        lage = 'Mitte' if lage.empty?
-        { lochmass: lm, lage: lage, hoehe: h, serie: g ? s : nil, groesse: g, automatisch: auto }
+        lage_auto = lage.empty?
+        lage = 'Mitte' if lage_auto
+        { lochmass: lm, lage: lage, lage_auto: lage_auto, hoehe: h, serie: g ? s : nil, groesse: g, automatisch: auto }
       end
 
       # Griffangaben an einer Front (Instanz) setzen (Schrank-Dialog): groesse nil = unverändert,
