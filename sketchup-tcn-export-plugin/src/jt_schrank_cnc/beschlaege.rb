@@ -69,7 +69,15 @@ module JTools
           g = li['gruppe']
           nl_text = nl ? "NL #{nl}" : 'NL ? (zu wenig Tiefe)'
           add.(g, "Zargen #{m} (#{Tcn.n(z[:hoehe]).tr('.', ',')} mm), links + rechts", nl_text, 1, 'Paar', sk)
-          add.(g, 'Korpusschienen', "#{nl_text}, #{(nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]} kg", 1, 'Paar', sk)
+          # Schmaler Schrank (Blum SPACE TWIN, KB 185–250): diagonal versetzte Korpusschienen, 20 kg
+          tw = e['space_twin']
+          if tw && kb.round.between?(tw['kb'][0], tw['kb'][1])
+            hinweis = "#{nl_text}, #{tw['kg']} kg, Korpusbreite #{kb.round} mm"
+            hinweis += ", Zarge #{m} bei SPACE TWIN nicht vorgesehen (#{tw['zargen'].join('/')})" unless tw['zargen'].include?(m.to_s)
+            add.(g, tw['schienen'], hinweis, 1, 'Paar', sk)
+          else
+            add.(g, 'Korpusschienen', "#{nl_text}, #{(nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]} kg", 1, 'Paar', sk)
+          end
           add.(g, "Rückwandhalter Holzrückwand #{m}", "Holzrückwand #{Tcn.n(z[:rueckwand])} mm hoch", 1, 'Paar', sk)
           add.(g, "Fronthalter #{m}", 'Frontbefestigung links + rechts', 1, 'Paar', sk)
           if z[:einsatz] # Zarge N: kein Seiteneinsatz

@@ -31,6 +31,8 @@ Mit *Interagieren* auf eine Schublade klicken → sie fährt heraus.
 
 Diese festen Maße stehen als Attribute am Unterschrank (Fenster *Komponentenattribute*) und können dort angepasst werden, z. B. `Materialstaerke_Kastenrueckwand`, `Hoehe_Kastenrueckwand`, `Kasten_Abstand_unten`.
 
+**Schmaler Schrank (Blum SPACE TWIN):** Bei 185–250 mm Breite nennt die Beschlagliste die diagonal versetzten SPACE-TWIN-Korpusschienen (20 kg je Auszug, Zargen M/K/C; Blum-Katalog 2024/2025 S. 232). Bohrbild und Kastenmaße bleiben wie bei LEGRABOX.
+
 ## Material und Anleimer
 * **Material:** Jedes Teil hat „Melamin weiss“ (Plattenwerkstoff). Falls das Material im Modell fehlt, wird es mit den Material-Einstellungen aus `Unterschrank.skp` angelegt; vorhandene Einstellungen bleiben unverändert.
 * **Anleimer:** Sichtbare Kanten haben das Material „Anleimer weiss“ (Typ Kante, 2 mm, „Abzug“ aktiv). In SketchUp sind alle Teile im **Endmaß** gezeichnet; den 2-mm-Abzug für das Fräsmaß rechnen Stückliste, Zuschnitt und TCN-Export.

@@ -1425,6 +1425,20 @@ hv_ws = td.values.map(&:ws)
 hv_bl = S::Beschlaege.liste(hv_ws).map(&:to_a)
 check(hv_bl.any? { |p| p[1].include?('155°') && p[3] == 5 }, "Beschlagliste Hochschrank Vorrat: 5 × 155° (#{hv_bl.map { |p| [p[1], p[3]] }})")
 
+# SPACE TWIN (Blum-Katalog 2024/2025 S. 232): schmaler Schubladenschrank KB 185–250 bekommt die diagonal versetzten
+# Korpusschienen (20 kg) statt der normalen; ab 251 wieder normale Korpusschienen
+[[20.0, true], [30.0, false]].each do |b, twin|
+  tw = Sketchup.active_model = Sketchup::Model.new
+  UnterschrankSchubladen.erstellen({ 'Breite' => b, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
+  tws = []
+  S::Export.erzeugen(tw, alle_ws: tws)
+  tl = S::Beschlaege.liste(tws).map(&:to_a)
+  st = tl.select { |p| p[1].include?('SPACE TWIN') }
+  ks = tl.select { |p| p[1] == 'Korpusschienen' }
+  ok = twin ? (!st.empty? && ks.empty? && st.all? { |p| p[2].include?('20 kg') }) : (st.empty? && !ks.empty?)
+  check(ok, "SPACE TWIN bei #{(b * 10).round} mm (#{tws.size} Teile, #{tl.size} Posten): #{tl.select { |p| p[1].include?('schienen') }.map { |p| [p[1], p[2]] }}")
+end
+
 if $fehler.zero?
   puts 'test_export: alles OK'
 else

@@ -55,12 +55,12 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | LEGRABOX Innenschubkasten / Innenauszug | hinter Tür oder hinter Frontauszug | Höhe M, K, C | 198 (PDF 180) | 🟡 Hochschrank Vorrat (Innenschubkästen mit Innenfront) |
 | LEGRABOX Spülenschrank | Auszug mit Ausschnitt um den Siphon (Zwischenstück) | M, C | 224–228 (PDF 206–210) | 🟡 Spülenschrank vorhanden, Siphon-Auszug nicht |
 | SPACE TOWER (LEGRABOX) | Vorrats-Hochschrank mit Innenauszügen hinter Tür | KB 275–1200, 40/70 kg | 230 (PDF 212) | 🟡 Apothekerschrank/Hochschrank Vorrat nach dem Prinzip |
-| SPACE TWIN (LEGRABOX) | schmaler Unterschrank (Gewürze, Flaschen) | KB 185–250, 20 kg | 232 (PDF 214) | ⬜ (schmal: Häfele HU Slim Base) |
+| SPACE TWIN (LEGRABOX) | schmaler Unterschrank (Gewürze, Flaschen) | KB 185–250, 20 kg | 232 (PDF 214) | ✅ Unterschrank mit Schubladen 185–250 breit: Beschlagliste mit SPACE-TWIN-Schienen |
 | Einschubelement aus Glas / Gestaltungsvarianten | Glas-Seiteneinsatz, BOXCOVER | – | 234–243 (PDF 216–224) | ✅ Glas-Seiteneinsatz (Zarge C) |
 | LEGRABOX Zubehör, Befestigung Korpusschienen | Seitenstabilisierung, Schrauben, Schienen 750/753 | – | 244–249 (PDF 225–229) | ✅ Schiene, Beschlagliste |
 | MERIVOBOX | Alternative Boxsystem (Plattform), Schubkasten/Frontauszug, Spülenschrank, SPACE TOWER/TWIN, Korpusschiene mit Überauszug für Müll | N/M/K/E, 40/70 kg; TWIN KB 150–250 | 250–289 (PDF 230–269) | ⬜ |
 | TANDEMBOX antaro | klassisches Boxsystem: Schubkasten, Frontauszug mit Reling C/D, Spülenschrank, SPACE TOWER/TWIN | N/M/K, C/D, 30/65 kg | 290–335 (PDF 270–314) | ⬜ |
-| SPACE CORNER (TANDEMBOX) | Eck-Unterschrank mit Schubkästen bis in die Ecke | auf Anfrage | 292 (PDF 272) | ⬜ |
+| SPACE CORNER (TANDEMBOX) | Eck-Unterschrank mit Schubkästen bis in die Ecke | auf Anfrage | 292 (PDF 272) | ⬜ (Blum liefert nur auf Anfrage, keine Maße im Katalog) |
 | TANDEMBOX plus | Designvariante TANDEMBOX | – | 336 (PDF 315) | ⬜ |
 | METABOX | einfaches Stahlzargen-System, Teilauszug | 25 kg | 338–361 (PDF 317–339) | ⬜ |
 | SERVO-DRIVE für LEGRABOX/MERIVOBOX/TANDEMBOX | elektrisches Öffnen durch Antippen, auch SPACE TOWER, Spülenschrank | – | 362–393 (PDF 340–371) | ⬜ |
