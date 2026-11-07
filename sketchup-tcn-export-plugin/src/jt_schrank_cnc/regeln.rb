@@ -468,12 +468,14 @@ module JTools
       #   bezug          „oberkante“ = Korpusoberkante (Oberkante Seiten), „deckel“ = Unterseite des Deckels
       # Faltklappe (AVENTOS HF, KlappeO/KlappeU): noch ohne Bohrbild, der Export meldet das.
       def self.aventos(teile, meldungen)
-        hf = teile.find { |w| %w[KlappeO KlappeU].include?(w.teil.jt('teil')) }
-        if hf
-          meldungen << "#{hf.teil.jt('schrank')}: AVENTOS HF – Bohrungen für Kraftspeicher, Frontbeschlag und Scharniere sind noch nicht hinterlegt"
+        seiten = teile.select { |w| w.rolle == 'Seite' }
+        ko = teile.find { |w| w.teil.jt('teil') == 'KlappeO' }
+        ku = teile.find { |w| w.teil.jt('teil') == 'KlappeU' }
+        if ko && ku && seiten.size == 2
+          e = Beschlagkatalog.gewaehlt('faltklappe')
+          return faltklappe(e, teile, ko, ku, seiten, meldungen) if e && e['bauart'] == 'faltklappe_seite'
         end
         kl = teile.find { |w| w.teil.jt('teil') == 'Klappe' } or return
-        seiten = teile.select { |w| w.rolle == 'Seite' }
         return unless seiten.size == 2
         e = Beschlagkatalog.klappe_fuer(kl.teil.schrank)
         return unless e && e['bauart'] == 'klappe_seite'
@@ -496,7 +498,7 @@ module JTools
           meldungen << "#{kl.teil.jt('schrank')}: #{e['name']} passt nicht – #{h}"
         end
         vorn_max = mitte.(kl, t) > mitte.(seiten[0], t)
-        c = e['seite']
+        c = Beschlagkatalog.stufe(e['seite'], hoehe)
         z0 = bezug.(c['bezug'])
         seiten.each do |s|
           andere = (seiten - [s]).first
@@ -514,12 +516,59 @@ module JTools
         hinten = mitte.(seiten[0], da) > mitte.(kl, da)
         fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
         fl = hinten ? kl.hi[da] : kl.lo[da]
-        fc = e['front']
-        zf = bezug.(fc['bezug'])
+        fc = Beschlagkatalog.stufe(e['front'], hoehe)
+        zf = fc['bezug'] == 'klappe_unten_oben' ? kl.hi[2] : bezug.(fc['bezug'])
         fc['unter'].each do |dz|
           [innen[0] + fc['innen'], innen[1] - fc['innen']].each do |x|
             kl.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => x, 2 => zf - dz), nil, fc['d'], fc['tiefe'], nil, nil,
                              fc['titel'])
+          end
+        end
+      end
+
+      # Faltklappe (Bauart faltklappe_seite, Blum AVENTOS HF top): Kraftspeicher in den Seiten und Hebel an der
+      # unteren Klappe wie klappe_seite (Hebel ab Oberkante der unteren Klappe); Scharniere: oben zwei Töpfe
+      # in der oberen Klappe an ihrer Oberkante mit Montageplatte unter dem Deckel, in der Mitte zwei
+      # Zwischenscharniere (Topf in der unteren Klappe an ihrer Oberkante, Montageplatte auf der oberen Klappe
+      # platte.zwischen über ihrer Unterkante); seitlich scharnier.rand ab Klappenrand
+      def self.faltklappe(e, teile, ko, ku, seiten, meldungen)
+        klappe_seite(e, teile, ku, seiten, meldungen)
+        sc, pl = e['scharnier'], e['platte']
+        k = seiten[0].dicke_achse
+        t = ([0, 1, 2] - [k, 2]).first
+        da = ko.dicke_achse
+        hinten = (seiten[0].lo[da] + seiten[0].hi[da]) > (ko.lo[da] + ko.hi[da])
+        fseite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+        xs = [ko.lo_f(k) + sc['rand'], ko.hi_f(k) - sc['rand']]
+        schraub = { d: sc['schraub']['d'], abstand: sc['schraub']['abstand'], versatz: sc['schraub']['versatz'] }
+        topf = lambda do |kl, kante|
+          fl = hinten ? kl.hi[da] : kl.lo[da]
+          xs.each do |x|
+            kl.ops << Op.new(:topfband, fseite, punkt(da => fl, k => x, 2 => kl.hi_f(2) - kante), nil, sc['d'], sc['tiefe'],
+                             nil, nil, sc['titel'], { kante: :zmax, eck: false, platte: true, modell: e['kennung'], schraub: schraub })
+          end
+        end
+        topf.(ko, sc['oben'])
+        topf.(ku, sc['zwischen'])
+        # Montageplatten der Zwischenscharniere auf der Innenseite der oberen Klappe
+        fl = hinten ? ko.hi[da] : ko.lo[da]
+        xs.each do |x|
+          [x - pl['abstand'], x + pl['abstand']].each do |xx|
+            ko.ops << Op.new(:bohrung, fseite, punkt(da => fl, k => xx, 2 => ko.lo_f(2) + pl['zwischen']), nil, pl['d'], pl['tiefe'],
+                             nil, nil, pl['titel'])
+          end
+        end
+        # Montageplatten der 120°-Scharniere unter dem Deckel (35 hinter seiner Vorderkante im Fräsmaß wie die Lochreihe)
+        deckel = teile.find { |w| w.rolle == 'Deckel' }
+        unless deckel
+          meldungen << "#{ko.teil.jt('schrank')}: #{e['name']} – kein Deckel für die Montageplatten der Scharniere"
+          return
+        end
+        vorn_max = (ko.lo[t] + ko.hi[t]) > (deckel.lo[t] + deckel.hi[t])
+        y = vorn_max ? deckel.hi_f(t) - LOCHREIHE[:rand] : deckel.lo_f(t) + LOCHREIHE[:rand]
+        xs.each do |x|
+          [x - pl['abstand'], x + pl['abstand']].each do |xx|
+            deckel.ops << Op.new(:bohrung, :zmin, punkt(2 => deckel.lo[2], t => y, k => xx), nil, pl['d'], pl['tiefe'], nil, nil, pl['titel'])
           end
         end
       end

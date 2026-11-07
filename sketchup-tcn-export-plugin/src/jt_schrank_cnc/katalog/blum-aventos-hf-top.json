@@ -1,0 +1,142 @@
+{
+  "kennung": "blum-aventos-hf-top",
+  "name": "Blum AVENTOS HF top",
+  "hersteller": "Blum",
+  "art": "faltklappe",
+  "bauart": "faltklappe_seite",
+  "einsatz": {
+    "korpushoehe": [
+      480,
+      1200
+    ]
+  },
+  "quelle": "Blum Katalog 2024/2025 S. 20–31 (Hochfaltklappe, DQDXLC): Kraftspeicher Systemschrauben Ø5 101 und 229 ab Vorderkante, H und H + 64 unter Korpusoberkante (H 93,5 bei KH 480–519, 116 bei 520–1200); Hebel an der unteren Front 2 Schrauben, oberste Z unter Oberkante der unteren Front (170 / 189), 32 Abstand, 12,5 ab Seite (Innenseite angenommen); Scharnier-Set 78Z5530T11: 2 × CLIP top 120° (Topf in der oberen Front an der Oberkante, Montageplatte unter dem Oberboden) und 2 × CLIP top-Zwischenscharnier (Topf in der unteren Front an der Oberkante, Montageplatte auf der oberen Front 20 über der Unterkante), Topf Ø35, Schraublöcher 45/9,5, Topfbohrabstand 4 (120°) bzw. 6 (Zwischenscharnier, Fuge 3). Seitlicher Abstand der Scharniere 100 ab Frontrand ABGELEITET (im Katalog nicht bemaßt).",
+  "seite": {
+    "titel": "Kraftspeicher AVENTOS HF top",
+    "d": 5,
+    "tiefe": 12,
+    "bezug": "oberkante",
+    "stufen": [
+      {
+        "bis": 519,
+        "loecher": [
+          [
+            101,
+            93.5
+          ],
+          [
+            229,
+            93.5
+          ],
+          [
+            101,
+            157.5
+          ],
+          [
+            229,
+            157.5
+          ]
+        ]
+      },
+      {
+        "bis": 1200,
+        "loecher": [
+          [
+            101,
+            116
+          ],
+          [
+            229,
+            116
+          ],
+          [
+            101,
+            180
+          ],
+          [
+            229,
+            180
+          ]
+        ]
+      }
+    ]
+  },
+  "front": {
+    "titel": "Hebel AVENTOS HF top",
+    "d": 5,
+    "tiefe": 12,
+    "innen": 12.5,
+    "bezug": "klappe_unten_oben",
+    "stufen": [
+      {
+        "bis": 519,
+        "unter": [
+          170,
+          202
+        ]
+      },
+      {
+        "bis": 1200,
+        "unter": [
+          189,
+          221
+        ]
+      }
+    ]
+  },
+  "scharnier": {
+    "titel": "Scharnier AVENTOS HF top",
+    "d": 35,
+    "tiefe": 13,
+    "oben": 21.5,
+    "zwischen": 23.5,
+    "rand": 100,
+    "schraub": {
+      "d": 8,
+      "abstand": 45,
+      "versatz": 9.5
+    }
+  },
+  "platte": {
+    "titel": "Montageplatte AVENTOS HF top",
+    "d": 5,
+    "tiefe": 12,
+    "abstand": 16,
+    "zwischen": 20
+  },
+  "liste": {
+    "gruppe": "Klappen (AVENTOS)",
+    "posten": [
+      [
+        "Blum AVENTOS HF top Kraftspeicher-Set 22F2510 / 22F2810",
+        "nach Leistungsfaktor (KH × Frontgewicht)",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HF top Hebel-Set 22F3200 / 3500 / 3900",
+        "nach Korpushöhe (480–610 / 600–910 / 840–1200)",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HF top Scharnier-Set 78Z5530T11",
+        "2 × 120°, 2 × Zwischenscharnier, 6 Montageplatten",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum Abdeckkappen-Set 22.8000",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Systemschraube Ø5 (Blum)",
+        "Kraftspeicher, Hebel, Montageplatten",
+        "loecher",
+        "Stück"
+      ]
+    ]
+  }
+}

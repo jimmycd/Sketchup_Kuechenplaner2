@@ -1,0 +1,147 @@
+{
+  "kennung": "blum-aventos-hl-top",
+  "name": "Blum AVENTOS HL top",
+  "hersteller": "Blum",
+  "art": "klappe",
+  "bauart": "klappe_seite",
+  "einsatz": {
+    "korpushoehe": [
+      300,
+      580
+    ]
+  },
+  "quelle": "Blum Katalog 2024/2025 S. 38–42 (Hochliftklappe, DQE0EP): Kraftspeicher wie HS top (101/229 ab Vorderkante, 63/127 unter Korpusoberkante); Frontbefestigung 4 Schrauben ab Z unter Frontoberkante je Hebel-Set: 22L3200 (KH 300–339) 113, 22L3500 (340–389) 153, 22L3800 (390–540) 203, 22L3900 (541–580) 256 (+ FAo), 3 × 32, 12,5 ab Seite (Innenseite angenommen). Ab lichter Weite 1190 zusätzlich Querstabilisierung.",
+  "seite": {
+    "titel": "Kraftspeicher AVENTOS HL top",
+    "d": 5,
+    "tiefe": 12,
+    "bezug": "oberkante",
+    "loecher": [
+      [
+        101,
+        63
+      ],
+      [
+        229,
+        63
+      ],
+      [
+        101,
+        127
+      ],
+      [
+        229,
+        127
+      ]
+    ]
+  },
+  "front": {
+    "titel": "Frontbefestigung AVENTOS HL top",
+    "d": 5,
+    "tiefe": 12,
+    "innen": 12.5,
+    "bezug": "oberkante",
+    "stufen": [
+      {
+        "bis": 339,
+        "unter": [
+          113,
+          145,
+          177,
+          209
+        ],
+        "hebel": "22L3200"
+      },
+      {
+        "bis": 389,
+        "unter": [
+          153,
+          185,
+          217,
+          249
+        ],
+        "hebel": "22L3500"
+      },
+      {
+        "bis": 540,
+        "unter": [
+          203,
+          235,
+          267,
+          299
+        ],
+        "hebel": "22L3800"
+      },
+      {
+        "bis": 580,
+        "unter": [
+          256,
+          288,
+          320,
+          352
+        ],
+        "hebel": "22L3900"
+      }
+    ]
+  },
+  "liste": {
+    "gruppe": "Klappen (AVENTOS)",
+    "posten": [
+      [
+        "Blum AVENTOS HL top Kraftspeicher-Set 21L",
+        "nach Korpushöhe und Frontgewicht",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HL top Hebel-Set 22L3200 / 3500 / 3800 / 3900",
+        "nach Korpushöhe (siehe Katalog S. 40)",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HL top Frontbefestigungs-Set 20S4200",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum Abdeckkappen-Set 22.8000",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Systemschraube Ø5 (Blum)",
+        "Kraftspeicher + Frontbefestigung",
+        "loecher",
+        "Stück"
+      ]
+    ]
+  },
+  "koerper": {
+    "seite": {
+      "titel": "Kraftspeicher AVENTOS HL top",
+      "material": "kunststoff",
+      "dicke": 30,
+      "vor": 20,
+      "hinter": 60,
+      "unter": 40,
+      "ueber": 55
+    },
+    "arm": {
+      "titel": "Hebel AVENTOS HL top",
+      "material": "stahl",
+      "staerke": 8,
+      "ein": 40,
+      "hoehe": 30
+    },
+    "front": {
+      "titel": "Frontbefestigung AVENTOS HL top",
+      "material": "stahl",
+      "breite": 20,
+      "dicke": 10,
+      "ueber": 10
+    }
+  }
+}

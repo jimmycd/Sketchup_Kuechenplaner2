@@ -1,0 +1,111 @@
+{
+  "kennung": "blum-aventos-hs-top",
+  "name": "Blum AVENTOS HS top",
+  "hersteller": "Blum",
+  "art": "klappe",
+  "bauart": "klappe_seite",
+  "einsatz": {
+    "korpushoehe": [
+      350,
+      800
+    ]
+  },
+  "quelle": "Blum Katalog 2024/2025 S. 32–36 (Hochschwenkklappe, DQDZPC): Kraftspeicher Systemschrauben Ø5 (min. 11,5 tief) 101 und 229 (101 + 128) ab Vorderkante, 63 und 127 unter Korpusoberkante; Frontbefestigung 4 Schrauben ab Z = 195 + FAo unter Frontoberkante (= 195 unter Korpusoberkante), 3 × 32, 12,5 ab Seite (wie HK top Innenseite angenommen). KH 350–800, KB bis 1800, lichte Tiefe min. 264.",
+  "seite": {
+    "titel": "Kraftspeicher AVENTOS HS top",
+    "d": 5,
+    "tiefe": 12,
+    "bezug": "oberkante",
+    "loecher": [
+      [
+        101,
+        63
+      ],
+      [
+        229,
+        63
+      ],
+      [
+        101,
+        127
+      ],
+      [
+        229,
+        127
+      ]
+    ]
+  },
+  "front": {
+    "titel": "Frontbefestigung AVENTOS HS top",
+    "d": 5,
+    "tiefe": 12,
+    "innen": 12.5,
+    "bezug": "oberkante",
+    "unter": [
+      195,
+      227,
+      259,
+      291
+    ]
+  },
+  "liste": {
+    "gruppe": "Klappen (AVENTOS)",
+    "posten": [
+      [
+        "Blum AVENTOS HS top Kraftspeicher-Set 22S2x10",
+        "nach Korpushöhe und Frontgewicht",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HS top Hebel-Set 22S3500",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum AVENTOS HS top Frontbefestigungs-Set 20S4200",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Blum Abdeckkappen-Set 22.8000",
+        "",
+        1,
+        "Satz"
+      ],
+      [
+        "Systemschraube Ø5 (Blum)",
+        "Kraftspeicher + Frontbefestigung",
+        "loecher",
+        "Stück"
+      ]
+    ]
+  },
+  "koerper": {
+    "seite": {
+      "titel": "Kraftspeicher AVENTOS HS top",
+      "material": "kunststoff",
+      "dicke": 30,
+      "vor": 20,
+      "hinter": 60,
+      "unter": 40,
+      "ueber": 55
+    },
+    "arm": {
+      "titel": "Hebel AVENTOS HS top",
+      "material": "stahl",
+      "staerke": 8,
+      "ein": 40,
+      "hoehe": 30
+    },
+    "front": {
+      "titel": "Frontbefestigung AVENTOS HS top",
+      "material": "stahl",
+      "breite": 20,
+      "dicke": 10,
+      "ueber": 10
+    }
+  }
+}

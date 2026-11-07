@@ -105,7 +105,7 @@ module JTools
       # Klappen: Posten aus dem Beschlag-Katalog (liste.posten = [Beschlag, Hinweis, Anzahl, Einheit]);
       # Anzahl „loecher_seite“ / „loecher_front“ / „loecher“ = gezählte Bohrungen des Modells
       def klappen(teile, add)
-        katalog = Beschlagkatalog.eintraege.select { |e| e['bauart'] == 'klappe_seite' }
+        katalog = Beschlagkatalog.eintraege.select { |e| %w[klappe_seite faltklappe_seite].include?(e['bauart']) }
         teile.each do |kl|
           e = katalog.find { |x| kl.ops.any? { |o| o.titel == x['front']['titel'] } } or next
           sk = kl.teil.jt('schrank')
@@ -113,7 +113,9 @@ module JTools
             'loecher_front' => kl.ops.count { |o| o.titel == e['front']['titel'] },
             'loecher_seite' => teile.flat_map(&:ops).count { |o| o.titel == e['seite']['titel'] }
           }
-          n['loecher'] = n['loecher_front'] + n['loecher_seite']
+          # Faltklappe: Montageplatten (Deckel, obere Klappe) zählen bei den Schrauben mit
+          n['loecher'] = n['loecher_front'] + n['loecher_seite'] +
+                         (e['platte'] ? teile.flat_map(&:ops).count { |o| o.titel == e['platte']['titel'] } : 0)
           e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
             add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
           end

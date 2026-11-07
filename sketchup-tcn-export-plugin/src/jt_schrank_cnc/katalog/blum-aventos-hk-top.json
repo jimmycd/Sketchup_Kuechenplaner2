@@ -4,29 +4,96 @@
   "hersteller": "Blum",
   "art": "klappe",
   "bauart": "klappe_seite",
-  "einsatz": { "korpushoehe": [205, 600] },
-  "quelle": "Blum Montageanleitung MD-039/2, S. 3–4; Maße abgeleitet (Jürgen 2026-11-02), nicht an einem Probestück geprüft",
+  "einsatz": {
+    "korpushoehe": [
+      205,
+      600
+    ]
+  },
+  "quelle": "Blum Katalog 2024/2025 S. 48 (Bohrposition Systemschrauben, Frontbearbeitung): Kraftspeicher Ø5, 36 unter Korpusoberkante, 37/69/133/165 ab Vorderkante (37+32+64+32); Frontbefestigung 4 Schrauben 62/94/126/158 unter Korpusoberkante (62 + FAo ab Frontoberkante, 3 × 32), 12,5 ab Innenseite Seite (Bezugskante im Bild nicht eindeutig, wie bisher Innenseite). Früher (MD-039/2 abgeleitet): 37/69/101/133 und 2 Frontlöcher.",
   "seite": {
     "titel": "Kraftspeicher AVENTOS HK-top",
-    "d": 5, "tiefe": 12, "bezug": "oberkante",
-    "loecher": [[37, 36], [69, 36], [101, 36], [133, 36]]
+    "d": 5,
+    "tiefe": 12,
+    "bezug": "oberkante",
+    "loecher": [
+      [
+        37,
+        36
+      ],
+      [
+        69,
+        36
+      ],
+      [
+        133,
+        36
+      ],
+      [
+        165,
+        36
+      ]
+    ]
   },
   "front": {
     "titel": "Frontbeschlag AVENTOS HK-top",
-    "d": 5, "tiefe": 12, "innen": 12.5, "bezug": "oberkante",
-    "unter": [62, 94]
+    "d": 5,
+    "tiefe": 12,
+    "innen": 12.5,
+    "bezug": "oberkante",
+    "unter": [
+      62,
+      94,
+      126,
+      158
+    ]
   },
   "liste": {
     "gruppe": "Klappen (AVENTOS)",
     "posten": [
-      ["Blum AVENTOS HK-top Kraftspeicher", "Leistungsfaktor nach Frontgewicht", 1, "Paar"],
-      ["Blum AVENTOS HK-top Frontbeschlag", "", 1, "Paar"],
-      ["Systemschraube Ø5 (Blum)", "Kraftspeicher + Frontbeschlag", "loecher", "Stück"]
+      [
+        "Blum AVENTOS HK-top Kraftspeicher",
+        "Leistungsfaktor nach Frontgewicht",
+        1,
+        "Paar"
+      ],
+      [
+        "Blum AVENTOS HK-top Frontbeschlag",
+        "",
+        1,
+        "Paar"
+      ],
+      [
+        "Systemschraube Ø5 (Blum)",
+        "Kraftspeicher + Frontbeschlag",
+        "loecher",
+        "Stück"
+      ]
     ]
   },
   "koerper": {
-    "seite": { "titel": "Kraftspeicher AVENTOS HK-top", "material": "kunststoff", "dicke": 30, "vor": 20, "hinter": 60, "unter": 60, "ueber": 15 },
-    "arm": { "titel": "Hebelarm AVENTOS HK-top", "material": "stahl", "staerke": 8, "ein": 40, "hoehe": 30 },
-    "front": { "titel": "Frontbeschlag AVENTOS HK-top", "material": "stahl", "breite": 20, "dicke": 10, "ueber": 10 }
+    "seite": {
+      "titel": "Kraftspeicher AVENTOS HK-top",
+      "material": "kunststoff",
+      "dicke": 30,
+      "vor": 20,
+      "hinter": 60,
+      "unter": 60,
+      "ueber": 15
+    },
+    "arm": {
+      "titel": "Hebelarm AVENTOS HK-top",
+      "material": "stahl",
+      "staerke": 8,
+      "ein": 40,
+      "hoehe": 30
+    },
+    "front": {
+      "titel": "Frontbeschlag AVENTOS HK-top",
+      "material": "stahl",
+      "breite": 20,
+      "dicke": 10,
+      "ueber": 10
+    }
   }
 }
