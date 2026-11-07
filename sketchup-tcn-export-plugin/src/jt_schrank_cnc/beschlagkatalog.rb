@@ -41,6 +41,9 @@ module JTools
         # Gerätetür wird mitgenommen; Blum MODUL Kühlschrank-Schlepptürscharnier (Katalog 2024/2025 S. 168)
         'topfband_kuehlschrank' => { name: 'Topfband Kühlschrank-Schlepptür', standard: 'blum-modul-kuehlschrank',
                                      bauarten: %w[topfband_platte], auch: %w[topfband] },
+        # Eckschrank L: Scharnier zwischen den beiden Türen der Falttür (Katalog 2024/2025 S. 116); die Tür
+        # am Korpus bekommt das Topfband vor Innenauszügen (155° oder 170°, nur damit erlaubt)
+        'falttuer' => { name: 'Falttür-Eckscharnier (Eckschrank L)', standard: 'blum-clip-top-falttuer', bauarten: %w[falttuer_eck] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
         'faltklappe' => { name: 'Faltklappe (zweiteilig)', standard: 'blum-aventos-hf-top', bauarten: %w[faltklappe_seite] },
         'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
@@ -62,6 +65,7 @@ module JTools
         'hochauszug_seite' => %w[schiene front bauraum liste koerper],
         'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper],
+        'falttuer_eck' => %w[topf platte liste koerper],
         'oeffnung' => %w[liste]
       }.freeze
 

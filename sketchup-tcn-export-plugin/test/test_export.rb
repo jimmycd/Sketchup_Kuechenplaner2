@@ -1363,8 +1363,9 @@ end
  ['Insel', -> { UnterschrankInsel.erstellen({ 'Frontart' => 0.0 }) }, %w[USI1_TuerL USI1_TuerR]],
  ['Dunstabzug', -> { OberschrankDunstabzug.erstellen({}) }, %w[OSD1_TuerL OSD1_TuerR]],
  ['Eckschrank', -> { Eckschrank.erstellen({}) }, %w[UES1_Tuer]],
- ['Eckschrank L-Form', -> { Eckschrank.erstellen({}, l_form: true) }, %w[UES1_TuerL UES1_TuerR]],
- ['Eck-Oberschrank', -> { EckOberschrank.erstellen({}) }, %w[OES1_TuerL OES1_TuerR]],
+ # Falttür: nur die lange Tür am Korpus hat Topfbänder (die kurze trägt die Montageplatte des Falttürscharniers)
+ ['Eckschrank L-Form', -> { Eckschrank.erstellen({}, l_form: true) }, %w[UES1_TuerR]],
+ ['Eck-Oberschrank', -> { EckOberschrank.erstellen({}) }, %w[OES1_TuerR]],
  ['Hochschrank Geräte', -> { HochschrankGeraete.erstellen({}) }, %w[HG1_O_Tuer]],
  ['Hochschrank Kühlschrank', -> { HochschrankKuehlschrank.erstellen({}) }, %w[HK1_O_Tuer]]].each do |titel, bau, namen|
   td, tm, = tb_export(titel, &bau)
@@ -1430,12 +1431,34 @@ reihe = sl.ops.find { |o| o.titel == 'Lochreihe' && (o.p0[1] - (sl.lo_f(1) + 35)
 check(reihe && os_t.all? { |z| [z - 16, z + 16].all? { |q| ((q - [reihe.p0[2], reihe.p1[2]].min) / 32.0).then { |f| (f - f.round).abs < 1e-6 } } },
       "Oberschrank: Montageplatte in der Lochreihe (#{os_t})")
 
-# Falttür: lange Tür am Korpus, kurze am Eckscharnier (an der Kante zur langen Tür)
-td, = tb_export('L') { Eckschrank.erstellen({}, l_form: true) }
-lang, kurz = %w[UES1_TuerR UES1_TuerL].map { |n| td[n].ws }.sort_by { |w| -w.flaechen_achsen.reject { |a| a == 2 }.map { |a| w.mass(a) }.max }
-k = kurz.ops.find { |o| o.art == :topfband }.daten[:kante]
-a = S::Geometrie.achse(k)
-check((S::Geometrie.max?(k) ? kurz.hi[a] : kurz.lo[a]).between?(lang.lo[a] - 30, lang.hi[a] + 30), "Falttür: kurze Tür am Eckscharnier (#{k})")
+# Falttür (Blum-Katalog 2024/2025 S. 116–117, Eckschrank-Falttürscharnier): lange Tür am Korpus mit dem
+# 155°-Scharnier, Topf des Falttürscharniers in derselben Tür an der Ecke (Topfmitte 12,5 ab Türkante,
+# Dübel Ø8 9,5 ab Kante, 45 Abstand), auf der kurzen Tür die Montageplatte 37 ab Außenseite der langen Tür
+[[{}, 'UES1_TuerR', 'UES1_TuerL', 'A ≥ B'], [{ 'Schenkel_A' => 90.0, 'Schenkel_B' => 120.0 }, 'UES1_TuerL', 'UES1_TuerR', 'A < B']].each do |eing, nl, nk, fall|
+  td, tm, = tb_export("L #{fall}") { Eckschrank.erstellen(eing, l_form: true) }
+  lang, kurz = td[nl].ws, td[nk].ws
+  check(tm.none? { |m| m.include?('Topfb') || m.include?('Falttür') }, "Falttür #{fall}: keine Meldungen #{tm}")
+  tb = lang.ops.select { |o| o.art == :topfband }
+  check(tb.size == 2 && tb.all? { |o| o.daten[:modell] == 'blum-clip-top-155' && !o.daten[:eck] }, "Falttür #{fall}: lange Tür mit 2 × 155° am Korpus (#{tb.map { |o| o.daten[:modell] }})")
+  check(kurz.ops.none? { |o| o.art == :topfband }, "Falttür #{fall}: kurze Tür ohne Topfband")
+  topf = lang.ops.select { |o| o.titel == 'Falttürscharnier Topf' }
+  check(topf.map { |o| o.p0[2].round(1) } == tb.map { |o| o.p0[2].round(1) }, "Falttür #{fall}: Falttürscharniere auf Höhe der Topfbänder")
+  k = topf[0].daten[:kante]
+  a = S::Geometrie.achse(k)
+  rand = S::Geometrie.max?(k) ? lang.hi[a] : lang.lo[a]
+  check(topf.all? { |o| (o.p0[a] - rand).abs.round(3) == 12.5 && o.d == 35 && o.seite == tb[0].seite }, "Falttür #{fall}: Topf 12,5 ab Kante an der Ecke, Innenseite")
+  check((rand - (kurz.lo[a] + kurz.hi[a]) / 2.0).abs < 30, "Falttür #{fall}: Topf an der Kante zur kurzen Tür (#{k})")
+  du = lang.ops.select { |o| o.titel == 'Falttürscharnier Dübel' }
+  check(du.size == 4 && du.all? { |o| (o.p0[a] - rand).abs.round(3) == 9.5 && o.d == 8 }, "Falttür #{fall}: Dübel Ø8 9,5 ab Kante")
+  mp = kurz.ops.select { |o| o.titel == 'Montageplatte Falttürscharnier' }
+  da = lang.dicke_achse
+  check(mp.size == 4 && mp.all? { |o| ((o.p0[da] - lang.lo[da]).abs.round(3) == 37 || (o.p0[da] - lang.hi[da]).abs.round(3) == 37) },
+        "Falttür #{fall}: Montageplatte 37 ab Außenseite der langen Tür (#{mp.map { |o| o.p0[da].round(1) }}, Tür #{lang.lo[da].round(1)}..#{lang.hi[da].round(1)})")
+  ka = kurz.dicke_achse
+  check(mp.all? { |o| o.p0[da].between?(kurz.lo[da], kurz.hi[da]) && o.seite.to_s.start_with?(S::Geometrie::ACHSEN[ka]) }, "Falttür #{fall}: Montageplatte auf der kurzen Tür")
+  # TCN der Türen: Bohrungen auf Fläche 1, keine Meldung
+  [nl, nk].each { |n| check(td[n].text.include?('W#81{'), "Falttür #{fall}: #{n} mit Bohrungen im TCN") }
+end
 
 # Hochschrank Kühlschrank: Schlepptür am Korpus mit 4 Blum-MODUL-Kühlschrank-Schlepptürscharnieren und Montageplatten
 # 194K6100E (Nische ohne Lochreihe), Festtür auf der Gerätetür ohne Bänder (Blum-Katalog 2024/2025 S. 168)

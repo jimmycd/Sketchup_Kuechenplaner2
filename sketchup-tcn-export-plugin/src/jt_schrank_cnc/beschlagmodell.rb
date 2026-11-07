@@ -25,7 +25,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 6
+      VERSION = 7
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -91,6 +91,7 @@ module JTools
         end
         schubladen(teile, add)
         topfbaender(teile, add)
+        falttuer(teile, add)
         klappen(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
@@ -361,6 +362,35 @@ module JTools
             add.(s, quader("Topfband #{n} Arm", stahl,
                            p3(wa => sfl + innen * pl[2], da => vorne, 2 => z - tb[:arm_h] / 2.0),
                            p3(wa => sfl + innen * (pl[2] + tb[:arm_b]), da => y + rein * tb[:arm_ueber], 2 => z + tb[:arm_h] / 2.0)))
+          end
+        end
+      end
+
+      # Blum Eckschrank-Falttürscharnier (Eckschrank L): Topf in der langen Tür an der Ecke (als Quader bis
+      # an die Türkante, der Topf läuft über die Kante; in der Tür, damit ihre Maße gleich bleiben),
+      # Montageplatte auf der kurzen Tür (fährt mit ihr, liegt in ihrem Halter)
+      def falttuer(teile, add)
+        stahl = MATERIALIEN[:stahl][0]
+        teile.select { |w| w.rolle == 'Tuer' }.each do |t|
+          t.ops.select { |o| o.titel == 'Falttürscharnier Topf' }.each_with_index do |o, i|
+            kp = (Beschlagkatalog.eintrag(o.daten[:modell]) || Beschlagkatalog.gewaehlt('falttuer'))['koerper']
+            da = Geometrie.achse(o.seite)
+            rein = Geometrie.max?(o.seite) ? 1 : -1
+            wa = Geometrie.achse(o.daten[:kante])
+            rand = Geometrie.max?(o.daten[:kante]) ? t.hi[wa] : t.lo[wa]
+            innen = o.p0[wa] + (o.p0[wa] - rand <=> 0) * o.d / 2.0
+            add.(t, quader("Falttürscharnier #{i + 1} Topf", stahl, p3(wa => rand, da => o.p0[da] - rein * kp['topf_tiefe'], 2 => o.p0[2] - o.d / 2.0),
+                           p3(wa => innen, da => o.p0[da], 2 => o.p0[2] + o.d / 2.0)), true)
+          end
+          t.ops.select { |o| o.titel == 'Montageplatte Falttürscharnier' }.group_by { |o| o.daten[:z] }.each_with_index do |(z, ops), i|
+            kp = (Beschlagkatalog.eintrag(ops[0].daten[:modell]) || Beschlagkatalog.gewaehlt('falttuer'))['koerper']
+            pl = kp['platte']
+            da = Geometrie.achse(ops[0].seite)
+            rein = Geometrie.max?(ops[0].seite) ? 1 : -1
+            ka = ([0, 1] - [da]).first
+            y, fl = ops[0].p0[ka], ops[0].p0[da]
+            add.(t, quader("Falttürscharnier #{i + 1} Montageplatte", stahl, p3(ka => y - pl[1] / 2.0, da => fl, 2 => z - pl[0] / 2.0),
+                           p3(ka => y + pl[1] / 2.0, da => fl + rein * pl[2], 2 => z + pl[0] / 2.0)))
           end
         end
       end

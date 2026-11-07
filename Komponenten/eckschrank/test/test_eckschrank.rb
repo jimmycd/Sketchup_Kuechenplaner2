@@ -314,9 +314,10 @@ def pruefe_l(w, p, label)
   check(nahe(sh[0], RW) && nahe(sh[1], a - MK) && nahe(sh[3], MK + t), "#{label}: Strebe hinten über die ganze Länge von A #{sh}")
   check(alle.none? { |t2| t2[:name] == 'StrebeHinten2' }, "#{label}: keine Strebe hinten an B")
   check([sva, svb, sh].all? { |s| nahe(s[5], h) }, "#{label}: Streben oben")
-  # Falttür: Tür A vor Schenkel A durch die Ecke, Tür B vor Schenkel B bis 1 mm vor Tür A
+  # Falttür (Blum Eckschrank-Falttürscharnier, Katalog S. 117): Tür A endet 1 mm vor der Außenseite
+  # von Tür B, Tür B 1 mm vor der Außenseite von Tür A
   ta, tbq = q.('TürR'), q.('TürL')
-  check(nahe(ta[2], -SP) && nahe(ta[3], MK - SP) && nahe(ta[0], xk + SP) && nahe(ta[1], a - SP / 2), "#{label}: Tür A #{ta}")
+  check(nahe(ta[2], -SP) && nahe(ta[3], MK - SP) && nahe(ta[0], xk + SP + MK + SP / 2) && nahe(ta[1], a - SP / 2), "#{label}: Tür A #{ta}")
   check(nahe(tbq[0], xk + SP) && nahe(tbq[1], xk + SP + MK) && nahe(tbq[2], yw - bb + SP / 2) && nahe(tbq[3], -1.5 * SP),
         "#{label}: Tür B #{tbq}")
   check([ta, tbq].all? { |x| nahe(x[4], 0) && nahe(x[5], h) }, "#{label}: Türen volle Höhe")
@@ -405,10 +406,10 @@ def pruefe_oeffnen(w, p, label)
       wa, wi = stand.keys.map { |n| stand[n] + (neu[n] - stand[n]) * f }
       e = falt_ecken(aussen, innen, wa, wi)
       check(!vierecke_ueberlappen?(*e.values), "#{label}: Klick #{k + 1}, Türen durchdringen sich (#{wa.round(1)}°/#{wi.round(1)}°)")
-      # Hängt Tür B am Korpus, steckt das Ende von Tür A hinter Tür B; beim Klappen streift
-      # seine hintere Kante die Vorderkante des Korpus (höchstens 7 mm, nur in der Animation)
+      # Seit Tür A vor der Außenseite von Tür B endet (Falttürscharnier), streift auch bei
+      # Tür B am Korpus nichts mehr die Korpuskante (vorher bis 7 mm)
       e.each do |n, ecken|
-        tol = lang == 'TürL' && n == 'TürR' ? 0.7 : 1e-6
+        tol = 1e-6
         check(korpus.none? { |kq| vierecke_ueberlappen?(ecken, kq, tol) }, "#{label}: Klick #{k + 1}, #{n} fährt in den Korpus (#{wa.round(1)}°/#{wi.round(1)}°)")
       end
     end

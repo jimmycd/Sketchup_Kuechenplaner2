@@ -3,7 +3,7 @@
 Zwei Bauformen für die Ecke einer Küchenzeile:
 
 * **Blindeck:** gerader Korpus wie der Unterschrank mit Tür. Ein Teil der Breite (Blindteil) steckt hinter der Nachbarzeile und ist mit einer festen Blende zu. Im Türbereich wahlweise **eine Tür**, **zwei Türen** oder **Le Mans** (Schwenkauszug Kesseböhmer LeMans II mit 2 Tablaren).
-* **L-Form:** L-förmiger Korpus mit zwei Schenkeln und **Falttür** (zwei Türen, mit einem Blum-Standardscharnier verbunden).
+* **L-Form:** L-förmiger Korpus mit zwei Schenkeln und **Falttür** (zwei Türen, verbunden mit dem Blum Eckschrank-Falttürscharnier).
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `eckschrank.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
@@ -56,13 +56,13 @@ Mit *Interagieren* öffnen sich die Türen (um die Außenkante an der offenen Se
 * **Boden** und **Einlegeböden** sind je **eine L-Platte** (in SketchUp als L gezeichnet, Endmaß). Die Einlegeböden sind an beiden Vorderkanten 10 mm zurückgesetzt und liegen auf Bodenträgern in den Lochreihen der Seiten; hinten in der Ecke bei Bedarf eine Auflageleiste.
 * **Streben** oben, liegend (nach Jürgens Skizze): die vordere Strebe von A (`StrebeVorn1`) läuft durch die Ecke bis an die Rückwand von B; die vordere Strebe von B (`StrebeVorn2`) stößt mit dem Ende an sie. Hinten liegt eine Strebe über die ganze Länge von A an der Wand (`StrebeHinten`); Schenkel B hat hinten keine Strebe.
 * **Rückwände:** `Rueckwand1` hinter A geht durch die Ecke, `Rueckwand2` hinter B stößt daran.
-* **Falttür:** `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide sind mit einem Blum-Standardscharnier verbunden; die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export).
+* **Falttür:** `TuerR` vor Schenkel A endet 1 mm vor der Außenseite von `TuerL`, `TuerL` vor Schenkel B 1 mm vor der Außenseite von `TuerR`; dazwischen sitzt das **Blum Eckschrank-Falttürscharnier** (CLIP top 79T8530, Katalog 2024/2025 S. 116–117). Die längere Tür hängt am Korpus mit dem **155°-Scharnier** (Einstellung *Topfband vor Innenauszügen*, wahlweise 170°; Blum erlaubt das Falttürscharnier nur damit). Der Topf des Falttürscharniers sitzt in derselben (langen) Tür an der Ecke, die kurze Tür trägt eine Standard-Montageplatte (Bohrungen im TCN-Export, siehe unten).
 * **Öffnen mit Interagieren** (Klick auf eine der beiden Türen), nacheinander in fester Reihenfolge, damit sich die Türen nicht durchdringen:
-  1. Klick: die kürzere Tür klappt am Eckscharnier vor die längere (90°).
+  1. Klick: die kürzere Tür klappt am Eckscharnier vor die längere (60°, mehr lässt das Falttürscharnier nicht zu).
   2. Klick: beide zusammen schwenken um das Scharnier an der Seite auf (100°).
   3. Klick: zurück an den Korpus. 4. Klick: die kürzere Tür klappt wieder auf, die Falttür ist zu.
 
-  Am Korpus hängt die längere Tür: bei Schenkel A ≥ Schenkel B Tür A (`TuerR`, Scharnier an `SeiteR`), sonst Tür B (`TuerL`, Scharnier an `SeiteL`). Im zweiten Fall streift beim Klappen die hintere Kante vom Ende der Tür A in der Animation bis zu 7 mm die Korpusvorderkante (das reale Scharnier führt die Tür anders). Aufbau: Halter `FaltHalter` am Korpusscharnier mit der langen Tür und `FaltHalterInnen` am Eckscharnier mit der kurzen Tür; das onClick sitzt am `FaltHalter`. Der Test spielt die vier Klicks durch und prüft in kleinen Schritten, dass sich die Türen nicht berühren und nicht in den Korpus fahren. Ältere L-Schränke bekommen das Öffnen, sobald Schenkel oder Tiefe einmal geändert (neu aufgebaut) werden oder der Schrank neu angelegt wird.
+  Am Korpus hängt die längere Tür: bei Schenkel A ≥ Schenkel B Tür A (`TuerR`, Scharnier an `SeiteR`), sonst Tür B (`TuerL`, Scharnier an `SeiteL`). Aufbau: Halter `FaltHalter` am Korpusscharnier mit der langen Tür und `FaltHalterInnen` am Eckscharnier mit der kurzen Tür; das onClick sitzt am `FaltHalter`. Der Test spielt die vier Klicks durch und prüft in kleinen Schritten, dass sich die Türen nicht berühren und nicht in den Korpus fahren. Ältere L-Schränke bekommen das Öffnen, sobald Schenkel oder Tiefe einmal geändert (neu aufgebaut) werden oder der Schrank neu angelegt wird.
 
 ## Material und Anleimer
 Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiesen: Kantenflächen mit dem Material „Anleimer Melamin weiss“ (Typ *Kante*, 2 mm, „Kantenstärke abziehen“ an). Platten haben „Melamin weiss“ (*Plattenwerkstoff*).
@@ -87,7 +87,7 @@ Das Kürzel ist `UES1`, oder `UES2` usw., wenn es im Modell schon vergeben ist. 
 * Korpus wie beim Unterschrank: Dübel Boden und Streben an die Seiten, Schrauben in die Streben, Sockelfüße, Lochreihen für Einlegeböden. Blende nur formatieren.
 * **Le Mans** (nach der Kesseböhmer-Montageanleitung, S. 3 und 11): Säulenlager in Boden und Strebe vorn bei X ab der Innenseite der Seite an der Tür, Ø5 für die Systemschraube Ø6,3 69 mm ab Vorderkante und 2 × Ø3 für Holzschrauben Ø4,5 (Annahme: vorgebohrt) 16 mm daneben auf 37 mm. Im Boden von unten durchgebohrt (oben wäre Fläche 2), in der Strebe von unten. Seitenprofil 500: 8 × Ø5, 13 tief, 52 mm ab Vorderkante, unterstes 28 mm über dem Boden, Raster 64. Keine Lochreihen. Hinweis, wenn der Korpus für die gewählte LeMans-Größe zu schmal oder zu flach ist. **Die Maße einmal mit der mitgelieferten Bohrschablone an einem Probeteil prüfen.**
 * **L-Form:** Innenecke von Boden und Einlegeböden als Kontur mit dem Nutfräser durch die Platte; Sockelfüße je Schenkel (auch an der Innenecke); Dübel am Stoß der vorderen Streben in der Ecke.
-* Topfbänder (auch das Scharnier der Falttür) kommen mit den Türen im TCN-Export.
+* Topfbänder kommen mit den Türen im TCN-Export. **Falttür:** lange Tür am Korpus 155°-Bänder; an ihrer Ecke Topf Ø35 13 tief, Mitte 12,5 ab der fertigen Türkante (der Topf läuft über die Kante), zwei Einpressdübel Ø8 11 tief 9,5 ab Kante, 45 Abstand, auf Höhe der Topfbänder. Kurze Tür: Montageplatte, 2 × Ø5 11 tief, 37 ab der Außenseite der langen Tür, ±16 um die Bandhöhe (Abstand 32 abgeleitet wie die Standardplatte). Beschlagliste: Falttürscharnier, Montageplatte 0 mm, Systemschrauben. **Einmal an einem Probestück prüfen.**
 
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/eckschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.

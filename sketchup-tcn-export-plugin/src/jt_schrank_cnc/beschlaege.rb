@@ -54,7 +54,7 @@ module JTools
                  'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)',
                  'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)'].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
-                     'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
+                     'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum 155°', 'Blum 170°', 'Blum Eckschrank-Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
                      'Blum AVENTOS HK-top Front', 'Systemschraube'].freeze
 
       def schubladen(teile, add)
@@ -186,7 +186,7 @@ module JTools
       end
 
       # Türen: Posten aus dem Beschlag-Katalog (Modell am Topfband); Anzahl „baender“ (ohne Eckscharnier),
-      # „eck“, „platten“ (Bänder mit Montageplatte), „platten_loecher“ (2 je Platte)
+      # „eck“ (alte Falttür-Lesart, heute 0), „platten“ (Bänder mit Montageplatte), „platten_loecher“ (2 je Platte)
       def tueren(teile, add)
         teile.select { |w| w.rolle == 'Tuer' }.each do |t|
           sk = t.teil.jt('schrank')
@@ -195,6 +195,15 @@ module JTools
             eck = baender.count { |o| o.daten && o.daten[:eck] }
             platten = baender.count { |o| o.daten && o.daten[:platte] }
             n = { 'baender' => baender.size - eck, 'eck' => eck, 'platten' => platten, 'platten_loecher' => 2 * platten }
+            e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
+              add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
+            end
+          end
+          # Falttür (Eckschrank L): Eckschrank-Falttürscharniere am Topf in der langen Tür, Montageplatte
+          # mit 2 Schrauben auf der kurzen Tür
+          t.ops.select { |o| o.titel == 'Falttürscharnier Topf' }.group_by { |o| o.daten && o.daten[:modell] }.each do |kennung, toepfe|
+            e = Beschlagkatalog.eintrag(kennung) || Beschlagkatalog.gewaehlt('falttuer')
+            n = { 'anzahl' => toepfe.size, 'loecher' => 2 * toepfe.size }
             e['liste']['posten'].each do |name, hinweis, anzahl, einheit|
               add.(e['liste']['gruppe'], name, hinweis, anzahl.is_a?(String) ? n.fetch(anzahl) : anzahl, einheit, sk)
             end

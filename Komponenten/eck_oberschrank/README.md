@@ -27,7 +27,7 @@ Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Kor
 * **Deckel**: eine L-Platte, endet vor den Rückwänden und wird mit ihnen verschraubt (je Rückwand 3 Schrauben, 50 mm von den Enden und in der Mitte; die Bohrungen setzt der TCN-Export).
 * **Rückwände** 8 mm, Rückseite 25 mm vor der Wand (Fach für die Aufhängung), in der 9 mm tiefen Nut von Seite und Boden, von oben eingeschoben, oben bündig. `Rueckwand1` hinter A läuft durch die Ecke bis zur Rückseite von B, `Rueckwand2` hinter B stößt an ihre Vorderseite.
 * **Einlegeböden**: L-Platten, an beiden Vorderkanten 10 mm zurückgesetzt, hinten bis an die Rückwände, auf Bodenträgern in den Lochreihen der Seiten. Darunter je eine **Auflageleiste** (200 × 30 × 19 mm) an der Rückwand A, direkt neben Rückwand B: sie trägt die Ecke, die sonst frei hängen würde (angeleimt und durch die Rückwand verschraubt).
-* **Falttür**: `TuerR` vor Schenkel A läuft durch die Ecke, `TuerL` vor Schenkel B endet 1 mm vor der Front von A. Beide verbindet ein Blum-Standardscharnier, die Tür an der Seite hängt an Topfbändern (Bohrungen folgen mit den Türen im TCN-Export). 1 mm Fuge oben und unten, 2 mm vor dem Korpus. Keine Öffnen-Animation.
+* **Falttür**: `TuerR` vor Schenkel A und `TuerL` vor Schenkel B enden je 1 mm vor der Außenseite der anderen. Beide verbindet das Blum Eckschrank-Falttürscharnier (Topf in der langen Tür, Montageplatte auf der kurzen), die lange Tür hängt mit 155°-Bändern am Korpus (wie beim [Eck-Unterschrank L](../eckschrank/); Bohrungen im TCN-Export). 1 mm Fuge oben und unten, 2 mm vor dem Korpus. Keine Öffnen-Animation.
 
 Die Schrankaufhänger kommen wie beim Oberschrank später dazu.
 

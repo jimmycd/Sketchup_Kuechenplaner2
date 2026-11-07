@@ -1,0 +1,19 @@
+{
+  "kennung": "blum-clip-top-falttuer",
+  "name": "Blum Eckschrank-Falttürscharnier CLIP top",
+  "hersteller": "Blum",
+  "art": "falttuer",
+  "bauart": "falttuer_eck",
+  "quelle": "Blum Katalog 2024/2025 S. 116–117 (Eckschrank-Falttürscharnier, DQDQJY): Spezialscharnier für Eckschränke mit Falttüren, 79T8530 (Topf einpressen) / 79T8500 (anschrauben), Öffnungswinkel 60°, Frontdicke 15–23 mm, nur in Kombination mit dem 155°- oder 170°-Scharnier am Korpus. Der Topf sitzt in derselben Front wie der Topf des 155°/170°-Scharniers (lange Tür am Korpus), Einbohrmaß 12,5 (Topfmitte ab Türkante, Topf läuft über die Kante), Einpressdübel Ø8 9,5 ab Türkante, 45 Abstand. Standard-Montageplatte 0 mm auf der kurzen Tür, Lochreihe 37 ab Außenseite der langen Tür (Planung, Anschlagsituation FD 19). Montageplatte mit 2 Schrauben im Abstand 32 ABGELEITET (wie Standardplatte am Korpus).",
+  "topf": { "d": 35, "tiefe": 13, "rand": 12.5, "schraub_d": 8, "schraub_tiefe": 11, "schraub_rand": 9.5, "schraub_abstand": 45 },
+  "platte": { "d": 5, "tiefe": 11, "abstand": 16, "ab_front": 37 },
+  "liste": {
+    "gruppe": "Türen (Topfbänder)",
+    "posten": [
+      ["Blum Eckschrank-Falttürscharnier CLIP top 79T8530 (Topf einpressen)", "Topf in der langen Tür an der Ecke, Einbohrmaß 12,5", "anzahl", "Stück"],
+      ["Blum Montageplatte CLIP 0 mm", "auf der kurzen Tür, 37 ab Außenseite der langen Tür", "anzahl", "Stück"],
+      ["Systemschraube Ø5 (Blum)", "Montageplatten auf der kurzen Tür", "loecher", "Stück"]
+    ]
+  },
+  "koerper": { "topf_tiefe": 12, "platte": [48, 20, 4], "arm": [16, 16] }
+}
