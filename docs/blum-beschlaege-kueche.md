@@ -51,7 +51,7 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | Beschlag | Einsatz in der Küche | Eckdaten | Seite | Plugin |
 |---|---|---|---|---|
 | LEGRABOX free – Schubkasten/Frontauszug | Schubladenschränke, Herd-, Spülen-, Müllschrank, Apotheker, Vorrat | Zargen N/M/K/C(F), 40/70 kg, NL 270–650 | 196–248 (PDF 178–229), free ab 218 (PDF 200) | ✅ LEGRABOX free |
-| LEGRABOX pure | wie free, Zarge geschlossen (Edelstahl), auch Höhe F | 40/70 kg | 210 (PDF 192) | ⬜ (nur free; Zarge F laut Katalog nur bei pure) |
+| LEGRABOX pure | wie free, Zarge geschlossen (Edelstahl), auch Höhe F | 40/70 kg | 210 (PDF 192) | ✅ wählbar (mit Zarge F) |
 | LEGRABOX Innenschubkasten / Innenauszug | hinter Tür oder hinter Frontauszug | Höhe M, K, C | 198 (PDF 180) | 🟡 Hochschrank Vorrat (Innenschubkästen mit Innenfront) |
 | LEGRABOX Spülenschrank | Auszug mit Ausschnitt um den Siphon (Zwischenstück) | M, C | 224–228 (PDF 206–210) | 🟡 Spülenschrank vorhanden, Siphon-Auszug nicht |
 | SPACE TOWER (LEGRABOX) | Vorrats-Hochschrank mit Innenauszügen hinter Tür | KB 275–1200, 40/70 kg | 230 (PDF 212) | 🟡 Apothekerschrank/Hochschrank Vorrat nach dem Prinzip |

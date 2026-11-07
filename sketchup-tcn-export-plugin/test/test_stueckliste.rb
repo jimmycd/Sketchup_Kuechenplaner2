@@ -184,18 +184,19 @@ UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 52.0, 'Anz_Schub
 Hochschrank.erstellen({})
 bzs, bmeld, bp = S::Stueckliste.erzeugen(bm)
 such = ->(text, hinweis = nil) { bp.select { |x| x.beschlag.start_with?(text) && (hinweis.nil? || x.hinweis.include?(hinweis)) } }
-# höchste Zarge, die passt: USS1 Fronten 174/174/348 -> oben M (30 mm unter der Front), Mitte K, unten F;
+# höchste Zarge, die passt: USS1 Fronten 174/174/348 -> oben M (30 mm unter der Front), Mitte K, unten C (F nur bei LEGRABOX pure);
 # NL 500 bei 520 Tiefe (40 kg, hinten 224/256). HS1: drei Schubladen C, K, K (NL 650)
-check(such.('Zargen F', 'NL 500').sum(&:anzahl) == 1 && such.('Zargen K', 'NL 500').sum(&:anzahl) == 1 &&
+check(such.('Zargen F').empty? && such.('Zargen C', 'NL 500').sum(&:anzahl) == 1 && such.('Zargen K', 'NL 500').sum(&:anzahl) == 1 &&
       such.('Zargen M', 'NL 500').sum(&:anzahl) == 1 && such.('Zargen C', 'NL 650').sum(&:anzahl) == 1 &&
       such.('Zargen K', 'NL 650').sum(&:anzahl) == 2 && such.('Zargen N').empty?,
-      "Beschläge: Zargen F/C/K/M je Schublade #{such.('Zargen').map { |x| [x.beschlag, x.hinweis, x.anzahl] }}")
+      "Beschläge: Zargen C/K/M je Schublade #{such.('Zargen').map { |x| [x.beschlag, x.hinweis, x.anzahl] }}")
 check(such.('Korpusschienen', 'NL 500, 40 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 500 (USS1)')
 check(such.('Korpusschienen', 'NL 650, 70 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 650 70 kg (Hochschrank)')
-check(such.('Seiteneinsatz').sum(&:anzahl) == 2 && such.('Seiteneinsatz', '138 × 538').sum(&:anzahl) == 2,
+check(such.('Seiteneinsatz').sum(&:anzahl) == 4 && such.('Seiteneinsatz', '138 × 538').sum(&:anzahl) == 2 &&
+      such.('Seiteneinsatz', '138 × 388').sum(&:anzahl) == 2,
       "Beschläge: seitliches Einschubelement nur bei Zarge C (Katalog: 138 × NL − 112) #{such.('Seiteneinsatz').map { |x| [x.hinweis, x.anzahl] }}")
 check(such.('Seitenstabilisierung').sum(&:anzahl) == 6, 'Beschläge: Seitenstabilisierung ab Korpusbreite 600')
-check(such.('Spanplattenschraube', 'Fronthalter').sum(&:anzahl) == 12 + 8 + 4 * 4, 'Beschläge: Schrauben Fronthalter (F 12, C 8, K/M 4)')
+check(such.('Spanplattenschraube', 'Fronthalter').sum(&:anzahl) == 8 + 8 + 4 * 4, 'Beschläge: Schrauben Fronthalter (C 8, K/M 4)')
 # Schienen-Systemschrauben = Bohrungen in den Seiten
 bws = []
 S::Export.erzeugen(bm, alle_ws: bws)
