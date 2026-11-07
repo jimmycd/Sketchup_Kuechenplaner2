@@ -231,8 +231,9 @@ check(u3.size == 4 && u3.map { |x| x[/#1=(\S+)/, 1] }.tally == { '30' => 2, 'x-3
 u1 = fb.('HS1_U1_Front')
 check(u1.size == 4 && u1.map { |x| x[/#2=(\S+)/, 1] }.uniq.sort == %w[64 96],
       "Frontbefestigung Zarge M: #{u1}")
-# Zarge F (hohe Front unten, 1;1;2 in 700): 4 Lochreihen 0/32/96/128 wie C ab 36 über Kastenunterkante (57 + 36 = 93)
+# Zarge F (nur LEGRABOX pure; hohe Front unten, 1;1;2 in 700): 6 Lochreihen ab 36 über Kastenunterkante (57 + 36 = 93)
 mc = Sketchup.active_model = Sketchup::Model.new
+S::Beschlagkatalog.waehlen('schubladen', 'blum-legrabox-pure', mc)
 UnterschrankSchubladen.erstellen({ 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
 dc_, = S::Export.erzeugen(mc)
 fc = bearbeitungen(dc_.find { |x| x.name == 'USS1_S3_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
@@ -243,6 +244,14 @@ krc = dc_.find { |x| x.name == 'USS1_S3_KastenRueckwand' }
 krm = dc_.find { |x| x.name == 'USS1_S1_KastenRueckwand' }
 check(([krc.lage.dl, krc.lage.dh].min - 210).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 61).abs < 1e-6, # Fräsmaß = 212 / 63 − 2 mm Anleimer oben
       "Kastenrückwand F 212 / M 63 (#{[krc.lage.dl, krc.lage.dh]} / #{[krm.lage.dl, krm.lage.dh]})")
+# dieselbe Küche mit LEGRABOX free: höchste Zarge C (F gibt es dort nicht), 4 Lochreihen 0/32/96/128
+%w[beschlag_schubladen schubkasten].each { |k| Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', k]) }
+mf = Sketchup.active_model = Sketchup::Model.new
+UnterschrankSchubladen.erstellen({ 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 2.0 })
+df_, = S::Export.erzeugen(mf)
+ff_ = bearbeitungen(df_.find { |x| x.name == 'USS1_S3_Front' }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
+krf = df_.find { |x| x.name == 'USS1_S3_KastenRueckwand' }
+check(ff_ == 8 && ([krf.lage.dl, krf.lage.dh].min - 146).abs < 1e-6, "LEGRABOX free: hohe Schublade Zarge C, Rückwand 148 (#{ff_}, #{[krf.lage.dl, krf.lage.dh]})")
 Sketchup.active_model = model
 check(fb.('HS1_O_Tuer').empty?, 'Tür ohne Frontbefestigung')
 # Kastenboden: Falz für die Zargen an beiden Enden der Breite, 38 und 20 breit, 8 tief (Schubkastenboden.tcn)
@@ -283,12 +292,12 @@ check(hoehen == { '57' => 6, '461' => 6, '865' => 6, 'x-829' => 6, 'x-425' => 6 
 fb = bearbeitungen(dap.find { |x| x.name == 'AP1_A_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
 # die Hochfront liegt mit der Höhe in x: 14 mm von der Seiteninnenseite = 30 im Fräsmaß in y,
 # unterstes Loch je Kasten 36 über Kastenunterkante (57 + 36 - 2 Anleimer = 91)
-check(fb.size == 60 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 30, 'y-30' => 30 } && fb.any? { |x| x.include?('#1=91 ') },
-      "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 Zargen F × 12): #{fb.size}")
+check(fb.size == 40 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 20, 'y-30' => 20 } && fb.any? { |x| x.include?('#1=91 ') },
+      "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 Zargen C × 8, F gibt es nur bei LEGRABOX pure): #{fb.size}")
 Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_Kaesten_B' => 3.0 })
 dap, = S::Export.erzeugen(model_ap)
 fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
-check(fb.('AP2_A_Front') == 24 && fb.('AP2_B_Front') == 36, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
+check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
 # --- Hochschrank Vorrat: Innenschubkästen hinter der Tür, Schienen hinter der Innenfront ---
 model_hv = Sketchup.active_model = Sketchup::Model.new
 HochschrankVorrat.erstellen({ 'Tiefe' => 52.0 })
@@ -493,7 +502,7 @@ check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 6, 'Sei
 bd = dsp['USP1_Boden'].text
 check(!bd.include?('W#89') && bd.include?('#8522=3 '), 'Boden Spüle: keine Nut, Sockelfüße')
 check(bearbeitungen(dsp['USP1_B_Front'].text, 1).size == 1, 'Blende: nur Formatieren, keine Frontbefestigung')
-check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 12, 'Auszugfront: Frontbefestigung (Zarge F)')
+check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 8, 'Auszugfront: Frontbefestigung (Zarge C)')
 ff = S::Frontfarbe.fronten(sm, kategorie: 'Unterschrank')
 check(ff.size == 5 && ff.count(&:sichtbar?) == 2, 'Spüle: Frontfarbe findet alle Fronten, sichtbar Blende und Auszugfront')
 # Türen: Lochreihen im Fach, hinten 35 vor der Nut; ohne Ausschnitt keine Kontur
@@ -1201,7 +1210,14 @@ SKW = Kuechenplaner::Schubkasten
 lw_w = tk.schubkasten_werte(tk.eintrag('blum-legrabox-free'))
 check(SKW::STANDARD.all? { |k, v| v.is_a?(Numeric) ? (lw_w[k] - v).abs < 1e-9 : lw_w[k] == v },
       "LEGRABOX im Katalog = Standard der Schränke (gemeinsam/schubkasten.rb): #{lw_w}")
-check(S::Regeln.zargen.keys == %w[F C K M N] && S::Regeln.schiene[:hinten][650] == [224, 256, 320, 416], 'Regeln: LEGRABOX aus dem Katalog')
+check(S::Regeln.zargen.keys == %w[C K M N] && S::Regeln.auszug(tk.eintrag('blum-legrabox-pure'))[:zargen].keys == %w[F C K M N] && S::Regeln.schiene[:hinten][650] == [224, 256, 320, 416], 'Regeln: LEGRABOX aus dem Katalog')
+check(tk.zur_art('schubladen').map { |e| e['kennung'] }.sort == %w[blum-legrabox-free blum-legrabox-pure] &&
+      tk.fehler(tk.eintrag('blum-legrabox-pure')).empty?,
+      "Einstellungen bieten LEGRABOX free und pure an: #{tk.zur_art('schubladen').map { |e| e['kennung'] }}")
+lp = JSON.parse(JSON.dump(tk.eintrag('blum-legrabox-pure'))).reject { |k, _| %w[kennung name quelle zargen liste datei].include?(k) }
+lf = JSON.parse(JSON.dump(tk.eintrag('blum-legrabox-free'))).reject { |k, _| %w[kennung name quelle zargen liste datei].include?(k) }
+check(lp == lf && tk.eintrag('blum-legrabox-pure')['zargen'].reject { |k, _| k == 'F' } == tk.eintrag('blum-legrabox-free')['zargen'],
+      'LEGRABOX pure = free (Schienen, Kasten, Front) plus Zarge F')
 ta = JSON.parse(JSON.dump(tk.eintrag('blum-legrabox-free'))).merge('kennung' => 'test-auszug', 'name' => 'Test-Auszug', 'datei' => 'test-auszug.json')
 ta['zargen'] = { 'A' => { 'hoehe' => 200.0, 'rueckwand' => 170.0, 'front' => [0, 32, 64], 'einsatz' => 160 },
                  'B' => { 'hoehe' => 100.0, 'rueckwand' => 70.0, 'front' => [0], 'einsatz' => nil } }
