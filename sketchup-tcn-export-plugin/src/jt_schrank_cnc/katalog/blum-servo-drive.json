@@ -102,7 +102,29 @@
         1,
         "Satz"
       ]
-    ]
+    ],
+    "koerper": {
+      "quelle": "Katalog 2024/2025 S. 366: Trägerprofil senkrecht, PL = LH − 10 auf 10 abgerundet; Antriebseinheit A über Unterkante Korpusschiene (LEGRABOX/MERIVOBOX 45, TANDEMBOX 35; TANDEMBOX N bei LW ≥ 317 28 – hier 35); Distanzpuffer Ø5 (Kopf Ø8, Auslöseweg 2), FH bis 300 halbe Höhe, darüber 20 vom Rand. Querschnitt Trägerprofil 30 × 12 und Antriebseinheit 120 × 60 × höchstens 40 (bis zur Schublade) ABGELEITET, im Katalog nicht bemaßt.",
+      "profil": [
+        30,
+        12
+      ],
+      "antrieb": [
+        120,
+        60,
+        40
+      ],
+      "antrieb_min": 10,
+      "a": {
+        "standard": 45,
+        "blum-tandembox-antaro": 35
+      },
+      "puffer": {
+        "d": 8,
+        "h": 2,
+        "rand": 20
+      }
+    }
   },
   "liste": {
     "gruppe": "Öffnung grifflos (SERVO-DRIVE)",
