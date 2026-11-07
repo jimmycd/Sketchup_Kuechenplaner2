@@ -14,10 +14,10 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 
 | Beschlag | Einsatz in der Küche | Eckdaten | Seite | Plugin |
 |---|---|---|---|---|
-| AVENTOS HK top – Hochklappe | Oberschrank, Klappe schwenkt nach oben, einteilige Front | KH 205–600, KB bis 1800; BLUMOTION, SERVO-DRIVE oder TIP-ON | 44 (PDF 28) | ✅ (Oberschrank mit Klappe) |
-| AVENTOS HF top – Hochfaltklappe | hoher Oberschrank, zweiteilige Faltfront | KH 480–1200, KB bis 1800, LT ≥ 264; SERVO-DRIVE möglich | 20 (PDF 5) | 🟡 Faltklappe angelegt, ohne Blum-Bohrbild, nicht wählbar |
-| AVENTOS HS top – Hochschwenkklappe | großflächige einteilige Front, schwenkt über den Schrank nach oben | KH 350–800, KB bis 1800, LT ≥ 264 | 32 (PDF 17) | ⬜ |
-| AVENTOS HL top – Hochliftklappe | Front fährt parallel nach oben, gut unter der Decke / bei Ober­schränken über Kopf | KH 300–580, KB bis 1800, LT ≥ 264 | 38 (PDF 22) | ⬜ |
+| AVENTOS HK top – Hochklappe | Oberschrank, Klappe schwenkt nach oben, einteilige Front | KH 205–600, KB bis 1800; BLUMOTION, SERVO-DRIVE oder TIP-ON | 44 (PDF 28) | ✅ (Oberschrank mit Klappe, Bohrbild nach Katalog S. 48) |
+| AVENTOS HF top – Hochfaltklappe | hoher Oberschrank, zweiteilige Faltfront | KH 480–1200, KB bis 1800, LT ≥ 264; SERVO-DRIVE möglich | 20 (PDF 5) | ✅ Faltklappe, mit Bohrbild |
+| AVENTOS HS top – Hochschwenkklappe | großflächige einteilige Front, schwenkt über den Schrank nach oben | KH 350–800, KB bis 1800, LT ≥ 264 | 32 (PDF 17) | ✅ wählbar |
+| AVENTOS HL top – Hochliftklappe | Front fährt parallel nach oben, gut unter der Decke / bei Ober­schränken über Kopf | KH 300–580, KB bis 1800, LT ≥ 264 | 38 (PDF 22) | ✅ wählbar |
 | AVENTOS HKi – integrierte Hochklappe | Klappe mit im Korpus integriertem Beschlag, Hoch- und Oberschrank | KH bis 600, KB bis 1800, SWD 16–25; TIP-ON möglich | 14 (PDF 1) | ⬜ |
 | AVENTOS HK-S – kleine Hochklappe | kleine Oberschränke, z. B. über Kühlschrank/Dunstabzug | KH bis 600; TIP-ON möglich | 54 (PDF 38) | ⬜ |
 | AVENTOS HK-XS – kleine Hochklappe | sehr kleine/flache Klappen, Aufsatzschrank über Hochschrank | KH 240–600, LT ≥ 125; TIP-ON möglich | 60 (PDF 44) | ⬜ |

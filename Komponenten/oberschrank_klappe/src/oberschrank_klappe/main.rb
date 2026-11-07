@@ -10,8 +10,8 @@
 # 0–2 Einlegeböden. Front ist eine Klappe:
 # eine Klappe, schwenkt um die Oberkante nach oben. Der Beschlag (Blum AVENTOS HK-top, Häfele Free Slim …)
 # gilt für die ganze Küche: Küchenplaner › Einstellungen…, Abschnitt Beschläge; die Bohrungen setzt der
-# TCN-Export nach dem Beschlag-Katalog. Die Faltklappe (HF, KlappeO/KlappeU) ist im Code noch da, aber
-# erst mal nicht wählbar (Art_Klappe 2 nur bei vorhandenen Schränken).
+# TCN-Export nach dem Beschlag-Katalog. Faltklappe (zwei Teile KlappeO/KlappeU, Art_Klappe 2): Beschlag
+# ebenfalls aus den Einstellungen (Faltklappe, Standard Blum AVENTOS HF top); im Dialog wählbar.
 #
 # Platten haben das Material "Melamin weiss", sichtbare Kanten das Kantenmaterial
 # "Anleimer Melamin weiss" (2 mm, wird erst in Stückliste/Zuschnitt abgezogen; gezeichnet wird
@@ -61,7 +61,7 @@ module OberschrankKlappe
   # Klappenarten mit dem Bereich der Korpushöhe laut Hersteller (cm, nur als Hinweis)
   ARTEN = {
     1 => { name: 'AVENTOS HK-top', hoehe: 20.5..60.0 },
-    2 => { name: 'AVENTOS HF', hoehe: 48.0..104.0 },
+    2 => { name: 'AVENTOS HF', hoehe: 48.0..120.0 }, # HF top, Katalog 2024/2025 S. 22
     3 => { name: 'Häfele Free Slim', hoehe: 22.5..65.0 }
   }.freeze
 
@@ -304,8 +304,8 @@ module OberschrankKlappe
     attribut(haupt, 'Breite', p['Breite'], access: 'TEXTBOX', formlabel: 'Breite')
     attribut(haupt, 'Hoehe', p['Hoehe'], access: 'TEXTBOX', formlabel: 'Höhe')
     attribut(haupt, 'Tiefe', p['Tiefe'], access: 'TEXTBOX', formlabel: 'Tiefe (Korpus ohne Front)')
-    # Klappenart: nicht mehr in den Komponentenoptionen (Beschlag gilt für die ganze Küche, Faltklappe
-    # erst mal nicht wählbar); das Attribut bleibt, damit vorhandene Schränke gleich bleiben
+    # Klappenart (eine Klappe / Faltklappe): nur im Dialog beim Anlegen, nicht in den Komponentenoptionen
+    # (der Beschlag dazu gilt für die ganze Küche)
     attribut(haupt, 'Art_Klappe', p['Art_Klappe'], laenge: false, access: 'NONE', formlabel: 'Klappe',
              units: 'INTEGER', options: '&HK-top%20(eine%20Klappe)=1&HF%20(Faltklappe%2C%20zwei%20Teile)=2&' \
                                         'Free%20Slim%20(eine%20Klappe)=3&')
@@ -440,28 +440,29 @@ module OberschrankKlappe
     20.0
   end
 
-  # Der Klappenbeschlag (HK-top, Free Slim …) gilt für die ganze Küche: Küchenplaner › Einstellungen…,
-  # Abschnitt Beschläge (Beschlag-Katalog im Plugin Schrank-CNC). Die Faltklappe (HF) ist erst mal
-  # nicht wählbar (Jürgen, 2026-11-06); vorhandene HF-Schränke bleiben, wie sie sind.
-  def self.klappe_hinweis(breite, hoehe)
+  # Der Klappenbeschlag (HK top, HS top, HL top, Free Slim …; Faltklappe: HF top) gilt für die ganze Küche:
+  # Küchenplaner › Einstellungen…, Abschnitt Beschläge (Beschlag-Katalog im Plugin Schrank-CNC).
+  KLAPPEN = { 'eine Klappe' => 1.0, 'Faltklappe (zweiteilig)' => 2.0 }.freeze
+
+  def self.klappe_hinweis(breite, hoehe, art = 1)
     return nil unless defined?(JTools::SchrankCnc::Beschlagkatalog)
     k = JTools::SchrankCnc::Beschlagkatalog
-    e = k.gewaehlt('klappe')
+    e = k.gewaehlt(art.to_i == 2 ? 'faltklappe' : 'klappe')
     e && k.hinweis(e, korpushoehe: hoehe * 10, breite: breite * 10)
   end
 
   def self.dialog
-    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)'],
+    Kuechenplaner::Eingabe.abfragen(['Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Klappe'],
                       [(DEFAULTS['Breite'] * 10).round.to_s, (DEFAULTS['Hoehe'] * 10).round.to_s,
-                       (TIEFE_NEU * 10).round.to_s],
+                       (TIEFE_NEU * 10).round.to_s, KLAPPEN.keys.first], ['', '', '', KLAPPEN.keys.join('|')],
                       TITEL, untertitel: 'Neuer Schrank', ok: 'Einfügen') do |res|
       w = res[0, 3].map { |v| v.to_s.tr(',', '.').to_f / 10.0 }
-      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2], 'Art_Klappe' => 1.0 }
+      eingabe = { 'Breite' => w[0], 'Hoehe' => w[1], 'Tiefe' => w[2], 'Art_Klappe' => KLAPPEN.fetch(res[3].to_s, 1.0) }
       if eingabe['Tiefe'] < tiefe_min - 0.000001
         raise ArgumentError, "Tiefe #{(eingabe['Tiefe'] * 10).round} mm ist zu klein (mindestens #{(tiefe_min * 10).round} mm)"
       end
       raise ArgumentError, 'Maße müssen größer als 0 sein' if w.any? { |v| v <= 0 }
-      text = klappe_hinweis(eingabe['Breite'], eingabe['Hoehe'])
+      text = klappe_hinweis(eingabe['Breite'], eingabe['Hoehe'], eingabe['Art_Klappe'])
       UI.messagebox("Hinweis: Der Klappenbeschlag der Küche passt nicht – #{text}") if text
       erstellen(eingabe)
     end

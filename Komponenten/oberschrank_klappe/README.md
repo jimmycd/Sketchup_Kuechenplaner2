@@ -1,10 +1,10 @@
 # Oberschrank mit Klappe (Dynamic Component)
 
-Oberschrank mit einer Klappe statt Türen, die nach oben schwenkt. Der Klappenbeschlag (Blum **AVENTOS HK-top** oder **Häfele Free Slim**) gilt für die ganze Küche und wird in *Küchenplaner › Einstellungen…*, Abschnitt *Beschläge*, gewählt. Die Faltklappe (AVENTOS HF, zwei Teile) ist erst mal nicht wählbar; vorhandene HF-Schränke bleiben. Der Korpus ist derselbe wie beim [Oberschrank](../oberschrank/).
+Oberschrank mit einer Klappe statt Türen, die nach oben schwenkt. Beim Anlegen wählt man **eine Klappe** oder **Faltklappe (zweiteilig)**. Der Beschlag dazu gilt für die ganze Küche und wird in *Küchenplaner › Einstellungen…*, Abschnitt *Beschläge*, gewählt: eine Klappe Blum **AVENTOS HK top**, **HS top**, **HL top** oder **Häfele Free Slim**, Faltklappe Blum **AVENTOS HF top**. Der Korpus ist derselbe wie beim [Oberschrank](../oberschrank/).
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `oberschrank_klappe.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner).
-2. *Erweiterungen → Küchenplaner → Oberschränke → Oberschrank mit Klappe…* (oder Symbolleiste *Schrank einfügen*) fragt Breite, Höhe, Tiefe und Klappenart ab und baut den Schrank. Passt die Höhe nicht zur Klappenart, kommt ein Hinweis. Danach hängt der Schrank am Andock-Werkzeug.
+2. *Erweiterungen → Küchenplaner → Oberschränke → Oberschrank mit Klappe…* (oder Symbolleiste *Schrank einfügen*) fragt Breite, Höhe, Tiefe und Klappe (eine Klappe / Faltklappe) ab und baut den Schrank. Passt die Höhe nicht zur Klappenart, kommt ein Hinweis. Danach hängt der Schrank am Andock-Werkzeug.
 
 ## Komponentenoptionen
 | Option | Standard |
@@ -14,7 +14,7 @@ Oberschrank mit einer Klappe statt Türen, die nach oben schwenkt. Der Klappenbe
 
 Alles bleibt nachträglich änderbar, auch die Tiefe; alle Teile folgen per Formel.
 
-Korpushöhen laut Hersteller (nur Hinweis, nicht erzwungen): HK-top etwa 205–600 mm, Free Slim 225–650 mm (Breite bis 1800 mm), HF etwa 480–1040 mm. Passt der Beschlag der Küche nicht, kommt beim Anlegen ein Hinweis und im TCN-Export eine Meldung.
+Korpushöhen laut Hersteller (nur Hinweis, nicht erzwungen, Blum-Katalog 2024/2025): HK top 205–600 mm, HS top 350–800 mm, HL top 300–580 mm, HF top 480–1200 mm, Free Slim 225–650 mm (Breite bis 1800 mm). Passt der Beschlag der Küche nicht, kommt beim Anlegen ein Hinweis und im TCN-Export eine Meldung.
 
 Feste Maße als Attribute (Fenster *Komponentenattribute*): `Materialstaerke_Korpus` 19 mm, `Materialstarke_Rueckwand` 8 mm, `Rueckwand_Versatz` 25 mm, `Nuttiefe` 9 mm, `Spaltbreite` 2 mm, `Rueckversatz_Einlegeboden` 10 mm.
 
@@ -27,7 +27,7 @@ Mit *Interagieren* öffnet sich die Klappe nach vorne oben. Bei HF erst das ober
   * HF: zwei gleich hohe Teile, je Höhe/2 − 2 mm, mit 2 mm Fuge dazwischen.
 * Einlegeböden 10 mm von vorne zurückgesetzt, hinten bis zur Rückwand.
 
-Die AVENTOS-**Bohrungen** für HK-top setzt der TCN-Export: Kraftspeicher 4 × Ø5 in den Seiten (37/69/101/133 mm ab Vorderkante, 36 mm unter der Oberkante) und Frontbeschlag 2 × 2 × Ø5 in der Klappe (12,5 mm ab Innenseite der Seiten, 62/94 mm unter der Oberkante), abgeleitet aus der Blum-Montageanleitung, siehe [TCN-Export](../../sketchup-tcn-export-plugin/README.md). Für **Free Slim** (Häfele Montageanleitung 732.23.046): Mechanismus je Seite 2 × Ø5 × 10 für die Dübel, 122,5 mm ab Vorderkante, 39,5 und 135,5 mm unter der Unterseite des Deckels; Frontbeschlag je Seite 4 × Ø3 × 5 im Raster 32, 12 mm ab Innenseite der Seiten, 36/68/100/132 mm unter der Unterseite des Deckels. Für HF (Kraftspeicher, Frontbeschläge, Scharniere zwischen den Teilen) fehlen sie noch; der Export meldet das. Welche Bohrungen gesetzt werden, richtet sich nach dem Klappenbeschlag der Küche (Einstellungen › Beschläge); die Maße stehen im Beschlag-Katalog des Plugins (`katalog/*.json`). Das Attribut `Art_Klappe` (1 eine Klappe, 2 HF) steht nicht mehr in den Komponentenoptionen.
+Die AVENTOS-**Bohrungen** setzt der TCN-Export nach dem Blum-Katalog 2024/2025. HK top (S. 48): Kraftspeicher 4 × Ø5 in den Seiten (37/69/133/165 mm ab Vorderkante, 36 mm unter der Oberkante) und Frontbefestigung 2 × 4 × Ø5 in der Klappe (12,5 mm ab Innenseite der Seiten, 62/94/126/158 mm unter der Oberkante). HS top und HL top: Kraftspeicher 2 × 2 Ø5 (101/229 mm ab Vorderkante, 63/127 mm unter der Oberkante), Frontbefestigung 4 × Ø5 ab 195 mm (HS) bzw. 113/153/203/256 mm je Hebel-Set nach Korpushöhe (HL) unter der Oberkante. HF top: Kraftspeicher 101/229 mm ab Vorderkante, 93,5/157,5 mm (Korpushöhe bis 519) bzw. 116/180 mm unter der Oberkante; Hebel an der unteren Klappe 2 × 2 Ø5, 170 bzw. 189 mm unter ihrer Oberkante; je Klappe zwei Töpfe Ø35 an der Oberkante (oben 120°-Scharnier mit Montageplatte unter dem Deckel, Mitte Zwischenscharnier mit Montageplatte auf der oberen Klappe), 100 mm vom Klappenrand (abgeleitet, im Katalog nicht bemaßt). Siehe siehe [TCN-Export](../../sketchup-tcn-export-plugin/README.md). Für **Free Slim** (Häfele Montageanleitung 732.23.046): Mechanismus je Seite 2 × Ø5 × 10 für die Dübel, 122,5 mm ab Vorderkante, 39,5 und 135,5 mm unter der Unterseite des Deckels; Frontbeschlag je Seite 4 × Ø3 × 5 im Raster 32, 12 mm ab Innenseite der Seiten, 36/68/100/132 mm unter der Unterseite des Deckels. Welche Bohrungen gesetzt werden, richtet sich nach dem Klappenbeschlag der Küche (Einstellungen › Beschläge); die Maße stehen im Beschlag-Katalog des Plugins (`katalog/*.json`). Das Attribut `Art_Klappe` (1 eine Klappe, 2 Faltklappe) steht nicht in den Komponentenoptionen; es wird beim Anlegen gewählt.
 
 ## Material und Kanten
 Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, sichtbare Kanten das Kantenmaterial „Anleimer Melamin weiss“ (2 mm, wird erst in Stückliste/Zuschnitt abgezogen).

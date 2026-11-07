@@ -904,32 +904,73 @@ OberschrankKlappe.erstellen({})
 OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0 })
 dk, km = S::Export.erzeugen(model)
 d = dk.to_h { |x| [x.name, x] }
-check(km.size == 1 && km.first.start_with?('OK2: AVENTOS HF'), "Klappe: nur HF meldet fehlende Bohrungen: #{km}")
+check(km.empty?, "Klappe HK top und HF top: keine Meldung (#{km})")
 check(d['OK1_Klappe'] && !d['OK1_KlappeO'] && d['OK2_KlappeO'] && d['OK2_KlappeU'] && !d['OK2_Klappe'],
       "Klappe: nur sichtbare Klappenteile exportiert: #{d.keys.grep(/Klappe/)}")
 check([d['OK1_Klappe'].lage.dl, d['OK1_Klappe'].lage.dh].map(&:round).sort == [394, 894], "HK-top-Klappe 898 x 398 Endmaß, im TCN ohne Anleimer 894 x 394 (#{d['OK1_Klappe'].lage.dl} x #{d['OK1_Klappe'].lage.dh})")
 zk = bearbeitungen(d['OK1_SeiteR'].text, 1)
 check(zk.count { |x| x.include?('#8522=5 ') } == 2, "Oberschrank mit Klappe Seite: Lochreihen wie Oberschrank: #{zk}")
-# AVENTOS HK-top (Standard 900 x 400): Kraftspeicher 4 × Ø5 in einer Reihe, 37/69/101/133 ab Vorderkante,
-# 36 unter der Oberkante; Frontbeschlag je Seite Ø5 12,5 ab Innenseite der Seite, 62/94 unter der Oberkante
+# AVENTOS HK top (Standard 900 x 400, Katalog 2024/2025 S. 48): Kraftspeicher 4 × Ø5 in einer Reihe, 37/69/133/165 ab
+# Vorderkante, 36 unter der Oberkante; Frontbefestigung je Seite 4 × Ø5 12,5 ab Innenseite der Seite, 62/94/126/158 unter der Oberkante
 ks = ->(w) { bearbeitungen(w.text, 1).select { |x| x.include?('#1002=5 ') && x.include?('#3=-12 ') && !x.include?('#8522') } }
 %w[OK1_SeiteL OK1_SeiteR].each do |n|
   w = d[n]
   pk = ks.(w).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
   check(pk.size == 4 && pk.map(&:first).uniq.size == 1, "#{n}: Kraftspeicher 4 Löcher in einer Reihe: #{pk}")
   vorn = pk.map(&:last).map { |y| [y, w.lage.dh - y].min }.sort
-  check(vorn == [37, 69, 101, 133].map { |v| v - 2.0 }, "#{n}: Kraftspeicher ab Vorderkante (Fräsmaß, 2 mm Anleimer vorn): #{vorn}")
+  check(vorn == [37, 69, 133, 165].map { |v| v - 2.0 }, "#{n}: Kraftspeicher ab Vorderkante (Fräsmaß, 2 mm Anleimer vorn): #{vorn}")
   hoch = pk.first && [pk.first.first, w.lage.dl - pk.first.first].min
   check(hoch && (hoch - 34.0).abs < 1e-6, "#{n}: Kraftspeicher 36 unter der Oberkante (Fräsmaß 34): #{hoch}")
 end
 fk = d['OK1_Klappe']
 fb = ks.(fk).map { |x| [lage_mm(x[/#1=(\S+)/, 1], fk.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fk.lage.dh)] }.sort
 # Klappe 898 x 398, rundum Anleimer (Fräsmaß 894 x 394); Innenseite der Seite 18 vom Klappenrand -> 30,5 (28,5 im Fräsmaß),
-# Oberkante Klappe 1 unter Korpusoberkante -> 61 / 93 (59 / 91 im Fräsmaß)
+# Oberkante Klappe 1 unter Korpusoberkante -> 61 / 93 / 125 / 157 (59 / 91 / 123 / 155 im Fräsmaß)
 xs = fb.map { |p| [p[0], fk.lage.dl - p[0]].min }.uniq.sort
 ys = fb.map { |p| [p[1], fk.lage.dh - p[1]].min }.uniq.sort
-check(fb.size == 4 && xs == [28.5] && ys == [59.0, 91.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
-check(ks.(d['OK2_KlappeO']).empty? && ks.(d['OK2_SeiteL']).empty?, 'HF: noch keine AVENTOS-Bohrungen')
+check(fb.size == 8 && xs == [28.5] && ys == [59.0, 91.0, 123.0, 155.0], "Klappe: Frontbeschlag HK-top #{fb} (x #{xs}, y #{ys})")
+# AVENTOS HF top (900 x 720, Katalog S. 24–25): Kraftspeicher 101/229 ab Vorderkante, 116/180 unter der Oberkante (KH ≥ 520);
+# Hebel an der unteren Klappe 189/221 unter ihrer Oberkante; je Klappe 2 Töpfe (inge100) an der Oberkante, Montageplatten
+# der Zwischenscharniere auf der oberen Klappe, der 120°-Scharniere unter dem Deckel
+w = d['OK2_SeiteL']
+pk = ks.(w).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
+ys = pk.map { |p| p[1] }.uniq.sort
+vorn = [ys, ys.map { |y| w.lage.dh - y }.sort].min_by(&:first)
+hoch = pk.map { |p| [p[0], w.lage.dl - p[0]].min }.uniq.sort
+check(pk.size == 4 && vorn == [99.0, 227.0] && hoch == [114.0, 178.0], "HF: Kraftspeicher #{pk} (vorn #{vorn}, oben #{hoch})")
+alle = ->(w) { (1..6).flat_map { |f| bearbeitungen(w.text, f) } }
+%w[OK2_KlappeO OK2_KlappeU].each do |n|
+  check(alle.(d[n]).count { |x| x.include?('inge100') } == 2, "HF: #{n} 2 Töpfe (#{alle.(d[n]).grep(/inge100/).size})")
+end
+check(ks.(d['OK2_KlappeU']).size == 4, "HF: Hebel an der unteren Klappe 2 × 2 Löcher (#{ks.(d['OK2_KlappeU']).size})")
+check(ks.(d['OK2_KlappeO']).size == 4, "HF: Montageplatten Zwischenscharnier 4 Löcher (#{ks.(d['OK2_KlappeO']).size})")
+check(alle.(d['OK2_Deckel']).count { |x| x.include?('#1002=5 ') && x.include?('#3=-12 ') && !x.include?('#8522') } == 4,
+      "HF: Montageplatten 120°-Scharnier unter dem Deckel (#{alle.(d['OK2_Deckel']).grep(/#1002=5 /)})")
+hfl = []
+S::Export.erzeugen(model, alle_ws: hfl)
+hbl = S::Beschlaege.liste(hfl).map(&:to_a)
+check(hbl.any? { |p| p[1].include?('HF top Scharnier-Set') && p[3] == 1 } && hbl.any? { |p| p[1].include?('HK-top Kraftspeicher') },
+      "Beschlagliste: HF top und HK top (#{hbl.map { |p| [p[1], p[3]] }})")
+# AVENTOS HL top (KH 400 → Hebel-Set 22L3800): Kraftspeicher 101/229 ab Vorderkante, 63/127 unter der Oberkante;
+# Frontbefestigung 203/235/267/299 unter der Korpusoberkante (Klappe 1 tiefer, 2 mm Anleimer → 200/232/264/296)
+hlm = Sketchup.active_model = Sketchup::Model.new
+S::Beschlagkatalog.waehlen('klappe', 'blum-aventos-hl-top', hlm)
+OberschrankKlappe.erstellen({})
+hdk, hkm = S::Export.erzeugen(hlm)
+hd = hdk.to_h { |x| [x.name, x] }
+check(hkm.empty?, "HL top: keine Meldung (#{hkm})")
+w = hd['OK1_SeiteR']
+pk = ks.(w).map { |x| [lage_mm(x[/#1=(\S+)/, 1], w.lage.dl), lage_mm(x[/#2=(\S+)/, 1], w.lage.dh)] }
+ys = pk.map { |p| p[1] }.uniq.sort
+check(pk.size == 4 && [ys, ys.map { |y| w.lage.dh - y }.sort].min_by(&:first) == [99.0, 227.0] &&
+      pk.map { |p| [p[0], w.lage.dl - p[0]].min }.uniq.sort == [61.0, 125.0], "HL top: Kraftspeicher #{pk}")
+fk = hd['OK1_Klappe']
+fb = ks.(fk).map { |x| [lage_mm(x[/#1=(\S+)/, 1], fk.lage.dl), lage_mm(x[/#2=(\S+)/, 1], fk.lage.dh)] }
+ys = fb.map { |p| p[1] }.uniq.sort
+ys = ys.map { |y| (fk.lage.dh - y).round(3) }.sort # stehende Teile: y = 0 an der Unterkante
+check(fb.size == 8 && ys == [200.0, 232.0, 264.0, 296.0], "HL top: Frontbefestigung #{ys}")
+S::Beschlagkatalog.waehlen('klappe', 'blum-aventos-hk-top', hlm)
+Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_klappe'])
 check(bearbeitungen(d['OK1_Rueckwand'].text, 1).any? { |x| x.include?('#8522=5 ') && x.include?('#8513=-9 ') }, 'Rückwand für die Deckelschrauben gebohrt')
 # Häfele Free Slim (Art_Klappe 3, 900 x 400, Deckel 19): Mechanismus je Seite 2 × Ø5 × 10, 122,5 ab Vorderkante,
 # 39,5 / 135,5 unter der Unterseite des Deckels (= 58,5 / 154,5 unter der Oberkante); Frontbeschlag je Seite
@@ -970,7 +1011,7 @@ check(K.eintraege.map { |e| e['kennung'] }.uniq.size == K.eintraege.size, 'Katal
 K::ARTEN.each { |a, v| check(K.eintrag(v[:standard]) && K.passt?(K.eintrag(v[:standard]), a), "Katalog: Standard für #{a} vorhanden") }
 check(K.zur_art('topfband_innen').map { |e| e['kennung'] } == K.zur_art('topfband').map { |e| e['kennung'] } && K.zur_art('topfband').size == 3,
       "Katalog: alle Topfbänder auch vor Innenauszügen wählbar (#{K.zur_art('topfband').map { |e| e['kennung'] }})")
-check(K.zur_art('klappe').map { |e| e['kennung'] } == %w[blum-aventos-hk-top haefele-free-slim-1.12], "Katalog: Klappen #{K.zur_art('klappe').map { |e| e['kennung'] }}")
+check(K.zur_art('klappe').map { |e| e['kennung'] } == %w[blum-aventos-hk-top blum-aventos-hl-top blum-aventos-hs-top haefele-free-slim-1.12], "Katalog: Klappen #{K.zur_art('klappe').map { |e| e['kennung'] }}")
 # alte Küche ohne Einstellung: Schrank mit Art_Klappe 3 behält Free Slim, Vorschlag im Dialog = Free Slim
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_klappe'])
 check(K.gespeichert('klappe', fm).nil? && K.vorschlag('klappe', fm)['kennung'] == 'haefele-free-slim-1.12', 'alte Küche: Vorschlag Free Slim')

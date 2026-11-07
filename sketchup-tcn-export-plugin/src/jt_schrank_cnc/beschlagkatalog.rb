@@ -37,6 +37,7 @@ module JTools
         # damit die geöffnete Tür die lichte Weite freigibt (Katalog 2024/2025 S. 84)
         'topfband_innen' => { name: 'Topfband vor Innenauszügen', standard: 'blum-clip-top-155', bauarten: %w[topfband_platte] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
+        'faltklappe' => { name: 'Faltklappe (zweiteilig)', standard: 'blum-aventos-hf-top', bauarten: %w[faltklappe_seite] },
         'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
         'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] }
       }.freeze
@@ -49,6 +50,7 @@ module JTools
       PFLICHT = {
         'auszug_zarge' => %w[schiene zargen standard_zarge kasten front boden_falz stabilisierung_ab liste koerper],
         'klappe_seite' => %w[seite front liste koerper],
+        'faltklappe_seite' => %w[seite front scharnier platte liste],
         'hochauszug_seite' => %w[schiene front bauraum liste koerper],
         'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper]
@@ -239,6 +241,14 @@ module JTools
       # Für den Fingerabdruck der Beschläge im Modell: ändert sich mit jeder Wahl
       def fingerabdruck(model = nil)
         ARTEN.keys.map { |a| "#{a}=#{gespeichert(a, model)}" }.join(';')
+      end
+
+      # Bohrbild-Teil (seite, front) für eine Korpushöhe (mm): mit „stufen“ (je Stufe „bis“ = größte
+      # Korpushöhe) gilt die erste passende Stufe, darüber die letzte (AVENTOS HL/HF top: Hebel-Set nach KH)
+      def stufe(teil, korpushoehe)
+        st = teil['stufen'] or return teil
+        s = st.find { |x| korpushoehe.round <= x['bis'] } || st.last
+        teil.merge(s)
       end
 
       # Passt das Modell zum Schrank? nil oder Hinweistext (Maße in mm)
