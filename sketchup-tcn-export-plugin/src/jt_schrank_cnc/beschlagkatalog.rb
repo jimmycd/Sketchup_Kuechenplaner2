@@ -229,6 +229,7 @@ module JTools
         else
           schrank.delete_attribute(SCHRANK_DICT, schluessel(art)) if schrank.respond_to?(:delete_attribute)
         end
+        return Grifflos.schrank_anpassen(schrank, model) != :alt if art == 'oeffnung'
         return true unless art == 'schubladen'
         w = schubkasten_werte(gewaehlt('schubladen', model, schrank: schrank))
         schrank_anpassen(schrank, Kuechenplaner::Schubkasten.attribute(w), w) != :alt
@@ -287,7 +288,11 @@ module JTools
         m = modell(model)
         m.set_attribute(DICT, schluessel(art), kennung) if m.respond_to?(:set_attribute)
         Sketchup.write_default(SEKTION, schluessel(art), kennung) if defined?(Sketchup) && Sketchup.respond_to?(:write_default)
-        @nicht_angepasst = art == 'schubladen' ? schubladen_anpassen(m, e) : []
+        @nicht_angepasst = case art
+                           when 'schubladen' then schubladen_anpassen(m, e)
+                           when 'oeffnung' then Grifflos.kueche_anpassen(m) # Griffkante, durchlaufende Mulde
+                           else []
+                           end
         e
       end
 

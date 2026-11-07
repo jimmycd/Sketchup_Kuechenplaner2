@@ -65,7 +65,10 @@ FAELLE = {
   'haefele-sockelfuss-kunststoff' => ['sockelfuss', schubladen, []],
   'haefele-sockelfuss-stahl' => ['sockelfuss', schubladen, []],
   # Griffmulde: kein Beschlagkörper, die Mulde wird in die Front geschnitten (Griffmodell, test_griffmulde.rb)
-  'griffmulde' => ['oeffnung', -> { [schubladen.()] }, []]
+  'griffmulde' => ['oeffnung', -> { [schubladen.()] }, []],
+  # Griffkante, durchlaufende Mulde: kein Beschlagkörper (Fase in der Front, Boden höher; test_grifflos.rb)
+  'griffkante' => ['oeffnung', -> { [schubladen.()] }, []],
+  'griffmulde_durchlaufend' => ['oeffnung', -> { [schubladen.()] }, []]
 }.freeze
 
 # --- Jedes Katalogmodell hat einen Fall (und damit eine geprüfte Zeichenroutine) ---

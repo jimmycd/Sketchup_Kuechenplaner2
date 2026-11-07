@@ -44,6 +44,9 @@ Jedes Teil hat einen eigenen Tag `<Kürzel>_<Teil>`: `OK1_SeiteL`, `OK1_SeiteR`,
 
 An jedem Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (Oberschrank_Klappe), `kategorie` (Oberschrank), `bereich`, `teil` und `rolle`. Die Klappenteile haben die Rolle *Front*, damit Frontfarbe, Griffe und Stückliste sie wie Fronten behandeln.
 
+## Grifflose Front
+Schrank-CNC setzt nach der Öffnung der Küche (*Einstellungen › Öffnung*, Plan „Grifflose Fronten“) zwei Attribute und zeichnet den Schrank neu: `Griff_Boden` (*Griffmulde durchlaufend*: Boden so viel höher, Rückwand und Einlegeböden rücken mit, die Front steht unten über) und `Griff_Front` (*Griffkante 45°*: Klappe (Faltklappe: unteres Teil) unten so viel kürzer, die Fase fräst der TCN-Export). Ohne grifflose Front sind beide 0.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank_klappe/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

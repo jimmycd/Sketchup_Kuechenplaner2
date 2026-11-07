@@ -721,6 +721,7 @@ module JTools
       # Aufruf aus den Komponenten direkt nach dem Erzeugen (vor dem Ändern der Auswahl)
       def self.neuer_schrank(inst)
         model = inst.model
+        Grifflos.schrank_anpassen(inst, model) # Griffkante / durchlaufende Mulde der Küche
         sockel_angleichen(inst, vorgabe(:sockelhoehe))
         auswahl = model.selection.to_a.select { |e| e != inst && schrank?(e) }
         # Wandregal: nie anreihen, immer frei an der Wand platzieren

@@ -1,0 +1,16 @@
+{
+  "kennung": "griffmulde_durchlaufend",
+  "name": "Griffmulde durchlaufend (grifflos)",
+  "hersteller": "eigene Fertigung",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Jürgen 2026-11-07 (Bild 3, Plan „Grifflose Fronten“): die Front steht über, am Oberschrank sitzt der Boden höher. Unterschränke (Mulde mit Strebe, Muldenblende oder Alu-Profil, Seiten ausgeklinkt) folgen mit Schritt 3, Hochschränke ausgenommen. Maß selbst vorgeschlagen (kein Herstellerwert), von Jürgen bestätigt und in den Einstellungen änderbar: Boden 30 mm höher.",
+  "durchlaufend": {
+    "oberschrank": 30
+  },
+  "liste": {
+    "gruppe": "Öffnung",
+    "tuer": [],
+    "klappe": []
+  }
+}

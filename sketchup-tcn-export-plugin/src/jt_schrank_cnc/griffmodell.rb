@@ -11,7 +11,8 @@
 # Türhalter oder Schrank), nicht in der Front selbst: sonst wüchse die Front um den Griff (Maße der Front
 # kommen aus ihrer Definition, TCN und Stückliste). Kein JT_Schrank/teil: Stückliste und TCN sehen sie nicht.
 # Ein von Hand gesetzter Griff ohne Serie bekommt einen Körper „Griff frei“ (Lochmaß + 16 × 30).
-# Öffnung „Griffmulde gefräst“: statt Griffen schneidet Griffmulde.schrank_zeichnen die Mulde in die Fronten.
+# Öffnung „Griffmulde gefräst“: statt Griffen schneidet Griffmulde.schrank_zeichnen die Mulde in die Fronten,
+# bei „Griffkante 45°“ die Fase (Grifflos.lokal).
 
 module JTools
   module SchrankCnc
@@ -148,7 +149,7 @@ module JTools
 
       def fingerabdruck(s)
         m = s.respond_to?(:model) ? s.model : nil
-        "g#{VERSION}|#{Griffkatalog.fingerabdruck(m)}|#{Griffmulde.fingerabdruck(m)}|#{Beschlagmodell.fingerabdruck(s)}"
+        "g#{VERSION}|#{Griffkatalog.fingerabdruck(m)}|#{Griffmulde.fingerabdruck(m)}|#{Grifflos.fingerabdruck(m)}|#{Beschlagmodell.fingerabdruck(s)}"
       end
 
       # Griffe eines Schranks auf Stand bringen; Anzahl Körper, nil wenn eine Tür offen steht
@@ -186,7 +187,8 @@ module JTools
       def aktiv?(model)
         return false unless model
         Griffkatalog.kueche(model) || model.get_attribute(DICT, 'an') == true ||
-          Griffmulde.aktiv?(Beschlagkatalog.kueche('oeffnung', model)) ? true : false
+          Griffmulde.aktiv?(Beschlagkatalog.kueche('oeffnung', model)) ||
+          Grifflos.art(Beschlagkatalog.kueche('oeffnung', model)) == :kante ? true : false
       end
 
       # Alle Schränke neu (nach einer Wahl in Griffkatalog, Einstellungen oder Schrank-Dialog)

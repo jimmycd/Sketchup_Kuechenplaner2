@@ -238,6 +238,7 @@ module JTools
 
       # Flächen der Front in ihren lokalen Koordinaten (Zoll): [[Punkte, mulde?], …] und Signatur
       def lokal(w)
+        o = Grifflos.fase_op(w) and return Grifflos.lokal(w, o) # Griffkante statt Mulde
         poly, mk = front_umriss(w)
         da = w.dicke_achse
         inv = Beschlagmodell.invers(Geometrie.welt(w.teil.pfad))
@@ -271,7 +272,9 @@ module JTools
         end
       end
 
-      # Flächen der Definition ersetzen; Kantenmaterial (Anleimer) bleibt an den Außenkanten
+      # Flächen der Definition ersetzen; Kantenmaterial (Anleimer) bleibt an den Außenkanten.
+      # Je Fläche: true = Mulde (ohne Material), false = Front (die ersten zwei) oder Kante, oder
+      # ausdrücklich :seite, :kante, :fase (Griffkante, ohne Material)
       def schneiden(d, fl)
         ents = d.entities
         flaechen = ents.grep(Sketchup::Face)
@@ -282,7 +285,12 @@ module JTools
         fl.each_with_index do |(pts, mulde), i|
           f = ents.add_face(*pts.map { |q| Geom::Point3d.new(*q) })
           next unless f
-          f.material = i < 2 ? seite : (mulde ? nil : kante)
+          f.material = case mulde
+                       when :seite then seite
+                       when :kante then kante
+                       when :fase, true then nil
+                       else i < 2 ? seite : kante
+                       end
         rescue ArgumentError
           next
         end

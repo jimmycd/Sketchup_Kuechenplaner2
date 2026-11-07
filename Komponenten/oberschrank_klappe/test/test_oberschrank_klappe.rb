@@ -259,5 +259,35 @@ end.each do |was, abw|
   check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
 end
 
+
+# --- Grifflose Front (Schrank-CNC setzt Griff_Boden / Griff_Front und zeichnet neu) ---
+[[1.0, 40.0], [2.0, 72.0]].each do |art, hoehe|
+  [false, true].each do |nachher|
+    [{ 'Griff_Boden' => 3.0 }, { 'Griff_Front' => 2.5 }].each do |werte|
+      label = "Griff #{werte.keys.first} Art #{art.to_i}#{' nachträglich' if nachher}"
+      Sketchup.active_model = Sketchup::Model.new
+      basis = { 'Art_Klappe' => art, 'Hoehe' => hoehe, 'Anz_Einlegeboeden' => 1.0 }
+      inst = H.erstellen(nachher ? basis : basis.merge(werte))
+      d = inst.definition
+      werte.each { |k, v| d.set_attribute(H::DICT, k.downcase, v / 2.54) } if nachher
+      w = Knoten.new(inst, d, nil)
+      w.redraw
+      pruefe_geometrie(w, label) unless nachher
+      sichtbar = teile(w).reject { |t2| t2[:hidden] }
+      q = ->(n) { sichtbar.find { |t2| t2[:name] == n }[:q] }
+      gb, gf = werte.fetch('Griff_Boden', 0.0), werte.fetch('Griff_Front', 0.0)
+      check(nahe(q.('Boden')[4], gb), "#{label}: Boden z #{q.('Boden')[4]}")
+      check(nahe(q.('Rückwand')[4], gb + 1.0) && nahe(q.('Rückwand')[5], hoehe), "#{label}: Rückwand #{q.('Rückwand')[4..5]}")
+      unten = art == 2 ? 'KlappeU' : 'Klappe'
+      check(nahe(q.(unten)[4], 0.1 + gf), "#{label}: #{unten} unten #{q.(unten)[4]}")
+      oben = art == 2 ? q.('KlappeO') : q.('Klappe')
+      check(nahe(oben[5], hoehe - 0.1), "#{label}: Klappe oben bleibt #{oben[5]}")
+      check(nahe(q.('KlappeO')[4] - q.('KlappeU')[5], 0.2), "#{label}: Fuge Faltklappe") if art == 2
+      eb = sichtbar.find { |t2| t2[:name].start_with?('Einlegeboden') }
+      check(nahe(eb[:q][4] + 0.95, gb + 1.9 + (hoehe - 3.8 - gb) / 2), "#{label}: Einlegeboden mittig")
+    end
+  end
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

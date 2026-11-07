@@ -159,6 +159,16 @@ module JTools
         out << gerade.(pos, ende)
       end
 
+      # Griffkante: Fase 45° mit dem Folding-Fräser (1400) entlang der Kante, Spitze auf der Kante in der
+      # Tiefe der Fase; Bahn beginnt und endet außerhalb der Front (Grifflos.op)
+      def fase(ws, lage, op)
+        x0, y0, x1, y1 = lage.x(op.p0), lage.y(op.p0), lage.x(op.p1), lage.y(op.p1)
+        ["W#89{ ::WTs WS=#{ws}  #8015=0 #1=#{n(x0)} #2=#{n(y0)} #3=#{n(-op.tiefe)} " \
+         "#201=1 #203=1 #205=#{op.daten[:werkzeug]} #1001=100 #8101=0 #8096=0 #40=0 #46=1 " \
+         '#8135=0 #8136=0 #8180=0 #8181=0 #8185=0 #8186=0 #9511=0 #9512=0 #9513=0 }W',
+         "W#2201{ ::WTl  #8015=1 #1=#{n(x1 - x0)} #2=#{n(y1 - y0)} }W"]
+      end
+
       # Länge einer Tasche, über das ganze Werkstück als "h+20" wie in Schubkastenboden.tcn
       def laenge(v, gesamt, var)
         d = v - gesamt
@@ -204,7 +214,7 @@ module JTools
             meldungen << "#{lage.ws.name}: #{op.titel} liegt auf der Unterseite und fehlt in der TCN"
             next
           end
-          if %i[nut tasche ausschnitt topfband].include?(op.art) && side != 1
+          if %i[nut tasche ausschnitt topfband fase].include?(op.art) && side != 1
             meldungen << "#{lage.ws.name}: #{op.titel} liegt nicht auf Fläche 1 und fehlt in der TCN"
             next
           end
@@ -219,6 +229,7 @@ module JTools
         return ausschnitt('@', lage, op) if op.art == :ausschnitt
         return [tasche('@', lage, op)] if op.art == :tasche
         return kontur('@', lage, op) if op.art == :kontur
+        return fase('@', lage, op) if op.art == :fase
         return [topfband('@', lage, op)] if op.art == :topfband
         if side == 1
           if op.art == :bohrung

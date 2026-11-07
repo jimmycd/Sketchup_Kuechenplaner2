@@ -77,7 +77,10 @@ module EckOberschrank
     'Spaltbreite'               => 0.2,
     'Rueckversatz_Einlegeboden' => 1.0,   # Einlegeböden vorne zurückgesetzt
     'Leiste_Laenge'             => 20.0,  # Auflageleiste unter dem Einlegeboden, entlang Schenkel A
-    'Leiste_Breite'             => 3.0    # Tiefe der Leiste (Höhe = Materialstärke)
+    'Leiste_Breite'             => 3.0,   # Tiefe der Leiste (Höhe = Materialstärke)
+    # Grifflose Front (setzt Schrank-CNC nach der Öffnung der Küche, siehe README):
+    'Griff_Boden'               => 0.0,   # durchlaufende Mulde: Boden so viel höher, Türen stehen unten über
+    'Griff_Front'               => 0.0    # Griffkante: Türen unten so viel kürzer
   }.freeze
   DEFAULTS = FEST.merge(
     'Schenkel_A'        => 65.0,  # entlang der hinteren Wand, außen (Wand links bis Seite rechts)
@@ -122,7 +125,8 @@ module EckOberschrank
 
   def self.z_einlegeboden(p, k)
     mk, h, n = p['Materialstaerke_Korpus'], p['Hoehe'], p['Anz_Einlegeboeden'].to_i
-    n >= k ? mk + (h - 2 * mk) * k / (n + 1) - mk / 2 : mk
+    gb = p['Griff_Boden'].to_f
+    n >= k ? gb + mk + (h - 2 * mk - gb) * k / (n + 1) - mk / 2 : mk
   end
 
   # ---------------------------------------------------------------------------
@@ -347,7 +351,7 @@ module EckOberschrank
              units: 'INTEGER', options: '&0=0&1=1&2=2&')
     FEST.each_key { |k| attribut(haupt, k, p[k], units: 'STRING') }
     eb = (1..MAX_EB).map do |k|
-      f = "IF(Anz_Einlegeboeden>=#{k},Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus)*#{k}/" \
+      f = "IF(Anz_Einlegeboeden>=#{k},Griff_Boden+Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus-Griff_Boden)*#{k}/" \
           "(Anz_Einlegeboeden+1)-Materialstaerke_Korpus/2,Materialstaerke_Korpus)"
       z = z_einlegeboden(p, k)
       attribut(haupt, "Z_Einlegeboden_#{k}", z, units: 'STRING', formula: f)
@@ -356,8 +360,11 @@ module EckOberschrank
 
     e = haupt.entities
     hoehe_f = [nil, nil, "#{u}!Hoehe"]
-    rueck_f = [nil, nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe"]
-    tuer_f = [nil, nil, "#{u}!Hoehe-#{u}!Spaltbreite"]
+    rueck_f = [nil, nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe-#{u}!Griff_Boden"]
+    tuer_f = [nil, nil, "#{u}!Hoehe-#{u}!Spaltbreite-#{u}!Griff_Front"]
+    gb, gf = p['Griff_Boden'].to_f, p['Griff_Front'].to_f
+    rueck_z = "#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe+#{u}!Griff_Boden"
+    tuer_z = "#{u}!Spaltbreite/2+#{u}!Griff_Front"
 
     # Seiten an den Enden der Schenkel, volle Höhe und Tiefe
     einsetzen(e, platte(model, 'Seite', 'Seite', [mk, t, h], hoehe_f), 'SeiteR', [a - mk, mk, 0], [nil, nil, nil],
@@ -367,7 +374,7 @@ module EckOberschrank
 
     # L-Boden zwischen den Seiten über die volle Tiefe (Nut für die Rückwände oben)
     boden = l_platte(model, 'Boden L', 'Boden', *m[:boden], mk, *m[:ecke])
-    einsetzen(e, boden, 'Boden', [0, ye, 0], [nil, nil, nil], mat: mat, kz: t_.('Boden'))
+    einsetzen(e, boden, 'Boden', [0, ye, gb], [nil, nil, "#{u}!Griff_Boden"], mat: mat, kz: t_.('Boden'))
 
     # L-Deckel endet vor den Rückwänden und wird mit ihnen verschraubt
     deckel = l_platte(model, 'Deckel L', 'Deckel', *m[:deckel], mk, *m[:ecke_deckel])
@@ -376,10 +383,10 @@ module EckOberschrank
 
     # Rückwände in der Nut von Seite und Boden, oben bündig; die von A geht durch die Ecke
     # (bis an die Rückseite von B), die von B stößt an ihre Vorderseite
-    rwa = platte(model, 'Rückwand A', 'Rückwand', [a - mk + nut - v, rw, h - mk + nut], rueck_f)
-    einsetzen(e, rwa, 'Rückwand1', [v, yw - hi, mk - nut], [nil, nil, nil], mat: mat, kz: t_.('Rueckwand1'))
-    rwb = platte(model, 'Rückwand B', 'Rückwand', [rw, yw - hi - ye + nut, h - mk + nut], rueck_f)
-    einsetzen(e, rwb, 'Rückwand2', [v, ye - nut, mk - nut], [nil, nil, nil], mat: mat, kz: t_.('Rueckwand2'))
+    rwa = platte(model, 'Rückwand A', 'Rückwand', [a - mk + nut - v, rw, h - mk + nut - gb], rueck_f)
+    einsetzen(e, rwa, 'Rückwand1', [v, yw - hi, mk - nut + gb], [nil, nil, rueck_z], mat: mat, kz: t_.('Rueckwand1'))
+    rwb = platte(model, 'Rückwand B', 'Rückwand', [rw, yw - hi - ye + nut, h - mk + nut - gb], rueck_f)
+    einsetzen(e, rwb, 'Rückwand2', [v, ye - nut, mk - nut + gb], [nil, nil, rueck_z], mat: mat, kz: t_.('Rueckwand2'))
 
     # L-Einlegeböden (vorne zurückgesetzt, hinten bis an die Rückwände), darunter je eine
     # Auflageleiste an der Rückwand A in der Ecke
@@ -403,11 +410,11 @@ module EckOberschrank
     # (Katalog 2024/2025 S. 117). Oben und unten 1 mm Fuge, 2 mm vor dem Korpus.
     xa = t + sp
     xa_a = xa + mk + sp / 2.0
-    einsetzen(e, platte(model, 'Tür A', 'Tür', [a - sp / 2.0 - xa_a, mk, h - sp], tuer_f), 'TürR',
-              [xa_a, -sp, sp / 2.0], [nil, nil, nil], mat: mat, kz: t_.('TuerR'))
+    einsetzen(e, platte(model, 'Tür A', 'Tür', [a - sp / 2.0 - xa_a, mk, h - sp - gf], tuer_f), 'TürR',
+              [xa_a, -sp, sp / 2.0 + gf], [nil, nil, tuer_z], mat: mat, kz: t_.('TuerR'))
     yb0 = yw - bb + sp / 2.0
-    einsetzen(e, platte(model, 'Tür B', 'Tür', [mk, -1.5 * sp - yb0, h - sp], tuer_f, art: 'TürB'), 'TürL',
-              [xa, yb0, sp / 2.0], [nil, nil, nil], mat: mat, kz: t_.('TuerL'))
+    einsetzen(e, platte(model, 'Tür B', 'Tür', [mk, -1.5 * sp - yb0, h - sp - gf], tuer_f, art: 'TürB'), 'TürL',
+              [xa, yb0, sp / 2.0 + gf], [nil, nil, tuer_z], mat: mat, kz: t_.('TuerL'))
     haupt
   end
 

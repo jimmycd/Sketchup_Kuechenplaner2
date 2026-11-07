@@ -125,7 +125,7 @@ end
 def pruefe(w, p, label)
   b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
   mk, sp, rw, vs, nut = 1.9, 0.2, 0.8, 2.5, 0.9
-  hh, frei = p['Haube_Hoehe'], p['Tuer_Frei_Unten']
+  hh, frei = p['Haube_Hoehe'], p['Tuer_Frei_Unten'] + p['Griff_Front'].to_f
   alle = teile(w)
   sichtbar = alle.reject { |t2| t2[:hidden] }
   q = ->(n) { (sichtbar.find { |t2| t2[:name] == n } || raise("#{label}: #{n} fehlt"))[:q] }
@@ -238,7 +238,7 @@ def lauf(p, label, umkonf = nil, kz = 'OSD1')
   pruefe_material(w, label, kz)
   return unless umkonf
   d = inst.definition
-  laengen = %w[Breite Hoehe Tiefe Haube_Hoehe Rohr_Breite Rohr_Tiefe Rohr_Abstand_Hinten Tuer_Frei_Unten]
+  laengen = %w[Breite Hoehe Tiefe Haube_Hoehe Rohr_Breite Rohr_Tiefe Rohr_Abstand_Hinten Tuer_Frei_Unten Griff_Front]
   umkonf.each { |k, v| d.set_attribute(H::DICT, k.downcase, laengen.include?(k) ? v / 2.54 : v.to_f) }
   w2 = Knoten.new(inst, d, nil)
   w2.redraw
@@ -249,6 +249,9 @@ lauf({}, 'Standard (2 Türen, Abluft)',
      { 'Art_Tuer' => 1, 'Anz_Einlegeboeden' => 1, 'Breite' => 90.0, 'Hoehe' => 90.0, 'Haube_Hoehe' => 30.0 })
 lauf({ 'Breite' => 90.0, 'Art_Tuer' => 1.0, 'Anz_Einlegeboeden' => 1.0, 'Tuer_Frei_Unten' => 4.0 }, 'eine Tür, Blende frei',
      { 'Abluft' => 0, 'Art_Tuer' => 2, 'Tuer_Frei_Unten' => 0.0 })
+# Griffkante: Türen unten kürzer (Schrank-CNC setzt Griff_Front), auch nachträglich
+lauf({ 'Griff_Front' => 2.5 }, 'Griffkante', { 'Griff_Front' => 0.0, 'Art_Tuer' => 1 })
+lauf({}, 'Griffkante nachträglich', { 'Griff_Front' => 2.5 })
 lauf({ 'Abluft' => 0.0 }, 'Umluft', { 'Abluft' => 1, 'Rohr_Breite' => 22.2, 'Rohr_Tiefe' => 8.9, 'Rohr_Abstand_Hinten' => 5.0 })
 lauf({ 'Kuerzel' => 'OSD7', 'Tiefe' => 35.0 }, 'eigenes Kürzel', nil, 'OSD7')
 

@@ -1,0 +1,17 @@
+{
+  "kennung": "griffkante",
+  "name": "Griffkante 45° (grifflos)",
+  "hersteller": "eigene Fertigung",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Jürgen 2026-11-07 (Bild 2, Plan „Grifflose Fronten“): Fase auf der Rückseite der Front an der Griffkante, Oberschrank unten (Unterschrank oben folgt mit Schritt 3), Hochschränke ausgenommen. Maße selbst vorgeschlagen (kein Herstellerwert), von Jürgen bestätigt und in den Einstellungen änderbar: Fase 13 mm mit dem Werkzeug 1400 Folding 45°, Front 25 mm kürzer.",
+  "kante": {
+    "fase": 13,
+    "luft": 25
+  },
+  "liste": {
+    "gruppe": "Öffnung",
+    "tuer": [],
+    "klappe": []
+  }
+}
