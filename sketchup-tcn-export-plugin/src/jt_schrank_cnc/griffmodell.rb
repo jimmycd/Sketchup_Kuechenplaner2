@@ -201,6 +201,7 @@ module JTools
       # Nach jedem Vorgang: Schränke mit geändertem Fingerabdruck (transparent am Vorgang davor)
       def nachziehen(model)
         return unless model && model.valid? && aktiv?(model)
+        return if defined?(Roentgen) && Roentgen.isoliert?(model) # Schrank zum Röntgen geöffnet: Lage der Teile anders
         offen = Beschlagmodell.schraenke(model).select { |s| s.get_attribute(DICT, 'fingerabdruck') != fingerabdruck(s) }
         return if offen.empty?
         model.start_operation('Griffe', true, false, true)

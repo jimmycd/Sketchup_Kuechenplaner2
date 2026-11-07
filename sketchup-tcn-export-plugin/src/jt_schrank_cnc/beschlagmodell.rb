@@ -966,6 +966,7 @@ module JTools
       # hängt am Vorgang davor, Rückgängig nimmt beides)
       def nachziehen(model)
         return unless model && model.valid? && an?(model)
+        return if defined?(Roentgen) && Roentgen.isoliert?(model) # Schrank zum Röntgen geöffnet: Lage der Teile anders
         offen = schraenke(model).select { |s| s.get_attribute(DICT, 'fingerabdruck') != fingerabdruck(s) }
         return if offen.empty?
         model.start_operation('Beschläge', true, false, true)

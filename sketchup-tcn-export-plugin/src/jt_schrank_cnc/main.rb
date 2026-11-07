@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog griffkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln griffmulde grifflos tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell griffmodell schrankbeschlag griffdialog rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog griffkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln griffmulde grifflos tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell bohrmodell roentgen griffmodell schrankbeschlag griffdialog rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -56,6 +56,8 @@ module JTools
         menu.add_item('Export (Stückliste, Etiketten, Zuschnitt, TCN)…') { Ausgabe.dialog }
         menu.add_item('Schrank-Beschriftung ein/aus') { Beschriftung.umschalten }
         menu.add_item('Beschläge ein/aus') { Beschlagmodell.umschalten }
+        menu.add_item('Bohrungen, Dübel, Schrauben ein/aus') { Bohrmodell.umschalten }
+        menu.add_item('Röntgen (Auswahl) ein/aus') { Roentgen.umschalten }
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }
         menu.add_item('Materialien…') { Materialdialog.dialog }
         menu.add_item('Griffkatalog…') { Griffdialog.zeigen }
@@ -100,6 +102,7 @@ module JTools
       file_loaded(__FILE__)
     end
     Beschlagmodell.app_beobachten # Beschläge folgen Änderungen am Schrank
+    Bohrmodell.app_beobachten # Bohrungen, Dübel, Schrauben folgen Änderungen am Schrank
     Griffmodell.app_beobachten # Griffe der Fronten (Griffkatalog) folgen Änderungen am Schrank
     Beschriftung.app_beobachten # einmal je SketchUp-Sitzung, auch nach dem Neuladen
     Massaenderung.app_beobachten # angedockte Schränke bei Breite/Tiefe richtig verschieben

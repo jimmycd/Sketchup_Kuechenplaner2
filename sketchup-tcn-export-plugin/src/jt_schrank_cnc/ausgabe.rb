@@ -90,6 +90,7 @@ module JTools
       end
 
       def dialog(model = Sketchup.active_model)
+        Roentgen.zuruecksetzen(model) if defined?(Roentgen) # Teile in Modell-Lage rechnen
         auswahl = model.selection.to_a.empty? ? nil : model.selection.to_a
         ws = []
         dateien, meldungen = Export.erzeugen(model, auswahl: auswahl, alle_ws: ws)
