@@ -97,6 +97,24 @@ check(G.nischen(hg1.definition).size == 1, 'Hochschrank ohne Nische 2 hat nur JT
     check(g.name == "Geraet_#{n['nische']}", "Name #{g.name}")
   end
 end
+# Spüler und Unterbau-Kühlgeräte: Gerät mittig in der Nische, links bündig mit dem Platzhalter
+# (Jürgen 2026-11-07: Spüler saß 1 mm zu weit links, links bündig mit der Schrankkante)
+[usg, uks, ukw].each do |s|
+  ph = s.definition.entities.grep(Sketchup::ComponentInstance).find { |i| i.name == 'Geraet' }
+  g = geraete(s).first
+  check(ph && g && nah(g.transformation.origin[0], ph.transformation.origin[0]),
+        "#{s.definition.name}: Gerät x #{g && g.transformation.origin[0] * 25.4} wie Platzhalter #{ph && ph.transformation.origin[0] * 25.4}")
+end
+n = G.nischen(usg.definition, usg).first
+check(nah(n['x'], 1) && nah(n['breite'], 598) && n['geraet'] == 'Geschirrspueler60', "Spüler-Nische: #{n}")
+# Altes Modell (JT_Nische x = 0 beim Erzeugen) und Wange nachträglich links -> aus den DC-Werten
+usg.definition.set_attribute('JT_Nische', 'x', 0.0)
+usg.set_attribute(G::DICT, 'art_wange', 1.0)
+usg.set_attribute(G::DICT, 'breite', 45.0 / 2.54)
+n = G.nischen(usg.definition, usg).first
+check(nah(n['x'], 20) && nah(n['breite'], 448) && n['geraet'] == 'Geschirrspueler45', "Spüler umgestellt: #{n}")
+{ 'art_wange' => 0.0, 'breite' => 60.0 / 2.54 }.each { |k, v| usg.set_attribute(G::DICT, k, v) }
+usg.definition.set_attribute('JT_Nische', 'x', 1.0)
 # Haube: unten bündig im Haubenraum (862 × 380), Rohr durch den Ausschnitt bis zur Oberkante (700)
 rd = geraete(osd).first.definition.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'Render' }.definition
 rohr = rd.entities.grep(Sketchup::ComponentInstance).find { |k| k.name == 'Rohr' }
@@ -113,14 +131,14 @@ check(nd['geraet'] == 'Flachschirmhaube60' && nah(nd['breite'], 562) && nah(nd['
 G.einsetzen(model, osd)
 check(geraete(osd).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') } == ['Flachschirmhaube60'], 'Haube umgestellt: Gerät')
 kw = G.nischen(ukw.definition).first
-check(nah(kw['breite'], 296) && nah(kw['x'], 19) && nah(kw['z'], -100) && nah(kw['hoehe'], 800), "Weinkühler-Nische: #{kw}")
+check(nah(kw['breite'], 296) && nah(kw['x'], 21) && nah(kw['z'], -100) && nah(kw['hoehe'], 800), "Weinkühler-Nische: #{kw}")
 
 # Kühlschrank: Gerät und Breite in den Komponentenoptionen geändert (an der Instanz) -> neues Gerät
 uks.set_attribute(G::DICT, 'geraet_art', 2.0)
 uks.set_attribute(G::DICT, 'breite', 45.0 / 2.54)
 uks.set_attribute(G::DICT, 'art_wange', 3.0)
 n = G.nischen(uks.definition, uks).first
-check(n['geraet'] == 'KuehlschrankFrei45' && nah(n['breite'], 446) && nah(n['x'], 19), "Kühlschrank umgestellt: #{n}")
+check(n['geraet'] == 'KuehlschrankFrei45' && nah(n['breite'], 446) && nah(n['x'], 21), "Kühlschrank umgestellt: #{n}")
 G.einsetzen(model, uks)
 check(geraete(uks).map { |g| g.definition.get_attribute(G::GERAET_DICT, 'geraet') } == ['KuehlschrankFrei45'], 'Kühlschrank umgestellt: Gerät')
 { 'geraet_art' => 0.0, 'breite' => 60.0 / 2.54, 'art_wange' => 0.0 }.each { |k, v| uks.set_attribute(G::DICT, k, v) }
