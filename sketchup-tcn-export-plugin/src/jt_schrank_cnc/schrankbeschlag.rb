@@ -67,6 +67,7 @@ module JTools
           when 'faltklappe' then klappe && klappe.to_f.round == 2
           when 'hochauszug', 'eckauszug' then jt == a
           when 'oeffnung' then tuer || r.include?('Front')
+          when 'sockelfuss' then r.include?('Boden') && Regeln::SOCKEL_KATEGORIEN.include?(d.get_attribute(JT_DICT, 'kategorie').to_s)
           else false
           end
         end

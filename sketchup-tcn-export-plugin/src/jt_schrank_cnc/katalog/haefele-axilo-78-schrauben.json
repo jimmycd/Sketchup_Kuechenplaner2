@@ -1,0 +1,31 @@
+{
+  "kennung": "haefele-axilo-78-schrauben",
+  "name": "Häfele AXILO 78, Befestigungsplatte zum Schrauben",
+  "hersteller": "Häfele",
+  "art": "sockelfuss",
+  "bauart": "sockelfuss",
+  "quelle": "Häfele Möbelbeschläge MB 2026, Kap. 9 S. 9.113 (Befestigungsplatte rechteckig 637.76.333, Schraublöcher 64 × 64), S. 9.114 (Rohr mit Einschraubgleiter, Feingewinde, Bauhöhe/Einstellbereich), S. 9.116 (Sockelblendenclip 637.38.054, ab Bauhöhe 80). Bohrbild Ø3 × 3 als Markierung wie Boden.tcn (Jürgen); Schraubenlänge angenommen.",
+  "hoehen": [
+    { "bauhoehe": 60, "von": 53, "bis": 70, "artikel": "637.76.351" },
+    { "bauhoehe": 80, "von": 70, "bis": 100, "artikel": "637.76.352" },
+    { "bauhoehe": 100, "von": 90, "bis": 120, "artikel": "637.76.353" },
+    { "bauhoehe": 125, "von": 115, "bis": 145, "artikel": "637.76.354" },
+    { "bauhoehe": 150, "von": 140, "bis": 170, "artikel": "637.76.355" },
+    { "bauhoehe": 180, "von": 170, "bis": 198, "artikel": "637.76.356" },
+    { "bauhoehe": 200, "von": 190, "bis": 220, "artikel": "637.76.357" }
+  ],
+  "bohrung": { "d": 3, "tiefe": 3, "punkte": [[0, 0], [64, 0], [0, 64], [64, 64]] },
+  "lage": { "rand_x": 20, "rand_y": 60 },
+  "verteilung": { "mitte_ab": 900 },
+  "liste": {
+    "gruppe": "Sockelfüße (Häfele AXILO 78)",
+    "fuss": "Häfele AXILO 78 Rohr mit Einschraubgleiter H {bauhoehe}, {artikel}",
+    "je_fuss": [
+      ["Häfele AXILO 78 Befestigungsplatte rechteckig zum Schrauben, 637.76.333", "unter den Korpusboden", 1, "Stück"],
+      ["Spanplattenschraube Ø4 × 16", "Befestigungsplatte, 4 je Fuß (Länge angenommen)", 4, "Stück"]
+    ],
+    "je_vorn": [
+      ["Häfele AXILO 78 Sockelblendenclip zum Schrauben, 637.38.054", "Sockelblende, je vorderer Fuß (ab H 80)", 1, "Stück"]
+    ]
+  }
+}

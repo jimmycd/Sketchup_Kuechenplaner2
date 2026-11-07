@@ -115,8 +115,11 @@ module JTools
       # Schubkastenboden.tcn: Falz unten an beiden Enden quer zur Breite für die Zargen,
       # 38 breit über die ganze Tiefe + 20 Überlauf und ein zweites Rechteck 20 breit, beide 8 tief
       # Werte: Katalogeintrag (boden_falz), siehe Regeln.boden_falz
-      # Boden.tcn: je Sockelfuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y
-      SOCKELFUSS = { d: 3, tiefe: 3, raster: 64, rand_x: 20, rand_y: 60 }.freeze
+      # Sockelfüße: Modell aus dem Beschlag-Katalog (Beschlagart sockelfuss, Standard Häfele AXILO 78 zum
+      # Schrauben = Boden.tcn: je Fuß 2 × 2 Bohrungen Ø3, 3 tief, Raster 64; 20 mm vom Rand in x, 60 mm in y).
+      # Bohrbild (punkte ab der Ecke des Fußes), Lage und Mittelfüße stehen im Eintrag, siehe sockelfuss_werte.
+      # Mindestabstand der Bohrungen vom Rand einer Schräge/eines Bogens (Abschlussregal)
+      FUSS_RAND = 20
       SOCKEL_KATEGORIEN = %w[Unterschrank Hochschrank].freeze
       DURCH = 1 # mm: Durchbruch = Stärke + 1 mm (wie Durchgangsbohrung Rückwand, von Jürgen bestätigt)
       FESTE_BOEDEN = %w[Boden Deckel Zwischenboden Strebe].freeze
@@ -1270,7 +1273,15 @@ module JTools
         end
       end
 
-      # Sockelfüße: Bohrbild aus Boden.tcn in der Unterseite des Bodens,
+      # Werte des Sockelfußes (Katalogeintrag der Küche bzw. des Schranks)
+      def self.sockelfuss_werte(e = Beschlagkatalog.gewaehlt('sockelfuss'))
+        b, l = e['bohrung'], e['lage']
+        { kennung: e['kennung'], d: b['d'].to_f, tiefe: b['tiefe'].to_f, durch: b['durch'] ? true : false,
+          punkte: b['punkte'].map { |x, y| [x.to_f, y.to_f] }, rand_x: l['rand_x'].to_f, rand_y: l['rand_y'].to_f,
+          mitte_ab: (e['verteilung'] || {})['mitte_ab'] }
+      end
+
+      # Sockelfüße: Bohrbild des gewählten Modells in der Unterseite des Bodens,
       # x entlang der längeren Plattenrichtung (wie DL). L-Boden (Eckschrank): je Schenkel
       # ein Rechteck, so stehen Füße an beiden Enden und an der Innenecke
       def self.sockelfuesse(w)
@@ -1290,40 +1301,57 @@ module JTools
         sockelfuesse_rechteck(w, l2, h2)
       end
 
+      # Füße an beiden Enden (rand_x vom Rand), vorn und hinten (rand_y); länger als mitte_ab: dazu ein Paar
+      # in der Mitte. Je Fuß das Bohrbild (punkte ab seiner Ecke, am anderen Ende gespiegelt); daten:
+      # fuss = Nummer im Boden, reihe = :lo / :hi / :mitte (quer zur Länge; für die Sockelblendenclips)
       def self.sockelfuesse_rechteck(w, lo, hi)
         k = w.dicke_achse
         ax = w.flaechen_achsen.max_by { |a| [hi[a] - lo[a], -a] }
         ay = (w.flaechen_achsen - [ax]).first
-        f = SOCKELFUSS
-        xs = [[lo[ax] + f[:rand_x], lo[ax] + f[:rand_x] + f[:raster]],
-              [hi[ax] - f[:rand_x] - f[:raster], hi[ax] - f[:rand_x]]]
-        ys = [lo[ay] + f[:rand_y], lo[ay] + f[:rand_y] + f[:raster],
-              hi[ay] - f[:rand_y], hi[ay] - f[:rand_y] - f[:raster]]
+        f = sockelfuss_werte
+        sx = f[:punkte].map(&:first).max
+        sy = f[:punkte].map(&:last).max
+        # Ecke jedes Fußes und ob das Bohrbild gespiegelt wird (am hohen Ende bzw. hinten)
+        xs = [[lo[ax] + f[:rand_x], false], [hi[ax] - f[:rand_x] - sx, true]]
+        xs.insert(1, [(lo[ax] + hi[ax] - sx) / 2.0, false]) if f[:mitte_ab] && hi[ax] - lo[ax] > f[:mitte_ab] + TOL
+        ys = [[lo[ay] + f[:rand_y], false, :lo], [hi[ay] - f[:rand_y] - sy, true, :hi]]
         # schmaler Boden (z. B. 112 mm beim Handtuchschrank): nur ein Fuß je Ende, mittig
-        if hi[ay] - lo[ay] < 2 * (f[:rand_y] + f[:raster])
-          m = (lo[ay] + hi[ay]) / 2.0
-          ys = [m - f[:raster] / 2.0, m + f[:raster] / 2.0]
-        end
+        ys = [[(lo[ay] + hi[ay] - sy) / 2.0, false, :mitte]] if hi[ay] - lo[ay] < 2 * (f[:rand_y] + sy)
         kd = kontur_daten(w)
         poly = kd && kd[:umriss].map { |p| [p[ax], p[ay]] }
-        xs.each do |x0, x1|
-          ys.each do |y|
-            x0, x1, y = fuss_in_platte(poly, x0, x1, y, f[:rand_x]) if poly
-            next unless x0
-            w.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", punkt(k => w.lo[k], ax => x0, ay => y),
-                            punkt(k => w.lo[k], ax => x1, ay => y), f[:d], f[:tiefe], f[:raster], false, 'Sockelfuss')
+        tiefe = f[:durch] ? w.mass(k) + DURCH : f[:tiefe]
+        nr = w.ops.select { |o| o.titel == 'Sockelfuss' && o.daten }.map { |o| o.daten[:fuss] }.max.to_i
+        xs.each do |x0, sp_x|
+          ys.each do |y0, sp_y, reihe|
+            pkt = f[:punkte].map { |px, py| [sp_x ? x0 + sx - px : x0 + px, sp_y ? y0 + sy - py : y0 + py] }
+            pkt = fuss_in_platte(poly, pkt, FUSS_RAND) if poly
+            next unless pkt
+            nr += 1
+            daten = { fuss: nr, reihe: reihe, kennung: f[:kennung] }
+            pkt.group_by { |_, y| y.round(3) }.each_value do |zeile|
+              xw = zeile.map(&:first).sort
+              y = zeile[0][1]
+              p0 = punkt(k => w.lo[k], ax => xw.first, ay => y)
+              if xw.size == 1
+                w.ops << Op.new(:bohrung, :"#{Geometrie::ACHSEN[k]}min", p0, nil, f[:d], tiefe, nil, nil, 'Sockelfuss', daten)
+              else
+                w.ops << Op.new(:reihe, :"#{Geometrie::ACHSEN[k]}min", p0, punkt(k => w.lo[k], ax => xw.last, ay => y),
+                                f[:d], tiefe, (xw.last - xw.first) / (xw.size - 1), false, 'Sockelfuss', daten)
+              end
+            end
           end
         end
       end
 
       # Boden mit Schräge oder Bogen (Abschlussregal): ein Fuß, dessen Bohrungen nicht mindestens
-      # rand mm innerhalb des Umrisses liegen, rückt auf kürzestem Weg (in x oder y) nach innen
-      def self.fuss_in_platte(poly, x0, x1, y, rand)
-        ok = ->(a, b, c) { [[a, c], [b, c]].all? { |q| innen?(q, poly) && randabstand(q, poly) >= rand - TOL } }
-        return [x0, x1, y] if ok.(x0, x1, y)
+      # rand mm innerhalb des Umrisses liegen, rückt als Ganzes auf kürzestem Weg (in x oder y) nach innen
+      def self.fuss_in_platte(poly, pkt, rand)
+        ok = ->(q) { q.all? { |v| innen?(v, poly) && randabstand(v, poly) >= rand - TOL } }
+        return pkt if ok.(pkt)
         (1..2000).each do |s|
           [[s, 0], [-s, 0], [0, s], [0, -s]].each do |dx, dy|
-            return [x0 + dx, x1 + dx, y + dy] if ok.(x0 + dx, x1 + dx, y + dy)
+            q = pkt.map { |x, y| [x + dx, y + dy] }
+            return q if ok.(q)
           end
         end
         nil

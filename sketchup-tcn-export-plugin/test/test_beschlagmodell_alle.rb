@@ -57,7 +57,13 @@ FAELLE = {
   'blum-tip-on' => ['oeffnung', -> { [schubladen.(), Oberschrank.erstellen({})] }, [/TIP-ON/]],
   'blum-servo-drive' => ['oeffnung', -> { [schubladen.(), Oberschrank.erstellen({})] },
                          [/\ASERVO-DRIVE Trägerprofil/, /\ASERVO-DRIVE Antriebseinheit/, /\ASERVO-DRIVE Distanzpuffer/, /TIP-ON/]],
-  'griffe' => ['oeffnung', -> { [schubladen.()] }, []]
+  'griffe' => ['oeffnung', -> { [schubladen.()] }, []],
+  # Sockelfüße stehen unter dem Korpus, also außerhalb der Schrankgrenzen (Komponentengrenzen, Größe der
+  # Eckschränke aus definition.bounds): nicht gezeichnet, nur Bohrbild im Boden und Beschlagliste
+  'haefele-axilo-78-schrauben' => ['sockelfuss', schubladen, []],
+  'haefele-axilo-78-einpressen' => ['sockelfuss', schubladen, []],
+  'haefele-sockelfuss-kunststoff' => ['sockelfuss', schubladen, []],
+  'haefele-sockelfuss-stahl' => ['sockelfuss', schubladen, []]
 }.freeze
 
 # --- Jedes Katalogmodell hat einen Fall (und damit eine geprüfte Zeichenroutine) ---
