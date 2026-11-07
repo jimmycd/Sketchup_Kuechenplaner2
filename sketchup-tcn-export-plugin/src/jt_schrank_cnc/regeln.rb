@@ -59,8 +59,10 @@ module JTools
       # Höhe = Kastenunterkante + Höhenoffset Schiene, mindestens 38 mm über dem Boden darunter (S. 4).
       # Werte: Katalogeintrag (katalog/blum-legrabox-free.json, schiene), siehe Regeln.schiene
       # LEGRABOX free, alle Zargenhöhen (Blum-Programm): N 66,5, M 90,5, K 128,5, C 177, F 241 mm.
-      # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4), Einschubelement C 138 / M 52 (S. 8).
-      # Holzrückwand laut Blum-Tabelle (Jürgen 2026-11-07): F 212, C 148, K 101, M 63, N 39. Abgeleitet, nicht bestätigt:
+      # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4); Einschubelement M 52 (S. 8) ist das vordere Element des Innenauszugs.
+      # Holzrückwand laut Blum-Tabelle (Jürgen 2026-11-07) und Blum-Katalog 2024/2025: F 212, C 148, K 101, M 63, N 39.
+      # Katalog S. 200–225: Fronthalter N 0/16 (unterstes Loch 5,5 mm tiefer), M/K 0/32, C 0/32/96/128, F 0/32/96/128/160/192;
+      # seitliches Einschubelement nur bei C (NL − 112 × 138). Früher abgeleitet (jetzt ersetzt):
       # Seiteneinsatz = Zarge − 39 mm (F 202, K 90; N ohne Einsatz), Fronthalter: Löcher aus 0/32/96/128,
       # solange das oberste höchstens 13 mm unter der Zargenoberkante liegt (wie bei C: 36 + 128 = 177 − 13).
       # Die Komponenten nehmen die höchste Zarge, die Platz hat; erkannt wird sie an der Höhe der Kastenrückwand.
@@ -78,7 +80,8 @@ module JTools
             schiene: { d: sch['d'], tiefe: sch['tiefe'], vorn: sch['vorn'], abstand_nl: sch['abstand_nl'],
                        ueber_boden: sch['ueber_boden'], hinten: sch['hinten'].map { |k, v| [k.to_i, v] }.sort.to_h,
                        kg: sch['kg'], kg_nl: (sch['kg_nl'] || {}).map { |k, v| [k.to_i, v] }.to_h },
-            zargen: e['zargen'].map { |m, z| [m, { hoehe: z['hoehe'].to_f, rueckwand: z['rueckwand'].to_f, front: z['front'], einsatz: z['einsatz'] }] }.to_h,
+            zargen: e['zargen'].map { |m, z| [m, { hoehe: z['hoehe'].to_f, rueckwand: z['rueckwand'].to_f, front: z['front'],
+                                                  front_ab: z['front_ab'].to_f, einsatz: z['einsatz'] }] }.to_h,
             front_bef: e['front'].map { |k, v| [k.to_sym, v] }.to_h,
             boden_falz: e['boden_falz']['streifen'].map { |st| { breite: st['breite'], ueberlauf: st['ueberlauf'] } },
             boden_falz_tiefe: e['boden_falz']['tiefe'],
@@ -416,8 +419,10 @@ module JTools
         flaeche = hinten ? f.hi[da] : f.lo[da]
         fb = front_bef
         unten = kasten.map { |w| w.lo[2] }.min
-        z0 = [unten + fb[:ueber_kasten], f.lo[2] + fb[:min_unten]].max
-        zargen[zarge(kasten)][:front].map { |a| z0 + a }.select { |z| z <= f.hi[2] + TOL }.each do |z|
+        zf = zargen[zarge(kasten)]
+        d = zf[:front_ab].to_f # Zarge N: Fronthalter 5,5 mm tiefer (Katalog: unterstes Loch 45,5 statt 51)
+        z0 = [unten + fb[:ueber_kasten] + d, f.lo[2] + fb[:min_unten] + d].max
+        zf[:front].map { |a| z0 + a }.select { |z| z <= f.hi[2] + TOL }.each do |z|
           [links + fb[:innen], rechts - fb[:innen]].each do |x|
             f.ops << Op.new(:bohrung, seite, punkt(da => flaeche, wa => x, 2 => z), nil, fb[:d], fb[:tiefe], nil, nil,
                             'Frontbefestigung')
