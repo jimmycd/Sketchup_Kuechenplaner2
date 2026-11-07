@@ -1529,11 +1529,12 @@ S::Beschlagkatalog.waehlen('schubladen', 'blum-legrabox-free', Sketchup.active_m
 %w[beschlag_schubladen schubkasten].each { |k| Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', k]) }
 
 # Grifflos (Beschlagart „oeffnung“, Blum-Katalog 2024/2025 S. 190–193, 362–367, 394–397): Türen mit TIP-ON an der
-# Öffnungskante, Schubladen TIP-ON BLUMOTION bzw. SERVO-DRIVE in der Beschlagliste; Standard: Griffe, nichts davon
+# Öffnungskante, Schubladen TIP-ON BLUMOTION bzw. SERVO-DRIVE in der Beschlagliste; Standard: Griffe, nichts davon;
+# Griffmulde gefräst (eigene Fertigung, test_griffmulde.rb)
 gk = S::Beschlagkatalog
-check(gk.zur_art('oeffnung').map { |e| e['kennung'] }.sort == %w[blum-servo-drive blum-tip-on griffe] &&
+check(gk.zur_art('oeffnung').map { |e| e['kennung'] }.sort == %w[blum-servo-drive blum-tip-on griffe griffmulde] &&
       gk.zur_art('oeffnung').all? { |e| gk.fehler(e).empty? } && gk.gewaehlt('oeffnung')['kennung'] == 'griffe',
-      "Öffnung: Griffe (Standard), TIP-ON, SERVO-DRIVE (#{gk.zur_art('oeffnung').map { |e| [e['kennung'], gk.fehler(e)] }})")
+      "Öffnung: Griffe (Standard), TIP-ON, SERVO-DRIVE, Griffmulde (#{gk.zur_art('oeffnung').map { |e| [e['kennung'], gk.fehler(e)] }})")
 def gl_export(art)
   m = Sketchup.active_model = Sketchup::Model.new
   yield

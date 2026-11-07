@@ -180,6 +180,7 @@ module JTools
         teile.each { |w| ecke(w) }
         teile.each { |w| kontur(w) }
         griffe(teile)
+        Griffmulde.regeln(teile, meldungen)
       end
 
       # Griffbohrungen (Griffkatalog.griff: Lochmaß, Lage, Höhe an der Front von Hand gesetzt oder automatisch
@@ -194,6 +195,7 @@ module JTools
       def self.griffe(teile)
         e = Beschlagkatalog.gewaehlt('oeffnung')
         return if e && (e['tuer'] || e['schublade'])
+        return if Griffmulde.schrank?(teile) # Griffmulde statt Griff (nicht in Hochschränken)
         korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
         korpus = teile if korpus.empty?
         # Falttür (Eckschrank L): Griff nur an der kurzen Tür, an ihrer freien Kante (weg von der langen Tür);

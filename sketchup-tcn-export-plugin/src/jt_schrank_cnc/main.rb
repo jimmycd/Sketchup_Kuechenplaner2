@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog griffkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell griffmodell schrankbeschlag griffdialog rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog griffkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln griffmulde tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell griffmodell schrankbeschlag griffdialog rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,

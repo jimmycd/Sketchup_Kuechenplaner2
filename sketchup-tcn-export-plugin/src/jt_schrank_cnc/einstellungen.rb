@@ -83,19 +83,27 @@ module JTools
         serien = [gk::KEINE] + gk.serien.map { |x| gk.name(x) }
         oberfl = gk.serien.flat_map { |x| gk.oberflaechen(x) }.uniq.sort
         gs = gk.kueche(model)
+        gm = Griffmulde
+        mf = gm::FELDER.keys
+        mw = gm.masse(model)
         prompts = kueche.prompts + arten.map { |_, v| "#{BESCHLAG_GRUPPE}: #{v[:name]}" } +
                   ["#{BESCHLAG_GRUPPE}: Griffserie (Bilder: Griffkatalog…)", "#{BESCHLAG_GRUPPE}: Griff-Oberfläche"] +
+                  mf.map { |k| "#{BESCHLAG_GRUPPE}: #{gm::FELDER[k]}" } +
                   keys.map { |k| "#{CNC_GRUPPE}: #{WERTE[k][0].sub(/\AZuschnitt: /, '')}" }
         alt = kueche.vorgaben(model) + arten.keys.map { |a| Beschlagkatalog.vorschlag(a, model)['name'] } +
-              [gs ? gk.name(gs) : gk::KEINE, gk.oberflaeche(model) || oberfl.first] +
+              [gs ? gk.name(gs) : gk::KEINE, gk.oberflaeche(model) || oberfl.first] + mf.map { |k| Tcn.n(mw[k]) } +
               keys.map { |k| Tcn.n(wert(k)) }
         listen = kueche.prompts.map { '' } + arten.keys.map { |a| modelle[a].map { |e| e['name'] }.join('|') } +
-                 [serien.join('|'), oberfl.join('|')] + keys.map { '' }
+                 [serien.join('|'), oberfl.join('|')] + mf.map { '' } + keys.map { '' }
         n = kueche::WERTE.size
         nb = arten.size
         erg = Kuechenplaner::Eingabe.abfragen(prompts, alt, listen, 'Küchenplaner – Einstellungen',
                                               untertitel: 'Sockel, Abstände, Beschläge, CNC', ok: 'Speichern') do |neu|
-          zahlen = neu[(n + nb + 2)..-1].map { |s| s.to_s.strip.tr(',', '.') }
+          zahlen = neu[(n + nb + 2 + mf.size)..-1].map { |s| s.to_s.strip.tr(',', '.') }
+          mneu = mf.each_with_index.to_h { |k, i| [k, neu[n + nb + 2 + i].to_s.strip.tr(',', '.')] }
+          raise ArgumentError, 'Griffmulde: bitte nur Zahlen eingeben (mm).' if mneu.values.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
+          mneu = mneu.transform_values(&:to_f)
+          f = gm.fehler(mneu) and raise ArgumentError, f
           raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
           wahl = arten.keys.each_with_index.to_h do |a, i|
             e = modelle[a].find { |x| x['name'] == neu[n + i].to_s }
@@ -107,10 +115,11 @@ module JTools
             sockel_alt = kueche.sockelhoehe(model)
             kueche.uebernehmen(neu[0, n], model)
             nicht = wahl.flat_map { |a, k| Beschlagkatalog.waehlen(a, k, model) && Beschlagkatalog.nicht_angepasst }
-            griff_alt = gk.fingerabdruck(model)
+            griff_alt = gk.fingerabdruck(model) + gm.fingerabdruck(model)
             gwahl = gk.serien.find { |x| gk.name(x) == neu[n + nb].to_s }
             gk.waehlen(gwahl && gwahl['kennung'], neu[n + nb + 1].to_s, model)
-            griff_neu = gk.fingerabdruck(model) != griff_alt
+            gm.setzen(mneu, model)
+            griff_neu = gk.fingerabdruck(model) + gm.fingerabdruck(model) != griff_alt
             # Sockelhöhe geändert: vorhandene Schränke in der Höhe mitnehmen (Andock-Werkzeug)
             Andocken.sockel_geaendert(model, sockel_alt, kueche.sockelhoehe(model)) if defined?(Andocken)
           ensure

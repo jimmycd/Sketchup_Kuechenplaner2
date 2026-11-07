@@ -1,0 +1,19 @@
+{
+  "kennung": "griffmulde",
+  "name": "Griffmulde gefräst (grifflos)",
+  "hersteller": "eigene Fertigung",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Jürgen 2026-11-07 (Bild 1, Plan „Grifflose Fronten“): Ausklinkung durch die Front an der Kante, Unterschrank oben, Oberschrank unten, Hochschränke ausgenommen. Maße selbst vorgeschlagen (kein Herstellerwert), von Jürgen bestätigt und in den Einstellungen änderbar. Ecken mindestens R 10, weil der Konturfräser 1004 (Ø 20) fräst.",
+  "mulde": {
+    "breite": 160,
+    "hoehe": 30,
+    "rand": 40,
+    "radius": 10
+  },
+  "liste": {
+    "gruppe": "Öffnung",
+    "tuer": [],
+    "klappe": []
+  }
+}
