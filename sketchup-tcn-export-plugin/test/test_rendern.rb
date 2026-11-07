@@ -390,6 +390,7 @@ Dir.mktmpdir do |tmp|
     text = File.read(log, encoding: 'UTF-8')
     check(ok && R.ergebnis(text) == [:fertig, bild] && File.size(bild) > 1000, "Blender rendert das Bild (#{R.ergebnis(text).inspect})")
     check(File.exist?(File.join(ordner, 'szene.blend')), '.blend zum Weiterbearbeiten gespeichert')
+    check(!text.include?('cannot be made relative'), "keine Warnung beim Speichern (Pfade nicht relativ): #{text.lines.grep(/relative/).first(2)}")
     status = File.read(File.join(ordner, 'kp_status.txt'), encoding: 'UTF-8')
     check(R.ergebnis(status) == [:fertig, bild] && R.pids(status).size == 1 && status.include?('KP_SAMPLE 8/8'),
           "eigene Statusdatei mit PID, Samples und Fertig-Meldung (ohne Konsolenausgabe): #{status.lines.map(&:strip)}")
@@ -647,6 +648,33 @@ check(R.befehl('C:/B/blender.exe', 'C:/x/szene.json')[0, 5] == ['C:/B/blender.ex
 check(File.exist?(R.skript), 'rendern.py liegt neben rendern.rb')
 # nur prüfen, nichts schreiben (kein __pycache__ in src/, sonst passt die .rbz nicht mehr)
 check(system('python3', '-c', 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read())', R.skript), 'rendern.py ist gültiges Python')
+
+# GPU-Auswahl fragt nur die Gerätetypen ab, bis einer passt (sonst lädt Cycles alle Treiber
+# und meldet z. B. "HIPEW initialization failed" auf NVIDIA-Rechnern)
+gpu_py = <<~PY
+  import sys, types
+  sys.dont_write_bytecode = True
+  sys.path.insert(0, sys.argv[1])
+  import rendern
+  gefragt = []
+  class Geraet:
+      def __init__(self, t): self.type, self.use = t, False
+  class Prefs:
+      compute_device_type = "NONE"
+      devices = []
+      def get_devices_for_type(self, t):
+          gefragt.append(t)
+          self.devices = [Geraet("OPTIX")] if t == "OPTIX" else []
+      def refresh_devices(self):
+          gefragt.append("ALLE")
+  prefs = Prefs()
+  szene = types.SimpleNamespace(cycles=types.SimpleNamespace(device="CPU"))
+  bpy = types.SimpleNamespace(context=types.SimpleNamespace(
+      preferences=types.SimpleNamespace(addons={"cycles": types.SimpleNamespace(preferences=prefs)}), scene=szene))
+  print("GPU", rendern.gpu_einschalten(bpy), szene.cycles.device, ",".join(gefragt))
+PY
+gpu = IO.popen(['python3', '-c', gpu_py, File.dirname(R.skript)], err: %i[child out], &:read)
+check(gpu.include?('GPU OPTIX GPU OPTIX'), "GPU: nur OptiX abgefragt, kein HIP/CUDA (#{gpu.strip.lines.last})")
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

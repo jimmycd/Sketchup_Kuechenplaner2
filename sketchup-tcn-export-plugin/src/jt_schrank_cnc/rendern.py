@@ -375,10 +375,15 @@ def gpu_einschalten(bpy):
             prefs.compute_device_type = typ
         except (TypeError, ValueError):
             continue
+        # nur diesen Gerätetyp abfragen: refresh_devices() lädt alle Treiber (z. B. AMD HIP)
+        # und meldet "HIPEW initialization failed" auf Rechnern ohne AMD-Grafik
         try:
-            prefs.refresh_devices()
-        except AttributeError:
-            prefs.get_devices()
+            prefs.get_devices_for_type(typ)
+        except (AttributeError, TypeError):
+            try:
+                prefs.refresh_devices()
+            except AttributeError:
+                prefs.get_devices()
         geraete = [d for d in prefs.devices if d.type == typ]
         if geraete:
             for d in prefs.devices:
@@ -430,7 +435,10 @@ def rendern(bpy, daten, ordner):
     bild = daten["bild"]["datei"]
     szene.render.filepath = bild
     if daten.get("blend"):
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ordner, daten["blend"]), check_existing=False)
+        # relative_remap aus: das HDRI liegt in Blenders Programmordner und kann nicht relativ
+        # werden (sonst Warnung "cannot be made relative")
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ordner, daten["blend"]), check_existing=False,
+                                    relative_remap=False)
     bpy.ops.render.render(write_still=True)
     if not os.path.exists(bild):
         raise RuntimeError("Blender hat kein Bild geschrieben: %s" % bild)
