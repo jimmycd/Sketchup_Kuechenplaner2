@@ -266,5 +266,14 @@ require_relative '../../../test/tiefe_helfer'
   end
 end
 
+# --- Griffkante (Schrank-CNC setzt Griff_Front): Luft über jeder Front, Korpus bleibt ---
+require_relative '../../../test/griff_helfer'
+# Schublade unter dem Backofen: Grenze ist die Oberkante des Zwischenbodens (Nische)
+nische = ->(s) { s.find { |p, _| p.end_with?('/ZwischenbodenUnten') }.then { |_, (o, l, _)| o[2] + l[2] } }
+[eingabe({ 'Hoehe' => 76.0 })].each do |e|
+  f = GriffHelfer.pruefen(Knoten, U::DICT, ->(x) { U.erstellen(x) }, e, oben: nische)
+  check(f.empty?, "Griffkante #{e.inspect}: " + f.first(8).join('; '))
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

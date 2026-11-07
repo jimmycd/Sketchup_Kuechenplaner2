@@ -43,7 +43,7 @@ def unterschrank(model, strebe_geteilt: false)
   strebe_h = strebe_geteilt ? strebe_v : platte(model, 'StrebeH', %i[ymin])
   { 'SeiteL' => seite, 'SeiteR' => seite, 'Boden' => platte(model, 'Boden'),
     'StrebeVorn' => strebe_v, 'StrebeHinten' => strebe_h,
-    'Rückwand' => platte(model, 'Rückwand'), 'Front' => platte(model, 'Front', %i[xmin xmax zmin zmax]) }.each do |n, defn|
+    'Rückwand' => platte(model, 'Rückwand'), 'Front' => platte(model, 'Front', %i[xmin xmax zmin zmax]).tap { |f| f.set_attribute(T::DICT, '_lenz_formula', 'Unterschrank!Hoehe') } }.each do |n, defn|
     tr = n == 'StrebeHinten' && strebe_geteilt ? Geom::Transformation.rotation([0, 0, 0], [0, 0, 1], Math::PI) : Geom::Transformation.translation([0, 0, 0])
     i = d.entities.add_instance(defn, tr)
     i.name = n
@@ -209,6 +209,14 @@ end
 %w[Unterschrank!Breite Unterschrank!Hoehe Unterschrank!Tiefe Unterschrank!Tiefe-Unterschrank!BreiteStreben Unterschrank!Tiefe+Unterschrank!Materialstaerke_Korpus].each do |f|
   check(modell_dat.include?(f.b), "Unterschrank.skp: Formel #{f}")
 end
+
+
+# Griffkante: Attribut Griff_Front am Schrank, Türhöhe einmal um Griff_Front kürzer
+tuer = d.entities.instances.find { |i| i.name == 'Front' }
+check(d.get_attribute(T::DICT, 'griff_front') == 0.0, 'Griff_Front am Schrank (0)')
+check(tuer.definition.get_attribute(T::DICT, '_lenz_formula') == '(Unterschrank!Hoehe)-Unterschrank!Griff_Front', "Türhöhe mit Griff_Front (#{tuer.definition.get_attribute(T::DICT, '_lenz_formula')})")
+T.einrichten(model)
+check(tuer.definition.get_attribute(T::DICT, '_lenz_formula').scan('Griff_Front').size == 1, 'zweites Einrichten hängt nicht nochmal an')
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

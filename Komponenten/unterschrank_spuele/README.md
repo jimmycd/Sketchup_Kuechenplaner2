@@ -48,6 +48,9 @@ Jedes Teil hat den Tag `<Kürzel>_<Bereich>_<Teil>`: `USP1_SeiteL`, `USP1_SeiteR
 ## TCN-Export (Plugin Schrank-CNC)
 Wie beim Unterschrank: Dübel Boden und Streben an die Seiten, Sockelfüße im Boden, Schienen und Frontbefestigung für den Auszug, Falz im Kastenboden, Lochreihen nur bei Türen. Dazu die Nut für die Rückwand in den Seiten und der Ausschnitt in der Rückwand (Kontur mit dem Nutfräser, 1 mm tiefer als die Rückwand). Die Seiten des Spülenschranks unterscheiden sich damit durch die Nut von den Seiten der anderen Unterschränke.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Blende bleibt, Türen bzw. Auszug darunter sind oben so viel kürzer; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_spuele/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

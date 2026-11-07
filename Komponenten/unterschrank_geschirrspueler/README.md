@@ -39,6 +39,9 @@ Gezeichnet ist immer das **Endmaß**. Anleimer werden nur als Material zugewiese
 ## Tags
 `USG1_Front`, `USG1_WangeL`, `USG1_WangeR`. Das Kürzel ist `USG1`, oder `USG2` usw., wenn es im Modell schon vergeben ist. An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Unterschrank_Geschirrspueler), `kategorie` (**Unterschrank**, damit „Frontfarbe → nur Unterschränke“ ihn mit erfasst), `bereich`, `teil` und `rolle` (Front bzw. **Wange**). Die Rolle *Wange* ist bewusst nicht *Seite*: Der TCN-Export formatiert die Wange nur und bohrt keine Lochreihen oder Dübel.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Front ist oben so viel kürzer, die Unterkante bleibt (Gerät); die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_geschirrspueler/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

@@ -73,6 +73,7 @@ module UnterschrankGeschirrspueler
     'Materialstaerke_Korpus'   => 1.9,
     'Materialstarke_Rueckwand' => 0.8,
     'Spaltbreite'              => 0.2,
+    'Griff_Front'              => 0.0,  # Griffkante: Luft über der Front (Schrank-CNC setzt sie)
     'Geraet_Luft'              => 0.2,   # Nische 600 -> Gerät 598
     'Geraet_Tiefe'             => 55.0, # Tiefe des Platzhalters (höchstens Korpustiefe)
     'Geraet_Sockel_Versatz'    => 8.5   # Gerätesockel springt zurück: ab Korpusvorderkante, hinter der
@@ -347,7 +348,7 @@ module UnterschrankGeschirrspueler
     attribut(haupt, 'Sockelhoehe', p['Sockelhoehe'], access: 'TEXTBOX', formlabel: 'Sockelhöhe (Wange bis Boden)')
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
-    %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite Geraet_Luft Geraet_Tiefe Geraet_Sockel_Versatz].each do |n|
+    %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite Geraet_Luft Geraet_Tiefe Geraet_Sockel_Versatz Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
@@ -359,8 +360,8 @@ module UnterschrankGeschirrspueler
     e = haupt.entities
 
     # --- Front: wie die Fronten der Unterschränke, Oberkante = Korpusoberkante ---
-    front = platte(model, 'Front', 'Front', [r[:b_front], mk, p['Fronthoehe']],
-                   ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", "#{u}!Fronthoehe"])
+    front = platte(model, 'Front', 'Front', [r[:b_front], mk, p['Fronthoehe'] - p['Griff_Front'].to_f],
+                   ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", "#{u}!Fronthoehe-#{u}!Griff_Front"])
     # Aufklappen um die Unterkante (wie die Gerätetür)
     front.set_attribute(DICT, 'rotx', 0.0)
     front.set_attribute(DICT, 'onclick', 'ANIMATE("ROTX",0,90)')

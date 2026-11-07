@@ -22,7 +22,7 @@ module JTools
       DICT = 'JT_Griff'.freeze
       TAG = 'Griffe'.freeze
       GRUPPE = 'Griffe'.freeze
-      VERSION = 2 # 2: Vorschlag 20 %, Falttür nur kurze Tür (alte Griffe neu zeichnen)
+      VERSION = 3 # 2: Vorschlag 20 %, Falttür nur kurze Tür; 3: Griffkante im Unterschrank (neu zeichnen)
       STANGE = 10.0 # Stärke der Stange (mm)
       STUETZE_R = 4.5
       FREI = { ueber: 16.0, hoehe: 30.0 }.freeze

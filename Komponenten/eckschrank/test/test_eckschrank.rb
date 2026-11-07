@@ -528,5 +528,12 @@ DcGroesseHelfer.mit_dc(E::DICT) do
   check(ist.zip(soll).all? { |a, b| (a - b).abs < 1e-4 }, "DC: Größe nach Neuaufbau #{ist.map { |v| v.round(1) }} statt #{soll.map { |v| v.round(1) }}")
 end
 
+# --- Griffkante (Schrank-CNC setzt Griff_Front): Luft über jeder Front, Korpus bleibt ---
+require_relative '../../../test/griff_helfer'
+[[{}, false], [{ 'Variante' => 1.0 }, false], [{ 'Variante' => 2.0 }, false], [{}, true]].each do |e, l|
+  f = GriffHelfer.pruefen(Knoten, E::DICT, ->(x) { E.erstellen(x, l_form: l) }, e)
+  check(f.empty?, "Griffkante #{e.inspect} L=#{l}: " + f.first(8).join('; '))
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

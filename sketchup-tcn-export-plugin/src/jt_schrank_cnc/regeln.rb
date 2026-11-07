@@ -198,7 +198,7 @@ module JTools
         e = Beschlagkatalog.gewaehlt('oeffnung')
         return if e && (e['tuer'] || e['schublade'])
         return if Griffmulde.schrank?(teile) # Griffmulde statt Griff (nicht in Hochschränken)
-        return if Grifflos.schrank?(teile) # Griffkante oder durchlaufende Mulde (bisher Oberschränke)
+        return if Grifflos.schrank?(teile) # Griffkante oder durchlaufende Mulde (Grifflos::KATEGORIEN)
         korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
         korpus = teile if korpus.empty?
         # Falttür (Eckschrank L): Griff nur an der kurzen Tür, an ihrer freien Kante (weg von der langen Tür);

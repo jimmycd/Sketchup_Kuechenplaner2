@@ -48,6 +48,9 @@ Die Tabelle steht als `KANTEN` am Anfang von `main.rb` und ist leicht anpassbar.
 
 * **Tags:** Jedes Teil hat ein eigenes Tag `<Kürzel>_<Bereich>_<Teil>`, z. B. `USS1_SeiteL`, `USS1_Boden`, `USS1_S2_Front`, `USS1_S2_KastenRueckwand` (Bereich `S<n>` = Schublade n, Korpusteile ohne Bereich). Zusätzlich steht an jedem Teil das Attribut-Wörterbuch `JT_Schrank` mit `schrank` (Kürzel), `typ`, `kategorie` (Unterschrank, Oberschrank oder Hochschrank), `bereich`, `teil` und `rolle` (z. B. Seite, Boden, Front). Daran erkennt das TCN-Export-Plugin die Teile; die Frontfarbe-Funktion wählt über `kategorie` die Schränke aus. Die Schubladen-Gruppen selbst haben `USS1_S<n>_Schublade`, damit man eine Schublade komplett ausblenden kann.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: jede Schubladenfront ist um ihren Anteil kürzer, über jeder Front bleibt so viel Luft; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_schubladen/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

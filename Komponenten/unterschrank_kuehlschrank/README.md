@@ -37,6 +37,9 @@ Gezeichnet ist immer das **Endmaß**. Platten haben „Melamin weiss“, Anleime
 
 Tags `UKS1_Front`, `UKS1_WangeL`, `UKS1_WangeR` (Kürzel `UKS1`, `UKS2` … je Schrank). An jedem Teil steht `JT_Schrank` mit `schrank`, `typ` (Unterschrank_Kuehlschrank), `kategorie` (Unterschrank), `bereich`, `teil` und `rolle` (Front bzw. Wange; die Wange wird im TCN-Export nur formatiert).
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Front ist oben so viel kürzer, die Unterkante bleibt (Gerät); die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kuehlschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

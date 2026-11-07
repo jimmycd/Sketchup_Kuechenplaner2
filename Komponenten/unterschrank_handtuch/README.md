@@ -49,6 +49,9 @@ Nach Häfele „Dimensions for CNC“ (Maße ab Oberkante Boden bzw. Vorderkante
 * Alle Ø3 vorgebohrt für die mitgelieferten Schrauben Ø4 × 16; Seite 10 mm tief (Annahme), Front 5 mm tief.
 * Keine Lochreihen. Der schmale Boden bekommt nur einen Sockelfuß je Ende, mittig.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Front des Hochauszugs ist oben so viel kürzer; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_handtuch/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

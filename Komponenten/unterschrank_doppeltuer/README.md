@@ -36,5 +36,8 @@ Alle Platten „Melamin weiss“ (Plattenwerkstoff). Anleimer „Anleimer Melami
 ## Tags
 Jedes Teil bekommt den Tag `<Kürzel>_<Teil>`: `USD1_SeiteL`, `USD1_SeiteR`, `USD1_Boden`, `USD1_StrebeVorn`, `USD1_StrebeHinten`, `USD1_Rueckwand`, `USD1_TuerL`, `USD1_TuerR`, `USD1_Einlegeboden1` bis `3`. Der nächste Schrank im Modell bekommt `USD2` usw. Dazu steht an jedem Teil das Wörterbuch `JT_Schrank` (`schrank`, `typ` = `Unterschrank_Doppeltuer`, `kategorie` = `Unterschrank`, `teil`, `rolle`), daran erkennen TCN-Export, Stückliste, Etiketten und Frontfarbe die Teile.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Türen sind oben so viel kürzer; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Tests
 `ruby test/test_unterschrank_doppeltuer.rb` – Geometrie (keine Kollisionen, alles innerhalb des Schranks), gleich hohe Fächer für 0–3 Böden, Türen und Drehpunkte, Anleimer, Tags/`JT_Schrank`, Umkonfigurieren und nachträgliche Tiefenänderung mit der Mock-API. Der TCN-Export wird in `sketchup-tcn-export-plugin/test/test_export.rb` geprüft (Topfbänder an beiden Türen).

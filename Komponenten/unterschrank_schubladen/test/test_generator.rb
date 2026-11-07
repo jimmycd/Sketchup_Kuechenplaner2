@@ -333,5 +333,12 @@ TiefeHelfer.pruefen(Knoten, U::DICT, ->(e) { U.erstellen(e) },
   check(abw.empty?, "Tiefe #{was}: " + abw.first(8).join('; '))
 end
 
+# --- Griffkante (Schrank-CNC setzt Griff_Front): Luft über jeder Front, Korpus bleibt ---
+require_relative '../../../test/griff_helfer'
+[eingabe(3, [1, 1, 2])].each do |e|
+  f = GriffHelfer.pruefen(Knoten, U::DICT, ->(x) { U.erstellen(x) }, e)
+  check(f.empty?, "Griffkante #{e.inspect}: " + f.first(8).join('; '))
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)
