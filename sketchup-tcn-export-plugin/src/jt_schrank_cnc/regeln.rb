@@ -78,7 +78,7 @@ module JTools
           {
             kennung: e['kennung'], name: e['name'],
             schiene: { d: sch['d'], tiefe: sch['tiefe'], vorn: sch['vorn'], abstand_nl: sch['abstand_nl'],
-                       ueber_boden: sch['ueber_boden'], hinten: sch['hinten'].map { |k, v| [k.to_i, v] }.sort.to_h,
+                       ueber_boden: sch['ueber_boden'], ueber_kasten: sch['ueber_kasten'].to_f, hinten: sch['hinten'].map { |k, v| [k.to_i, v] }.sort.to_h,
                        kg: sch['kg'], kg_nl: (sch['kg_nl'] || {}).map { |k, v| [k.to_i, v] }.to_h },
             zargen: e['zargen'].map { |m, z| [m, { hoehe: z['hoehe'].to_f, rueckwand: z['rueckwand'].to_f, front: z['front'],
                                                   front_ab: z['front_ab'].to_f, einsatz: z['einsatz'] }] }.to_h,
@@ -323,7 +323,9 @@ module JTools
         kaesten(teile).each do |kasten|
           unten = kasten.map { |w| w.lo[2] }.min
           schrank = kasten.first.teil.schrank
-          z = unten + Schraenke.dc(schrank, 'hoehenoffset_schiene').to_f * Geometrie::MM
+          # Schienenbohrung über der Kastenunterkante: am Schrank (Hoehenoffset_Schiene) plus Wert des Systems
+          # (LEGRABOX 0, MERIVOBOX/TANDEMBOX: Kasten sitzt tiefer als die Schiene)
+          z = unten + Schraenke.dc(schrank, 'hoehenoffset_schiene').to_f * Geometrie::MM + schiene[:ueber_kasten]
           lo = (0..1).map { |i| kasten.map { |w| w.lo[i] }.min }
           hi = (0..1).map { |i| kasten.map { |w| w.hi[i] }.max }
           teile.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }.each do |s|

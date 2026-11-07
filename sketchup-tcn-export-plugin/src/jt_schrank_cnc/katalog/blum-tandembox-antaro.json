@@ -1,0 +1,152 @@
+{
+  "kennung": "blum-tandembox-antaro",
+  "name": "Blum TANDEMBOX antaro",
+  "hersteller": "Blum",
+  "art": "schubladen",
+  "bauart": "auszug_zarge",
+  "quelle": "Blum Katalog 2024/2025 S. 290–335 (TANDEMBOX antaro, Standardkorpus): Zargen N 68,5 / M 83,6 / K 115,6 (Platzbedarf Zarge + 11,9), Frontauszug Reling D 199 (Holzrückwand); Holzrückwand N 69, M 84, K 116, D 199; Boden LW − 75 × NL − 24, Holzrückwand LW − 87 (16-mm-Platten, kein Falz); Front Schraubmontage 15,5 ab Innenseite der Seite, unterstes Loch min. 47,5 über dem Korpusboden (N 32,5), M 0/32, K 0/32/64, D 0/32/160; Korpusschiene 578 – 30 kg S. 334: Systemschrauben 37 und NL 300 165, 350 165, 400 229, 450–600 261 ab Vorderkante, Schiene min. 33 über dem Korpusboden; Seitenstabilisierung ab KB 900 (S. 331). NL 270 weggelassen (gleiche Schritte), 65-kg-Schiene 576 und Reling C nicht abgebildet. Abgeleitet: Höhe D (= Holzrückwand), Schienenbohrung 21 mm über der Kastenunterkante (33 − 11,9), Frontloch 35,5 über der Kastenunterkante, Bodenschrauben, Modellkörper.",
+  "schiene": {
+    "d": 5,
+    "tiefe": 14,
+    "vorn": [
+      37
+    ],
+    "abstand_nl": 3,
+    "ueber_boden": 33,
+    "ueber_kasten": 21,
+    "hinten": {
+      "300": [
+        128
+      ],
+      "350": [
+        128
+      ],
+      "400": [
+        192
+      ],
+      "450": [
+        224
+      ],
+      "500": [
+        224
+      ],
+      "550": [
+        224
+      ],
+      "600": [
+        224
+      ]
+    },
+    "kg": 30
+  },
+  "zargen": {
+    "D": {
+      "hoehe": 199.0,
+      "rueckwand": 199.0,
+      "front": [
+        0,
+        32,
+        160
+      ],
+      "einsatz": null
+    },
+    "K": {
+      "hoehe": 115.6,
+      "rueckwand": 116.0,
+      "front": [
+        0,
+        32,
+        64
+      ],
+      "einsatz": null
+    },
+    "M": {
+      "hoehe": 83.6,
+      "rueckwand": 84.0,
+      "front": [
+        0,
+        32
+      ],
+      "einsatz": null
+    },
+    "N": {
+      "hoehe": 68.5,
+      "rueckwand": 69.0,
+      "front": [
+        0,
+        32
+      ],
+      "front_ab": -15,
+      "einsatz": null
+    }
+  },
+  "standard_zarge": "D",
+  "kasten": {
+    "boden_b": 75,
+    "boden_t": 24,
+    "rueckwand_b": 87,
+    "einsatz_abzug": 112
+  },
+  "front": {
+    "d": 3,
+    "tiefe": 5,
+    "innen": 15.5,
+    "ueber_kasten": 35.5,
+    "min_unten": 47.5
+  },
+  "boden_falz": {
+    "tiefe": 0,
+    "streifen": []
+  },
+  "stabilisierung_ab": 900,
+  "liste": {
+    "gruppe": "Schubladen (TANDEMBOX antaro)",
+    "gruppe_schrauben": "Schrauben Schubladen",
+    "schraube_front": "Spanplattenschraube 3,5 × 15 (609.1500)",
+    "schraube_boden": "Spanplattenschraube 3,5 × 15 (609.1500)",
+    "boden_schrauben": 8,
+    "systemschraube": "Systemschraube Ø6 × 14,5 (661.1450.HG)",
+    "einsatz": "Einschubelement"
+  },
+  "koerper": {
+    "schiene": 4.0,
+    "schiene_h": 20.0,
+    "zarge": 16.0,
+    "fronthalter": 12.0,
+    "rueckwandhalter": 2.2,
+    "obergurt": 8.0,
+    "einsatz": 10.0
+  },
+  "tip_on_blumotion": {
+    "quelle": "Blum Katalog 2024/2025 S. 400 (TIP-ON BLUMOTION für TANDEMBOX)",
+    "schiene_hinweis": "Ausführung TIP-ON BLUMOTION (578.xxx1M)",
+    "sets": [
+      {
+        "nl_bis": 300,
+        "kg": 30,
+        "name": "Blum TIP-ON BLUMOTION-Set S1 T60B3130",
+        "hinweis": "Auszug 10–20 kg (bis 10 kg: S0 T60B3030)"
+      },
+      {
+        "nl_bis": 600,
+        "kg": 30,
+        "name": "Blum TIP-ON BLUMOTION-Set L3 T60B3530",
+        "hinweis": "Auszug 15–30 kg (bis 20 kg: L1 T60B3330)"
+      }
+    ],
+    "sync": [
+      {
+        "lw_ab": 238,
+        "lw_bis": 286,
+        "name": "Blum TIP-ON BLUMOTION-Synchronisierung T60.300D (quadratisch)",
+        "abzug": 214
+      },
+      {
+        "lw_ab": 287,
+        "lw_bis": 1372,
+        "name": "Blum TIP-ON BLUMOTION-Synchronisierungswelle T60.1125W + 2 × Adapter T60.000D",
+        "abzug": null
+      }
+    ]
+  }
+}
