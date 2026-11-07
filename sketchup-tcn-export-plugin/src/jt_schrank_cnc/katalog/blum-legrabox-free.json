@@ -4,7 +4,7 @@
   "hersteller": "Blum",
   "art": "schubladen",
   "bauart": "auszug_zarge",
-  "quelle": "Blum Montageanleitung LEGRABOX free MD-015/4 (lbx0002-md-015): Schiene S. 3/4, Zarge C mit Holzrückwand 148 S. 4, Einschubelement C 138 / M 52 S. 8, Seitenstabilisierung S. 9; Zargenhöhen F/K/M/N Blum-Programm; Rückwand und Einsatz F/K/M/N abgeleitet (Zarge − 29 / − 39 mm), nicht bestätigt",
+  "quelle": "Blum Montageanleitung LEGRABOX free MD-015/4 (lbx0002-md-015): Schiene S. 3/4, Zarge C mit Holzrückwand 148 S. 4, Einschubelement C 138 / M 52 S. 8, Seitenstabilisierung S. 9; Zargenhöhen F/K/M/N Blum-Programm; Holzrückwand F 212 / K 101 / M 63 / N 39 laut Blum-Tabelle (Jürgen 2026-11-07); Einsatz F/K abgeleitet (Zarge − 39 mm), nicht bestätigt",
   "schiene": {
     "d": 5, "tiefe": 14, "vorn": [37, 69], "abstand_nl": 3, "ueber_boden": 38,
     "hinten": { "350": [192, 224], "400": [224, 256], "450": [224, 256], "500": [224, 256],
@@ -14,9 +14,9 @@
   "zargen": {
     "F": { "hoehe": 241.0, "rueckwand": 212.0, "front": [0, 32, 96, 128], "einsatz": 202 },
     "C": { "hoehe": 177.0, "rueckwand": 148.0, "front": [0, 32, 96, 128], "einsatz": 138 },
-    "K": { "hoehe": 128.5, "rueckwand": 99.0, "front": [0, 32], "einsatz": 90 },
-    "M": { "hoehe": 90.5, "rueckwand": 62.0, "front": [0, 32], "einsatz": 52 },
-    "N": { "hoehe": 66.5, "rueckwand": 37.0, "front": [0], "einsatz": null }
+    "K": { "hoehe": 128.5, "rueckwand": 101.0, "front": [0, 32], "einsatz": 90 },
+    "M": { "hoehe": 90.5, "rueckwand": 63.0, "front": [0, 32], "einsatz": 52 },
+    "N": { "hoehe": 66.5, "rueckwand": 39.0, "front": [0], "einsatz": null }
   },
   "standard_zarge": "C",
   "kasten": { "boden_b": 35, "boden_t": 10, "rueckwand_b": 38, "einsatz_abzug": 112 },

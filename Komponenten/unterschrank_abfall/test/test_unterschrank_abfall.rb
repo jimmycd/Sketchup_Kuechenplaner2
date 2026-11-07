@@ -5,16 +5,16 @@ load File.expand_path('../src/unterschrank_abfall/main.rb', __dir__)
 
 H = UnterschrankAbfall
 EPS = 1e-6
-# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
-# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/101,
+# M 90,5/63, N 66,5/39 laut Blum-Tabelle); F nur bei Rückwand C >= 148
 def zarge_hrw(kc, c)
   return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
-  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 10.1 elsif kc >= 9.05 - 1e-4 then 6.3 else 3.9 end].min
 end
 
 # Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
 def zarge_zu(hrw)
-  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+  [[21.2, 24.1], [14.8, 17.7], [10.1, 12.85], [6.3, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
 end
 $fehler = 0
 def check(bed, msg)
@@ -173,7 +173,7 @@ def pruefe(w, p, label)
     # mind. Kasten_Abstand_unten über der Front und Schiene mind. 38 mm über dem Korpusboden (LEGRABOX)
     min_ab = [z_front + p['Kasten_Abstand_unten'], mk + 3.8].max
     check(nahe(kb[4], min_ab), "#{label}: #{g} Kasten genau am Mindestabstand (kein Lochraster) #{kb[4]}")
-    # Zarge C (Rückwand 148), wenn der Kasten 177 mm hoch sein kann, sonst M (Rückwand 62)
+    # höchste Zarge, die passt (Rückwand F 212, C 148, K 101, M 63, N 39)
     platz = oberkante - p['Kasten_Abstand_oben'] - kb[5]
     soll = [platz, zarge_hrw(platz + kb[5] - kb[4], p['Hoehe_Kastenrueckwand'])].min.clamp(2.0, 99)
     check(nahe(kr[5] - kr[4], soll), "#{label}: #{g} Kastenrückwand #{kr[5] - kr[4]} statt #{soll}")
@@ -277,7 +277,7 @@ r = H.berechne(H::DEFAULTS)
 check(nahe(r[:nl], 65) && nahe(r[:ab_a], 5.7) && nahe(r[:hrw_a], 21.2) && nahe(r[:h_beh], 40), "Standard: NL 650, Kasten ab 57 mm (Schiene 38 über Boden), Zarge F (Rückwand 212), Behälter 400 (#{r})")
 check(nahe(r[:b_beh], (60 - 3.8 - 3.5 - 2) / 3.0), "Standard: drei Behälter je #{r[:b_beh]}")
 r = H.berechne(H::DEFAULTS.merge('Frontvariante' => 1.0))
-check(nahe(r[:h_a], 49.8) && nahe(r[:ab_b], 53.0) && nahe(r[:hrw_b], 9.9), "Schublade oben (Zarge K): Fronten 498/200, Kasten oben ab 530 (#{r})")
+check(nahe(r[:h_a], 49.8) && nahe(r[:ab_b], 53.0) && nahe(r[:hrw_b], 10.1), "Schublade oben (Zarge K): Fronten 498/200, Kasten oben ab 530 (#{r})")
 check(nahe(r[:h_beh], 49.8 - 3 - 5.7 - 1.6), "Schublade oben: Behälter bis unter die Auszugsfront (#{r[:h_beh]})")
 r = H.berechne(H::DEFAULTS.merge('Hoehe' => 55.0, 'Frontvariante' => 1.0))
 check(nahe(r[:h_beh], 34.8 - 3 - 5.7 - 1.6), "niedrig: Behälter #{r[:h_beh]}")

@@ -2,7 +2,7 @@
 
 Unterschrank mit einem Müllauszug: Die Front fährt mit einem Blum-LEGRABOX-Kasten heraus, darin stehen 1–4 Abfallbehälter. Wahlweise sitzt darüber eine Schublade.
 
-* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst **M** (90,5 mm, Holzrückwand 62 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal M, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
+* **Zargenhöhe und Schiene (LEGRABOX free, MD-015/4):** Zarge **C** (177 mm, Holzrückwand 148 mm), wenn der Kasten Platz hat, sonst niedrigere Zargen (K 128,5 / M 90,5 / N 66,5 mm, Holzrückwand 101 / 63 / 39 mm). Platz: oberste Schublade bis 30 mm (`Kasten_Abstand_oben`) unter die Frontoberkante, darunter bis an die Frontoberkante (die Front deckt Zarge und Fronthalter ab). Die Schiene sitzt mindestens 38 mm über dem festen Boden darunter. Passt nicht einmal N, meldet der TCN-Export das. Die Beschläge dazu stehen auf der letzten Seite der Stückliste.
 
 ## Installieren und benutzen
 1. SketchUp → *Erweiterungen → Extension Manager → Erweiterung installieren* → `unterschrank_abfall.rbz` wählen (oder `Kuechenplaner_alle.rbz` aus dem Hauptordner für alle Komponenten auf einmal).
@@ -24,7 +24,7 @@ Mit *Interagieren* fahren Auszug und Schublade heraus.
 
 ## Aufbau
 * **Korpus** wie beim Unterschrank mit Schubladen: Seiten über die volle Höhe und Tiefe, Boden zwischen den Seiten, Streben vorn und hinten oben, Rückwand hinter dem Korpus. Der Korpus beginnt bei y = 19 mm, die Fronten liegen davor (2 mm Spalt).
-* **Auszug** (Bereich `A`): Front ab Unterkante Korpus, über die volle Höhe oder bis 2 mm unter die Schublade. LEGRABOX free: Kastenboden LW−35 × NL−10, Holzrückwand LW−38, höchstens 148 mm und mindestens 30 mm unter der Oberkante der Front. Die Nennlänge NL folgt der Tiefe (größte NL 350…650 mit NL + 3 mm ≤ Tiefe). Unterkante Kasten 38 mm über dem Korpusboden (kein Lochraster). Zarge: die höchste LEGRABOX-free-Zarge, die Platz hat (F 241, C 177, K 128,5, M 90,5, N 66,5 mm; Holzrückwand F 212, C 148, K 99, M 62, N 37 – nur C aus der Anleitung, die anderen abgeleitet).
+* **Auszug** (Bereich `A`): Front ab Unterkante Korpus, über die volle Höhe oder bis 2 mm unter die Schublade. LEGRABOX free: Kastenboden LW−35 × NL−10, Holzrückwand LW−38, höchstens 148 mm und mindestens 30 mm unter der Oberkante der Front. Die Nennlänge NL folgt der Tiefe (größte NL 350…650 mit NL + 3 mm ≤ Tiefe). Unterkante Kasten 38 mm über dem Korpusboden (kein Lochraster). Zarge: die höchste LEGRABOX-free-Zarge, die Platz hat (F 241, C 177, K 128,5, M 90,5, N 66,5 mm; Holzrückwand F 212, C 148, K 101, M 63, N 39 laut Blum-Tabelle).
 * **Schublade oben** (Bereich `B`, nur bei Schublade oben): gleicher LEGRABOX-Kasten, Kasten 30 mm über Unterkante ihrer Front (kein Lochraster).
 * **Abfallbehälter** als Platzhalter: gleich breit über die Breite des Kastenbodens verteilt (10 mm Luft dazwischen), vom Kastenanfang bis 10 mm vor die Kastenrückwand, auf dem Kastenboden. Die Höhe endet mindestens 30 mm unter der Oberkante der Auszugsfront, so passen sie beim Herausfahren unter der Schublade bzw. der Strebe vorn durch. Die Behälter stehen für ein Abfallsystem nach Wahl (z. B. Einsätze aus dem Fachhandel); die echten Maße folgen, sobald das System feststeht.
 

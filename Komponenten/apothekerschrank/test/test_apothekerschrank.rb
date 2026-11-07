@@ -5,16 +5,16 @@ load File.expand_path('../src/apothekerschrank/main.rb', __dir__)
 
 A = Apothekerschrank
 EPS = 1e-6
-# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/99,
-# M 90,5/62, N 66,5/37); F nur bei Rückwand C >= 148
+# LEGRABOX free: höchste Zarge, die in kc passt (F 241/Rückwand 212, C 177/Hoehe_Kastenrueckwand, K 128,5/101,
+# M 90,5/63, N 66,5/39 laut Blum-Tabelle); F nur bei Rückwand C >= 148
 def zarge_hrw(kc, c)
   return 21.2 if kc >= 24.1 - 1e-4 && c >= 14.8 - 1e-4
-  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 9.9 elsif kc >= 9.05 - 1e-4 then 6.2 else 3.7 end].min
+  [c, if kc >= 17.7 - 1e-4 then c elsif kc >= 12.85 - 1e-4 then 10.1 elsif kc >= 9.05 - 1e-4 then 6.3 else 3.9 end].min
 end
 
 # Zargenhöhe (cm) zur Rückwandhöhe, wie der TCN-Export sie erkennt
 def zarge_zu(hrw)
-  [[21.2, 24.1], [14.8, 17.7], [9.9, 12.85], [6.2, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
+  [[21.2, 24.1], [14.8, 17.7], [10.1, 12.85], [6.3, 9.05]].find { |r, _| hrw >= r - 0.05 }&.last || 6.65
 end
 $fehler = 0
 def check(bed, msg)
@@ -195,7 +195,7 @@ def pruefe(w, p, label)
     # Rückwand so hoch wie möglich, höchstens Hoehe_Kastenrueckwand
     check(sichtbar.select { |t2| t2[:name] == 'KastenRueckwand' && t2[:bereich].start_with?(f) }
                   .all? do |x|
-                    # Zarge C (Rückwand 148), wenn der Kasten 177 mm hoch sein kann, sonst M (Rückwand 62)
+                    # höchste Zarge, die passt (Rückwand F 212, C 148, K 101, M 63, N 39)
                     kh = abst.first - ao - (f == 'A' && nf == 1 && p['Mittelboden'].to_i == 1 ? au + mk : 0)
                     soll = [kh - mbd, zarge_hrw(kh, p['Hoehe_Kastenrueckwand'])].min
                     (x[:q][5] - x[:q][4] - [soll, 1.0].max).abs < EPS
