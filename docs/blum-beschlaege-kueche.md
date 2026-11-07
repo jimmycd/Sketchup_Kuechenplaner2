@@ -58,8 +58,8 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | SPACE TWIN (LEGRABOX) | schmaler Unterschrank (Gewürze, Flaschen) | KB 185–250, 20 kg | 232 (PDF 214) | ✅ Unterschrank mit Schubladen 185–250 breit: Beschlagliste mit SPACE-TWIN-Schienen |
 | Einschubelement aus Glas / Gestaltungsvarianten | Glas-Seiteneinsatz, BOXCOVER | – | 234–243 (PDF 216–224) | ✅ Glas-Seiteneinsatz (Zarge C) |
 | LEGRABOX Zubehör, Befestigung Korpusschienen | Seitenstabilisierung, Schrauben, Schienen 750/753 | – | 244–249 (PDF 225–229) | ✅ Schiene, Beschlagliste |
-| MERIVOBOX | Alternative Boxsystem (Plattform), Schubkasten/Frontauszug, Spülenschrank, SPACE TOWER/TWIN, Korpusschiene mit Überauszug für Müll | N/M/K/E, 40/70 kg; TWIN KB 150–250 | 250–289 (PDF 230–269) | ⬜ |
-| TANDEMBOX antaro | klassisches Boxsystem: Schubkasten, Frontauszug mit Reling C/D, Spülenschrank, SPACE TOWER/TWIN | N/M/K, C/D, 30/65 kg | 290–335 (PDF 270–314) | ⬜ |
+| MERIVOBOX | Alternative Boxsystem (Plattform), Schubkasten/Frontauszug, Spülenschrank, SPACE TOWER/TWIN, Korpusschiene mit Überauszug für Müll | N/M/K/E, 40/70 kg; TWIN KB 150–250 | 250–289 (PDF 230–269) | ✅ Schubladenauszug wählbar (N/M/K/E, 40 kg) |
+| TANDEMBOX antaro | klassisches Boxsystem: Schubkasten, Frontauszug mit Reling C/D, Spülenschrank, SPACE TOWER/TWIN | N/M/K, C/D, 30/65 kg | 290–335 (PDF 270–314) | ✅ Schubladenauszug wählbar (N/M/K/D, 30 kg) |
 | SPACE CORNER (TANDEMBOX) | Eck-Unterschrank mit Schubkästen bis in die Ecke | auf Anfrage | 292 (PDF 272) | ⬜ (Blum liefert nur auf Anfrage, keine Maße im Katalog) |
 | TANDEMBOX plus | Designvariante TANDEMBOX | – | 336 (PDF 315) | ⬜ |
 | METABOX | einfaches Stahlzargen-System, Teilauszug | 25 kg | 338–361 (PDF 317–339) | ⬜ |
@@ -124,4 +124,4 @@ Blum-Services: Produktkonfigurator/Digitale Services (S. 604, PDF 574), Bearbeit
 3. **MODUL Kühlschrank-Schlepptürscharnier**: Hochschrank Kühlschrank hat bisher keine Bänder.
 4. **SPACE CORNER / SPACE TWIN**: Eck-Unterschrank mit Schubkästen, schmaler Schrank mit Blum statt Häfele.
 5. **TIP-ON / SERVO-DRIVE**: grifflose Küche (Bohrungen für Puffer/Antrieb, Beschlagliste). ✅ Einstellung *Öffnung*: TIP-ON an Türen gebohrt, TIP-ON BLUMOTION / SERVO-DRIVE für Schubladen und Klappen in der Beschlagliste.
-6. **Alternative Auszugsysteme** (MERIVOBOX, TANDEMBOX antaro, MOVENTO): nur bei Bedarf, das Plugin kann je Küche ein System wählen.
+6. **Alternative Auszugsysteme** (MERIVOBOX, TANDEMBOX antaro, MOVENTO): nur bei Bedarf, das Plugin kann je Küche ein System wählen. ✅ MERIVOBOX und TANDEMBOX antaro als Schubladenauszug wählbar. MOVENTO nicht: es führt Holzschubkästen mit Holzzargen, die Schränke bauen aber Kästen mit Metallzargen (Boden + Rückwand).

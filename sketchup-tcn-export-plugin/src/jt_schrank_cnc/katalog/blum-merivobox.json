@@ -1,0 +1,152 @@
+{
+  "kennung": "blum-merivobox",
+  "name": "Blum MERIVOBOX",
+  "hersteller": "Blum",
+  "art": "schubladen",
+  "bauart": "auszug_zarge",
+  "quelle": "Blum Katalog 2024/2025 S. 250–289 (MERIVOBOX, Standardkorpus): Zargen N 68,5 / M 91 / K 129 (Platzbedarf Zarge + 12), Frontauszug BOXCAP E 192 (Platzbedarf 204 − 12); Holzrückwand N 60,5, M 83, K 121, E 184; Boden und Holzrückwand LW − 51, Boden NL − 26 (16-mm-Platten, kein Falz); Front Schraubmontage 20,5 ab Innenseite der Seite, unterstes Loch min. 33,5 über dem Korpusboden, 0/32 (E 0/32/160); Korpusschiene 450 – 40 kg S. 289: 37, 69 und NL 270–350 197/229, NL 400–600 261/293 ab Vorderkante (Systemschraube Ø6 × 14,5 → Ø5), Schiene 20 über dem Korpusboden, NL + 3 Platzbedarf in der Tiefe; Seitenstabilisierung ab KB 900 (S. 286). NL 270 weggelassen (Plugin braucht gleiche Schritte), 70-kg-Schiene 453 nicht abgebildet. Abgeleitet: Schienenbohrung 8 mm über der Kastenunterkante (20 − 12), Frontloch 21,5 über der Kastenunterkante (33,5 − 12), Modellkörper.",
+  "schiene": {
+    "d": 5,
+    "tiefe": 14,
+    "vorn": [
+      37,
+      69
+    ],
+    "abstand_nl": 3,
+    "ueber_boden": 20,
+    "ueber_kasten": 8,
+    "hinten": {
+      "300": [
+        160,
+        192
+      ],
+      "350": [
+        160,
+        192
+      ],
+      "400": [
+        224,
+        256
+      ],
+      "450": [
+        224,
+        256
+      ],
+      "500": [
+        224,
+        256
+      ],
+      "550": [
+        224,
+        256
+      ],
+      "600": [
+        224,
+        256
+      ]
+    },
+    "kg": 40
+  },
+  "zargen": {
+    "E": {
+      "hoehe": 192.0,
+      "rueckwand": 184.0,
+      "front": [
+        0,
+        32,
+        160
+      ],
+      "einsatz": null
+    },
+    "K": {
+      "hoehe": 129.0,
+      "rueckwand": 121.0,
+      "front": [
+        0,
+        32
+      ],
+      "einsatz": null
+    },
+    "M": {
+      "hoehe": 91.0,
+      "rueckwand": 83.0,
+      "front": [
+        0,
+        32
+      ],
+      "einsatz": null
+    },
+    "N": {
+      "hoehe": 68.5,
+      "rueckwand": 60.5,
+      "front": [
+        0,
+        32
+      ],
+      "einsatz": null
+    }
+  },
+  "standard_zarge": "E",
+  "kasten": {
+    "boden_b": 51,
+    "boden_t": 26,
+    "rueckwand_b": 51,
+    "einsatz_abzug": 112
+  },
+  "front": {
+    "d": 3,
+    "tiefe": 5,
+    "innen": 20.5,
+    "ueber_kasten": 21.5,
+    "min_unten": 33.5
+  },
+  "boden_falz": {
+    "tiefe": 0,
+    "streifen": []
+  },
+  "stabilisierung_ab": 900,
+  "liste": {
+    "gruppe": "Schubladen (MERIVOBOX)",
+    "gruppe_schrauben": "Schrauben Schubladen",
+    "schraube_front": "Spanplattenschraube 3,5 × 15 (609.1500)",
+    "schraube_boden": "Tellerkopfschraube 3,5 × 15 (61R.1500)",
+    "boden_schrauben": 4,
+    "systemschraube": "Systemschraube Ø6 × 14,5 (661.1450.HG)",
+    "einsatz": "Einschubelement Glas"
+  },
+  "koerper": {
+    "schiene": 4.0,
+    "schiene_h": 20.0,
+    "zarge": 20.0,
+    "fronthalter": 12.0,
+    "rueckwandhalter": 2.2,
+    "obergurt": 8.0,
+    "einsatz": 10.0
+  },
+  "tip_on_blumotion": {
+    "quelle": "Blum Katalog 2024/2025 S. 398 (TIP-ON BLUMOTION für MERIVOBOX)",
+    "schiene_hinweis": "Ausführung BLUMOTION (450.xxx1B) mit TIP-ON BLUMOTION-Set",
+    "sets": [
+      {
+        "nl_bis": 300,
+        "kg": 40,
+        "name": "Blum TIP-ON BLUMOTION-Set S1 T60H4140",
+        "hinweis": "Auszug 10–20 kg (bis 10 kg: S0 T60H4040)"
+      },
+      {
+        "nl_bis": 600,
+        "kg": 40,
+        "name": "Blum TIP-ON BLUMOTION-Set L3 T60H4540",
+        "hinweis": "Auszug 15–40 kg (bis 20 kg: L1 T60H4340)"
+      }
+    ],
+    "sync": [
+      {
+        "lw_ab": 297,
+        "lw_bis": 1372,
+        "name": "Blum TIP-ON BLUMOTION-Synchronisierungswelle T60.1125W + 2 × Adapter T60.000D",
+        "abzug": null
+      }
+    ]
+  }
+}

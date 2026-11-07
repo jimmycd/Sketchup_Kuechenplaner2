@@ -50,7 +50,7 @@ module JTools
         end.map(&:first)
       end
 
-      GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
+      GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schubladen (LEGRABOX pure)', 'Schubladen (MERIVOBOX)', 'Schubladen (TANDEMBOX antaro)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
                  'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)',
                  'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)'].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
@@ -160,7 +160,9 @@ module JTools
             set = tob['sets'].find { |x| x['kg'] == kg && nl && nl <= x['nl_bis'] }
             add.(g, set ? set['name'] : 'Blum TIP-ON BLUMOTION-Set', set ? set['hinweis'] : "NL #{nl || '?'}, #{kg} kg: Set nach Katalog wählen", 1, 'Stück', sk)
             sy = tob['sync'].find { |x| lw.between?(x['lw_ab'], x['lw_bis']) }
-            add.(g, sy['name'], "Zuschnitt #{lw - sy['abzug']} mm (LW #{lw} − #{sy['abzug']})", 1, 'Stück', sk) if sy
+            if sy
+              add.(g, sy['name'], sy['abzug'] ? "Zuschnitt #{lw - sy['abzug']} mm (LW #{lw} − #{sy['abzug']})" : "LW #{lw}, Zuschnitt nach Blum-Katalog", 1, 'Stück', sk)
+            end
           when 'servo_drive'
             f = Regeln.front_zu(kasten, teile)
             fh = f ? f.mass(2) : 0

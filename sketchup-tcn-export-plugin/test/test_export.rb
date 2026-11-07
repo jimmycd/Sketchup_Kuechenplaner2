@@ -1255,7 +1255,7 @@ lw_w = tk.schubkasten_werte(tk.eintrag('blum-legrabox-free'))
 check(SKW::STANDARD.all? { |k, v| v.is_a?(Numeric) ? (lw_w[k] - v).abs < 1e-9 : lw_w[k] == v },
       "LEGRABOX im Katalog = Standard der Schränke (gemeinsam/schubkasten.rb): #{lw_w}")
 check(S::Regeln.zargen.keys == %w[C K M N] && S::Regeln.auszug(tk.eintrag('blum-legrabox-pure'))[:zargen].keys == %w[F C K M N] && S::Regeln.schiene[:hinten][650] == [224, 256, 320, 416], 'Regeln: LEGRABOX aus dem Katalog')
-check(tk.zur_art('schubladen').map { |e| e['kennung'] }.sort == %w[blum-legrabox-free blum-legrabox-pure] &&
+check(tk.zur_art('schubladen').map { |e| e['kennung'] }.sort == %w[blum-legrabox-free blum-legrabox-pure blum-merivobox blum-tandembox-antaro] &&
       tk.fehler(tk.eintrag('blum-legrabox-pure')).empty?,
       "Einstellungen bieten LEGRABOX free und pure an: #{tk.zur_art('schubladen').map { |e| e['kennung'] }}")
 lp = JSON.parse(JSON.dump(tk.eintrag('blum-legrabox-pure'))).reject { |k, _| %w[kennung name quelle zargen liste datei].include?(k) }
@@ -1438,6 +1438,35 @@ check(hv_bl.any? { |p| p[1].include?('155°') && p[3] == 5 }, "Beschlagliste Hoc
   ok = twin ? (!st.empty? && ks.empty? && st.all? { |p| p[2].include?('20 kg') }) : (st.empty? && !ks.empty?)
   check(ok, "SPACE TWIN bei #{(b * 10).round} mm (#{tws.size} Teile, #{tl.size} Posten): #{tl.select { |p| p[1].include?('schienen') }.map { |p| [p[1], p[2]] }}")
 end
+
+# Andere Blum-Boxsysteme (Katalog 2024/2025 S. 250–335): MERIVOBOX und TANDEMBOX antaro als Schubladenauszug der Küche;
+# Boden/Rückwand nach Zuschnitt, Schienenbohrungen nach „Befestigung der Korpusschienen“, kein Bodenfalz
+{ 'blum-merivobox' => [51, 51, [37, 69, 261, 293], 8, 'MERIVOBOX'],
+  'blum-tandembox-antaro' => [75, 87, [37, 261], 21, 'TANDEMBOX antaro'] }.each do |kennung, (bb, rb, loecher, ueber, gruppe)|
+  bm = Sketchup.active_model = Sketchup::Model.new
+  S::Beschlagkatalog.waehlen('schubladen', kennung, bm)
+  check(S::Beschlagkatalog.fehler(S::Beschlagkatalog.eintrag(kennung)).empty?, "#{kennung}: Katalogeintrag vollständig")
+  UnterschrankSchubladen.erstellen({ 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 })
+  bws = []
+  S::Export.erzeugen(bm, alle_ws: bws)
+  lw = 600 - 38
+  kb = bws.select { |w| w.rolle == 'KastenBoden' }
+  kr = bws.select { |w| w.rolle == 'KastenRueckwand' }
+  check(!kb.empty? && kb.all? { |w| [w.mass(0), w.mass(1)].any? { |v| (v - (lw - bb)).abs < 0.01 } } &&
+        kr.all? { |w| (w.mass(0) - (lw - rb)).abs < 0.01 } && kb.none? { |w| w.ops.any? { |o| o.titel == 'Falz Zarge' } },
+        "#{kennung}: Boden LW − #{bb}, Rückwand LW − #{rb}, kein Falz (#{kb.map { |w| [w.mass(0), w.mass(1)] }.uniq}, #{kr.map { |w| w.mass(0) }.uniq})")
+  sl = bws.find { |w| w.rolle == 'Seite' }
+  so = sl.ops.select { |o| o.titel.to_s.start_with?('Schiene ') }
+  ab = so.map { |o| (o.p0[1] - sl.lo[1]).round(1) }.uniq.sort
+  unten = kb.map { |w| w.lo[2] }.min
+  check(ab == loecher && so.map { |o| o.p0[2] }.min.round(1) == (unten + ueber).round(1),
+        "#{kennung}: Schiene #{ab} ab Vorderkante (soll #{loecher}), #{(so.map { |o| o.p0[2] }.min - unten).round(1)} über der Kastenunterkante (soll #{ueber})")
+  bbl = S::Beschlaege.liste(bws).map(&:to_a)
+  check(bbl.any? { |p| p[0] == "Schubladen (#{gruppe})" && p[1].start_with?('Zargen ') } && bbl.none? { |p| p[0].include?('LEGRABOX') },
+        "#{kennung}: Beschlagliste #{bbl.map { |p| p[0, 2] }.uniq.first(3)}")
+end
+S::Beschlagkatalog.waehlen('schubladen', 'blum-legrabox-free', Sketchup.active_model)
+%w[beschlag_schubladen schubkasten].each { |k| Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', k]) }
 
 # Grifflos (Beschlagart „oeffnung“, Blum-Katalog 2024/2025 S. 190–193, 362–367, 394–397): Türen mit TIP-ON an der
 # Öffnungskante, Schubladen TIP-ON BLUMOTION bzw. SERVO-DRIVE in der Beschlagliste; Standard: Griffe, nichts davon
