@@ -177,5 +177,124 @@ F.kennzeichnen(model, schrank, kategorie: 'Hochschrank')
 check(S::Schraenke.definition(schrank).get_attribute(S::JT_DICT, 'schrank') == 'FS1', 'erneut kennzeichnen behält FS1')
 check(sl.get_attribute(S::JT_DICT, 'kategorie') == 'Hochschrank', 'Kategorie an den Teilen nachgezogen')
 
+# --- 3. Schritt 2a: Korpus anlegen, Mittelwand, Einlegeboden, Zwischenboden ---
+model = Sketchup.active_model = Sketchup::Model.new
+us = F.anlegen(model, kategorie: 'Unterschrank', breite: 900, hoehe: 720, tiefe: 560, name: 'Regal')
+tags = ->(m) { S::Schraenke.teile(m).map(&:name).sort }
+check(tags.(model) == %w[FS1_Boden FS1_Rueckwand FS1_SeiteL FS1_SeiteR FS1_StrebeHinten FS1_StrebeVorn], "Unterschrank-Korpus: #{tags.(model)}")
+check(F.pruefen(model, us).empty?, "Korpus ohne Meldung: #{F.pruefen(model, us)}")
+f = F.faecher(us)
+check(f.size == 1 && f[0][:x].map(&:round) == [19, 881] && f[0][:z].map(&:round) == [19, 701], "ein Fach 862 × 682: #{f}")
+check(f[0][:y].map(&:round) == [19, 579], "Fach-Tiefe bis zur aufgesetzten Rückwand: #{f[0][:y]}")
+F.mittelwand(model, us) # Mitte
+f = F.faecher(us)
+check(f.size == 2 && f.map { |x| (x[:x][1] - x[:x][0]).round(1) } == [421.5, 421.5], "Mittelwand teilt in 2 Fächer: #{f.map { |x| x[:x] }}")
+F.einlegeboden(model, us, fach: 1, hoehe: 300)
+F.zwischenboden(model, us, fach: 2)
+check(F.pruefen(model, us).empty?, "mit Mittelwand, Einlege- und Zwischenboden ohne Meldung: #{F.pruefen(model, us)}")
+ws = []
+dat, meld = S::Export.erzeugen(model, alle_ws: ws)
+w = ws.to_h { |x| [x.name, x] }
+mw = w['FS1_Mittelwand']
+check(mw && mw.ops.count { |o| o.titel.to_s.start_with?('Duebel') } >= 2, "Mittelwand: Dübel zu Boden und Streben (#{mw&.ops&.map(&:titel)})")
+check(w['FS1_Boden'].ops.any? { |o| o.titel == 'Duebel Mittelwand' && o.seite == :zmax }, 'Boden: Dübel von oben für die Mittelwand')
+check(meld.none? { |m| m.include?('fehlt in der TCN') }, "keine Bearbeitung fehlt in der TCN: #{meld.grep(/fehlt/)}")
+%w[FS1_Boden FS1_Mittelwand].each do |n|
+  r = dat.find { |x| x.name == "#{n}_Rueckseite" }
+  v = dat.find { |x| x.name == n }
+  check(r && v && r.wende && r.nr == v.nr, "#{n}: Programm für die Rückseite mit derselben Nummer")
+end
+zs = S::Stueckliste.zeilen(dat)
+z = zs.find { |x| x.tag == 'FS1_Mittelwand' }
+check(zs.count { |x| x.tag == 'FS1_Mittelwand' } == 1 && z.datei.include?('_Rueckseite.tcn'), "Stückliste: eine Zeile, beide TCN (#{z&.datei})")
+check(w['FS1_StrebeVorn'].ops.any? { |o| o.titel == 'Duebel Mittelwand' && o.seite == :zmin }, 'Strebe: Dübel von unten für die Mittelwand')
+check(mw.ops.select { |o| o.titel == 'Lochreihe' }.map(&:seite).uniq.sort == %i[xmax xmin], 'Mittelwand: Lochreihen beidseitig')
+zb = w['FS1_Zwischenboden']
+check(zb && zb.ops.count { |o| o.titel.to_s.start_with?('Duebel') } == 2, "Zwischenboden: Dübel zu Mittelwand und Seite (#{zb&.ops&.map(&:titel)})")
+eb = w['FS1_Einlegeboden']
+check(eb && (eb.lo[1] - w['FS1_SeiteL'].lo[1]).round == 10, 'Einlegeboden vorn 10 mm zurück')
+check(eb.kanten.keys == [:ymin], "Einlegeboden: Anleimer vorn (#{eb.kanten})")
+check(dat.reject(&:wende).size == ws.size, 'alle Teile exportiert')
+begin
+  F.einlegeboden(model, us, fach: 3)
+  check(false, 'Fach 3 abgelehnt')
+rescue ArgumentError => ex
+  check(ex.message.include?('Fach 3'), ex.message)
+end
+begin
+  F.mittelwand(model, us, fach: 1, abstand: 500)
+  check(false, 'Mittelwand außerhalb abgelehnt')
+rescue ArgumentError
+  check(true, '')
+end
+
+# Oberschrank: Deckel, Rückwand genutet (Nut in Seiten, Boden), Deckel-Schrauben
+os = F.anlegen(model, kategorie: 'Oberschrank', breite: 600, hoehe: 720, tiefe: 350)
+check(S::Schraenke.definition(os).get_attribute(S::JT_DICT, 'schrank') == 'FS2', 'zweiter Schrank FS2')
+ws = []
+S::Export.erzeugen(model, alle_ws: ws)
+w = ws.to_h { |x| [x.name, x] }
+check(w['FS2_Deckel'] && !w['FS2_StrebeVorn'], 'Oberschrank mit Deckel')
+%w[FS2_SeiteL FS2_SeiteR FS2_Boden].each { |n| check(w[n].ops.any? { |o| o.art == :nut }, "#{n}: Rückwandnut") }
+check(w['FS2_Rueckwand'].ops.any? { |o| o.titel.to_s.include?('Schraube') }, 'Oberschrank: Rückwand an den Deckel geschraubt')
+check(F.pruefen(model, os).empty?, "Oberschrank-Korpus ohne Meldung: #{F.pruefen(model, os)}")
+check(F.faecher(os).first[:y][1].round == 350 + 19 - 25 - 8, "Fach endet vor der genuteten Rückwand: #{F.faecher(os).first[:y]}")
+begin
+  F.anlegen(model, breite: 40)
+  check(false, 'zu klein abgelehnt')
+rescue ArgumentError
+  check(true, '')
+end
+
+# --- 4. Schritt 2b: Türen, Schubladen, Blende ---
+model = Sketchup.active_model = Sketchup::Model.new
+us = F.anlegen(model, kategorie: 'Unterschrank', breite: 900, hoehe: 720, tiefe: 560)
+F.mittelwand(model, us)
+F.einlegeboden(model, us, fach: 1, hoehe: 300)
+F.tuer(model, us, fach: 1, anschlag: 'links')
+F.blende(model, us, fach: 2, hoehe: 100)
+s1 = F.schublade(model, us, fach: 2, z: 1, hoehe: 300)
+s2 = F.schublade(model, us, fach: 2, z: 303, hoehe: 314)
+check(F.pruefen(model, us).empty?, "Tür, Blende, 2 Schubladen ohne Meldung: #{F.pruefen(model, us)}")
+ws = []
+dat, meld = S::Export.erzeugen(model, alle_ws: ws)
+w = ws.to_h { |x| [x.name, x] }
+check(w.key?('FS1_Tuer') && w.key?('FS1_Blende') && w.key?('FS1_S1_Front') && w.key?('FS1_S2_KastenBoden'), "Teile: #{w.keys.sort}")
+tuer = w['FS1_Tuer']
+check(tuer.lo[0].round(1) == 1.0 && tuer.hi[0].round(1) == 449.0, "Tür links: außen voller, an der Mittelwand halber Aufschlag (#{tuer.lo[0]}..#{tuer.hi[0]})")
+check(tuer.hi[1].round(1) == 17.0, "Tür 2 mm vor dem Korpus (#{tuer.hi[1]})")
+check(tuer.kanten.size == 4, 'Tür: Anleimer rundum')
+topf = tuer.ops.select { |o| o.titel.to_s =~ /Topf/i }
+check(!topf.empty? && topf.all? { |o| o.p0[0] < 100 }, "Tür: Topfbohrungen an der linken Anschlagseite (#{tuer.ops.map(&:titel).uniq})")
+check(w['FS1_SeiteL'].ops.any? { |o| o.titel == 'Lochreihe' }, 'Seite links: Lochreihe im Türfach (Montageplatten in die Lochreihe)')
+check(w['FS1_Mittelwand'].ops.any? { |o| o.titel == 'Lochreihe' && o.seite == :xmin }, 'Mittelwand: Lochreihe zum Türfach, Schienen zum Schubladenfach')
+mw = w['FS1_Mittelwand']
+check(mw.ops.any? { |o| o.titel.to_s =~ /Schiene/i && o.seite == :xmax }, "Mittelwand: Schienenbohrungen zum Schubladenfach (#{mw.ops.map(&:titel).uniq})")
+check(w['FS1_SeiteR'].ops.any? { |o| o.titel.to_s =~ /Schiene/i }, 'Seite rechts: Schienenbohrungen')
+check(w['FS1_S1_Front'].ops.any? { |o| o.titel.to_s =~ /Front/i }, "Front S1: Frontbefestigung (#{w['FS1_S1_Front'].ops.map(&:titel).uniq})")
+kb = w['FS1_S1_KastenBoden']
+check((kb.hi[0] - kb.lo[0]).round(1) == (421.5 - 35).round(1), "Kastenboden = lichte Weite − 35 (#{kb.hi[0] - kb.lo[0]})")
+check(meld.none? { |m| m.include?('Zarge') && m.include?('FS1') }, "Zargen passen: #{meld.grep(/Zarge/)}")
+check(s1.definition.get_attribute('dynamic_attributes', 'onclick').to_s.include?('ANIMATE'), 'Schublade fährt mit Interagieren aus')
+check(s1.layer.name == 'FS1_S1_Schublade' && s2.layer.name == 'FS1_S2_Schublade', 'Schubladen-Tags S1, S2')
+check(dat.reject(&:wende).size == ws.size, 'alle Teile exportiert')
+# Doppeltür, Anschlag rechts
+model = Sketchup.active_model = Sketchup::Model.new
+os = F.anlegen(model, kategorie: 'Oberschrank', breite: 800, hoehe: 720, tiefe: 350)
+F.tuer(model, os, anschlag: 'doppelt')
+ws = []
+S::Export.erzeugen(model, alle_ws: ws)
+w = ws.to_h { |x| [x.name, x] }
+l, r = w['FS1_TuerL'], w['FS1_TuerR']
+check(l && r && (r.lo[0] - l.hi[0]).round(1) == 2.0, 'Doppeltür mit 2 mm Mittelspalt')
+check(r.ops.select { |o| o.titel.to_s =~ /Topf/i }.all? { |o| o.p0[0] > 700 }, 'rechte Tür: Topfbänder rechts')
+check(F.pruefen(model, os).empty?, "Doppeltür ohne Meldung: #{F.pruefen(model, os)}")
+begin
+  F.schublade(model, os, hoehe: 900)
+  check(false, 'zu hohe Schublade abgelehnt')
+rescue ArgumentError
+  check(true, '')
+end
+
 puts $fehler.zero? ? 'test_freier_schrank: alles OK' : "test_freier_schrank: #{$fehler} Fehler"
 exit($fehler.zero? ? 0 : 1)

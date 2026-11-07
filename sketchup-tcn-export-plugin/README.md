@@ -59,6 +59,17 @@ Was geändert wird:
 ## Freier Schrank
 Ein Schrank, den es als Komponente nicht gibt, kann frei modelliert werden und läuft trotzdem in Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Rendern mit (Jürgen, 2026-11-07). Menü *Küchenplaner › Freier Schrank*:
 
+**Neu anlegen:** *Freien Schrank anlegen…* fragt Kategorie, Name, Breite, Höhe, Tiefe, Korpusstärke und Rückwand ab (Standard: Unterschrank aufgesetzt mit Streben vorn/hinten 100 mm, Ober-/Hochschrank genutet 8 mm in 9 mm Nut 25 mm von hinten mit Deckel) und dockt den Schrank an. Danach in den gewählten Schrank, je Fach (zwischen Seiten/Mittelwänden):
+* *Mittelwand einsetzen…* (Abstand von links, leer = Mitte; gedübelt mit Boden, Deckel/Streben und Zwischenböden),
+* *Einlegeboden einsetzen…* (vorn 10 mm zurück) und *Zwischenboden einsetzen…* (volle Tiefe, gedübelt), Höhe über dem Boden, leer = Mitte,
+* *Tür einsetzen…* (Anschlag links, rechts oder doppelt; außen voller, an Mittelwänden halber Aufschlag, 2 mm Spalt; Tür im Halter, Topfbänder an der Anschlagseite, öffnet mit Interagieren),
+* *Schublade einsetzen…* (Unterkante und Höhe der Front; Kastenboden, Holzrückwand und Zarge nach dem Schubladenauszug der Küche, Bereich S1, S2 … automatisch, fährt mit Interagieren aus),
+* *Blende einsetzen…* (feste Front).
+
+Bearbeitungen auf beiden Flächen (Mittelwand: Schienen zur einen, Lochreihe zur anderen Seite; Boden mit Sockelfüßen unten und Mittelwand-Dübeln oben) bekommen wie beim Wandregal ein zweites Programm `<Nr>_<Tag>_Rueckseite.tcn` fürs gewendete Werkstück; in Stückliste, Etiketten und Zuschnitt bleibt es ein Teil. Lochreihen gibt es nur in Fächern ohne Schubladen, bei Mittelwänden je Fach.
+
+**Von Hand modelliert:**
+
 1. **Als freien Schrank kennzeichnen…** – die Gruppe/Komponente mit allen Teilen wählen, Kategorie (Unter-, Ober-, Hochschrank) und Name angeben. Der Schrank bekommt das Kürzel FS1, FS2 … und den Typ „Frei“.
 2. **Teil zuweisen…** (auch im Kontextmenü) – den Schrank öffnen, ein oder mehrere Teile (Komponenten, Gruppen werden umgewandelt) wählen: Teil (Seite links/rechts, Mittelwand, Boden, Deckel, Streben, Zwischen-/Einlegeboden, Rückwand, Tür, Klappe, Front, Blende, Kastenboden, Kastenrückwand, Innenfront, Wange, Leiste, Sockelblende), Bereich (z. B. S1 für eine Schublade), Material (Standard *Melamin weiss*), Anleimer je Richtung (vorn, hinten, oben, unten, links, rechts; die Hauptflächen bekommen nie einen) und bei Seiten/Mittelwänden **Lochreihe ja/nein**. Der Tag `<Kürzel>_<Bereich>_<Teil>` entsteht automatisch und eindeutig (Einlegeboden, Einlegeboden2 …).
 3. **Schrank prüfen** – meldet Teile ohne Rolle (fehlen sonst in Stückliste und TCN), Teile ohne Plattenmaterial, Formteile ohne Kontur, schräg liegende Teile, doppelte Tags, Überschneidungen sowie Schubladen ohne Bereich, Front oder Kastenrückwand. Dieselben Meldungen zeigt der Export.
@@ -296,6 +307,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
 * `src/jt_schrank_cnc/freier_schrank.rb` – freier Schrank: kennzeichnen, Teil zuweisen, prüfen
+* `src/jt_schrank_cnc/freier_korpus.rb` – freier Schrank: Korpus anlegen, Mittelwand, Böden, Türen, Schubladen, Blenden
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – TCN-Export (Dateien, Nummern)

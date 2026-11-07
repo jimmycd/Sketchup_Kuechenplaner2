@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern freier_schrank].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern freier_schrank freier_korpus].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -62,6 +62,14 @@ module JTools
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
         menu.add_item('Schrank andocken…') { Andocken.starten }
         frei = menu.add_submenu('Freier Schrank')
+        frei.add_item('Freien Schrank anlegen…') { FreierSchrank.anlegen_dialog }
+        frei.add_item('Mittelwand einsetzen…') { FreierSchrank.einsetzen_dialog('Mittelwand') }
+        frei.add_item('Einlegeboden einsetzen…') { FreierSchrank.einsetzen_dialog('Einlegeboden') }
+        frei.add_item('Zwischenboden einsetzen…') { FreierSchrank.einsetzen_dialog('Zwischenboden') }
+        frei.add_item('Tür einsetzen…') { FreierSchrank.front_dialog('Tür') }
+        frei.add_item('Schublade einsetzen…') { FreierSchrank.front_dialog('Schublade') }
+        frei.add_item('Blende einsetzen…') { FreierSchrank.front_dialog('Blende') }
+        frei.add_separator
         frei.add_item('Als freien Schrank kennzeichnen…') { FreierSchrank.kennzeichnen_dialog }
         frei.add_item('Teil zuweisen…') { FreierSchrank.teil_dialog }
         frei.add_item('Schrank prüfen') { FreierSchrank.pruefen_dialog }

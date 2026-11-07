@@ -173,11 +173,12 @@ module JTools
         meldungen
       end
 
-      # Mittelwand (Wandregal, Rolle Seite): Fachböden stoßen an sie wie an eine Seite, sie selbst
-      # steht zwischen Boden und Deckel und wird mit beiden gedübelt wie ein Zwischenboden mit der Seite
+      # Mittelwand (Wandregal, freier Schrank; Rolle Seite): Fachböden stoßen an sie wie an eine Seite,
+      # sie selbst steht zwischen Boden/Zwischenboden und Deckel/Streben und wird mit ihnen gedübelt wie
+      # ein Zwischenboden mit der Seite (Bohrungen in der Bodenoberseite: Programm für die Rückseite)
       def self.mittelwaende(teile, meldungen)
         teile.select { |w| w.rolle == 'Seite' && w.teil.jt('teil').to_s.start_with?('Mittelwand') }.each do |mw|
-          teile.each { |b| stoss(mw, b, VERBINDUNGEN['Zwischenboden'], meldungen) if %w[Boden Deckel].include?(b.rolle) }
+          teile.each { |b| stoss(mw, b, VERBINDUNGEN['Zwischenboden'], meldungen) if FESTE_BOEDEN.include?(b.rolle) }
         end
       end
 
@@ -308,6 +309,18 @@ module JTools
         end
       end
 
+      # Liegt der Kasten auf dieser Seite der Wand s, ohne eine andere Wand dazwischen?
+      # (Schrank mit Mittelwand: Schubladen im einen Fach, Einlegeböden im anderen)
+      def self.kasten_an?(s, k, nach_max, kasten, teile)
+        m = kasten.map { |w| (w.lo[k] + w.hi[k]) / 2.0 }.sum / kasten.size
+        return false unless nach_max ? m > s.hi[k] - TOL : m < s.lo[k] + TOL
+        a, b = nach_max ? [s.hi[k], m] : [m, s.lo[k]]
+        teile.none? do |w|
+          !w.equal?(s) && w.rolle == 'Seite' && w.dicke_achse == k && w.lo[k] > a - TOL && w.hi[k] < b + TOL &&
+            ueberlapp(w, s, 2) > 1.0
+        end
+      end
+
       def self.lochreihen_flaeche(s, teile, boeden, nach_max)
         k = s.dicke_achse
         v = boeden.first.dicke_achse
@@ -317,7 +330,7 @@ module JTools
         nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
         hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
         lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
-        schubladen = kaesten(teile).map { |ka| ka.map { |w| w.lo[v] }.min }
+        schubladen = kaesten(teile).select { |ka| kasten_an?(s, k, nach_max, ka, teile) }.map { |ka| ka.map { |w| w.lo[v] }.min }
         nischen = boeden.select { |f| f.teil.jt('nische') }.map { |f| f.hi[v] }
         lagen.each_cons(2) do |(_, unten), (oben, _)|
           # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
