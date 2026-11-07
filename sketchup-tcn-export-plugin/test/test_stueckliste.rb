@@ -192,12 +192,10 @@ check(such.('Zargen F', 'NL 500').sum(&:anzahl) == 1 && such.('Zargen K', 'NL 50
       "Beschläge: Zargen F/C/K/M je Schublade #{such.('Zargen').map { |x| [x.beschlag, x.hinweis, x.anzahl] }}")
 check(such.('Korpusschienen', 'NL 500, 40 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 500 (USS1)')
 check(such.('Korpusschienen', 'NL 650, 70 kg').sum(&:anzahl) == 3, 'Beschläge: Korpusschienen NL 650 70 kg (Hochschrank)')
-check(such.('Seiteneinsatz', '202 × 388').sum(&:anzahl) == 2 && such.('Seiteneinsatz', '90 × 388').sum(&:anzahl) == 2 &&
-      such.('Seiteneinsatz', '52 × 388').sum(&:anzahl) == 2 && such.('Seiteneinsatz', '138 × 538').sum(&:anzahl) == 2 &&
-      such.('Seiteneinsatz', '90 × 538').sum(&:anzahl) == 4,
-      "Beschläge: Seiteneinsätze F 202 / C 138 / K 90 / M 52 × NL − 112 #{such.('Seiteneinsatz').map { |x| [x.hinweis, x.anzahl] }}")
+check(such.('Seiteneinsatz').sum(&:anzahl) == 2 && such.('Seiteneinsatz', '138 × 538').sum(&:anzahl) == 2,
+      "Beschläge: seitliches Einschubelement nur bei Zarge C (Katalog: 138 × NL − 112) #{such.('Seiteneinsatz').map { |x| [x.hinweis, x.anzahl] }}")
 check(such.('Seitenstabilisierung').sum(&:anzahl) == 6, 'Beschläge: Seitenstabilisierung ab Korpusbreite 600')
-check(such.('Spanplattenschraube', 'Fronthalter').sum(&:anzahl) == 2 * 8 + 4 * 4, 'Beschläge: Schrauben Fronthalter (F/C 8, K/M 4)')
+check(such.('Spanplattenschraube', 'Fronthalter').sum(&:anzahl) == 12 + 8 + 4 * 4, 'Beschläge: Schrauben Fronthalter (F 12, C 8, K/M 4)')
 # Schienen-Systemschrauben = Bohrungen in den Seiten
 bws = []
 S::Export.erzeugen(bm, alle_ws: bws)

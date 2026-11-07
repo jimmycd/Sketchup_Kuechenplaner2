@@ -238,7 +238,7 @@ dc_, = S::Export.erzeugen(mc)
 fc = bearbeitungen(dc_.find { |x| x.name == 'USS1_S3_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
 dh3 = dc_.find { |x| x.name == 'USS1_S3_Front' }.lage.dh
 zc = fc.map { |x| v = x[/#2=(\S+)/, 1]; v.start_with?('y-') ? dh3 - v[2..].to_f : v.to_f }.uniq.sort.map { |v| v.round(2) }
-check(fc.size == 8 && zc == [91.0, 123.0, 187.0, 219.0], "Frontbefestigung Zarge F 0/32/96/128: #{zc}")
+check(fc.size == 12 && zc == [91.0, 123.0, 187.0, 219.0, 251.0, 283.0], "Frontbefestigung Zarge F 0/32/96/128/160/192 (Katalog 4a): #{zc}")
 krc = dc_.find { |x| x.name == 'USS1_S3_KastenRueckwand' }
 krm = dc_.find { |x| x.name == 'USS1_S1_KastenRueckwand' }
 check(([krc.lage.dl, krc.lage.dh].min - 210).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 61).abs < 1e-6, # Fräsmaß = 212 / 63 − 2 mm Anleimer oben
@@ -283,12 +283,12 @@ check(hoehen == { '57' => 6, '461' => 6, '865' => 6, 'x-829' => 6, 'x-425' => 6 
 fb = bearbeitungen(dap.find { |x| x.name == 'AP1_A_Front' }.text, 1).select { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
 # die Hochfront liegt mit der Höhe in x: 14 mm von der Seiteninnenseite = 30 im Fräsmaß in y,
 # unterstes Loch je Kasten 36 über Kastenunterkante (57 + 36 - 2 Anleimer = 91)
-check(fb.size == 40 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 20, 'y-30' => 20 } && fb.any? { |x| x.include?('#1=91 ') },
-      "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 × 8): #{fb.size}")
+check(fb.size == 60 && fb.map { |x| x[/#2=(\S+)/, 1] }.tally == { '30' => 30, 'y-30' => 30 } && fb.any? { |x| x.include?('#1=91 ') },
+      "Apothekerschrank: Hochfront mit Frontbefestigung je Kasten (5 Zargen F × 12): #{fb.size}")
 Apothekerschrank.erstellen({ 'Anz_Fronten' => 2.0, 'Anz_Kaesten_A' => 2.0, 'Anz_Kaesten_B' => 3.0 })
 dap, = S::Export.erzeugen(model_ap)
 fb = ->(n) { bearbeitungen(dap.find { |x| x.name == n }.text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') } }
-check(fb.('AP2_A_Front') == 16 && fb.('AP2_B_Front') == 24, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
+check(fb.('AP2_A_Front') == 24 && fb.('AP2_B_Front') == 36, "Apothekerschrank zwei Fronten: Befestigung je Front nur für ihre Kästen (#{fb.('AP2_A_Front')}/#{fb.('AP2_B_Front')})")
 # --- Hochschrank Vorrat: Innenschubkästen hinter der Tür, Schienen hinter der Innenfront ---
 model_hv = Sketchup.active_model = Sketchup::Model.new
 HochschrankVorrat.erstellen({ 'Tiefe' => 52.0 })
@@ -493,7 +493,7 @@ check(z.count { |x| x.include?('#1002=5 ') && x.include?('#3=-14 ') } == 6, 'Sei
 bd = dsp['USP1_Boden'].text
 check(!bd.include?('W#89') && bd.include?('#8522=3 '), 'Boden Spüle: keine Nut, Sockelfüße')
 check(bearbeitungen(dsp['USP1_B_Front'].text, 1).size == 1, 'Blende: nur Formatieren, keine Frontbefestigung')
-check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 8, 'Auszugfront: Frontbefestigung')
+check(bearbeitungen(dsp['USP1_A_Front'].text, 1).count { |x| x.include?('#1002=3 ') } == 12, 'Auszugfront: Frontbefestigung (Zarge F)')
 ff = S::Frontfarbe.fronten(sm, kategorie: 'Unterschrank')
 check(ff.size == 5 && ff.count(&:sichtbar?) == 2, 'Spüle: Frontfarbe findet alle Fronten, sichtbar Blende und Auszugfront')
 # Türen: Lochreihen im Fach, hinten 35 vor der Nut; ohne Ausschnitt keine Kontur
@@ -609,10 +609,10 @@ end
     check(schiene_bohr.(dbm[sn].text) == (schublade ? 4 : 0), "Herdumbau #{hoehe} #{sn}: Schienenbohrungen #{schiene_bohr.(dbm[sn].text)}")
   end
   check(dbm['USB1_Boden'].text.include?('#8522=3 '), "Herdumbau #{hoehe}: Sockelfüße")
-  if schublade # Zarge N: Rückwand 39 mm, Fronthalter nur das unterste Loch je Seite
+  if schublade # Zarge N: Rückwand 39 mm, Fronthalter 0/16 je Seite (Katalog)
     kr_ = dbm['USB1_S1_KastenRueckwand']
     fn = bearbeitungen(dbm['USB1_S1_Front'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
-    check(([kr_.lage.dl, kr_.lage.dh].min - 37).abs < 1e-6 && fn == 2, "Herdumbau 76: Zarge N (Rückwand #{[kr_.lage.dl, kr_.lage.dh].min} + 2, Fronthalter #{fn})")
+    check(([kr_.lage.dl, kr_.lage.dh].min - 37).abs < 1e-6 && fn == 4, "Herdumbau 76: Zarge N (Rückwand #{[kr_.lage.dl, kr_.lage.dh].min} + 2, Fronthalter #{fn})")
   end
   check(S::Frontfarbe.fronten(bm, kategorie: 'Unterschrank').count(&:sichtbar?) == 1, "Herdumbau #{hoehe}: eine sichtbare Front")
 end
