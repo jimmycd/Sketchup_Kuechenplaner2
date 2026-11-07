@@ -73,7 +73,7 @@ tbs = UI::Toolbar.alle
 check(tbs.size == 1 && tbs.first.name == 'Küchenplaner', "genau eine Symbolleiste Küchenplaner: #{tbs.map(&:name)}")
 tb = tbs.first
 titel = tb.befehle.map(&:titel)
-check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Beschläge zeigen', 'Frontfarbe', 'Export',
+check(titel == ['Schrank einfügen', 'Schrank andocken', 'Arbeitsplatte', 'Raum', 'Schrank-Beschriftung', 'Geräte einsetzen/entfernen', 'Beschläge zeigen', 'Bohrungen zeigen', 'Röntgen', 'Frontfarbe', 'Export',
                  'Rendern', 'Materialien', 'Einstellungen'],
       "Icons der Symbolleiste: #{titel.inspect}")
 check(tb.sichtbar, 'Symbolleiste beim ersten Start eingeblendet')
@@ -126,6 +126,21 @@ bg.aktion.call
 check(bschalt == 1 && bg.validation.call == MF_CHECKED, 'Beschläge: Klick zeigt sie, Icon gedrückt')
 bg.aktion.call
 check(bschalt == 2 && bg.validation.call == MF_ENABLED, 'Beschläge: zweiter Klick blendet aus')
+
+# Bohrungen und Röntgen: Schalter wie die Beschläge
+[['Bohrungen zeigen', JTools::SchrankCnc::Bohrmodell], ['Röntgen', JTools::SchrankCnc::Roentgen]].each do |titel, mod|
+  c = tb.befehle.find { |x| x.titel == titel }
+  check(c, "Icon #{titel}")
+  next unless c
+  zahl = 0
+  zu = false
+  mod.define_singleton_method(:umschalten) { |*_a| zahl += 1; zu = !zu }
+  mod.define_singleton_method(:an?) { |*_a| zu }
+  c.aktion.call
+  check(zahl == 1 && c.validation.call == MF_CHECKED, "#{titel}: Klick schaltet ein, Icon gedrückt")
+  c.aktion.call
+  check(zahl == 2 && c.validation.call == MF_ENABLED, "#{titel}: zweiter Klick schaltet aus")
+end
 
 schraenke = Kuechenplaner.schraenke
 gruppen = schraenke.group_by(&:first).transform_values { |l| l.map { |e| e[1] }.sort }

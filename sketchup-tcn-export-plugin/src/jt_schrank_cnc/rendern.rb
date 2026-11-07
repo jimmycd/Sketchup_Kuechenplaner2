@@ -37,7 +37,7 @@ module JTools
       BODEN = { 'wie Modell' => nil, 'Parkett Eiche' => 'parkett', 'Fliesen hell' => 'fliesen_hell',
                 'Fliesen anthrazit' => 'fliesen_dunkel', 'Beton' => 'beton' }.freeze
       # Tags, die im Bild nie erscheinen bzw. immer (falls es keine Szene Kunde gibt)
-      NIE = %w[Beschriftung Geraete_Plan].freeze
+      NIE = %w[Beschriftung Geraete_Plan Bohrungen].freeze
       IMMER = %w[Geraete_Render].freeze
       # Griffe der Fronten (Griffmodell, Tag „Griffe“) gehören zum Bild, auch wenn die Szene Kunde
       # älter ist als der Tag oder ihn ausblendet (Jürgen 2026-11-07: „stelle sicher, dass die Griffe auch
@@ -598,6 +598,7 @@ module JTools
 
       # --- Fenster -----------------------------------------------------------------------
       def dialog(model = Sketchup.active_model)
+        Roentgen.zuruecksetzen(model) if defined?(Roentgen)
         blender = blender_suchen
         kunde = szene_kunde?(model)
         prompts = ['Bild: Breite (Pixel, Höhe wie die Ansicht)', 'Bild: Qualität', 'Bild: Kamera',
