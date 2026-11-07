@@ -225,7 +225,7 @@ def pruefe_ocl(w, inst, p, label, kz)
   xn = [1, 3].include?(p['Art_Wange'].to_i) ? 19.0 : 0.0
   kenn = %w[Kuehlschrank Weinkuehler KuehlschrankFrei][p['Geraet_Art'].to_i]
   soll = { 'nische' => 'N1', 'geraet' => "#{kenn}#{p['Breite'].round}", 'breite' => p['Breite'] * 10 - 4,
-           'hoehe' => (p['Hoehe'] + p['Sockelhoehe']) * 10, 'tiefe' => p['Tiefe'] * 10, 'x' => xn, 'y' => 19.0,
+           'hoehe' => (p['Hoehe'] + p['Sockelhoehe']) * 10, 'tiefe' => p['Tiefe'] * 10, 'x' => xn + p['Geraet_Luft'] * 5, 'y' => 19.0,
            'z' => -p['Sockelhoehe'] * 10 }
   check(soll.all? { |k, v| v.is_a?(String) ? n[k] == v : nahe(n[k], v) }, "#{label}: JT_Nische #{n.inspect}")
 end

@@ -362,6 +362,7 @@ module Geraete
                          .map { |d| d.to_h.transform_keys(&:to_s) } : []
     liste << spuelen_nische(defn, inst) if liste.empty? && defn.get_attribute(JT_DICT, 'typ') == 'Spuelenschrank'
     liste.map! { |n| kuehl_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Kuehlschrank'
+    liste.map! { |n| spueler_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'Unterschrank_Geschirrspueler'
     liste.map! { |n| hauben_nische(n, defn, inst) } if defn.get_attribute(JT_DICT, 'typ') == 'OberschrankDunstabzug'
     t = dc_mm(defn, inst, 'tiefe')
     liste.each { |n| n['tiefe'] = t.round(1) } if t
@@ -406,7 +407,28 @@ module Geraete
     mk = mm.('materialstaerke_korpus', 19.0)
     n.merge('geraet' => "#{KUEHL_ARTEN[art.to_i] || KUEHL_ARTEN[0]}#{(b / 10).round}",
             'breite' => (b - mm.('geraet_luft', 4.0)).round(1), 'hoehe' => (mm.('hoehe', 700.0) + so).round(1),
-            'x' => [1, 3].include?(wange.to_i) ? mk : 0.0, 'z' => -so.round(1), 'sockel' => so.round(1))
+            'x' => (x_wange(wange, mk) + mm.('geraet_luft', 4.0) / 2).round(1), 'z' => -so.round(1), 'sockel' => so.round(1))
+  end
+
+  # Nische hinter der Abschlusswange links (Art_Wange 1 = links, 3 = beidseitig)
+  def self.x_wange(wange, mk)
+    [1, 3].include?(wange.to_i) ? mk : 0.0
+  end
+
+  # Geschirrspüler-Unterschrank: Breite, Wange und Sockel kann man in den Komponentenoptionen
+  # ändern, deshalb Nische aus den aktuellen DC-Werten. Das Gerät (Nische - Geraet_Luft) sitzt
+  # mittig in der Nische wie der Platzhalter, also Geraet_Luft/2 hinter der Nischenkante.
+  def self.spueler_nische(n, defn, inst)
+    wange = inst && inst.get_attribute(DICT, 'art_wange')
+    wange = defn.get_attribute(DICT, 'art_wange') if wange.nil?
+    b = dc_mm(defn, inst, 'breite')
+    return n if b.nil?
+    mm = ->(k, std) { dc_mm(defn, inst, k) || std }
+    so = mm.('sockelhoehe', -zahl(n, 'z', -100.0))
+    luft = mm.('geraet_luft', 2.0)
+    n.merge('geraet' => "Geschirrspueler#{(b / 10).round}", 'breite' => (b - luft).round(1),
+            'hoehe' => (mm.('hoehe', 700.0) + so).round(1),
+            'x' => (x_wange(wange, mm.('materialstaerke_korpus', 19.0)) + luft / 2).round(1), 'z' => -so.round(1))
   end
 
   # Spülenschrank: Nische aus den Schrankmaßen (DC-Attribute in Zoll)
