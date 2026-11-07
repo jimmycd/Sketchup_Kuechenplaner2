@@ -130,7 +130,7 @@ module UnterschrankAbfall
     }
   end
 
-  # Holzrückwand der höchsten Zarge, die passt (F/C/K/M/N, hrw_zarge)
+  # Holzrückwand der höchsten Zarge, die passt (Zargen des gewählten Auszugs, hrw_zarge)
   def self.hrw(soll, platz, mb)
     [[platz, hrw_zarge(platz + mb, soll)].min, 2.0].max
   end

@@ -1,0 +1,37 @@
+{
+  "kennung": "blum-legrabox-pure",
+  "name": "Blum LEGRABOX pure",
+  "hersteller": "Blum",
+  "art": "schubladen",
+  "bauart": "auszug_zarge",
+  "quelle": "Wie LEGRABOX free (gleiche Korpusschienen 750/753, Holzrückwände, Boden LW − 35), zusätzlich Frontauszug F nur bei pure (Katalog 2024/2025 S. 198, 216/217: Zarge 241, Holzrückwand 212, NL 400–650). Blum Montageanleitung LEGRABOX free MD-015/4 (lbx0002-md-015): Schiene S. 3/4, Zarge C mit Holzrückwand 148 S. 4, Seitenstabilisierung S. 9; Blum Katalog 2024/2025 S. 200–225: Holzrückwand N 39 / M 63 / K 101 / C 148 / F 212, Frontbefestigung (Schraubmontage, unterstes Loch 51 über Korpusboden-Bezug, N 45,5) N 0/16, M 0/32, K 0/32, C 0/32/96/128 (4a), F 0/32/96/128/160/192 (4a), seitliches Einschubelement nur C (NL − 112 × 138)",
+  "schiene": {
+    "d": 5, "tiefe": 14, "vorn": [37, 69], "abstand_nl": 3, "ueber_boden": 38,
+    "hinten": { "350": [192, 224], "400": [224, 256], "450": [224, 256], "500": [224, 256],
+                "550": [224, 256, 320], "600": [224, 256, 320], "650": [224, 256, 320, 416] },
+    "kg": 40, "kg_nl": { "650": 70 }
+  },
+  "zargen": {
+    "F": { "hoehe": 241.0, "rueckwand": 212.0, "front": [0, 32, 96, 128, 160, 192], "einsatz": null },
+    "C": { "hoehe": 177.0, "rueckwand": 148.0, "front": [0, 32, 96, 128], "einsatz": 138 },
+    "K": { "hoehe": 128.5, "rueckwand": 101.0, "front": [0, 32], "einsatz": null },
+    "M": { "hoehe": 90.5, "rueckwand": 63.0, "front": [0, 32], "einsatz": null },
+    "N": { "hoehe": 66.5, "rueckwand": 39.0, "front": [0, 16], "front_ab": -5.5, "einsatz": null }
+  },
+  "standard_zarge": "C",
+  "kasten": { "boden_b": 35, "boden_t": 10, "rueckwand_b": 38, "einsatz_abzug": 112 },
+  "front": { "d": 3, "tiefe": 5, "innen": 14, "ueber_kasten": 36, "min_unten": 51 },
+  "boden_falz": { "tiefe": 8, "streifen": [{ "breite": 38, "ueberlauf": 20 }, { "breite": 20, "ueberlauf": 0 }] },
+  "stabilisierung_ab": 600,
+  "liste": {
+    "gruppe": "Schubladen (LEGRABOX pure)",
+    "gruppe_schrauben": "Schrauben Schubladen",
+    "schraube_front": "Spanplattenschraube 4 × 15",
+    "schraube_boden": "Spanplattenschraube 4 × 15",
+    "boden_schrauben": 8,
+    "systemschraube": "Systemschraube Ø5 (Blum)",
+    "einsatz": "Seiteneinsatz Glas 10 mm (oder 10-mm-Platte)"
+  },
+  "koerper": { "schiene": 4.0, "schiene_h": 20.0, "zarge": 12.8, "fronthalter": 12.0, "rueckwandhalter": 2.2,
+               "obergurt": 8.0, "einsatz": 10.0 }
+}

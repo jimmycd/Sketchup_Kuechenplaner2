@@ -121,7 +121,7 @@ module UnterschrankInsel
   # ---------------------------------------------------------------------------
   # Reine Berechnung (ohne SketchUp), spiegelt die DC-Formeln. Werte in cm.
   # ---------------------------------------------------------------------------
-  # Holzrückwand der höchsten Zarge, die passt (F/C/K/M/N, hrw_zarge)
+  # Holzrückwand der höchsten Zarge, die passt (Zargen des gewählten Auszugs, hrw_zarge)
   # platz: Oberkante Kastenboden bis Grenze oben (oberste Schublade Kasten_Abstand_oben unter der Front,
   # darunter bis an die Frontoberkante: die Front deckt Zarge und Fronthalter ab)
   def self.hrw(p, platz)
