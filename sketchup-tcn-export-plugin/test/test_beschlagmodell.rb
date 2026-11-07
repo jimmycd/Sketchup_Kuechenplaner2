@@ -335,9 +335,10 @@ fa.instance_variable_set(:@transformation, fa_t)
 tm = Sketchup.active_model = Sketchup::Model.new
 os1 = Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 })
 us1 = UnterschrankSchubladen.erstellen({ 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 })
+ok1 = OberschrankKlappe.erstellen({})
 S::Beschlagkatalog.waehlen('oeffnung', 'blum-tip-on', tm)
 B.umschalten(tm) unless B.an?(tm)
-[os1, us1].each { |x| B.schrank_aktualisieren(tm, x) }
+[os1, us1, ok1].each { |x| B.schrank_aktualisieren(tm, x) }
 tk = koerper(tm)
 tip = tk.select { |x| x[:name].start_with?('TIP-ON') }
 check(tip.count { |x| x[:name].include?('Adapterplatte') && x[:pfad].first == os1 } == 1 &&
@@ -345,6 +346,8 @@ check(tip.count { |x| x[:name].include?('Adapterplatte') && x[:pfad].first == os
       "TIP-ON an der Tür gezeichnet: #{tip.map { |x| x[:name] }}")
 ein = tk.select { |x| x[:name].start_with?('TIP-ON BLUMOTION-Einheit') && x[:pfad].first == us1 }
 check(ein.size == 6, "TIP-ON BLUMOTION je Schublade links + rechts: #{ein.map { |x| x[:name] }}")
+kt = tk.select { |x| x[:name].start_with?('TIP-ON') && x[:pfad].first == ok1 }
+check(kt.size == 2 && kt.any? { |x| x[:name].include?('Kurzversion') }, "TIP-ON an der AVENTOS-Klappe: #{kt.map { |x| x[:name] }}")
 # Ausstößer reicht bis vor die Korpuskante (Frontspalt), nicht in die Tür
 st = tip.find { |x| x[:name].include?('Kurzversion') }
 ws1 = B.werkstuecke(tm, os1)

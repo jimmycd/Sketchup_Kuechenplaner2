@@ -95,7 +95,7 @@ module JTools
         klappen(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
-        oeffnung(teile, add)
+        tip_on(teile, add)
         out
       end
 
@@ -368,23 +368,56 @@ module JTools
       end
 
       # Grifflos (Beschlagart „oeffnung“ der Küche oder des Schranks), vereinfacht:
-      # * TIP-ON an der Tür: Adapterplatte (20 hoch, 12 stark) innen an der Seite bzw. Kreuzadapterplatte
-      #   (37 breit) im Boden an den TIP-ON-Bohrungen, darin der Stößel Ø10 (Kurzversion 50 lang, Langversion 76,
-      #   Katalog 2024/2025 S. 192), 1,5 mm vor die Korpuskante bis an die Tür (Frontspalt); fest im Schrank
-      # * Schubladen: TIP-ON BLUMOTION-Einheit bzw. SERVO-DRIVE-Antrieb als Block (120 × 15 × 12) unter dem
-      #   hinteren Ende jeder Korpusschiene einer grifflosen Schublade
+      # * TIP-ON an der Tür (Blum TIP-ON und SERVO-DRIVE, Block „tuer“): Adapterplatte (20 hoch, 12 stark)
+      #   innen an der Seite bzw. Kreuzadapterplatte (37 breit) im Boden an den TIP-ON-Bohrungen, darin der
+      #   Stößel Ø10 (Kurzversion 50 lang, Langversion 76, Katalog 2024/2025 S. 192), 1,5 mm vor der
+      #   Korpuskante (Frontspalt); fest im Schrank
+      # * AVENTOS-Klappe mit TIP-ON (liste.klappe nennt TIP-ON): Kurzversion mit gerader Adapterplatte innen an
+      #   der rechten Seite, 50 über der Klappenunterkante (Lage abgeleitet, Katalog S. 50 „von Hand setzen“)
+      # * Schubladen TIP-ON BLUMOTION: Einheit als Block (120 × 15 × 12) unter dem hinteren Ende jeder
+      #   Korpusschiene einer grifflosen Schublade (S. 396 f.; SERVO-DRIVE an Schubladen zeichnet servo_drive)
       TIP_ON = { kurz: 50.0, lang: 76.0, r: 5.0, platte_h: 20.0, platte_d: 12.0, kreuz_b: 37.0, spalt: 1.5,
-                 einheit: [120.0, 15.0, 12.0] }.freeze
+                 klappe_rand: 50.0, einheit: [120.0, 15.0, 12.0] }.freeze
 
-      def oeffnung(teile, add)
+      def tip_on(teile, add)
         e = Beschlagkatalog.gewaehlt('oeffnung')
-        return unless e && (e['tuer'] || e['schublade'])
-        tip_on_tueren(teile, add, e) if e['tuer']
-        auszug_einheiten(teile, add, e) if e['schublade']
+        return unless e && e['tuer']
+        tip_on_tueren(teile, add, e)
+        tip_on_klappen(teile, add) if (e['liste']['klappe'] || []).any? { |x| x[0].to_s.include?('TIP-ON') }
+        tip_on_blumotion(teile, add) if e['schublade'] == 'tip_on_blumotion'
+      end
+
+      # Stößel mit Adapterplatte: fa/fl/innen = Fläche, auf der die Platte sitzt; da/vorne/rein = Tiefe
+      # (Korpuskante, Richtung nach hinten); qa/q/b = Lage und Breite quer
+      def tip_on_koerper(w, add, name, fa, fl, innen, da, vorne, rein, qa, q, b, l)
+        ks = MATERIALIEN[:kunststoff][0]
+        c = TIP_ON
+        add.(w, quader("#{name} Adapterplatte", ks, p3(fa => fl, da => vorne, qa => q - b / 2.0),
+                       p3(fa => fl + innen * c[:platte_d], da => vorne + rein * l, qa => q + b / 2.0)))
+        add.(w, zylinder("#{name} #{l > c[:kurz] ? 'Langversion' : 'Kurzversion'}", ks,
+                         p3(fa => fl + innen * c[:platte_d] / 2.0, da => 0, qa => q), da,
+                         vorne - rein * c[:spalt], vorne + rein * l, c[:r]))
+      end
+
+      def tip_on_klappen(teile, add)
+        kl = Beschlagkatalog.eintraege.select { |x| x['bauart'] == 'klappe_seite' }
+        teile.each do |k|
+          next unless kl.any? { |x| k.ops.any? { |o| o.titel == x['front']['titel'] } }
+          da = k.dicke_achse
+          next if da == 2
+          wa = da.zero? ? 1 : 0
+          s = teile.select { |w| w.rolle == 'Seite' && w.dicke_achse == wa }.max_by { |w| w.hi[wa] } or next
+          km = mitte(k, da)
+          vorne, rein = (s.lo[da] - km).abs < (s.hi[da] - km).abs ? [s.lo[da], 1] : [s.hi[da], -1]
+          # rechte Seite: Innenfläche zur Klappenmitte hin
+          innen = mitte(s, wa) > mitte(k, wa) ? -1 : 1
+          fl = innen.negative? ? s.lo[wa] : s.hi[wa]
+          tip_on_koerper(s, add, "TIP-ON #{k.name}", wa, fl, innen, da, vorne, rein, 2,
+                         k.lo[2] + TIP_ON[:klappe_rand], TIP_ON[:platte_h], TIP_ON[:kurz])
+        end
       end
 
       def tip_on_tueren(teile, add, e)
-        ks = MATERIALIEN[:kunststoff][0]
         tu = e['tuer']
         c = TIP_ON
         teile.each do |w|
@@ -403,18 +436,14 @@ module JTools
             qa = ([0, 1, 2] - [fa, da]).first
             q = ops.sum { |o| o.p0[qa] } / ops.size
             b = kreuz ? c[:kreuz_b] : c[:platte_h]
-            add.(w, quader("TIP-ON #{tname} Adapterplatte", ks, p3(fa => fl, da => vorne, qa => q - b / 2.0),
-                           p3(fa => fl + innen * c[:platte_d], da => vorne + rein * l, qa => q + b / 2.0)))
-            mitte_p = p3(fa => fl + innen * c[:platte_d] / 2.0, da => 0, qa => q)
-            add.(w, zylinder("TIP-ON #{tname} #{lang ? 'Langversion' : 'Kurzversion'}", ks, mitte_p, da,
-                             vorne - rein * c[:spalt], vorne + rein * l, c[:r]))
+            tip_on_koerper(w, add, "TIP-ON #{tname}", fa, fl, innen, da, vorne, rein, qa, q, b, l)
           end
         end
       end
 
-      def auszug_einheiten(teile, add, e)
+      def tip_on_blumotion(teile, add)
         ks = MATERIALIEN[:kunststoff][0]
-        name = e['schublade'] == 'servo_drive' ? 'SERVO-DRIVE Antriebseinheit' : 'TIP-ON BLUMOTION-Einheit'
+        name = 'TIP-ON BLUMOTION-Einheit'
         bereiche = Regeln.kaesten(teile).select { |k| Beschlaege.grifflos?(k, teile) }.map do |k|
           b = k.find { |w| w.rolle == 'KastenBoden' }
           b && b.teil.jt('bereich')
