@@ -25,7 +25,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 5
+      VERSION = 7
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -91,6 +91,7 @@ module JTools
         end
         schubladen(teile, add)
         topfbaender(teile, add)
+        falttuer(teile, add)
         klappen(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
@@ -365,6 +366,35 @@ module JTools
         end
       end
 
+      # Blum Eckschrank-Falttürscharnier (Eckschrank L): Topf in der langen Tür an der Ecke (als Quader bis
+      # an die Türkante, der Topf läuft über die Kante; in der Tür, damit ihre Maße gleich bleiben),
+      # Montageplatte auf der kurzen Tür (fährt mit ihr, liegt in ihrem Halter)
+      def falttuer(teile, add)
+        stahl = MATERIALIEN[:stahl][0]
+        teile.select { |w| w.rolle == 'Tuer' }.each do |t|
+          t.ops.select { |o| o.titel == 'Falttürscharnier Topf' }.each_with_index do |o, i|
+            kp = (Beschlagkatalog.eintrag(o.daten[:modell]) || Beschlagkatalog.gewaehlt('falttuer'))['koerper']
+            da = Geometrie.achse(o.seite)
+            rein = Geometrie.max?(o.seite) ? 1 : -1
+            wa = Geometrie.achse(o.daten[:kante])
+            rand = Geometrie.max?(o.daten[:kante]) ? t.hi[wa] : t.lo[wa]
+            innen = o.p0[wa] + (o.p0[wa] - rand <=> 0) * o.d / 2.0
+            add.(t, quader("Falttürscharnier #{i + 1} Topf", stahl, p3(wa => rand, da => o.p0[da] - rein * kp['topf_tiefe'], 2 => o.p0[2] - o.d / 2.0),
+                           p3(wa => innen, da => o.p0[da], 2 => o.p0[2] + o.d / 2.0)), true)
+          end
+          t.ops.select { |o| o.titel == 'Montageplatte Falttürscharnier' }.group_by { |o| o.daten[:z] }.each_with_index do |(z, ops), i|
+            kp = (Beschlagkatalog.eintrag(ops[0].daten[:modell]) || Beschlagkatalog.gewaehlt('falttuer'))['koerper']
+            pl = kp['platte']
+            da = Geometrie.achse(ops[0].seite)
+            rein = Geometrie.max?(ops[0].seite) ? 1 : -1
+            ka = ([0, 1] - [da]).first
+            y, fl = ops[0].p0[ka], ops[0].p0[da]
+            add.(t, quader("Falttürscharnier #{i + 1} Montageplatte", stahl, p3(ka => y - pl[1] / 2.0, da => fl, 2 => z - pl[0] / 2.0),
+                           p3(ka => y + pl[1] / 2.0, da => fl + rein * pl[2], 2 => z + pl[0] / 2.0)))
+          end
+        end
+      end
+
       # Klappenbeschlag der Bauart klappe_seite (Katalog, koerper):
       #   seite  Kraftspeicher/Mechanismus an der Seite: dicke, vor/hinter = über das vorderste/hinterste
       #          Loch hinaus, unter/ueber = unter das unterste / über das oberste Loch hinaus
@@ -596,12 +626,28 @@ module JTools
 
       # Türen und Klappen geschlossen? Offen (Interagieren) stimmen die Bohrbilder nicht
       # (die Tür steht schräg oder quer), dann bleiben die Beschläge, wie sie sind.
+      # Offen heißt: eine Instanz zwischen Schrank und Tür (Tür, Türhalter, Falttür-Halter) ist gedreht.
+      # Früher wurde die Dickenrichtung der Tür mit der Tiefe der ersten Seite verglichen; beim
+      # Eckschrank L zeigen die Türen aber in zwei Richtungen: geschlossen galt er als offen (keine
+      # Beschläge), nach dem Falten (kurze Tür vor der langen) als geschlossen, und die Bänder wurden
+      # an der gefalteten Tür quer durch den Schrank gezeichnet (Jürgen 2026-11-07).
       def geschlossen?(ws)
-        seiten = ws.select { |w| w.rolle == 'Seite' && w.dicke_achse != 2 }
-        return true if seiten.empty?
-        tiefe = 1 - seiten.first.dicke_achse
         ws.select { |w| w.rolle == 'Tuer' || w.teil.jt('teil').to_s.start_with?('Klappe') }.all? do |w|
-          w.dicke_achse == tiefe && w.mass(tiefe) < 40
+          w.dicke_achse != 2 && w.mass(w.dicke_achse) < 40 && ungedreht?(w.teil)
+        end
+      end
+
+      # Keine Instanz unterhalb des Schranks gedreht (gespiegelt zählt nicht als gedreht). Die
+      # Animationen enden bei ±0,01/0,02° (siehe Eckschrank), das gilt noch als zu.
+      def ungedreht?(teil)
+        i0 = teil.pfad.index(teil.schrank) || 0
+        teil.pfad[(i0 + 1)..].all? do |inst|
+          m = Geometrie.matrix(inst.transformation)
+          (0..2).all? do |c|
+            spalte = m[c * 4, 3]
+            l = Math.sqrt(spalte.sum { |v| v * v })
+            l < 1e-9 || spalte.each_with_index.all? { |v, r| r == c || v.abs / l < 0.01 }
+          end
         end
       end
 

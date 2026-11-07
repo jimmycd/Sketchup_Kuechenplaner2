@@ -739,9 +739,13 @@ module JTools
         return if tueren.empty?
         tb_std = topfband_werte
         tb_innen = nil
+        lang, kurz = falt_paar(tueren)
         tueren.each do |t|
-          # Tür vor Innenauszügen (Kastenboden dahinter): eigenes Topfband (Standard 155°, 0-Einsprung)
-          tb = if innenauszug_hinter?(t, teile)
+          # Falttür: die kurze Tür hat keinen Topf, sie trägt die Montageplatte des Falttürscharniers
+          next if kurz && t.equal?(kurz)
+          # Tür vor Innenauszügen (Kastenboden dahinter) und lange Falttür am Korpus (Blum: Eckschrank-
+          # Falttürscharnier nur mit 155° oder 170°, Katalog S. 116): Topfband vor Innenauszügen
+          tb = if innenauszug_hinter?(t, teile) || (lang && t.equal?(lang))
                  tb_innen ||= topfband_werte(Beschlagkatalog.gewaehlt('topfband_innen'))
                else
                  tb_std
@@ -755,6 +759,64 @@ module JTools
           end
           kante, eck = anschlag(t, tueren, teile)
           topfband(t, kante, eck, teile, meldungen, tb)
+        end
+        falttuer_scharnier(lang, kurz, teile) if lang
+      end
+
+      # Falttür (zwei Türen über Eck, Eckschrank L): [lange Tür am Korpus, kurze Tür am Eckscharnier] oder nil
+      def self.falt_paar(tueren)
+        return nil unless tueren.size == 2
+        a, b = tueren
+        return nil unless a.dicke_achse != b.dicke_achse && ueberlapp(a, b, 2) > 1.0
+        breite = ->(w) { w.mass((w.flaechen_achsen - [2]).first) }
+        breite.(a) < breite.(b) ? [b, a] : [a, b]
+      end
+
+      # Blum Eckschrank-Falttürscharnier (Katalog 2024/2025 S. 116–117, Eintrag der Beschlagart „falttuer“):
+      # Topf in der langen Tür an der Ecke (Einbohrmaß ab der fertigen Türkante, der Topf läuft über die
+      # Kante), Einpressdübel daneben; auf der kurzen Tür eine Standard-Montageplatte, ihre Schrauben
+      # ab_front von der Außenseite der langen Tür. Höhen wie die Topfbänder der langen Tür.
+      def self.falttuer_scharnier(lang, kurz, teile)
+        e = Beschlagkatalog.gewaehlt('falttuer') or return
+        tp, pl = e['topf'], e['platte']
+        zs = lang.ops.select { |o| o.art == :topfband }.map { |o| o.p0[2] }
+        return if zs.empty?
+        korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
+        korpus = teile if korpus.empty?
+        # Innenseite einer Tür (zum Korpus hin): [Seite, Fläche, Außenfläche]
+        innen = lambda do |t|
+          da = t.dicke_achse
+          km = korpus.sum { |w| w.lo[da] + w.hi[da] } / (2.0 * korpus.size)
+          hinten = km > (t.lo[da] + t.hi[da]) / 2.0
+          [:"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}", hinten ? t.hi[da] : t.lo[da], hinten ? t.lo[da] : t.hi[da]]
+        end
+        # lange Tür: Kante zur kurzen Tür
+        wa = (lang.flaechen_achsen - [2]).first
+        mitte = (kurz.lo[wa] + kurz.hi[wa]) / 2.0
+        max = (lang.hi[wa] - mitte).abs < (lang.lo[wa] - mitte).abs
+        kante = :"#{Geometrie::ACHSEN[wa]}#{max ? 'max' : 'min'}"
+        rand = max ? lang.hi[wa] : lang.lo[wa]
+        rein = max ? -1 : 1
+        lseite, lfl, laussen = innen.(lang)
+        da = lang.dicke_achse
+        zs.each do |z|
+          lang.ops << Op.new(:bohrung, lseite, punkt(da => lfl, wa => rand + rein * tp['rand'], 2 => z), nil, tp['d'], tp['tiefe'],
+                             nil, nil, 'Falttürscharnier Topf', { kante: kante, modell: e['kennung'] })
+          [-1, 1].each do |v|
+            lang.ops << Op.new(:bohrung, lseite, punkt(da => lfl, wa => rand + rein * tp['schraub_rand'], 2 => z + v * tp['schraub_abstand'] / 2.0),
+                               nil, tp['schraub_d'], tp['schraub_tiefe'], nil, nil, 'Falttürscharnier Dübel')
+          end
+        end
+        # kurze Tür: Montageplatte, ab_front von der Außenseite der langen Tür in die kurze Tür hinein
+        kseite, kfl, = innen.(kurz)
+        ka = da # Breitenrichtung der kurzen Tür = Dickenrichtung der langen
+        in_kurz = (kurz.lo[ka] + kurz.hi[ka]) / 2.0 > laussen ? 1 : -1
+        y = laussen + in_kurz * pl['ab_front']
+        zs.each do |z|
+          [z - pl['abstand'], z + pl['abstand']].each do |zz|
+            kurz.ops << Op.new(:bohrung, kseite, punkt(kurz.dicke_achse => kfl, ka => y, 2 => zz), nil, pl['d'], pl['tiefe'],
+                               nil, nil, 'Montageplatte Falttürscharnier', { z: z, modell: e['kennung'] })
+          end
         end
       end
 

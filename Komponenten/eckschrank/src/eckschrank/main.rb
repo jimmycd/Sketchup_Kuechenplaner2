@@ -637,8 +637,8 @@ module Eckschrank
       inst.hidden = n < k
     end
 
-    # Falttür: Tür A (TuerR) vor Schenkel A läuft durch die Ecke, Tür B (TuerL) vor
-    # Schenkel B endet mit einer Fuge vor der Front von A; verbunden mit einem Blum-Scharnier
+    # Falttür: Tür A (TuerR) vor Schenkel A und Tür B (TuerL) vor Schenkel B enden je mit einer
+    # halben Fuge vor der Außenseite der anderen; verbunden mit dem Blum Eckschrank-Falttürscharnier
     falttuer(model, e, p, m, mat, t_, h_f)
     haupt
   end
@@ -646,7 +646,8 @@ module Eckschrank
   # Falttür zum Öffnen mit Interagieren (Jürgen 2026-11-05: nacheinander, in fester
   # Reihenfolge). Die längere Tür hängt am Korpus (Scharnier an der Außenkante ihrer
   # Seite), die kürzere am Eckscharnier an ihr:
-  #   Klick 1: kurze Tür klappt vor die lange (Falten um 90°)
+  #   Klick 1: kurze Tür klappt vor die lange (Falten um 60°, mehr lässt das Blum
+  #            Eckschrank-Falttürscharnier nicht zu, Katalog 2024/2025 S. 116)
   #   Klick 2: beide zusammen schwenken um das Korpusscharnier auf (100°)
   #   Klick 3: zurück an den Korpus, Klick 4: kurze Tür klappt wieder auf.
   # Aufbau: Halter "FaltHalter" (Ursprung am Korpusscharnier) mit der langen Tür und dem
@@ -658,14 +659,17 @@ module Eckschrank
   FALT_AUSSEN = 'FaltHalter'.freeze
   FALT_INNEN = 'FaltHalterInnen'.freeze
   FALT_WINKEL = 100
-  FALT_KLAPPEN = 90
+  FALT_KLAPPEN = 60
 
   # Lage der Falttür in cm. Ergebnis: Scharnier außen, Tür außen (Versatz, Größe xy),
   # Eckscharnier relativ zum äußeren, Tür innen (Versatz, Größe xy), Drehsinn, welche Tür außen
   def self.falttuer_lage(p, m)
     mk, sp, a, bb = p['Materialstaerke_Korpus'], p['Spaltbreite'], p['Schenkel_A'], p['Schenkel_B']
     xa = m[:xk] + sp
-    la = a - sp / 2.0 - xa
+    # Tür A endet mit der halben Fuge vor der Außenseite von Tür B, Tür B mit der halben Fuge vor
+    # der Außenseite von Tür A: dazwischen sitzt das Eckschrank-Falttürscharnier (Blum-Katalog
+    # 2024/2025 S. 117, Planung). Früher lief Tür A bis hinter Tür B durch die Ecke.
+    la = a - sp / 2.0 - xa - mk - sp / 2.0
     yb0 = m[:yw] - bb + sp / 2.0
     lb = -1.5 * sp - yb0
     if a >= bb
@@ -679,7 +683,7 @@ module Eckschrank
       hb = [xa + mk, yb0]
       ecke = [xa + mk + sp / 2.0, -sp]
       { aussen: 'TürL', innen: 'TürR', scharnier: hb, tuer: [[-mk, 0], [mk, lb]],
-        ecke: [ecke[0] - hb[0], ecke[1] - hb[1]], tuer_innen: [[-(mk + sp / 2.0), 0], [la, mk]], sinn: -1 }
+        ecke: [ecke[0] - hb[0], ecke[1] - hb[1]], tuer_innen: [[0, 0], [la, mk]], sinn: -1 }
     end
   end
 

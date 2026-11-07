@@ -12,7 +12,7 @@
 # und Boden; die hinter Schenkel A geht durch die Ecke, die hinter B stößt daran.
 # Boden, Deckel und Einlegeböden sind je eine L-Platte; die Innenecke fräst der TCN-Export
 # aus. Unter jedem Einlegeboden trägt eine Auflageleiste an der Rückwand die Ecke.
-# Falttür: Tür A (TuerR) läuft durch die Ecke, Tür B (TuerL) endet 1 mm vor ihr.
+# Falttür: Tür A (TuerR) und Tür B (TuerL) enden je 1 mm vor der Außenseite der anderen.
 #
 # Eine Dynamic Component würde eine L-Platte beim Skalieren verzerren. Ändern sich
 # Schenkel A, Schenkel B oder Tiefe in den Komponentenoptionen, baut die Erweiterung den
@@ -398,12 +398,13 @@ module EckOberschrank
       inst.hidden = n < k
     end
 
-    # Falttür: Tür A (TuerR) vor Schenkel A läuft durch die Ecke, Tür B (TuerL) vor
-    # Schenkel B endet 1 mm vor der Front von A; verbunden mit einem Blum-Scharnier.
-    # Oben und unten 1 mm Fuge, 2 mm vor dem Korpus.
+    # Falttür: Tür A (TuerR) vor Schenkel A endet 1 mm vor der Außenseite von Tür B, Tür B (TuerL)
+    # vor Schenkel B 1 mm vor der Außenseite von A; dazwischen das Blum Eckschrank-Falttürscharnier
+    # (Katalog 2024/2025 S. 117). Oben und unten 1 mm Fuge, 2 mm vor dem Korpus.
     xa = t + sp
-    einsetzen(e, platte(model, 'Tür A', 'Tür', [a - sp / 2.0 - xa, mk, h - sp], tuer_f), 'TürR',
-              [xa, -sp, sp / 2.0], [nil, nil, nil], mat: mat, kz: t_.('TuerR'))
+    xa_a = xa + mk + sp / 2.0
+    einsetzen(e, platte(model, 'Tür A', 'Tür', [a - sp / 2.0 - xa_a, mk, h - sp], tuer_f), 'TürR',
+              [xa_a, -sp, sp / 2.0], [nil, nil, nil], mat: mat, kz: t_.('TuerR'))
     yb0 = yw - bb + sp / 2.0
     einsetzen(e, platte(model, 'Tür B', 'Tür', [mk, -1.5 * sp - yb0, h - sp], tuer_f, art: 'TürB'), 'TürL',
               [xa, yb0, sp / 2.0], [nil, nil, nil], mat: mat, kz: t_.('TuerL'))

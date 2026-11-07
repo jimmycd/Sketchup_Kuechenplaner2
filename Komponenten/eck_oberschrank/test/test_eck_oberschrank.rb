@@ -182,9 +182,10 @@ def pruefe(w, p, label)
   check(nahe(dk[:q][0], HI) && nahe(dk[:q][3], yw - HI) && nahe(dk[:q][1], a - MK) && nahe(dk[:q][2], ye) && nahe(dk[:q][5], h),
         "#{label}: Deckel vor den Rückwänden #{dk[:q]}")
   check(nahe(nd[0], t) && nahe(nd[3], MK), "#{label}: Innenecke Deckel #{nd}")
-  # Falttür: A vor Schenkel A durch die Ecke, B vor Schenkel B bis 1 mm vor Tür A; 1 mm Fuge oben/unten
+  # Falttür (Blum Eckschrank-Falttürscharnier): A endet 1 mm vor der Außenseite von B, B 1 mm vor der
+  # Außenseite von A; 1 mm Fuge oben/unten
   ta, tbq = q.('TürR'), q.('TürL')
-  check(nahe(ta[2], -SP) && nahe(ta[3], MK - SP) && nahe(ta[0], t + SP) && nahe(ta[1], a - SP / 2), "#{label}: Tür A #{ta}")
+  check(nahe(ta[2], -SP) && nahe(ta[3], MK - SP) && nahe(ta[0], t + SP + MK + SP / 2) && nahe(ta[1], a - SP / 2), "#{label}: Tür A #{ta}")
   check(nahe(tbq[0], t + SP) && nahe(tbq[1], t + SP + MK) && nahe(tbq[2], yw - bb + SP / 2) && nahe(tbq[3], -1.5 * SP),
         "#{label}: Tür B #{tbq}")
   check([ta, tbq].all? { |x| nahe(x[4], SP / 2) && nahe(x[5], h - SP / 2) }, "#{label}: Türen 1 mm Fuge oben und unten")

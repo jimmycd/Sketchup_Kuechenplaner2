@@ -48,11 +48,14 @@ module JTools
         kasten = Beschlagkatalog.schubladen?(d)
         klappe = Schraenke.dc(s, 'art_klappe')
         jt = Beschlagkatalog::JT_BESCHLAG[d.get_attribute(JT_DICT, 'beschlag').to_s]
+        # Falttür (Eckschrank L, Eck-Oberschrank): L-Form trägt l_gebaut
+        falt = tuer && %w[JT_Eckschrank JT_EckOberschrank].any? { |k| d.get_attribute(k, 'l_gebaut') } ? true : false
         Beschlagkatalog::ARTEN.keys.select do |a|
           case a
           when 'schubladen' then kasten
           when 'topfband' then tuer
-          when 'topfband_innen' then tuer && kasten
+          when 'topfband_innen' then tuer && (kasten || falt)
+          when 'falttuer' then falt
           when 'topfband_kuehlschrank' then tuer && !Schraenke.dc(s, 'tuertechnik').nil?
           when 'klappe' then klappe && klappe.to_f.round != 2
           when 'faltklappe' then klappe && klappe.to_f.round == 2
