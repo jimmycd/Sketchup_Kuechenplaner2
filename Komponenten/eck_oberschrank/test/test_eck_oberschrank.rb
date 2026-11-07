@@ -342,5 +342,31 @@ DcGroesseHelfer.mit_dc(E::DICT) do
   check(ist.zip(soll).all? { |a, b| (a - b).abs < 1e-4 }, "DC: Größe nach Neuaufbau #{ist.map { |v| v.round(1) }} statt #{soll.map { |v| v.round(1) }}")
 end
 
+
+# --- Grifflose Front (Schrank-CNC setzt Griff_Boden / Griff_Front und zeichnet neu) ---
+[false, true].each do |nachher|
+  [{ 'Griff_Boden' => 3.0 }, { 'Griff_Front' => 2.5 }].each do |werte|
+    label = "Griff #{werte.keys.first}#{' nachträglich' if nachher}"
+    Sketchup.active_model = Sketchup::Model.new
+    inst = E.erstellen(nachher ? {} : werte)
+    d = inst.definition
+    werte.each { |k, v| d.set_attribute(E::DICT, k.downcase, v / 2.54) } if nachher
+    w = Knoten.new(inst, d, nil)
+    w.redraw
+    pruefe_geometrie(w, label) unless nachher
+    sichtbar = teile(w).reject { |t2| t2[:hidden] }
+    q = ->(n) { sichtbar.find { |t2| t2[:name] == n }[:q] }
+    gb, gf = werte.fetch('Griff_Boden', 0.0), werte.fetch('Griff_Front', 0.0)
+    check(nahe(q.('Boden')[4], gb), "#{label}: Boden z #{q.('Boden')[4]}")
+    %w[Rückwand1 Rückwand2].each do |n|
+      next unless sichtbar.any? { |t2| t2[:name] == n }
+      check(nahe(q.(n)[4], gb + 1.0) && nahe(q.(n)[5], 70.0), "#{label}: #{n} #{q.(n)[4..5]}")
+    end
+    %w[TürL TürR].each { |n| check(nahe(q.(n)[4], 0.1 + gf) && nahe(q.(n)[5], 69.9), "#{label}: #{n} #{q.(n)[4..5]}") }
+    eb = sichtbar.find { |t2| t2[:name] == 'Einlegeboden1' }
+    check(nahe(eb[:q][4] + 0.95, gb + 1.9 + (70.0 - 3.8 - gb) / 2), "#{label}: Einlegeboden mittig")
+  end
+end
+
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"
 exit($fehler.zero? ? 0 : 1)

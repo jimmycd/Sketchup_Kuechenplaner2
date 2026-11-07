@@ -55,6 +55,9 @@ Am Teil steht das Wörterbuch `JT_Schrank` mit `schrank`, `typ` (OberschrankDuns
 ## Gerätenische
 Am Schrank steht `JT_Nische` (`nische` DA, `geraet` z. B. `Flachschirmhaube60`, lichte Breite, Haubenraum als Höhe, Tiefe, Einfügepunkt vorne links an der Korpusvorderkante auf der Unterkante, dazu `abluft`, `rohr_x`, `rohr_y`, `rohr_breite`, `rohr_tiefe`, `schrank_hoehe`). Die Geräte-Erweiterung liest Breite, Haubenraum, Abluft und Rohr aus den aktuellen Komponentenoptionen.
 
+## Grifflose Front
+Schrank-CNC setzt nach der Öffnung der Küche (*Einstellungen › Öffnung*, Plan „Grifflose Fronten“) das Attribut `Griff_Front`: bei *Griffkante 45°* enden die Türen unten so viel höher (zusätzlich zu `Tuer_Frei_Unten`), die Fase fräst der TCN-Export. Eine durchlaufende Mulde ändert hier nichts, unten ist kein Boden.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/oberschrank_dunstabzug/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

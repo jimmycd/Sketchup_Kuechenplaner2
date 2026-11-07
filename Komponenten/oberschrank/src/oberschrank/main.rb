@@ -67,7 +67,10 @@ module Oberschrank
     'Rueckwand_Versatz'         => 2.5,   # Hinterkante Seite -> Rückseite Rückwand
     'Nuttiefe'                  => 0.9,
     'Spaltbreite'               => 0.2,
-    'Rueckversatz_Einlegeboden' => 1.0    # Einlegeböden vorne zurückgesetzt
+    'Rueckversatz_Einlegeboden' => 1.0,   # Einlegeböden vorne zurückgesetzt
+    # Grifflose Front (setzt Schrank-CNC nach der Öffnung der Küche, siehe README):
+    'Griff_Boden'               => 0.0,   # durchlaufende Mulde: Boden so viel höher, Front steht unten über
+    'Griff_Front'               => 0.0    # Griffkante: Türen unten so viel kürzer
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -81,12 +84,13 @@ module Oberschrank
     mk, rw, sp = p['Materialstaerke_Korpus'], p['Materialstarke_Rueckwand'], p['Spaltbreite']
     b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
     n_eb = p['Anz_Einlegeboeden'].to_i
+    gb, gf = p['Griff_Boden'].to_f, p['Griff_Front'].to_f
     {
       t_innen: t - p['Rueckwand_Versatz'] - rw, # Vorderkante Korpus -> Vorderseite Rückwand
       b_tuer1: b - sp,
       b_tuer2: b / 2.0 - sp,
-      h_tuer: h - sp,
-      eb: (1..MAX_EB).map { |k| k <= n_eb ? mk + (h - 2 * mk) * k / (n_eb + 1) - mk / 2 : mk }
+      h_tuer: h - sp - gf,
+      eb: (1..MAX_EB).map { |k| k <= n_eb ? gb + mk + (h - 2 * mk - gb) * k / (n_eb + 1) - mk / 2 : mk }
     }
   end
 
@@ -293,7 +297,7 @@ module Oberschrank
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Rueckwand_Versatz Nuttiefe Spaltbreite
-       Rueckversatz_Einlegeboden].each do |n|
+       Rueckversatz_Einlegeboden Griff_Boden Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
@@ -301,7 +305,7 @@ module Oberschrank
     attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: 'Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand')
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
     (1..MAX_EB).each do |k|
-      f = "IF(Anz_Einlegeboeden>=#{k},Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus)*#{k}/" \
+      f = "IF(Anz_Einlegeboeden>=#{k},Griff_Boden+Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus-Griff_Boden)*#{k}/" \
           "(Anz_Einlegeboeden+1)-Materialstaerke_Korpus/2,Materialstaerke_Korpus)"
       attribut(haupt, "Z_Einlegeboden_#{k}", r[:eb][k - 1], units: 'STRING', formula: f)
     end
@@ -320,7 +324,8 @@ module Oberschrank
 
     innen_b = "#{u}!Breite-2*#{u}!Materialstaerke_Korpus"
     boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk], [innen_b, "#{u}!Tiefe", "#{u}!Materialstaerke_Korpus"])
-    einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('Boden'))
+    gb = p['Griff_Boden'].to_f
+    einsetzen(e, boden, 'Boden', [mk, mk, gb], ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Griff_Boden"], mat: mat, kz: t_.('Boden'))
 
     # Deckel endet vor der Rückwand
     deckel = platte(model, 'Deckel', 'Deckel', [b - 2 * mk, r[:t_innen], mk],
@@ -329,12 +334,12 @@ module Oberschrank
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"], mat: mat, kz: t_.('Deckel'))
 
     # Rückwand in der Nut von Seiten und Boden, oben bündig
-    rueck = platte(model, 'Rückwand', 'Rückwand', [b - 2 * mk + 2 * nut, rw, h - mk + nut],
+    rueck = platte(model, 'Rückwand', 'Rückwand', [b - 2 * mk + 2 * nut, rw, h - mk + nut - gb],
                    ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus+2*#{u}!Nuttiefe", "#{u}!Materialstarke_Rueckwand",
-                    "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe"])
-    einsetzen(e, rueck, 'Rückwand', [mk - nut, mk + r[:t_innen], mk - nut],
+                    "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe-#{u}!Griff_Boden"])
+    einsetzen(e, rueck, 'Rückwand', [mk - nut, mk + r[:t_innen], mk - nut + gb],
               ["#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe", "#{u}!Materialstaerke_Korpus+#{u}!T_Innen",
-               "#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe"], mat: mat, kz: t_.('Rueckwand'))
+               "#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe+#{u}!Griff_Boden"], mat: mat, kz: t_.('Rueckwand'))
 
     # --- Einlegeböden ---
     rv = p['Rueckversatz_Einlegeboden']
@@ -360,7 +365,9 @@ module Oberschrank
     u = NAME
     sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
     art = p['Art_Tuer'].to_i
-    h_f = "#{u}!Hoehe-#{u}!Spaltbreite"
+    h_f = "#{u}!Hoehe-#{u}!Spaltbreite-#{u}!Griff_Front"
+    z = sp / 2.0 + p['Griff_Front'].to_f # Griffkante: Türen unten kürzer
+    z_f = "#{u}!Spaltbreite/2+#{u}!Griff_Front"
 
     # eine Tür: steckt in einem Halter am Scharnier (links oder rechts), darin liegt sie bei
     # x = 0 (Anschlag links) bzw. x = -Breite der Tür (Anschlag rechts)
@@ -381,17 +388,16 @@ module Oberschrank
     t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, r[:h_tuer]], ["#{hn}!B_Tuer", "#{hn}!Mk", "#{hn}!H_Tuer"])
     einsetzen(eh.entities, t1, 'Tür', [rechts ? -r[:b_tuer1] : 0, 0, 0], ["IF(#{hn}!Anschlag=1,-#{hn}!B_Tuer,0)", nil, nil],
               mat: mat, kz: t_.('Tuer'))
-    i1 = einsetzen(e, eh, hn, [rechts ? b - sp / 2.0 : sp / 2.0, -sp, sp / 2.0],
-                   ["IF(#{u}!Art_Tuer=3,#{u}!Breite-#{u}!Spaltbreite/2,#{u}!Spaltbreite/2)", "-#{u}!Spaltbreite",
-                    "#{u}!Spaltbreite/2"])
+    i1 = einsetzen(e, eh, hn, [rechts ? b - sp / 2.0 : sp / 2.0, -sp, z],
+                   ["IF(#{u}!Art_Tuer=3,#{u}!Breite-#{u}!Spaltbreite/2,#{u}!Spaltbreite/2)", "-#{u}!Spaltbreite", z_f])
     i1.hidden = ![1, 3].include?(art)
 
     # zwei Türen: links wie oben, Drehpunkt links
     tl = platte(model, 'Tür links', 'TürL', [r[:b_tuer2], mk, r[:h_tuer]],
                 ["#{u}!B_Tuer2", "#{u}!Materialstaerke_Korpus", h_f], art: 'Tür')
     tuer_drehen(tl, art == 2, "IF(#{u}!Art_Tuer=2,0,1)", -100)
-    il = einsetzen(e, tl, 'TürL', [sp / 2.0, -sp, sp / 2.0],
-                   ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Spaltbreite/2"], mat: mat, kz: t_.('TuerL'))
+    il = einsetzen(e, tl, 'TürL', [sp / 2.0, -sp, z],
+                   ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", z_f], mat: mat, kz: t_.('TuerL'))
     il.hidden = art != 2
 
     # rechts: Drehpunkt muss rechts liegen, deshalb steckt die Tür in einem
@@ -407,8 +413,8 @@ module Oberschrank
     tr = platte(model, 'Tür rechts', 'TürR', [r[:b_tuer2], mk, r[:h_tuer]],
                 ["#{h}!B_Tuer", "#{h}!Mk", "#{h}!H_Tuer"], art: 'Tür')
     einsetzen(halter.entities, tr, 'TürR', [-r[:b_tuer2], 0, 0], ["-#{h}!B_Tuer", nil, nil], mat: mat, kz: t_.('TuerR'))
-    ih = einsetzen(e, halter, h, [b - sp / 2.0, -sp, sp / 2.0],
-                   ["#{u}!Breite-#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", "#{u}!Spaltbreite/2"])
+    ih = einsetzen(e, halter, h, [b - sp / 2.0, -sp, z],
+                   ["#{u}!Breite-#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", z_f])
     ih.hidden = art != 2
   end
 

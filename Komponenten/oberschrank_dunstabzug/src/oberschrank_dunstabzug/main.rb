@@ -80,7 +80,10 @@ module OberschrankDunstabzug
     'Nuttiefe'                  => 0.9,
     'Spaltbreite'               => 0.2,
     'Rueckversatz_Einlegeboden' => 1.0,   # Einlegeboden vorne zurückgesetzt
-    'Strebe_Hoehe'              => 8.0    # Strebe hinten unten, hochkant
+    'Strebe_Hoehe'              => 8.0,   # Strebe hinten unten, hochkant
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Türen unten so viel kürzer. Eine
+    # durchlaufende Mulde braucht hier nichts, unten ist kein Boden.
+    'Griff_Front'               => 0.0
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -95,7 +98,7 @@ module OberschrankDunstabzug
     b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
     hh = p['Haube_Hoehe']
     t_innen = t - p['Rueckwand_Versatz'] - rw
-    frei = p['Tuer_Frei_Unten']
+    frei = p['Tuer_Frei_Unten'] + p['Griff_Front'].to_f
     abluft = p['Abluft'].to_i == 1
     {
       t_innen: t_innen, # Vorderkante Korpus -> Vorderseite Rückwand
@@ -386,14 +389,14 @@ module OberschrankDunstabzug
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Rueckwand_Versatz Nuttiefe Spaltbreite
-       Rueckversatz_Einlegeboden Strebe_Hoehe].each do |n|
+       Rueckversatz_Einlegeboden Strebe_Hoehe Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
     # --- Abgeleitete Werte ---
     attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: 'Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand')
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
-    attribut(haupt, 'H_Tuer', r[:h_tuer], units: 'STRING', formula: 'Hoehe-Spaltbreite-Tuer_Frei_Unten')
+    attribut(haupt, 'H_Tuer', r[:h_tuer], units: 'STRING', formula: 'Hoehe-Spaltbreite-Tuer_Frei_Unten-Griff_Front')
     attribut(haupt, 'Z_Einlegeboden', r[:z_eb], units: 'STRING',
              formula: '(Haube_Hoehe+Hoehe)/2-Materialstaerke_Korpus/2')
 
@@ -466,7 +469,7 @@ module OberschrankDunstabzug
     sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
     art = p['Art_Tuer'].to_i
     h_f = "#{u}!H_Tuer"
-    z_f = "#{u}!Spaltbreite/2+#{u}!Tuer_Frei_Unten"
+    z_f = "#{u}!Spaltbreite/2+#{u}!Tuer_Frei_Unten+#{u}!Griff_Front"
     z = r[:z_tuer]
 
     t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, r[:h_tuer]],

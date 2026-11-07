@@ -241,6 +241,32 @@ H.erstellen({})
 check(Sketchup.active_model.layers['OS2_TuerR'], 'zweiter Schrank OS2')
 check(Sketchup.active_model.definitions[H::NAME].get_attribute(H::JT_DICT, 'kategorie') == 'Oberschrank', 'JT_Schrank am Schrank')
 
+# --- Grifflose Front (Schrank-CNC setzt Griff_Boden / Griff_Front und zeichnet neu) ---
+def griff_lauf(label, werte, nachher)
+  Sketchup.active_model = Sketchup::Model.new
+  inst = H.erstellen(nachher ? { 'Anz_Einlegeboeden' => 2.0 } : werte.merge('Anz_Einlegeboeden' => 2.0))
+  d = inst.definition
+  werte.each { |k, v| d.set_attribute(H::DICT, k.downcase, v / 2.54) } if nachher
+  w = Knoten.new(inst, d, nil)
+  w.redraw
+  pruefe_geometrie(w, label) unless nachher
+  sichtbar = teile(w).reject { |t2| t2[:hidden] }
+  q = ->(n) { sichtbar.find { |t2| t2[:name] == n }[:q] }
+  gb, gf = werte.fetch('Griff_Boden', 0.0), werte.fetch('Griff_Front', 0.0)
+  check(nahe(q.('Boden')[4], gb), "#{label}: Boden bei z = #{gb} (#{q.('Boden')[4]})")
+  check(nahe(q.('Rückwand')[4], gb + 1.9 - 0.9) && nahe(q.('Rückwand')[5], 70.0), "#{label}: Rückwand in der Bodennut #{q.('Rückwand')[4..5]}")
+  %w[SeiteL SeiteR].each { |s| check(nahe(q.(s)[4], 0) && nahe(q.(s)[5], 70.0), "#{label}: #{s} volle Höhe") }
+  %w[TürL TürR].each { |s| check(nahe(q.(s)[4], 0.1 + gf) && nahe(q.(s)[5], 69.9), "#{label}: #{s} unten #{gf} kürzer #{q.(s)[4..5]}") }
+  eb = sichtbar.select { |t2| t2[:name].start_with?('Einlegeboden') }.sort_by { |t2| t2[:q][4] }
+  fach = (70.0 - 2 * 1.9 - gb) / 3
+  eb.each_with_index { |t2, i| check(nahe(t2[:q][4] + 0.95, gb + 1.9 + fach * (i + 1)), "#{label}: Einlegeboden #{i + 1} gleichmäßig") }
+  check(eb.first[:q][4] > q.('Boden')[5], "#{label}: Einlegeboden über dem Boden")
+end
+[false, true].each do |nachher|
+  griff_lauf("Mulde durchlaufend#{' (nachträglich)' if nachher}", { 'Griff_Boden' => 3.0 }, nachher)
+  griff_lauf("Griffkante#{' (nachträglich)' if nachher}", { 'Griff_Front' => 2.5 }, nachher)
+end
+
 # --- Kurzhilfe in der Komponente ------------------------------------------
 hd = Sketchup.active_model.definitions[H::NAME]
 check(hd.description == H::HILFE_KURZ, 'Hilfe: Beschreibung der Definition')

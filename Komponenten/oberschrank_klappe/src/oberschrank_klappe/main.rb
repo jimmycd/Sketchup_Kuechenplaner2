@@ -77,7 +77,10 @@ module OberschrankKlappe
     'Rueckwand_Versatz'         => 2.5,   # Hinterkante Seite -> Rückseite Rückwand
     'Nuttiefe'                  => 0.9,
     'Spaltbreite'               => 0.2,
-    'Rueckversatz_Einlegeboden' => 1.0    # Einlegeböden vorne zurückgesetzt
+    'Rueckversatz_Einlegeboden' => 1.0,   # Einlegeböden vorne zurückgesetzt
+    # Grifflose Front (setzt Schrank-CNC nach der Öffnung der Küche, siehe README):
+    'Griff_Boden'               => 0.0,   # durchlaufende Mulde: Boden so viel höher, Klappe steht unten über
+    'Griff_Front'               => 0.0    # Griffkante: Klappe (Faltklappe: unteres Teil) unten so viel kürzer
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -91,12 +94,14 @@ module OberschrankKlappe
     mk, rw, sp = p['Materialstaerke_Korpus'], p['Materialstarke_Rueckwand'], p['Spaltbreite']
     b, h, t = p['Breite'], p['Hoehe'], p['Tiefe']
     n_eb = p['Anz_Einlegeboeden'].to_i
+    gb, gf = p['Griff_Boden'].to_f, p['Griff_Front'].to_f
     {
       t_innen: t - p['Rueckwand_Versatz'] - rw, # Vorderkante Korpus -> Vorderseite Rückwand
       b_klappe: b - sp,
-      h_klappe: h - sp,           # HK-top
+      h_klappe: h - sp - gf,      # HK-top
       h_falt: h / 2.0 - sp,       # HF, je Teil (außen sp/2, dazwischen sp)
-      eb: (1..MAX_EB).map { |k| k <= n_eb ? mk + (h - 2 * mk) * k / (n_eb + 1) - mk / 2 : mk }
+      h_falt_u: h / 2.0 - sp - gf, # HF unteres Teil (Griffkante)
+      eb: (1..MAX_EB).map { |k| k <= n_eb ? gb + mk + (h - 2 * mk - gb) * k / (n_eb + 1) - mk / 2 : mk }
     }
   end
 
@@ -314,14 +319,14 @@ module OberschrankKlappe
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Rueckwand_Versatz Nuttiefe Spaltbreite
-       Rueckversatz_Einlegeboden].each do |n|
+       Rueckversatz_Einlegeboden Griff_Boden Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
     # --- Abgeleitete Werte ---
     attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: 'Tiefe-Rueckwand_Versatz-Materialstarke_Rueckwand')
     (1..MAX_EB).each do |k|
-      f = "IF(Anz_Einlegeboeden>=#{k},Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus)*#{k}/" \
+      f = "IF(Anz_Einlegeboeden>=#{k},Griff_Boden+Materialstaerke_Korpus+(Hoehe-2*Materialstaerke_Korpus-Griff_Boden)*#{k}/" \
           "(Anz_Einlegeboeden+1)-Materialstaerke_Korpus/2,Materialstaerke_Korpus)"
       attribut(haupt, "Z_Einlegeboden_#{k}", r[:eb][k - 1], units: 'STRING', formula: f)
     end
@@ -340,7 +345,8 @@ module OberschrankKlappe
 
     innen_b = "#{u}!Breite-2*#{u}!Materialstaerke_Korpus"
     boden = platte(model, 'Boden', 'Boden', [b - 2 * mk, t, mk], [innen_b, "#{u}!Tiefe", "#{u}!Materialstaerke_Korpus"])
-    einsetzen(e, boden, 'Boden', [mk, mk, 0], ["#{u}!Materialstaerke_Korpus", nil, nil], mat: mat, kz: t_.('Boden'))
+    gb = p['Griff_Boden'].to_f
+    einsetzen(e, boden, 'Boden', [mk, mk, gb], ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Griff_Boden"], mat: mat, kz: t_.('Boden'))
 
     # Deckel endet vor der Rückwand
     deckel = platte(model, 'Deckel', 'Deckel', [b - 2 * mk, r[:t_innen], mk],
@@ -349,12 +355,12 @@ module OberschrankKlappe
               ["#{u}!Materialstaerke_Korpus", nil, "#{u}!Hoehe-#{u}!Materialstaerke_Korpus"], mat: mat, kz: t_.('Deckel'))
 
     # Rückwand in der Nut von Seiten und Boden, oben bündig
-    rueck = platte(model, 'Rückwand', 'Rückwand', [b - 2 * mk + 2 * nut, rw, h - mk + nut],
+    rueck = platte(model, 'Rückwand', 'Rückwand', [b - 2 * mk + 2 * nut, rw, h - mk + nut - gb],
                    ["#{u}!Breite-2*#{u}!Materialstaerke_Korpus+2*#{u}!Nuttiefe", "#{u}!Materialstarke_Rueckwand",
-                    "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe"])
-    einsetzen(e, rueck, 'Rückwand', [mk - nut, mk + r[:t_innen], mk - nut],
+                    "#{u}!Hoehe-#{u}!Materialstaerke_Korpus+#{u}!Nuttiefe-#{u}!Griff_Boden"])
+    einsetzen(e, rueck, 'Rückwand', [mk - nut, mk + r[:t_innen], mk - nut + gb],
               ["#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe", "#{u}!Materialstaerke_Korpus+#{u}!T_Innen",
-               "#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe"], mat: mat, kz: t_.('Rueckwand'))
+               "#{u}!Materialstaerke_Korpus-#{u}!Nuttiefe+#{u}!Griff_Boden"], mat: mat, kz: t_.('Rueckwand'))
 
     # --- Einlegeböden ---
     rv = p['Rueckversatz_Einlegeboden']
@@ -400,7 +406,7 @@ module OberschrankKlappe
     # --- HK-top und Free Slim (eine Klappe) ---
     hn = 'KlappeHalter'
     hd = halter(model, 'Klappe Halter', hn,
-                { 'B' => [r[:b_klappe], "#{u}!Breite-#{u}!Spaltbreite"], 'H' => [r[:h_klappe], "#{u}!Hoehe-#{u}!Spaltbreite"],
+                { 'B' => [r[:b_klappe], "#{u}!Breite-#{u}!Spaltbreite"], 'H' => [r[:h_klappe], "#{u}!Hoehe-#{u}!Spaltbreite-#{u}!Griff_Front"],
                   'Mk' => [mk, "#{u}!Materialstaerke_Korpus"] }, -100)
     sichtbarkeit(hd, art != 2, "IF(#{u}!Art_Klappe=2,1,0)")
     kd = platte(model, 'Klappe', 'Klappe', [r[:b_klappe], mk, r[:h_klappe]], ["#{hn}!B", "#{hn}!Mk", "#{hn}!H"])
@@ -412,7 +418,8 @@ module OberschrankKlappe
     on = 'KlappeOHalter'
     od = halter(model, 'Klappe oben Halter', on,
                 { 'B' => [r[:b_klappe], "#{u}!Breite-#{u}!Spaltbreite"], 'H' => [r[:h_falt], "#{u}!Hoehe/2-#{u}!Spaltbreite"],
-                  'Mk' => [mk, "#{u}!Materialstaerke_Korpus"], 'Sp' => [sp, "#{u}!Spaltbreite"] }, -90)
+                  'Mk' => [mk, "#{u}!Materialstaerke_Korpus"], 'Sp' => [sp, "#{u}!Spaltbreite"],
+                  'Gf' => [p['Griff_Front'].to_f, "#{u}!Griff_Front"] }, -90)
     sichtbarkeit(od, art == 2, "IF(#{u}!Art_Klappe=2,0,1)")
     ko = platte(model, 'Klappe oben', 'KlappeO', [r[:b_klappe], mk, r[:h_falt]], ["#{on}!B", "#{on}!Mk", "#{on}!H"],
                 art: 'Klappe')
@@ -420,10 +427,10 @@ module OberschrankKlappe
 
     un = 'KlappeUHalter'
     ud = halter(model, 'Klappe unten Halter', un,
-                { 'B' => [r[:b_klappe], "#{on}!B"], 'H' => [r[:h_falt], "#{on}!H"], 'Mk' => [mk, "#{on}!Mk"] }, 170)
-    ku = platte(model, 'Klappe unten', 'KlappeU', [r[:b_klappe], mk, r[:h_falt]], ["#{un}!B", "#{un}!Mk", "#{un}!H"],
+                { 'B' => [r[:b_klappe], "#{on}!B"], 'H' => [r[:h_falt_u], "#{on}!H-#{on}!Gf"], 'Mk' => [mk, "#{on}!Mk"] }, 170)
+    ku = platte(model, 'Klappe unten', 'KlappeU', [r[:b_klappe], mk, r[:h_falt_u]], ["#{un}!B", "#{un}!Mk", "#{un}!H"],
                 art: 'Klappe')
-    einsetzen(ud.entities, ku, 'KlappeU', [0, 0, -r[:h_falt]], [nil, nil, "-#{un}!H"], mat: mat, kz: t_.('KlappeU'))
+    einsetzen(ud.entities, ku, 'KlappeU', [0, 0, -r[:h_falt_u]], [nil, nil, "-#{un}!H"], mat: mat, kz: t_.('KlappeU'))
     einsetzen(od.entities, ud, un, [0, 0, -r[:h_falt] - sp], [nil, nil, "-#{on}!H-#{on}!Sp"])
     io = einsetzen(e, od, on, pos, pos_f)
     io.hidden = art != 2

@@ -144,7 +144,7 @@ module JTools
       end
 
       # Eingaben übernehmen: wahl = { art => Kennung oder nil (wie Küche) }, griff wie Frontfarbe.anwenden.
-      # Rückgabe: Kürzel der Schränke, deren Schubladen sich nicht anpassen (ältere Version)
+      # Rückgabe: Kürzel der Schränke, die sich nicht anpassen (Schubladen, grifflose Front; ältere Version)
       def anwenden(model, schraenke, wahl, griff: nil)
         nicht = []
         schraenke.each do |s|
@@ -195,8 +195,8 @@ module JTools
             raise
           end
           unless nicht.empty?
-            UI.messagebox("Diese Schränke sind mit einer älteren Version angelegt und passen ihre Schubladen nicht an " \
-                          "den Auszug an: #{nicht.uniq.join(', ')}. Bitte neu anlegen.")
+            UI.messagebox("Diese Schränke sind mit einer älteren Version angelegt und passen sich nicht an den " \
+                          "Auszug oder die grifflose Front an: #{nicht.uniq.join(', ')}. Bitte neu anlegen.")
           end
           Beschlagmodell.nachziehen(model) if defined?(Beschlagmodell)
           if defined?(Griffmodell)
