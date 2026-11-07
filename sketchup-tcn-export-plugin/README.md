@@ -74,6 +74,10 @@ Bearbeitungen auf beiden Flächen (Mittelwand: Schienen zur einen, Lochreihe zur
 2. **Teil zuweisen…** (auch im Kontextmenü) – den Schrank öffnen, ein oder mehrere Teile (Komponenten, Gruppen werden umgewandelt) wählen: Teil (Seite links/rechts, Mittelwand, Boden, Deckel, Streben, Zwischen-/Einlegeboden, Rückwand, Tür, Klappe, Front, Blende, Kastenboden, Kastenrückwand, Innenfront, Wange, Leiste, Sockelblende), Bereich (z. B. S1 für eine Schublade), Material (Standard *Melamin weiss*), Anleimer je Richtung (vorn, hinten, oben, unten, links, rechts; die Hauptflächen bekommen nie einen) und bei Seiten/Mittelwänden **Lochreihe ja/nein**. Der Tag `<Kürzel>_<Bereich>_<Teil>` entsteht automatisch und eindeutig (Einlegeboden, Einlegeboden2 …).
 3. **Schrank prüfen** – meldet Teile ohne Rolle (fehlen sonst in Stückliste und TCN), Teile ohne Plattenmaterial, Formteile ohne Kontur, schräg liegende Teile, doppelte Tags, Überschneidungen sowie Schubladen ohne Bereich, Front oder Kastenrückwand. Dieselben Meldungen zeigt der Export.
 
+**Bibliothek eigener Schränke:** *Als eigenen Schrank speichern…* legt den gewählten freien (oder gelösten) Schrank als `<Name>.skp` mit `<Name>.json` (Version, Datum, Kategorie, Maße, Beschreibung) im Bibliotheksordner ab (Standard `E:\sketchup komponenten\Bibliothek`, änderbar über *Bibliotheksordner…*). Erneut gespeichert zählt die Version hoch, die vorige Fassung kommt nach `alt/<Name>_v<n>.skp`. *Eigenen Schrank einfügen…* lädt ihn in die aktuelle Küche, gibt ihm ein neues Kürzel (FS2, FS3 …, alle Tags umbenannt) und dockt ihn an. *Freier Schrank…* steht auch in den Menüs Unter-, Ober- und Hochschränke und in der Schrank-Auswahl der Symbolleiste.
+
+**Schrank lösen:** *Schrank lösen (frei bearbeiten)…* macht einen fertigen Schrank (z. B. USS1) frei bearbeitbar: eigene Definition, die Formeln der Komponentenoptionen werden entfernt (Maße bleiben, nichts zeichnet sich mehr neu), Kürzel und Tags bleiben. Danach gehen Teil zuweisen, Einsetzen und Speichern wie beim freien Schrank.
+
 Die Bearbeitungen entstehen wie bei allen Schränken aus Rolle und Lage: Dübel, wo Böden/Streben an Seiten stoßen, Nut für die Rückwand, Lochreihen je Fach, Schienen und Frontbefestigung je Schublade (Bereich), Topfbänder für Türen in einem „…Halter“, Beschläge aus dem globalen Beschlagkatalog. Eine Mittelwand zwischen durchlaufendem Boden und Deckel bekommt die Lochreihen auf beiden Flächen. Ein freier Schrank ist nicht parametrisch (keine Maßänderung über Komponentenoptionen).
 
 ## Schrank andocken
@@ -310,6 +314,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
 * `src/jt_schrank_cnc/freier_schrank.rb` – freier Schrank: kennzeichnen, Teil zuweisen, prüfen
 * `src/jt_schrank_cnc/freier_korpus.rb` – freier Schrank: Korpus anlegen, Mittelwand, Böden, Türen, Schubladen, Blenden
+* `src/jt_schrank_cnc/freier_bibliothek.rb` – Bibliothek eigener Schränke (speichern, Versionen, einfügen), Schrank lösen
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – TCN-Export (Dateien, Nummern)

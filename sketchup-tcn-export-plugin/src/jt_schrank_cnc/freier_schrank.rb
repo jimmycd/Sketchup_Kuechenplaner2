@@ -65,13 +65,18 @@ module JTools
         inst && Schraenke.definition(inst).get_attribute(JT_DICT, 'schrank') ? true : false
       end
 
+      # freier Schrank (typ Frei) oder gelöster Schrank aus einer Komponente (JT_Schrank/frei)
       def frei?(inst)
-        schrank?(inst) && Schraenke.definition(inst).get_attribute(JT_DICT, 'typ') == TYP
+        return false unless schrank?(inst)
+        d = Schraenke.definition(inst)
+        d.get_attribute(JT_DICT, 'typ') == TYP || d.get_attribute(JT_DICT, 'frei') == true
       end
 
       # Freies Kürzel FS1, FS2 …: weder als Tag-Anfang noch an einem Schrank vergeben
-      def freies_kuerzel(model)
-        belegt = model.definitions.to_a.map { |d| d.get_attribute(JT_DICT, 'schrank') }.compact
+      # (ausser: Schrank, dessen eigenes Kürzel nicht zählt, z. B. gerade eingefügt)
+      def freies_kuerzel(model, ausser: nil)
+        eigen = ausser && Schraenke.definition(ausser)
+        belegt = model.definitions.to_a.reject { |d| d.equal?(eigen) }.map { |d| d.get_attribute(JT_DICT, 'schrank') }.compact
         n = 1
         n += 1 while belegt.include?("#{KUERZEL}#{n}") || model.layers.to_a.any? { |l| l.name.start_with?("#{KUERZEL}#{n}_") }
         "#{KUERZEL}#{n}"
