@@ -40,6 +40,7 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 ## Weitere Unterlagen
 
 * [Beschläge und Montageanleitungen](beschlaege.md): welche Herstellerunterlagen den Plänen zugrunde liegen.
+* [Blum-Beschläge für die Küche](blum-beschlaege-kueche.md): alle küchentauglichen Blum-Beschläge aus dem Katalog 2024/2025 mit Seite, markiert was im Plugin schon abgebildet ist.
 * Jürgens Original-Oberschränke (`Oberschrank.skp`, `Oberschrank_Doppeltuer.skp`), aus denen die Oberschrank-Komponente entstanden ist: [`Komponenten/oberschrank/vorlagen/`](../Komponenten/oberschrank/vorlagen/).
 * Die Beispiel-TCN-Dateien liegen unter [`sketchup-tcn-export-plugin/beispiele/`](../sketchup-tcn-export-plugin/beispiele/).
 
