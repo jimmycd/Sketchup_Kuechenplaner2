@@ -296,5 +296,73 @@ rescue ArgumentError
   check(true, '')
 end
 
+# --- 5. Schritt 3: Bibliothek (speichern, Versionen, einfügen) und Schrank lösen ---
+require 'tmpdir'
+$gespeichert = {}
+module Sketchup
+  class ComponentDefinition
+    def save_as(pfad)
+      File.write(pfad, 'skp')
+      $gespeichert[pfad] = self
+      true
+    end
+  end
+  class Definitions
+    def load(pfad) = $gespeichert.fetch(pfad) # wie SketchUp bei schon geladener Datei: dieselbe Definition
+  end
+end
+Dir.mktmpdir do |bib|
+  model = Sketchup.active_model = Sketchup::Model.new
+  us = F.anlegen(model, kategorie: 'Unterschrank', breite: 800, hoehe: 720, tiefe: 560, name: 'Regal')
+  F.mittelwand(model, us)
+  F.schublade(model, us, fach: 2, hoehe: 300)
+  e = F.speichern(model, us, name: 'Mein Regal', beschreibung: 'Test', ordner: bib)
+  check(File.exist?(File.join(bib, 'Mein Regal.skp')) && File.exist?(File.join(bib, 'Mein Regal.json')), 'Bibliothek: .skp und .json geschrieben')
+  check(e['version'] == 1 && e['kategorie'] == 'Unterschrank' && [e['breite'], e['hoehe']] == [800, 720], "Eintrag: #{e}")
+  e2 = F.speichern(model, us, name: 'Mein Regal', ordner: bib)
+  check(e2['version'] == 2 && File.exist?(File.join(bib, 'alt', 'Mein Regal_v1.skp')), 'erneut gespeichert: Version 2, alte Fassung in alt/')
+  liste = F.bibliothek(bib)
+  check(liste.size == 1 && liste.first['version'] == 2, "Bibliothek listet einen Schrank in Version 2 (#{liste})")
+  neu = F.einfuegen(model, liste.first['datei'])
+  kz = S::Schraenke.definition(neu).get_attribute(S::JT_DICT, 'schrank')
+  check(kz == 'FS2' && !neu.definition.equal?(us.definition), "eingefügt mit neuem Kürzel FS2 und eigener Definition (#{kz})")
+  tags_neu = S::Schraenke.teile(model).select { |t| t.schrank.equal?(neu) }.map(&:name)
+  tags_alt = S::Schraenke.teile(model).select { |t| t.schrank.equal?(us) }.map(&:name)
+  check(tags_neu.sort == tags_alt.map { |t| t.sub('FS1_', 'FS2_') }.sort && tags_neu.all? { |t| t.start_with?('FS2_') }, "Tags umbenannt: #{tags_neu.first(3)}")
+  check(tags_alt.all? { |t| t.start_with?('FS1_') }, 'Original behält FS1')
+  check(F.pruefen(model, neu).empty?, "eingefügter Schrank ohne Meldung: #{F.pruefen(model, neu)}")
+  check(neu.definition.entities.instances.any? { |i| i.layer&.name == 'FS2_S1_Schublade' }, 'Schubladen-Tag umbenannt')
+  dat, = S::Export.erzeugen(model)
+  check(dat.any? { |x| x.name == 'FS2_Mittelwand' } && dat.any? { |x| x.name == 'FS1_Mittelwand' }, 'beide Schränke im Export')
+  begin
+    F.speichern(model, us, name: '  ', ordner: bib)
+    check(false, 'leerer Name abgelehnt')
+  rescue ArgumentError
+    check(true, '')
+  end
+end
+
+# Schrank lösen: Unterschrank mit Schubladen wird frei bearbeitbar, Export bleibt gleich
+model = Sketchup.active_model = Sketchup::Model.new
+d = UnterschrankSchubladen.erzeuge(model, UnterschrankSchubladen::DEFAULTS.dup)
+uss = model.entities.add_instance(d, Geom::Transformation.new)
+vorher = bearbeitungen(model)
+check(!F.frei?(uss), 'Komponente ist nicht frei')
+F.loesen(model, uss)
+check(F.frei?(uss), 'gelöst: frei')
+formeln = F.alle_instanzen(uss.definition.entities).flat_map { |i| [i, i.definition] }.uniq.sum do |x|
+  (x.attribute_dictionary('dynamic_attributes') || {}).keys.count { |k| k.to_s.end_with?('_formula') }
+end
+check(formeln.zero?, "keine DC-Formeln mehr (#{formeln})")
+check(bearbeitungen(model) == vorher, 'gelöster Schrank: gleiche Bearbeitungen')
+F.einlegeboden(model, uss) rescue nil
+check(F.pruefen(model, uss).none? { |m| m.include?('keine Rolle') }, "gelöster Schrank: Prüfen geht (#{F.pruefen(model, uss)})")
+
+# Freier Schrank im Menü der Schrankgruppen: Dialog mit Tiefe Korpus, Maße am Schrank
+model = Sketchup.active_model = Sketchup::Model.new
+F.anlegen(model, kategorie: 'Oberschrank', breite: 600, hoehe: 720, tiefe: 400)
+t = model.entities.grep(Sketchup::ComponentInstance).last.definition.get_attribute('dynamic_attributes', 'tiefe')
+check(t && (t * 25.4 - 400).abs < 1e-6, "Tiefe am Schrank (#{t})")
+
 puts $fehler.zero? ? 'test_freier_schrank: alles OK' : "test_freier_schrank: #{$fehler} Fehler"
 exit($fehler.zero? ? 0 : 1)
