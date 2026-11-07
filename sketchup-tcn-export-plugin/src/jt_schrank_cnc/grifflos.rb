@@ -1,13 +1,15 @@
 # encoding: UTF-8
 # Schrank-CNC – Griffkante und durchlaufende Griffmulde (grifflose Fronten, Jürgen 2026-11-07, Bild 2
-# und 3 im Plan „Grifflose Fronten“, Schritt 2: Oberschränke).
+# und 3 im Plan „Grifflose Fronten“, Schritt 2: Oberschränke, Schritt 3: Unterschränke).
 #
 # Öffnung „Griffkante 45°“ (Katalog griffkante): die unterste Front eines Oberschranks ist unten um
 # „luft“ kürzer und hat auf der Rückseite an der Unterkante eine Fase 45° (Werkzeug 1400 Folding 45°,
-# Tiefe „fase“, von innen wie die Griffbohrungen). Öffnung „Griffmulde durchlaufend“ (Katalog
-# griffmulde_durchlaufend): der Boden des Oberschranks sitzt um „oberschrank“ höher, die Front steht
-# unten über (Rückwand und Einlegeböden rücken mit). Unterschränke folgen mit Schritt 3 und behalten
-# bis dahin ihre Griffe, Hochschränke sind ausgenommen (Jürgen).
+# Tiefe „fase“, von innen wie die Griffbohrungen). Im Unterschrank hat jede Front (Tür, Schublade,
+# Gerätefront) oben „luft“ Platz und die Fase an der Oberkante; feste Blenden bleiben.
+# Öffnung „Griffmulde durchlaufend“ (Katalog griffmulde_durchlaufend): der Boden des Oberschranks
+# sitzt um „oberschrank“ höher, die Front steht unten über (Rückwand und Einlegeböden rücken mit).
+# Unterschränke mit durchlaufender Mulde folgen (Schritt 3b) und behalten bis dahin ihre Griffe,
+# Hochschränke sind ausgenommen (Jürgen).
 #
 # Die Komponenten haben dafür die Attribute Griff_Front (Front kürzer) und Griff_Boden (Boden höher,
 # cm wie alle Längen); Schrank-CNC setzt sie nach der Öffnung der Küche oder des Schranks und zeichnet
@@ -29,7 +31,8 @@ module JTools
       DC_DICT = 'dynamic_attributes'.freeze
       JT_DICT = 'JT_Schrank'.freeze
       TITEL = 'Griffkante'.freeze
-      KATEGORIEN = %w[Oberschrank].freeze # Unterschränke folgen (Schritt 3)
+      # Schrankarten je Öffnung (durchlaufende Mulde im Unterschrank folgt mit Schritt 3b)
+      KATEGORIEN = { kante: %w[Oberschrank Unterschrank], durchlaufend: %w[Oberschrank] }.freeze
       ATTRIBUTE = %w[griff_boden griff_front].freeze
       # Bezeichnungen im Einstellungsfenster
       FELDER = {
@@ -97,16 +100,18 @@ module JTools
 
       # Schrank mit grifflosen Fronten statt Griffen (Regeln.griffe)
       def schrank?(teile)
-        art && !teile.empty? && KATEGORIEN.include?(Schraenke.kategorie(teile.first.teil)) ? true : false
+        a = art
+        a && !teile.empty? && KATEGORIEN[a].include?(Schraenke.kategorie(teile.first.teil)) ? true : false
       end
 
       # Sollwerte der Komponenten-Attribute (mm) für einen Schrank
       def soll(s, model = nil)
         a = art(Beschlagkatalog.gewaehlt('oeffnung', model, schrank: s))
         m = masse(model)
-        ober = KATEGORIEN.include?(kategorie_von(s).to_s)
-        { 'griff_boden' => ober && a == :durchlaufend ? m['oberschrank'] : 0.0,
-          'griff_front' => ober && a == :kante ? m['luft'] : 0.0 }
+        kat = kategorie_von(s).to_s
+        passt = a && KATEGORIEN[a].include?(kat)
+        { 'griff_boden' => passt && a == :durchlaufend ? m['oberschrank'] : 0.0,
+          'griff_front' => passt && a == :kante ? m['luft'] : 0.0 }
       end
 
       # Einen Schrank anpassen: :alt (ältere Version ohne Griff_*, braucht aber welche), :gleich, :neu
@@ -133,38 +138,41 @@ module JTools
       end
 
       # ---------------------------------------------------------------------
-      # Regel: Fase „Griffkante“ an der untersten Front (Regeln.schrank_anwenden)
+      # Regel: Fase „Griffkante“ an der untersten Front des Oberschranks, an jeder Front des
+      # Unterschranks oben (Regeln.schrank_anwenden)
       # ---------------------------------------------------------------------
       def regeln(teile, meldungen)
         return unless art == :kante && schrank?(teile)
         m = masse
+        oben = Schraenke.kategorie(teile.first.teil) == 'Unterschrank'
         korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
         fronten = teile.select { |w| Griffmulde.front?(w) }
         fronten.each do |w|
-          next if fronten.any? { |u| !u.equal?(w) && Griffmulde.darunter?(u, w) }
+          next if !oben && fronten.any? { |u| !u.equal?(w) && Griffmulde.darunter?(u, w) }
           dicke = w.mass(w.dicke_achse)
           if dicke < m['fase'] + 3
             meldungen << "#{w.name}: Front zu dünn für die Griffkante (#{Tcn.n(dicke)} mm)"
             next
           end
-          w.ops << op(w, korpus, m['fase'])
+          w.ops << op(w, korpus, m['fase'], oben)
         end
       end
 
-      # Fase an der Unterkante auf der Seite zum Korpus, Bahn über die ganze Breite und darüber hinaus
-      def op(w, korpus, fase)
+      # Fase an der Unter- (oben = false) oder Oberkante auf der Seite zum Korpus, Bahn über die ganze
+      # Breite und darüber hinaus
+      def op(w, korpus, fase, oben = false)
         da = w.dicke_achse
         wa = Griffmulde.quer_achse(w)
         korpus = [w] if korpus.empty?
         km = korpus.sum { |k| k.lo[da] + k.hi[da] } / (2.0 * korpus.size)
         hinten = km > (w.lo[da] + w.hi[da]) / 2.0
         fl = hinten ? w.hi[da] : w.lo[da]
-        z = w.lo_f(2) # Spitze auf der Kante der gefrästen Platte (ohne Anleimer, falls einer da ist)
+        z = oben ? w.hi_f(2) : w.lo_f(2) # Spitze auf der Kante der gefrästen Platte (ohne Anleimer)
         u = FASE[:ueberlauf]
         p0 = Regeln.punkt(da => fl, wa => w.lo[wa] - u, 2 => z)
         p1 = Regeln.punkt(da => fl, wa => w.hi[wa] + u, 2 => z)
         Regeln::Op.new(:fase, :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}", p0, p1, nil, fase, nil, nil, TITEL,
-                       { werkzeug: FASE[:werkzeug], quer: wa, innen: hinten ? -1 : 1 })
+                       { werkzeug: FASE[:werkzeug], quer: wa, innen: hinten ? -1 : 1, oben: oben })
       end
 
       # ---------------------------------------------------------------------
@@ -181,9 +189,12 @@ module JTools
         f = o.tiefe
         innen = o.daten[:innen] # Richtung von der Innenseite in die Front
         fl = o.p0[da]
-        # Querschnitt (Dicke, z): Rechteck mit abgeschrägter Ecke innen unten
+        # Querschnitt (Dicke, z): Rechteck mit abgeschrägter Ecke innen unten (Oberschrank) oder oben
         aussen = fl + innen * w.mass(da)
-        q = [[aussen, w.lo[2]], [fl + innen * f, w.lo[2]], [fl, w.lo[2] + f], [fl, w.hi[2]], [aussen, w.hi[2]]]
+        z0, z1 = o.daten[:oben] ? [w.hi[2], w.lo[2]] : [w.lo[2], w.hi[2]]
+        r = z1 > z0 ? 1 : -1
+        q = [[aussen, z0], [fl + innen * f, z0], [fl, z0 + r * f], [fl, z1], [aussen, z1]]
+        q.reverse! if r.negative? # gleicher Umlaufsinn wie unten
         inv = Beschlagmodell.invers(Geometrie.welt(w.teil.pfad))
         lok = lambda do |(t, z), x|
           Geometrie.punkt(inv, Regeln.punkt(da => t, wa => x, 2 => z).map { |v| v / Geometrie::MM }).map { |v| v.round(5) }
@@ -191,8 +202,9 @@ module JTools
         a = q.map { |p| lok.(p, w.lo[wa]) }
         b = q.map { |p| lok.(p, w.hi[wa]) }
         n = q.size
-        # Seitenflächen: Kante 0 unten (Anleimer), 1 Fase (ohne), 2 innen (Fläche), 3 oben, 4 außen (Fläche)
-        art = [:kante, :fase, :seite, :kante, :seite]
+        # Seitenflächen: Kante 0 unten (Anleimer), 1 Fase (ohne), 2 innen (Fläche), 3 oben, 4 außen (Fläche);
+        # Fase oben (umgedreht): 0 unten, 1 innen, 2 Fase, 3 oben, 4 außen
+        art = r.negative? ? %i[kante seite fase kante seite] : %i[kante fase seite kante seite]
         fl = [[a, :kante], [b.reverse, :kante]] + (0...n).map { |i| [[a[i], a[(i + 1) % n], b[(i + 1) % n], b[i]], art[i]] }
         sig = 'fase|' + fl.map { |pts, _| pts.flatten.map { |v| v.round(3) }.join(',') }.join('|')
         [fl, sig]

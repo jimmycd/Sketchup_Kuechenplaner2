@@ -48,6 +48,9 @@ An jedem Teil außer den Behältern steht das Wörterbuch `JT_Schrank` mit `schr
 ## TCN-Export (Plugin Schrank-CNC)
 Ohne Änderung am Plugin, wie beim Unterschrank mit Schubladen: Dübel der Böden und Streben, Rückwand, Sockelfüße im Boden, LEGRABOX-Schienenbohrungen je Kasten in beiden Seiten (Nennlänge aus `NL`), Frontbefestigung und Bodenfalz. Keine Lochreihen (Fach mit Auszug). Die Behälter haben kein `JT_Schrank` und werden übergangen.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: Auszug und obere Schublade sind oben je so viel kürzer; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_abfall/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

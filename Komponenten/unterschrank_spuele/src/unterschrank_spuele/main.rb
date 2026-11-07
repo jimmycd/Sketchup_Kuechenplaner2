@@ -101,7 +101,9 @@ module Spuelenschrank
     'Lochraster_Start'          => 3.5,
     'Lochraster'                => 3.2,
     'Kasten_Abstand_unten'      => 3.0,
-    'Auszug_Anteil'             => 0.8
+    'Auszug_Anteil'             => 0.8,
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Türen bzw. Auszugsfront oben so viel kürzer
+    'Griff_Front'               => 0.0
   }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -150,7 +152,7 @@ module Spuelenschrank
       t_korpus: p['Rueckwand_Versatz'] > 0 ? t + rw : t, # Länge Seiten und Boden
       b_tuer1: b - sp,
       b_tuer2: b / 2.0 - sp,
-      h_auszug: h - p['Hoehe_Blende'] - sp,              # Front des Auszugs
+      h_auszug: h - p['Hoehe_Blende'] - sp - p['Griff_Front'].to_f, # Front des Auszugs
       nl: nennlaenge(t_innen),
       ab: ab,                                            # Unterkante Kasten
       hrw: [[z_max - ab - p['Materialstaerke_Kastenboden'],
@@ -402,7 +404,7 @@ module Spuelenschrank
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Nuttiefe BreiteStreben Spaltbreite
        Materialstaerke_Kastenboden Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Hoehenoffset_Schiene
-       Lochraster_Start Lochraster Kasten_Abstand_unten].each do |n|
+       Lochraster_Start Lochraster Kasten_Abstand_unten Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
@@ -410,7 +412,7 @@ module Spuelenschrank
     # --- Abgeleitete Werte ---
     attribut(haupt, 'T_Innen', r[:t_innen], units: 'STRING', formula: "Tiefe-#{f_versatz}")
     attribut(haupt, 'B_Tuer2', r[:b_tuer2], units: 'STRING', formula: 'Breite/2-Spaltbreite')
-    attribut(haupt, 'H_Auszug', r[:h_auszug], units: 'STRING', formula: 'Hoehe-Hoehe_Blende-Spaltbreite')
+    attribut(haupt, 'H_Auszug', r[:h_auszug], units: 'STRING', formula: 'Hoehe-Hoehe_Blende-Spaltbreite-Griff_Front')
     # Nennlänge der LEGRABOX-Schiene aus der lichten Tiefe bis zur Rückwand
     # (Formeln am selben Bauteil nie auf andere Formel-Attribute stützen: SketchUp rechnet sie nur
     # einmal und der Reihe nach, NL käme sonst vor T_Innen dran und bliebe nach einer Tiefenänderung alt)
@@ -510,10 +512,11 @@ module Spuelenschrank
   # eine (Anschlag links) oder zwei, nur bei Frontvariante 0
   def self.tueren(model, e, p, r, mat, t_)
     u = NAME
-    sp, mk, b, h = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite'], p['Hoehe']
+    sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
+    h = p['Hoehe'] - p['Griff_Front'].to_f
     tuer = p['Frontvariante'].to_i == 0
     art = p['Art_Tuer'].to_i
-    h_f = "#{u}!Hoehe"
+    h_f = "#{u}!Hoehe-#{u}!Griff_Front"
 
     t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, h],
                 ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", h_f])

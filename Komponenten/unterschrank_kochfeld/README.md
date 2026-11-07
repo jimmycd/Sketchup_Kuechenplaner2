@@ -56,6 +56,9 @@ Arbeitsplatte, Kochfeldausschnitt in der Platte und Sockelblende gehören wie be
 ## Nische für die Geräte-Darstellung
 Am Schrank steht das Wörterbuch `JT_Nische` (Stand beim Erzeugen, Maße in mm): `nische` = KF, `geraet` = KochfeldAbzug80 (nach Breite), `breite` (lichte Weite), `hoehe` (= Höhe Blende), `tiefe`, Einfügepunkt `x`/`y`/`z` vorne links auf der Korpusoberkante, dazu `lueftung` (Umluft/Abluft), `installationstiefe`, `kanal_breite`, `kanal_lage`, `kanal_x` (linke Kante des Ausschnitts ab Außenkante Schrank) und `arbeitsplatte`. Daran richtet sich der Platzhalter „Kochfeld mit Abzug“ aus. Geräte haben kein Plattenmaterial und kein `JT_Schrank`, Stückliste und TCN bleiben davon unberührt.
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Blende bleibt, jede Schubladenfront darunter ist um ihren Anteil kürzer, über jeder Front bleibt so viel Luft; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/unterschrank_kochfeld/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 

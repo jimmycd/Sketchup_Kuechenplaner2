@@ -90,6 +90,7 @@ module Eckschrank
     'Materialstarke_Rueckwand'  => 0.8,
     'BreiteStreben'             => 10.0,
     'Spaltbreite'               => 0.2,
+    'Griff_Front'               => 0.0,  # Griffkante: Luft über den Fronten (Schrank-CNC setzt sie)
     'Rueckversatz_Einlegeboden' => 1.0   # Einlegeböden vorne zurückgesetzt
   }.freeze
   DEFAULTS = FEST.merge(
@@ -458,9 +459,10 @@ module Eckschrank
   # Fugen wie beim Unterschrank mit Tür: außen Spalt/2, dazwischen Spalt.
   def self.fronten(model, e, p, r, mat, t_)
     u = NAME
-    sp, mk, b, h, tb = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite'], p['Hoehe'], r[:tb]
+    sp, mk, b, tb = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite'], r[:tb]
+    h = p['Hoehe'] - p['Griff_Front'].to_f
     variante = p['Variante'].to_i
-    h_f = "#{u}!Hoehe"
+    h_f = "#{u}!Hoehe-#{u}!Griff_Front"
     mk_f = "#{u}!Materialstaerke_Korpus"
 
     # Blende über dem Blindteil (Rolle Front, bekommt Frontfarbe, aber keinen Griff)
@@ -639,7 +641,7 @@ module Eckschrank
 
     # Falttür: Tür A (TuerR) vor Schenkel A und Tür B (TuerL) vor Schenkel B enden je mit einer
     # halben Fuge vor der Außenseite der anderen; verbunden mit dem Blum Eckschrank-Falttürscharnier
-    falttuer(model, e, p, m, mat, t_, h_f)
+    falttuer(model, e, p, m, mat, t_, "#{u}!Hoehe-#{u}!Griff_Front")
     haupt
   end
 
@@ -688,7 +690,8 @@ module Eckschrank
   end
 
   def self.falttuer(model, e, p, m, mat, t_, h_f)
-    mk, h = p['Materialstaerke_Korpus'], p['Hoehe']
+    mk = p['Materialstaerke_Korpus']
+    h = p['Hoehe'] - p['Griff_Front'].to_f
     f = falttuer_lage(p, m)
     tuer = lambda do |name, halter, (versatz, groesse)|
       art = name == 'TürR' ? 'Tür' : 'TürB'

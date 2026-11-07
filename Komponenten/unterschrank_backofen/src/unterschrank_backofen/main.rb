@@ -175,7 +175,9 @@ module UnterschrankBackofen
     'Lochraster'                  => 3.2,
     'Kasten_Abstand_unten'        => 3.0,  # Unterkante Front -> Unterkante Kasten
     'Kasten_Abstand_oben'         => 1.0,  # Oberkante Kasten -> Unterkante Einbauboden
-    'Auszug_Anteil'               => 0.8   # Animation: Auszugsweg = Kastentiefe * Anteil
+    'Auszug_Anteil'               => 0.8,  # Animation: Auszugsweg = Kastentiefe * Anteil
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Schubladenfront unter dem Ofen oben so viel kürzer
+    'Griff_Front'                 => 0.0
   }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -415,7 +417,7 @@ module UnterschrankBackofen
     # --- Feste Maße (wie beim Unterschrank mit Tür über Attribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Spaltbreite
        Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Kasten_Abstand_unten Kasten_Abstand_oben
-       Lochraster_Start Lochraster].each do |n|
+       Lochraster_Start Lochraster Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     # Nennlänge der LEGRABOX-Schiene: größte NL (35 … 65 cm, 5er-Schritte) mit NL + 3 mm <= Tiefe
@@ -498,7 +500,7 @@ module UnterschrankBackofen
     mb   = p['Materialstaerke_Kastenboden']
     mrw  = p['Materialstaerke_Kastenrueckwand']
     nl   = r[:nl]
-    hf   = r[:h_front]
+    hf   = r[:h_front] - p['Griff_Front'].to_f
     lw   = b - 2 * mk
     ab   = kasten_unten(p)
     kh   = [r[:z_einbauboden] - mk - p['Kasten_Abstand_oben'] - ab, 2.0].max # Kastenhöhe, mind. 2 cm
@@ -510,7 +512,7 @@ module UnterschrankBackofen
     d.set_attribute(DICT, '_name', s)
     # Lokale Kopien der Werte vom Schrank (Formeln können nur Eltern/Geschwister ansprechen)
     attribut(d, 'Breite', b, units: 'STRING', formula: "#{u}!Breite")
-    attribut(d, 'Hoehe_Front', hf, units: 'STRING', formula: "#{u}!H_Front")
+    attribut(d, 'Hoehe_Front', hf, units: 'STRING', formula: "#{u}!H_Front-#{u}!Griff_Front")
     attribut(d, 'Mk', mk, units: 'STRING', formula: "#{u}!Materialstaerke_Korpus")
     attribut(d, 'Spalt', sp, units: 'STRING', formula: "#{u}!Spaltbreite")
     attribut(d, 'Mb', mb, units: 'STRING', formula: "#{u}!Materialstaerke_Kastenboden")

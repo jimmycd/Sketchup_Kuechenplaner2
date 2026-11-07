@@ -1,5 +1,6 @@
-# Test ohne SketchUp: Griffkante 45° und durchlaufende Griffmulde (grifflose Fronten, Schritt 2 Oberschränke):
-# Katalog, Maße, Komponenten-Attribute setzen, Fase im TCN, Flächen im Modell, ältere Schränke, Unterschrank behält Griffe.
+# Test ohne SketchUp: Griffkante 45° und durchlaufende Griffmulde (grifflose Fronten, Schritt 2 Oberschränke,
+# Schritt 3 Griffkante Unterschränke): Katalog, Maße, Komponenten-Attribute setzen, Fase im TCN, Flächen im Modell,
+# ältere Schränke, Unterschrank mit durchlaufender Mulde behält vorerst Griffe.
 $LOAD_PATH.unshift(__dir__)
 require 'sketchup_mock'
 
@@ -91,7 +92,8 @@ check(K.nicht_angepasst.empty?, "alle Schränke passen sich an (#{K.nicht_angepa
 ober.each { |s| check(dc.(s, 'griff_front') == 25.0, "#{s.definition.name}: Griff_Front 25 mm (#{dc.(s, 'griff_front')})") }
 [os, ok, oe].each { |s| check(dc.(s, 'griff_boden') == 0.0, "#{s.definition.name}: Griff_Boden 0 bei Griffkante") }
 check(dc.(od, 'griff_boden').nil?, 'Dunstabzug hat keinen Boden zum Verschieben')
-check(dc.(hs, 'griff_front').nil? && dc.(uss, 'griff_front').nil?, 'Hoch- und Unterschrank unverändert')
+check(dc.(hs, 'griff_front').nil?, 'Hochschrank unverändert')
+check(dc.(uss, 'griff_front') == 25.0, "Unterschrank: Griff_Front 25 mm (#{dc.(uss, 'griff_front')})")
 
 # Wahl durchlaufende Mulde: Boden 30 höher, Front wieder voll
 K.waehlen('oeffnung', 'griffmulde_durchlaufend', model)
@@ -99,6 +101,7 @@ K.waehlen('oeffnung', 'griffmulde_durchlaufend', model)
   check(dc.(s, 'griff_boden') == 30.0 && dc.(s, 'griff_front') == 0.0, "#{s.definition.name}: Mulde durchlaufend Boden 30, Front voll")
 end
 check(dc.(od, 'griff_front') == 0.0, 'Dunstabzug: durchlaufende Mulde ändert nichts')
+check(dc.(uss, 'griff_front') == 0.0, 'Unterschrank: durchlaufende Mulde (folgt) lässt die Fronten voll')
 # geänderte Maße
 L.setzen({ 'fase' => 10.0, 'luft' => 20.0, 'oberschrank' => 40.0 }, model)
 L.kueche_anpassen(model)
@@ -113,7 +116,7 @@ K.schrank_waehlen(os, 'oeffnung', nil, model)
 check(dc.(os, 'griff_boden') == 30.0, 'wieder wie Küche')
 # zurück auf Griffe: alles auf 0
 K.waehlen('oeffnung', 'griffe', model)
-check(ober.all? { |s| [dc.(s, 'griff_boden'), dc.(s, 'griff_front')].compact.all?(&:zero?) }, 'Griffe: alles zurück')
+check((ober + [uss]).all? { |s| [dc.(s, 'griff_boden'), dc.(s, 'griff_front')].compact.all?(&:zero?) }, 'Griffe: alles zurück')
 
 # ältere Schränke ohne Griff_* werden genannt
 alt = Oberschrank.erstellen({})
@@ -131,7 +134,8 @@ model.entities.instances.delete(neu)
 model = Sketchup.active_model = Sketchup::Model.new
 G.waehlen('H2585', 'schwarz matt', model)
 K.waehlen('oeffnung', 'griffkante', model)
-uss = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 52.0, 'Anz_Schubladen' => 2, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0 })
+uss = UnterschrankSchubladen.erstellen({ 'Breite' => 60.0, 'Tiefe' => 52.0, 'Anz_Schubladen' => 2, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0,
+                                        'Griff_Front' => 2.5 })
 os = Oberschrank.erstellen({ 'Art_Tuer' => 2.0, 'Breite' => 60.0, 'Griff_Front' => 2.5 })
 ok = OberschrankKlappe.erstellen({ 'Art_Klappe' => 2.0, 'Hoehe' => 72.0, 'Griff_Front' => 2.5 })
 hs = Hochschrank.erstellen({})
@@ -147,7 +151,13 @@ check(tf.size == 2 && tf.all? { |w| fase.(w) && !griff.(w) }, "Oberschrank: beid
 check(tf.all? { |w| (w.lo[2] - (os.transformation.origin.to_a[2] * 25.4 + 26.0)).abs < 0.01 }, "Türen unten 25 kürzer (#{tf.map { |w| w.lo[2].round(1) }})")
 kf = fronten.(ok)
 check(kf.size == 2 && kf.count { |w| fase.(w) } == 1 && fase.(kf.min_by { |w| w.lo[2] }), "Faltklappe: nur das untere Teil mit Fase (#{kf.map { |w| [w.name, !fase.(w).nil?] }})")
-check(fronten.(uss).all? { |w| griff.(w) && !fase.(w) }, 'Unterschrank behält Griffe (Schritt 3)')
+uf = fronten.(uss)
+check(uf.size == 2 && uf.all? { |w| fase.(w) && !griff.(w) }, "Unterschrank: jede Schublade mit Fase, ohne Griff (#{uf.map { |w| [w.name, !fase.(w).nil?, griff.(w)] }})")
+check(uf.all? { |w| (o = fase.(w)) && (o.p0[2] - w.hi_f(2)).abs < 0.001 && o.daten[:oben] }, 'Unterschrank: Fase an der Oberkante')
+oben = uf.max_by { |w| w.hi[2] }
+check((uss.transformation.origin.to_a[2] * 25.4 + S::Schraenke.dc(uss, 'hoehe') * 25.4 - oben.hi[2] - 25.0).abs < 0.01,
+      "Unterschrank: oberste Front 25 unter der Oberkante (#{oben.hi[2].round(1)})")
+check(bl.select { |p| p[0] == 'Griffe' }.none? { |p| p[5].to_s.include?(kz.(uss)) }, 'Beschlagliste: keine Griffe am Unterschrank')
 check(fronten.(hs).all? { |w| griff.(w) && !fase.(w) }, 'Hochschrank ausgenommen')
 check(bl.select { |p| p[0] == 'Griffe' }.none? { |p| p[5].to_s.include?(kz.(os)) }, 'Beschlagliste: keine Griffe am Oberschrank')
 
@@ -188,5 +198,16 @@ ws2 = []
 S::Export.erzeugen(model, alle_ws: ws2)
 w2 = ws2.find { |x| x.teil.jt('schrank').to_s == kz.(os) && S::Griffmulde.front?(x) }
 check(S::Griffmulde.lokal(w2)[1].nil?, 'Griffe: Front ohne Fase')
+
+# Fase oben (Unterschrank): gleiche Flächen, Fase an der Oberkante der Front
+wu = uf.first
+flu, sigu = S::Griffmulde.lokal(wu)
+check(sigu.to_s.start_with?('fase') && flu.size == 7 && flu.count { |_, a| a == :fase } == 1 &&
+      flu.count { |_, a| a == :seite } == 2 && flu.count { |_, a| a == :kante } == 4, "Unterschrank: Flächen 2 Seiten, 4 Kanten, 1 Fase (#{flu.map(&:last)})")
+welt = S::Geometrie.welt(wu.teil.pfad)
+zs = flu.find { |_, a| a == :fase }[0].map { |pt| S::Geometrie.punkt(welt, pt)[2] * S::Geometrie::MM }
+check(zs.min > wu.hi[2] - 13.5 && (zs.max - wu.hi[2]).abs < 0.01, "Unterschrank: Fase-Fläche oben an der Front (#{zs.minmax.map { |v| v.round(1) }}, Oberkante #{wu.hi[2].round(1)})")
+innen = flu.select { |_, a| a == :seite }.map { |pts, _| pts.map { |pt| S::Geometrie.punkt(welt, pt)[2] * S::Geometrie::MM }.minmax }
+check(innen.any? { |a, b| (a - wu.lo[2]).abs < 0.01 && (b - (wu.hi[2] - 13.0)).abs < 0.01 }, "Unterschrank: Innenfläche bis unter die Fase (#{innen})")
 
 puts $fehler.zero? ? 'ALLE TESTS OK' : "#{$fehler} FEHLER"

@@ -43,5 +43,8 @@ Weil es für diese Komponente keinen Generator gibt, setzt `src/unterschrank_tue
 
 Danach steht die Kurzhilfe (ein Satz) oben im Fenster *Komponentenoptionen*; eine alte lange Description wird dabei entfernt. Teile, die nicht erkannt werden, bleiben ohne Tag (sie stehen in der Ruby-Konsole bzw. in der Meldung).
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: die Tür ist oben so viel kürzer (die Formel der Tür wird beim Einfügen ergänzt); die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Tests
 `ruby test/test_einrichten.rb` – prüft Kurzhilfe, Tags, Anleimer, `JT_Schrank` und die Einlegeboden-Formeln (Sichtbarkeit und gleich hohe Fächer für 0–3 Böden) mit der Mock-API, außerdem das Einfügen über das Menü (eigene Definition und eigenes Kürzel je Schrank).

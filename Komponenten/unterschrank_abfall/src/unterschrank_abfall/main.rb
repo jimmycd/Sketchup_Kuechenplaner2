@@ -97,7 +97,9 @@ module UnterschrankAbfall
     'Kasten_Abstand_unten'      => 3.0,   # Unterkante Front -> Unterkante Kasten (mindestens)
     'Kasten_Abstand_oben'       => 3.0,   # Oberkante Kasten/Behälter -> Oberkante Front (mindestens)
     'Behaelter_Abstand'         => 1.0,   # Luft zwischen den Behältern und zur Kastenrückwand
-    'Auszug_Anteil'             => 0.8
+    'Auszug_Anteil'             => 0.8,
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Luft über jeder Front
+    'Griff_Front'               => 0.0
   }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -111,7 +113,8 @@ module UnterschrankAbfall
     mk, sp, h = p['Materialstaerke_Korpus'], p['Spaltbreite'], p['Hoehe']
     lw = p['Breite'] - 2 * mk
     oben = p['Frontvariante'].to_i == 1
-    h_a = oben ? h - p['Hoehe_Front_Oben'] - sp : h # Front Auszug
+    gf = p['Griff_Front'].to_f
+    h_a = oben ? h - p['Hoehe_Front_Oben'] - sp - gf : h - gf # Front Auszug
     z_b = h - p['Hoehe_Front_Oben']                  # Unterkante Front Schublade oben
     ab_a = kasten_unten(p, 0.0)
     ab_b = kasten_unten(p, z_b)
@@ -373,7 +376,7 @@ module UnterschrankAbfall
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite
        Materialstaerke_Kastenboden Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Hoehenoffset_Schiene
-       Lochraster_Start Lochraster Kasten_Abstand_unten Kasten_Abstand_oben Behaelter_Abstand].each do |n|
+       Lochraster_Start Lochraster Kasten_Abstand_unten Kasten_Abstand_oben Behaelter_Abstand Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
@@ -384,7 +387,7 @@ module UnterschrankAbfall
     SK::NAMEN.each { |n| attribut(haupt, n, p[n], units: 'STRING') }
     attribut(haupt, 'NL', r[:nl], units: 'STRING', formula: f_nennlaenge('Tiefe'))
     attribut(haupt, 'H_Auszug', r[:h_a], units: 'STRING',
-             formula: 'IF(Frontvariante=1,Hoehe-Hoehe_Front_Oben-Spaltbreite,Hoehe)')
+             formula: 'IF(Frontvariante=1,Hoehe-Hoehe_Front_Oben-Spaltbreite-Griff_Front,Hoehe-Griff_Front)')
     attribut(haupt, 'Z_Oben', r[:z_b], units: 'STRING', formula: 'Hoehe-Hoehe_Front_Oben')
 
     mk = p['Materialstaerke_Korpus']
@@ -520,14 +523,15 @@ module UnterschrankAbfall
     d.set_attribute(DICT, '_name', s)
     kasten_attribute(d, p, r)
     ab = f_kasten_unten("#{u}!Z_Oben")
-    attribut(d, 'Hoehe_Front', p['Hoehe_Front_Oben'], units: 'STRING', formula: "#{u}!Hoehe_Front_Oben")
+    attribut(d, 'Hoehe_Front', p['Hoehe_Front_Oben'] - p['Griff_Front'].to_f, units: 'STRING',
+             formula: "#{u}!Hoehe_Front_Oben-#{u}!Griff_Front")
     attribut(d, 'Z_Front', r[:z_b], units: 'STRING', formula: "#{u}!Z_Oben")
     attribut(d, 'Ab_unten', r[:ab_b], units: 'STRING', formula: ab)
     platz = "#{u}!Hoehe-#{u}!Kasten_Abstand_oben-(#{ab})-#{u}!Materialstaerke_Kastenboden"
     attribut(d, 'Hrw', r[:hrw_b], units: 'STRING',
              formula: "MAX(MIN(#{platz},#{f_hrw_zarge("#{platz}+#{u}!Materialstaerke_Kastenboden", "#{u}!Hoehe_Kastenrueckwand", u)}),2)")
     sichtbarkeit(d, sichtbar, "IF(#{u}!Frontvariante=1,0,1)")
-    kasten(model, d, s, p, r, mat, kz, 'B', r[:z_b], p['Hoehe_Front_Oben'], r[:ab_b], r[:hrw_b])
+    kasten(model, d, s, p, r, mat, kz, 'B', r[:z_b], p['Hoehe_Front_Oben'] - p['Griff_Front'].to_f, r[:ab_b], r[:hrw_b])
     inst = einsetzen(e, d, s, [0, 0, 0], [nil, nil, nil], layer: tag(model, "#{kz}_B_Schublade"))
     inst.hidden = !sichtbar
     inst

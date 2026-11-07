@@ -126,6 +126,21 @@ module UnterschrankTuer
     inst.hidden = d.get_attribute(DICT, 'anz_einlegeboeden').to_i < k
   end
 
+  # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Attribut Griff_Front am Schrank, die Tür
+  # wird oben so viel kürzer. Die Höhenformel der Tür aus der .skp bekommt dafür „-Griff_Front“ (einmal).
+  def self.tuer_griffkante(d, inst)
+    u = d.get_attribute(DICT, '_name') || 'Unterschrank'
+    if d.get_attribute(DICT, 'griff_front').nil?
+      d.set_attribute(DICT, 'griff_front', 0.0)
+      { '_griff_front_label' => 'Griff_Front', '_griff_front_access' => 'NONE', '_griff_front_formlabel' => 'Griff_Front',
+        '_griff_front_units' => 'STRING', '_griff_front_formulaunits' => 'CENTIMETERS' }.each { |k, v| d.set_attribute(DICT, k, v) }
+    end
+    ziel = [inst, inst.definition].find { |e| e.get_attribute(DICT, '_lenz_formula') } or return
+    alt = ziel.get_attribute(DICT, '_lenz_formula').to_s
+    return if alt.include?('Griff_Front')
+    ziel.set_attribute(DICT, '_lenz_formula', "(#{alt})-#{u}!Griff_Front")
+  end
+
   # Anleimer (Kantenmaterial), wie bei den anderen Unterschränken: nur die
   # Vorderkante. In der von Hand gebauten Unterschrank.skp fehlte sie am Boden, die
   # vordere Strebe hatte auch hinten eine Kante und die hintere Strebe Kanten.
@@ -189,6 +204,7 @@ module UnterschrankTuer
     d.entities.grep(Sketchup::ComponentInstance).each do |inst|
       teil = teil_von(inst)
       einlegeboden_reparieren(d, inst, $1.to_i) if teil.to_s =~ /\AEinlegeboden(\d)\z/
+      tuer_griffkante(d, inst) if teil == 'Tuer'
       teil ? kennzeichnen(model, inst, kz, teil) : unbekannt << (inst.name.to_s.empty? ? inst.definition.name : inst.name)
     end
     unbekannt

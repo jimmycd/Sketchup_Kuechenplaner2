@@ -101,6 +101,7 @@ module UnterschrankInsel
     'Sockelhoehe'               => 10.0,  # Verkleidung und Wangen reichen bis zum Fußboden
     'BreiteStreben'             => 10.0,
     'Spaltbreite'               => 0.2,
+    'Griff_Front'               => 0.0,  # Griffkante: Luft über jeder Front (Schrank-CNC setzt sie)
     'Rueckversatz_Einlegeboden' => 1.0,
     # Blum LEGRABOX free wie im Unterschrank mit Schubladen
     'Materialstaerke_Kastenboden'     => 1.6,
@@ -133,14 +134,15 @@ module UnterschrankInsel
     mk, sp, h, b = p['Materialstaerke_Korpus'], p['Spaltbreite'], p['Hoehe'], p['Breite']
     n = p['Anz_Schubladen'].to_i.clamp(1, MAX_SCHUBLADEN)
     n_eb = p['Anz_Einlegeboeden'].to_i
-    hf = (h - (n - 1) * sp) / n
+    gf = p['Griff_Front'].to_f
+    hf = (h - (n - 1) * sp - n * gf) / n
     theke = p['Theke'].to_i == 1
     verkleidet = theke || p['Verkleidung'].to_i == 1
     w = p['Art_Wange'].to_i
     y_hinten = p['Tiefe'] + mk + p['Materialstarke_Rueckwand']
     y_aussen = y_hinten + (verkleidet ? p['Materialstaerke_Verkleidung'] : 0.0)
     schub = (1..MAX_SCHUBLADEN).map do |i|
-      z = i <= n ? h - i * hf - (i - 1) * sp : 0.0 # ausgeblendete Schubladen unten im Schrank (Komponentengrenze)
+      z = i <= n ? h - i * hf - (i - 1) * sp - i * gf : 0.0 # ausgeblendete Schubladen unten im Schrank (Komponentengrenze)
       ab = kasten_unten(p, z)
       { z: z, ab: ab, hrw: hrw(p, z + hf - (i == 1 ? p['Kasten_Abstand_oben'] : 0) - ab - p['Materialstaerke_Kastenboden']) }
     end
@@ -188,13 +190,13 @@ module UnterschrankInsel
 
   def self.f_hf
     u = NAME
-    "(#{u}!Hoehe-(#{f_anz}-1)*#{u}!Spaltbreite)/#{f_anz}"
+    "(#{u}!Hoehe-(#{f_anz}-1)*#{u}!Spaltbreite-#{f_anz}*#{u}!Griff_Front)/#{f_anz}"
   end
 
   # Unterkante Front der Schublade i; ausgeblendete (i > Anzahl) liegen unten im Schrank, sonst ragen
   # sie unter dem Korpus heraus und vergrößern die Komponentengrenze (SketchUp zählt sie mit)
   def self.f_z(i)
-    "IF(#{f_anz}>=#{i},#{NAME}!Hoehe-#{i}*(#{f_hf})-#{i - 1}*#{NAME}!Spaltbreite,0)"
+    "IF(#{f_anz}>=#{i},#{NAME}!Hoehe-#{i}*(#{f_hf})-#{i - 1}*#{NAME}!Spaltbreite-#{i}*#{NAME}!Griff_Front,0)"
   end
 
   # ---------------------------------------------------------------------------
@@ -438,7 +440,7 @@ module UnterschrankInsel
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand Materialstaerke_Verkleidung Staerke_Theke Sockelhoehe
        BreiteStreben Spaltbreite Rueckversatz_Einlegeboden
        Materialstaerke_Kastenboden Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Hoehenoffset_Schiene
-       Lochraster_Start Lochraster Kasten_Abstand_unten Kasten_Abstand_oben].each do |n|
+       Lochraster_Start Lochraster Kasten_Abstand_unten Kasten_Abstand_oben Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     attribut(haupt, 'Auszug_Anteil', p['Auszug_Anteil'], laenge: false, units: 'STRING')
@@ -518,20 +520,22 @@ module UnterschrankInsel
   # Türen über die volle Höhe: eine (Anschlag links) oder zwei, mit "Interagieren" öffnen
   def self.tueren(model, e, p, r, mat, t_)
     u = NAME
-    sp, mk, b, h = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite'], p['Hoehe']
+    sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
+    h = p['Hoehe'] - p['Griff_Front'].to_f
+    hf_ = "#{u}!Hoehe-#{u}!Griff_Front"
     art = p['Frontart'].to_i == 0 ? p['Art_Tuer'].to_i : 0
     eine = "IF(AND(#{u}!Frontart=0,#{u}!Art_Tuer=1),0,1)"
     zwei = "IF(AND(#{u}!Frontart=0,#{u}!Art_Tuer=2),0,1)"
 
     t1 = platte(model, 'Tür', 'Tür', [r[:b_tuer1], mk, h],
-                ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", "#{u}!Hoehe"])
+                ["#{u}!Breite-#{u}!Spaltbreite", "#{u}!Materialstaerke_Korpus", hf_])
     tuer_drehen(t1, art == 1, eine, -100)
     i1 = einsetzen(e, t1, 'Tür', [sp / 2.0, -sp, 0], ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", nil],
                    mat: mat, kz: t_.('Tuer'))
     i1.hidden = art != 1
 
     tl = platte(model, 'Tür links', 'TürL', [r[:b_tuer2], mk, h],
-                ["#{u}!B_Tuer2", "#{u}!Materialstaerke_Korpus", "#{u}!Hoehe"], art: 'Tür')
+                ["#{u}!B_Tuer2", "#{u}!Materialstaerke_Korpus", hf_], art: 'Tür')
     tuer_drehen(tl, art == 2, zwei, -100)
     il = einsetzen(e, tl, 'TürL', [sp / 2.0, -sp, 0], ["#{u}!Spaltbreite/2", "-#{u}!Spaltbreite", nil],
                    mat: mat, kz: t_.('TuerL'))
@@ -542,7 +546,7 @@ module UnterschrankInsel
     stempel(halter)
     halter.set_attribute(DICT, '_name', 'TuerRHalter')
     attribut(halter, 'B_Tuer', r[:b_tuer2], units: 'STRING', formula: "#{u}!B_Tuer2")
-    attribut(halter, 'H_Tuer', h, units: 'STRING', formula: "#{u}!Hoehe")
+    attribut(halter, 'H_Tuer', h, units: 'STRING', formula: hf_)
     attribut(halter, 'Mk', mk, units: 'STRING', formula: "#{u}!Materialstaerke_Korpus")
     tuer_drehen(halter, art == 2, zwei, 100)
     hn = 'TuerRHalter'

@@ -66,7 +66,9 @@ module UnterschrankDoppeltuer
     'Materialstarke_Rueckwand'  => 0.8,
     'BreiteStreben'             => 10.0,
     'Spaltbreite'               => 0.2,
-    'Rueckversatz_Einlegeboden' => 1.0    # Einlegeböden vorne zurückgesetzt
+    'Rueckversatz_Einlegeboden' => 1.0,   # Einlegeböden vorne zurückgesetzt
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Türen oben so viel kürzer, die Fase fräst der TCN-Export
+    'Griff_Front'               => 0.0
   }.freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -291,7 +293,7 @@ module UnterschrankDoppeltuer
              formlabel: 'Anzahl Einlegeböden', units: 'INTEGER', options: liste(0, MAX_EB))
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
-    %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite Rueckversatz_Einlegeboden].each do |n|
+    %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite Rueckversatz_Einlegeboden Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
@@ -358,8 +360,9 @@ module UnterschrankDoppeltuer
   # Links: Drehpunkt am Ursprung der Tür (Anschlag links).
   def self.tueren(model, e, p, r, mat, t_)
     u = NAME
-    sp, mk, b, h = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite'], p['Hoehe']
-    h_f = "#{u}!Hoehe"
+    sp, mk, b = p['Spaltbreite'], p['Materialstaerke_Korpus'], p['Breite']
+    h = p['Hoehe'] - p['Griff_Front'].to_f
+    h_f = "#{u}!Hoehe-#{u}!Griff_Front"
 
     tl = platte(model, 'Tür links', 'TürL', [r[:b_tuer], mk, h],
                 ["#{u}!B_Tuer", "#{u}!Materialstaerke_Korpus", h_f], art: 'Tür')

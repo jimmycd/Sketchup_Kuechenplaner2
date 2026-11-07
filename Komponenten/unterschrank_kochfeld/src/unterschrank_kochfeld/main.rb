@@ -185,7 +185,9 @@ module UnterschrankKochfeld
     'Lochraster'                  => 3.2,
     'Kasten_Abstand_unten'        => 3.0,  # Unterkante Front -> Unterkante Kasten
     'Kasten_Abstand_oben'         => 3.0,  # Oberkante Kasten -> Oberkante Front
-    'Auszug_Anteil'               => 0.8   # Animation: Auszugsweg = Kastentiefe * Anteil
+    'Auszug_Anteil'               => 0.8,  # Animation: Auszugsweg = Kastentiefe * Anteil
+    # Griffkante (setzt Schrank-CNC nach der Öffnung der Küche): Luft über jeder Schubladenfront
+    'Griff_Front'                 => 0.0
   }.merge(SK.attribute(SK::STANDARD)).freeze
 
   # Kurzhilfe in der Komponente (Kurzfassung der README.md), steht oben im Fenster "Komponentenoptionen".
@@ -201,11 +203,12 @@ module UnterschrankKochfeld
     anteil = (1..MAX_SCHUBLADEN).map { |i| p["Anteil_#{i}"].to_f }
     summe  = anteil.first(n).sum
     oben   = p['Hoehe'] - p['Hoehe_Blende'] - p['Spaltbreite'] # Oberkante oberste Schubladenfront
-    netto  = oben - (n - 1) * p['Spaltbreite']
+    gf     = p['Griff_Front'].to_f
+    netto  = oben - (n - 1) * p['Spaltbreite'] - n * gf
     fronten = (1..MAX_SCHUBLADEN).map do |i|
       if i <= n
         h = netto * anteil[i - 1] / summe
-        z = oben - netto * anteil.first(i).sum / summe - (i - 1) * p['Spaltbreite']
+        z = oben - netto * anteil.first(i).sum / summe - (i - 1) * p['Spaltbreite'] - i * gf
       else
         # ausgeblendete Schubladen im Korpus parken, damit sie die Bounding Box nicht vergrößern
         h = PARK_HOEHE
@@ -242,7 +245,7 @@ module UnterschrankKochfeld
   end
 
   def self.f_netto
-    "(#{f_oben}-(Anz_Schubladen-1)*Spaltbreite)"
+    "(#{f_oben}-(Anz_Schubladen-1)*Spaltbreite-Anz_Schubladen*Griff_Front)"
   end
 
   # Ausgeblendete Schubladen (i > Anzahl) werden mit dieser Höhe bei z=0 geparkt
@@ -256,7 +259,7 @@ module UnterschrankKochfeld
 
   def self.f_z_front(i)
     teil = (1..i).map { |j| "Anteil_#{j}" }.join('+')
-    nur_sichtbar(i, "#{f_oben}-#{f_netto}*(#{teil})/#{f_summe}-#{i - 1}*Spaltbreite", 0)
+    nur_sichtbar(i, "#{f_oben}-#{f_netto}*(#{teil})/#{f_summe}-#{i - 1}*Spaltbreite-#{i}*Griff_Front", 0)
   end
 
   # ---------------------------------------------------------------------------
@@ -476,7 +479,7 @@ module UnterschrankKochfeld
     # --- Feste Maße (wie beim Unterschrank mit Tür über Attribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite
        Materialstaerke_Kastenrueckwand Hoehe_Kastenrueckwand Kasten_Abstand_unten Kasten_Abstand_oben
-       Lochraster_Start Lochraster Kanal_Rand Kanal_Steg].each do |n|
+       Lochraster_Start Lochraster Kanal_Rand Kanal_Steg Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
     # Nennlänge der LEGRABOX-Schiene: größte NL (35 … 65 cm, 5er-Schritte) mit NL + 3 mm <= Tiefe − Installationstiefe

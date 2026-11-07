@@ -75,6 +75,7 @@ module UnterschrankHandtuch
     'Materialstarke_Rueckwand' => 0.8,
     'BreiteStreben'            => 10.0,
     'Spaltbreite'              => 0.2,
+    'Griff_Front'              => 0.0,  # Griffkante: Luft über der Front (Schrank-CNC setzt sie)
     'Bauraum_Tiefe'            => 48.5,  # Häfele: Einbautiefe >= 485 mm
     'Bauraum_Hoehe'            => 56.5,  # Häfele: lichte Höhe >= 565 mm
     'Auszug_Weg'               => 45.0   # Animation "Interagieren"
@@ -299,7 +300,7 @@ module UnterschrankHandtuch
 
     # --- Feste Maße (über Komponentenattribute änderbar) ---
     %w[Materialstaerke_Korpus Materialstarke_Rueckwand BreiteStreben Spaltbreite
-       Bauraum_Tiefe Bauraum_Hoehe Auszug_Weg].each do |n|
+       Bauraum_Tiefe Bauraum_Hoehe Auszug_Weg Griff_Front].each do |n|
       attribut(haupt, n, p[n], units: 'STRING')
     end
 
@@ -352,6 +353,7 @@ module UnterschrankHandtuch
     attribut(d, 'Hoehe', h, units: 'STRING', formula: "#{u}!Hoehe")
     attribut(d, 'Mk', mk, units: 'STRING', formula: "#{u}!Materialstaerke_Korpus")
     attribut(d, 'Spalt', sp, units: 'STRING', formula: "#{u}!Spaltbreite")
+    attribut(d, 'Gf', p['Griff_Front'].to_f, units: 'STRING', formula: "#{u}!Griff_Front")
     attribut(d, 'BT', p['Bauraum_Tiefe'], units: 'STRING', formula: "#{u}!Bauraum_Tiefe")
     attribut(d, 'BH', p['Bauraum_Hoehe'], units: 'STRING', formula: "#{u}!Bauraum_Hoehe")
     attribut(d, 'Weg', p['Auszug_Weg'], units: 'STRING', formula: "#{u}!Auszug_Weg")
@@ -360,8 +362,8 @@ module UnterschrankHandtuch
 
     de = d.entities
     # Front wie bei einer einzelnen Schublade: Spalt/2 seitlich, -Spalt vor dem Korpus, volle Höhe
-    front = platte(model, 'Front Hochauszug', 'Front', [r[:b] - sp, mk, h],
-                   ["#{a}!Breite-#{a}!Spalt", "#{a}!Mk", "#{a}!Hoehe"])
+    front = platte(model, 'Front Hochauszug', 'Front', [r[:b] - sp, mk, h - p['Griff_Front'].to_f],
+                   ["#{a}!Breite-#{a}!Spalt", "#{a}!Mk", "#{a}!Hoehe-#{a}!Gf"])
     einsetzen(de, front, 'Front', [sp / 2.0, -sp, 0], ["#{a}!Spalt/2", "-#{a}!Spalt", nil],
               mat: mat, kz: [model, kz, 'Front'])
 

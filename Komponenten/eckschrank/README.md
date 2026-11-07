@@ -89,6 +89,9 @@ Das Kürzel ist `UES1`, oder `UES2` usw., wenn es im Modell schon vergeben ist. 
 * **L-Form:** Innenecke von Boden und Einlegeböden als Kontur mit dem Nutfräser durch die Platte; Sockelfüße je Schenkel (auch an der Innenecke); Dübel am Stoß der vorderen Streben in der Ecke.
 * Topfbänder kommen mit den Türen im TCN-Export. **Falttür:** lange Tür am Korpus 155°-Bänder; an ihrer Ecke Topf Ø35 13 tief, Mitte 12,5 ab der fertigen Türkante (der Topf läuft über die Kante), zwei Einpressdübel Ø8 11 tief 9,5 ab Kante, 45 Abstand, auf Höhe der Topfbänder. Kurze Tür: Montageplatte, 2 × Ø5 11 tief, 37 ab der Außenseite der langen Tür, ±16 um die Bandhöhe (Abstand 32 abgeleitet wie die Standardplatte). Beschlagliste: Falttürscharnier, Montageplatte 0 mm, Systemschrauben. **Einmal an einem Probestück prüfen.**
 
+## Grifflose Front
+Schrank-CNC setzt bei der Öffnung *Griffkante 45°* (*Einstellungen › Öffnung* oder je Schrank, Plan „Grifflose Fronten“) das Attribut `Griff_Front` (Standard 25 mm) und zeichnet den Schrank neu: Türen (auch Falttür) und die Blende vor dem Blindteil sind oben so viel kürzer; die Fase oben innen fräst der TCN-Export. Ohne Griffkante ist es 0. Die durchlaufende Griffmulde folgt.
+
 ## Hilfe in SketchUp
 Eine Kurzfassung (ein Satz, `HILFE_KURZ` in `src/eckschrank/main.rb`) steht oben im Fenster *Komponentenoptionen* und als Beschreibung der Komponente. Die ausführliche Doku steht nur hier, damit das Fenster ganz lesbar bleibt.
 
