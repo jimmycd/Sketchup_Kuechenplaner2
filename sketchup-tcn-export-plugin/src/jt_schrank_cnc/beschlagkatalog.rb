@@ -148,9 +148,72 @@ module JTools
         k && eintrag(k) ? k : nil
       end
 
-      # Gewähltes Modell (Eintrag) der Beschlagart für die ganze Küche:
-      # Modell, sonst zuletzt auf diesem Rechner gewählt, sonst Standard
-      def gewaehlt(art, model = nil)
+      # ---------------------------------------------------------------------
+      # Abweichung je Schrank (Jürgen, 2026-11-07: „an jedem Schrank individuell die generelle Einstellung
+      # für Beschläge und Griffe ändern“): am Schrank (äußerste Instanz) steht im Wörterbuch JT_Schrank
+      # beschlag_<art> = Kennung; fehlt der Eintrag, gilt die Wahl der Küche. Regeln, Beschlagliste und
+      # Beschlagmodell rechnen je Schrank in mit_schrank, damit gilt dort die Wahl dieses Schranks.
+      # ---------------------------------------------------------------------
+      SCHRANK_DICT = 'JT_Schrank'.freeze
+
+      def aktueller_schrank
+        @schrank
+      end
+
+      # Block mit der Wahl dieses Schranks rechnen (verschachtelt möglich)
+      def mit_schrank(schrank)
+        alt = @schrank
+        @schrank = schrank
+        yield
+      ensure
+        @schrank = alt
+      end
+
+      # Schrank einer Gruppe von Werkstücken (alle aus einem Schrank, gruppiert nach teil.pfad.first)
+      def schrank_von(werkstuecke)
+        t = werkstuecke.first && werkstuecke.first.teil
+        t && (t.schrank || t.pfad.first)
+      end
+
+      # Eigene Wahl des Schranks (Kennung) oder nil = wie Küche
+      def eigen(art, schrank)
+        return nil unless schrank.respond_to?(:get_attribute)
+        k = schrank.get_attribute(SCHRANK_DICT, schluessel(art))
+        e = k && eintrag(k)
+        e && passt?(e, art) ? k : nil
+      end
+
+      # Abweichende Wahl am Schrank setzen; kennung nil = wieder wie die Küche.
+      # Beim Schubladenauszug passt sich der Schrank an (Ausz_* und neu zeichnen); Rückgabe false,
+      # wenn er das nicht kann (ältere Version ohne Ausz_*)
+      def schrank_waehlen(schrank, art, kennung, model = nil)
+        if kennung
+          e = eintrag(kennung)
+          raise ArgumentError, "Unbekannter Beschlag: #{kennung}" unless e && passt?(e, art)
+          schrank.set_attribute(SCHRANK_DICT, schluessel(art), kennung)
+        else
+          schrank.delete_attribute(SCHRANK_DICT, schluessel(art)) if schrank.respond_to?(:delete_attribute)
+        end
+        return true unless art == 'schubladen'
+        w = schubkasten_werte(gewaehlt('schubladen', model, schrank: schrank))
+        schrank_anpassen(schrank, Kuechenplaner::Schubkasten.attribute(w), w) != :alt
+      end
+
+      # Kennungen, in denen der Schrank von der Küche abweicht ({ art => kennung })
+      def abweichungen(schrank)
+        ARTEN.keys.map { |a| [a, eigen(a, schrank)] }.select(&:last).to_h
+      end
+
+      # Gewähltes Modell (Eintrag) der Beschlagart: eigene Wahl des Schranks (schrank:, sonst der Schrank
+      # aus mit_schrank), sonst die Wahl der Küche (kueche)
+      def gewaehlt(art, model = nil, schrank: @schrank)
+        k = eigen(art, schrank)
+        return eintrag(k) if k
+        kueche(art, model)
+      end
+
+      # Wahl der ganzen Küche: Modell, sonst zuletzt auf diesem Rechner gewählt, sonst Standard
+      def kueche(art, model = nil)
         k = gespeichert(art, model)
         if k.nil? && defined?(Sketchup) && Sketchup.respond_to?(:read_default)
           v = Sketchup.read_default(SEKTION, schluessel(art), nil)
@@ -161,6 +224,8 @@ module JTools
 
       # Klappenmodell für einen Schrank (Übergang für alte Küchen, siehe oben)
       def klappe_fuer(schrank, model = nil)
+        k = eigen('klappe', schrank)
+        return eintrag(k) if k
         unless gespeichert('klappe', model)
           alt = ALT_KLAPPE[Schraenke.dc(schrank, 'art_klappe').to_f.round] if schrank
           return eintrag(alt) if alt
@@ -176,7 +241,7 @@ module JTools
           alt = Schraenke.instanzen(m.entities).map { |s| ALT_KLAPPE[Schraenke.dc(s, 'art_klappe').to_f.round] }.compact
           return eintrag(alt.max_by { |a| alt.count(a) }) unless alt.empty?
         end
-        gewaehlt(art, model)
+        kueche(art, model)
       end
 
       # Wahl speichern; beim Schubladenauszug passen sich die Schränke an (Rückgabe: Eintrag und
@@ -220,26 +285,31 @@ module JTools
         attr = Kuechenplaner::Schubkasten.attribute(w)
         nicht = []
         Schraenke.instanzen(m.entities).each do |s|
-          d = Schraenke.definition(s)
-          kz = d.get_attribute(JT_DICT, 'schrank') or next
-          if Schraenke.dc(s, 'ausz_z1').nil?
-            nicht << kz if schubladen?(d)
-            next
-          end
-          # unverändert (gleiches System): nichts tun, sonst würde jeder Schrank neu gezeichnet
-          next if attr.all? { |n, v| (Schraenke.dc(s, n.downcase).to_f * 2.54 - v).abs < 0.001 }
-          alt_std = Schraenke.dc(s, 'ausz_std').to_f * 2.54
-          hrw = Schraenke.dc(s, 'hoehe_kastenrueckwand')
-          [s, d].uniq.each do |ent|
-            # Werte in Zoll wie alle Längen der Komponenten; an der Instanz nur, was dort schon steht
-            attr.each { |n, v| ent.set_attribute(DC_DICT, n.downcase, v / 2.54) if ent == d || ent.get_attribute(DC_DICT, n.downcase) }
-            if hrw && (hrw.to_f * 2.54 - alt_std).abs < 0.01 && (ent == d || ent.get_attribute(DC_DICT, 'hoehe_kastenrueckwand'))
-              ent.set_attribute(DC_DICT, 'hoehe_kastenrueckwand', w['std'] / 2.54)
-            end
-          end
-          $dc_observers.get_latest_class.redraw_with_undo(s) if defined?($dc_observers) && $dc_observers
+          next if eigen('schubladen', s) # eigene Wahl des Schranks bleibt
+          kz = Schraenke.definition(s).get_attribute(JT_DICT, 'schrank') or next
+          nicht << kz if schrank_anpassen(s, attr, w) == :alt
         end
         nicht
+      end
+
+      # Einen Schrank auf ein Auszugssystem setzen (attr aus Kuechenplaner::Schubkasten.attribute(w)):
+      # :alt = ältere Version ohne Ausz_* (mit Schubladen), :gleich = schon so, :neu = angepasst und neu gezeichnet
+      def schrank_anpassen(s, attr, w)
+        d = Schraenke.definition(s)
+        return(schubladen?(d) ? :alt : :gleich) if Schraenke.dc(s, 'ausz_z1').nil?
+        # unverändert (gleiches System): nichts tun, sonst würde jeder Schrank neu gezeichnet
+        return :gleich if attr.all? { |n, v| (Schraenke.dc(s, n.downcase).to_f * 2.54 - v).abs < 0.001 }
+        alt_std = Schraenke.dc(s, 'ausz_std').to_f * 2.54
+        hrw = Schraenke.dc(s, 'hoehe_kastenrueckwand')
+        [s, d].uniq.each do |ent|
+          # Werte in Zoll wie alle Längen der Komponenten; an der Instanz nur, was dort schon steht
+          attr.each { |n, v| ent.set_attribute(DC_DICT, n.downcase, v / 2.54) if ent == d || ent.get_attribute(DC_DICT, n.downcase) }
+          if hrw && (hrw.to_f * 2.54 - alt_std).abs < 0.01 && (ent == d || ent.get_attribute(DC_DICT, 'hoehe_kastenrueckwand'))
+            ent.set_attribute(DC_DICT, 'hoehe_kastenrueckwand', w['std'] / 2.54)
+          end
+        end
+        $dc_observers.get_latest_class.redraw_with_undo(s) if defined?($dc_observers) && $dc_observers
+        :neu
       end
 
       # Hat der Schrank Schubladen (Kastenteile)?
@@ -252,8 +322,8 @@ module JTools
       end
 
       # Für den Fingerabdruck der Beschläge im Modell: ändert sich mit jeder Wahl
-      def fingerabdruck(model = nil)
-        ARTEN.keys.map { |a| "#{a}=#{gespeichert(a, model)}" }.join(';')
+      def fingerabdruck(model = nil, schrank = nil)
+        ARTEN.keys.map { |a| "#{a}=#{eigen(a, schrank) || gespeichert(a, model)}" }.join(';')
       end
 
       # Bohrbild-Teil (seite, front) für eine Korpushöhe (mm): mit „stufen“ (je Stufe „bis“ = größte

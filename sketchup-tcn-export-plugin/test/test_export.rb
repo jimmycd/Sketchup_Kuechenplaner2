@@ -1583,6 +1583,87 @@ check(tip_loecher.(ws).none? { |_, o| o.daten[:tuer].include?('_N_') }, 'Kühlsc
 gk.waehlen('oeffnung', 'griffe', Sketchup.active_model)
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_oeffnung'])
 
+# Abweichung je Schrank (Jürgen 2026-11-07): Küche Griffe, ein Schrank TIP-ON; Griffbohrungen nur am Schrank mit Griffen
+m = Sketchup.active_model = Sketchup::Model.new
+a = Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 })
+b = Oberschrank.erstellen({ 'Art_Tuer' => 1.0, 'Breite' => 50.0 })
+gk.waehlen('oeffnung', 'griffe', m)
+S::Frontfarbe.anwenden(m, S::Frontfarbe.fronten(m), nil, griff: { lochmass: 160.0, lage: 'Mitte', hoehe: 35.0 })
+a, b = S::Schraenke.instanzen(m.entities).select { |i| S::Schrankbeschlag.schrank?(i) } # nach dem Eindeutigmachen
+check(S::Schrankbeschlag.arten(b).include?('oeffnung') && S::Schrankbeschlag.arten(b).include?('topfband') &&
+      !S::Schrankbeschlag.arten(b).include?('schubladen'), "Schrank-Dialog: Beschlagarten #{S::Schrankbeschlag.arten(b)}")
+S::Schrankbeschlag.anwenden(m, [b], { 'oeffnung' => 'blum-tip-on' })
+check(gk.eigen('oeffnung', b) == 'blum-tip-on' && gk.eigen('oeffnung', a).nil? && gk.gewaehlt('oeffnung', m)['kennung'] == 'griffe' &&
+      gk.gewaehlt('oeffnung', m, schrank: b)['kennung'] == 'blum-tip-on', 'Schrank b: TIP-ON, Küche und a: Griffe')
+ws = []
+S::Export.erzeugen(m, alle_ws: ws)
+bl = S::Beschlaege.liste(ws).map(&:to_a)
+von = ->(w, s) { w.teil.pfad.first.equal?(s) }
+tl = tip_loecher.(ws)
+check(!tl.empty? && tl.all? { |w, _| von.(w, b) }, "TIP-ON nur im Schrank mit eigener Wahl (#{tl.map { |w, _| w.teil.pfad.first.equal?(a) ? 'a' : 'b' }})")
+check(bl.any? { |p| p[1].include?('956.1004') && p[3] == 1 }, "TIP-ON einmal in der Beschlagliste: #{bl.select { |p| p[0].include?('TIP-ON') }.map { |p| [p[1], p[3]] }}")
+gr = ws.flat_map { |w| w.ops.select { |o| o.titel == 'Griff' }.map { |o| [w, o] } }
+ta = ws.find { |w| w.rolle == 'Tuer' && von.(w, a) }
+check(gr.size == 2 && gr.all? { |w, o| w.equal?(ta) && o.d == 3 && o.tiefe == 5 && o.seite == :ymax } &&
+      (gr.map { |_, o| o.p0[0] }.sort.each_cons(2).map { |x, y| y - x }.first - 160).abs < 0.01 &&
+      (gr.map { |_, o| o.p0[0] }.sum / 2 - (ta.lo[0] + ta.hi[0]) / 2).abs < 0.01 && gr.all? { |_, o| (o.p0[2] - (ta.lo[2] + 35)).abs < 0.01 },
+      "Griffbohrungen: 2 × Ø3 5 tief, 160 auseinander, mittig, 35 über Unterkante, nur am Schrank mit Griffen (#{gr.map { |w, o| [w.name, o.seite, o.p0.map { |v| v.round(1) }, o.tiefe] }})")
+tcn = S::Export.erzeugen(m).first.find { |d| d.name.include?(ta.name) }
+w81 = tcn ? tcn.text.scan(/W#81\{[^}]*#1002=3 [^}]*\}W/) : []
+check(w81.size == 2 && w81.all? { |z| z.include?('#3=-5 ') },
+      "Front-TCN mit 2 Griffbohrungen Ø3 5 tief (#{tcn && tcn.name}: #{w81})")
+# links/rechts von vorn gesehen (Front zeigt nach −y): links = kleines x, äußeres Loch 35 vom Rand
+S::Frontfarbe.anwenden(m, S::Frontfarbe.fronten(m, auswahl: [a]), nil, griff: { lochmass: 128.0, lage: 'links', hoehe: 35.0 })
+ws = []
+S::Export.erzeugen(m, alle_ws: ws)
+ta = ws.find { |w| w.rolle == 'Tuer' && w.teil.pfad.first.get_attribute('JT_Schrank', 'beschlag_oeffnung').nil? }
+xs = ta.ops.select { |o| o.titel == 'Griff' }.map { |o| (o.p0[0] - ta.lo[0]).round(1) }.sort
+check(xs == [35.0, 163.0], "Griff links: #{xs}")
+# zurück auf „wie Küche“
+S::Schrankbeschlag.anwenden(m, [b], { 'oeffnung' => nil })
+check(gk.eigen('oeffnung', b).nil?, 'Schrank b wieder wie Küche')
+
+# Falttür je Schrank: Eckschrank L bietet Falttür-Eckscharnier und das Band am Korpus (Topfband vor
+# Innenauszügen); eigene Wahl 170° nur an diesem Schrank
+m = Sketchup.active_model = Sketchup::Model.new
+lf = Eckschrank.erstellen({}, l_form: true)
+check(%w[falttuer topfband_innen].all? { |x| S::Schrankbeschlag.arten(lf).include?(x) }, "L-Form: Beschlagarten #{S::Schrankbeschlag.arten(lf)}")
+check(!S::Schrankbeschlag.arten(Eckschrank.erstellen({})).include?('falttuer'), 'Blindeck: keine Falttür')
+S::Schrankbeschlag.anwenden(m, [lf], { 'topfband_innen' => 'blum-clip-top-170' })
+ws = []
+S::Export.erzeugen(m, alle_ws: ws)
+lt = ws.find { |w| w.rolle == 'Tuer' && w.ops.any? { |o| o.art == :topfband } }
+check(lt && lt.ops.select { |o| o.art == :topfband }.all? { |o| o.daten[:modell] == 'blum-clip-top-170' } &&
+      lt.ops.any? { |o| o.titel == 'Falttürscharnier Topf' }, 'L-Form mit eigener Wahl: 170° am Korpus und Falttürscharnier')
+bl = S::Beschlaege.liste(ws).map(&:to_a)
+check(bl.any? { |p| p[1].include?('79T8530') && p[3] == 2 } && bl.any? { |p| p[1].include?('Montageplatte CLIP 0 mm') && p[3] == 2 },
+      "Beschlagliste: 2 Falttürscharniere, 2 Montageplatten (#{bl.select { |p| p[0].include?('Türen') }.map { |p| [p[1], p[3]] }})")
+S::Schrankbeschlag.anwenden(m, [lf], { 'topfband_innen' => nil })
+
+# Schubladenauszug je Schrank: Küche LEGRABOX free, ein Schrank MERIVOBOX (Maße und Beschlagliste nur dort);
+# Wechsel der Küche lässt die eigene Wahl stehen
+m = Sketchup.active_model = Sketchup::Model.new
+gk.waehlen('schubladen', 'blum-legrabox-free', m)
+opt = { 'Tiefe' => 52.0, 'Anz_Schubladen' => 3, 'Anteil_1' => 1.0, 'Anteil_2' => 1.0, 'Anteil_3' => 1.0 }
+a = UnterschrankSchubladen.erstellen(opt)
+b = UnterschrankSchubladen.erstellen(opt)
+check(S::Schrankbeschlag.arten(b).include?('schubladen'), "Schubladenschrank: #{S::Schrankbeschlag.arten(b)}")
+check(S::Schrankbeschlag.anwenden(m, [b], { 'schubladen' => 'blum-merivobox' }).empty?, 'MERIVOBOX am Schrank b angepasst')
+gk.waehlen('schubladen', 'blum-legrabox-pure', m)
+check(gk.eigen('schubladen', b) == 'blum-merivobox', 'eigene Wahl bleibt beim Wechsel der Küche')
+ws = []
+S::Export.erzeugen(m, alle_ws: ws)
+bl = S::Beschlaege.liste(ws).map(&:to_a)
+mv = bl.select { |p| p[0] == 'Schubladen (MERIVOBOX)' }
+lp = bl.select { |p| p[0] == 'Schubladen (LEGRABOX pure)' }
+check(!mv.empty? && !lp.empty? && mv.all? { |p| p[5] == [b.definition.get_attribute('JT_Schrank', 'schrank')] || p[5].size == 1 },
+      "Beschlagliste je Schrank: #{bl.map { |p| [p[0], p[5]] }.uniq}")
+# Maße folgen über die Attribute Ausz_* (SketchUp zeichnet den Schrank neu; der Mock rechnet keine Formeln)
+bb = ->(s) { (S::Schraenke.dc(s, 'ausz_boden_b').to_f * 2.54 * 10).round(1) }
+check(bb.(b) == 51.0 && bb.(a) == 35.0, "Ausz_Boden_B: b #{bb.(b)} (MERIVOBOX 51), a #{bb.(a)} (LEGRABOX 35)")
+gk.waehlen('schubladen', 'blum-legrabox-free', m)
+%w[beschlag_schubladen schubkasten beschlag_oeffnung].each { |k| Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', k]) }
+
 if $fehler.zero?
   puts 'test_export: alles OK'
 else

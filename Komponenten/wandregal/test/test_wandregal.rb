@@ -60,6 +60,11 @@ d = inst.definition
 check(d.get_attribute('dynamic_attributes', 'summary') == W::HILFE_KURZ, 'Kurzhilfe')
 check(!d.get_attribute('dynamic_attributes', 'reihen_1').nil? && d.get_attribute('dynamic_attributes', 'reihen_2').nil?,
       'Felder nur für vorhandene Spalten')
+# Listen Spalten/Reihen: Anzeige = Wert (sonst zeigt das Fenster eine Zahl zu viel, Jürgen 2026-11-07)
+check(d.get_attribute('dynamic_attributes', '_spalten_options') == '&1=1&2=2&3=3&4=4&', "Spalten-Liste #{d.get_attribute('dynamic_attributes', '_spalten_options')}")
+check(d.get_attribute('dynamic_attributes', '_reihen_1_options') == '&1=1&2=2&3=3&4=4&5=5&' && d.get_attribute('dynamic_attributes', 'reihen_1') == 2.0,
+      'Reihen-Liste: Wert 2 steht als 2 da')
+check(d.get_attribute('dynamic_attributes', '_rueckwand_options') == '&ja=0&nein=1&', 'Rückwand-Liste ja=0, nein=1')
 check(d.get_attribute('dynamic_attributes', 'breiten') == 'gleich' && d.get_attribute('dynamic_attributes', '_breiten_units') == 'STRING',
       'Breiten als Text "gleich"')
 

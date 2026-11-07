@@ -574,7 +574,7 @@ module JTools
           next '' unless dict
           dict.to_a.reject { |k, _| k.to_s.start_with?('_') }.map { |k, v| "#{k}=#{v.is_a?(Float) ? v.round(4) : v}" }.sort.join(';')
         end
-        "v#{VERSION}|#{Beschlagkatalog.fingerabdruck(s.respond_to?(:model) ? s.model : nil)}|#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
+        "v#{VERSION}|#{Beschlagkatalog.fingerabdruck(s.respond_to?(:model) ? s.model : nil, s)}|#{d.object_id}|#{d.respond_to?(:name) ? d.name : ''}|#{werte.join('|')}"
       end
 
       # Werkstücke eines Schranks mit Bearbeitungen (wie im TCN-Export)
@@ -654,6 +654,11 @@ module JTools
       # Beschläge eines Schranks auf Stand bringen; liefert die Anzahl der Körper
       # (nil, wenn eine Tür oder Klappe offen steht: dann bleibt alles, wie es ist)
       def schrank_aktualisieren(model, s)
+        Beschlagkatalog.mit_schrank(s) { schrank_zeichnen(model, s) }
+      end
+
+      # (mit der Beschlagwahl dieses Schranks, siehe schrank_aktualisieren)
+      def schrank_zeichnen(model, s)
         anzahl = 0
         behaelter = {}
         ws = werkstuecke(model, s)

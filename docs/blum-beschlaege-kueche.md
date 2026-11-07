@@ -36,7 +36,7 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | Alurahmenscharnier 95° | Glas-Alurahmentüren Oberschrank | 100–102 (PDF 84–86) | ⬜ |
 | Scharnier für dünne Türen | Fronten ab ca. 8 mm | 104 (PDF 88) | ⬜ |
 | CRISTALLO-Scharnier, Glastür-, Minischarnier | Glastüren, Vitrinen-Oberschrank | 106–114 (PDF 90–98) | ⬜ |
-| Eckschrank-Falttürscharnier 60° | L-Eckschrank mit Falttür (zwei Türen verbunden) | 116 (PDF 100) | ✅ Eckschrank L und Eck-Oberschrank: Topf in der langen Tür (Einbohrmaß 12,5), Montageplatte auf der kurzen, lange Tür mit 155°/170° am Korpus, Falten 60° (Plugin 0.22.0) |
+| Eckschrank-Falttürscharnier 60° | L-Eckschrank mit Falttür (zwei Türen verbunden) | 116 (PDF 100) | ✅ Eckschrank L und Eck-Oberschrank: Topf in der langen Tür (Einbohrmaß 12,5), Montageplatte auf der kurzen, lange Tür mit 155°/170° am Korpus, Falten 60° (Plugin 0.23.0) |
 | 110°-Scharnier / COMPACT 38B – Möbeltür nach innen öffnend | Sonderfall Türen nach innen | 118–120 (PDF 102–104) | ⬜ |
 | Winkelscharniere +45°/+30°/+20°/+15°/±5°/−15°/−30°/−45° | Türen an schrägen Korpusseiten (Schrägschrank, Eckschrank mit Winkel) | 122–148 (PDF 106–132) | ⬜ (kein Schrank mit schräger Tür im Plugin) |
 | Montageplatten, Winkelkeile, Zubehör | Platte an der Korpusseite (gerade, Kreuz, EXPANDO, Distanz) | 150–157 (PDF 134–141) | ✅ gerade Montageplatte |

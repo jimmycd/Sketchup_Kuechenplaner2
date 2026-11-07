@@ -139,38 +139,85 @@ module JTools
         werkstuecke.each { |w| w.ops.clear }
         meldungen = []
         werkstuecke.group_by { |w| w.teil.pfad.first }.each_value do |teile|
-          teile.each do |a|
-            regel = VERBINDUNGEN[a.rolle] or next
-            teile.each do |b|
-              next unless b.rolle == 'Seite'
-              stoss(a, b, regel, meldungen)
-            end
-          end
-          mittelwaende(teile, meldungen)
-          eckschrank_streben(teile, meldungen)
-          teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
-            ausschnitt(rw)
-            teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
-            teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
-          end
-          hu = hu_slim_base?(teile)
-          lm = lemans?(teile)
-          # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen); Wandregal: nur feste Fachböden
-          lochreihen(teile) unless hu || lm || wandregal?(teile)
-          hu_slim_base(teile, meldungen) if hu
-          lemans(teile, meldungen) if lm
-          schienen(teile, meldungen)
-          aventos(teile, meldungen)
-          topfbaender(teile, meldungen)
-          tip_on(teile, meldungen)
-          kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k); zarge_pruefen(k, teile, meldungen) }
-          teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
-          teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
-          teile.each { |w| ausschnitt(w) unless w.rolle == 'Rueckwand' } # Rohrausschnitt Dunstabzug
-          teile.each { |w| ecke(w) }
-          teile.each { |w| kontur(w) }
+          Beschlagkatalog.mit_schrank(Beschlagkatalog.schrank_von(teile)) { schrank_anwenden(teile, meldungen) }
         end
         meldungen
+      end
+
+      # Regeln für die Werkstücke eines Schranks (mit dessen Beschlagwahl)
+      def self.schrank_anwenden(teile, meldungen)
+        teile.each do |a|
+          regel = VERBINDUNGEN[a.rolle] or next
+          teile.each do |b|
+            next unless b.rolle == 'Seite'
+            stoss(a, b, regel, meldungen)
+          end
+        end
+        mittelwaende(teile, meldungen)
+        eckschrank_streben(teile, meldungen)
+        teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
+          ausschnitt(rw)
+          teile.each { |b| nut(rw, b) if %w[Seite Boden Deckel].include?(b.rolle) }
+          teile.each { |b| rueckwand_schrauben(rw, b) if b.rolle == 'Deckel' && Schraenke.kategorie(b.teil) == 'Oberschrank' }
+        end
+        hu = hu_slim_base?(teile)
+        lm = lemans?(teile)
+        # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen); Wandregal: nur feste Fachböden
+        lochreihen(teile) unless hu || lm || wandregal?(teile)
+        hu_slim_base(teile, meldungen) if hu
+        lemans(teile, meldungen) if lm
+        schienen(teile, meldungen)
+        aventos(teile, meldungen)
+        topfbaender(teile, meldungen)
+        tip_on(teile, meldungen)
+        kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k); zarge_pruefen(k, teile, meldungen) }
+        teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
+        teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
+        teile.each { |w| ausschnitt(w) unless w.rolle == 'Rueckwand' } # Rohrausschnitt Dunstabzug
+        teile.each { |w| ecke(w) }
+        teile.each { |w| kontur(w) }
+        griffe(teile)
+      end
+
+      # Griffbohrungen (Frontfarbe und Griffe: griff_lochmass, griff_lage, griff_hoehe an der Front, mm):
+      # zwei Bohrungen Ø3, 5 tief (wie in der Plugin-Beschreibung; Durchbohren von Hand) im Abstand Lochmaß,
+      # waagrecht, griff_hoehe über der fertigen Unterkante der Front; Lage von vorn gesehen: Mitte = Frontmitte,
+      # links/rechts = äußeres Loch GRIFF[:rand] vom Rand (abgeleitet). Gebohrt von der Innenseite (dort sitzen
+      # die Griffschrauben). Schränke mit grifflosem Öffnen (TIP-ON, SERVO-DRIVE, Wahl der Küche oder des
+      # Schranks) bekommen keine Griffbohrungen.
+      GRIFF = { d: 3, tiefe: 5, rand: 35 }.freeze
+
+      def self.griffe(teile)
+        e = Beschlagkatalog.gewaehlt('oeffnung')
+        return if e && (e['tuer'] || e['schublade'])
+        korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
+        korpus = teile if korpus.empty?
+        teile.each do |w|
+          next unless %w[Front Tuer].include?(w.rolle) && w.teil.jt('teil') != 'Blende'
+          lm = w.teil.jt('griff_lochmass') or next
+          da = w.dicke_achse
+          next if da == 2
+          wa = da.zero? ? 1 : 0
+          km = korpus.sum { |k| k.lo[da] + k.hi[da] } / (2.0 * korpus.size)
+          hinten = km > (w.lo[da] + w.hi[da]) / 2.0
+          # von vorn gesehen rechts: Blickrichtung zum Korpus × oben
+          rechts_plus = da == 1 ? hinten : !hinten
+          lm = lm.to_f
+          rand = GRIFF[:rand]
+          xs = case w.teil.jt('griff_lage').to_s
+               when 'links' then rechts_plus ? [w.lo[wa] + rand, w.lo[wa] + rand + lm] : [w.hi[wa] - rand, w.hi[wa] - rand - lm]
+               when 'rechts' then rechts_plus ? [w.hi[wa] - rand, w.hi[wa] - rand - lm] : [w.lo[wa] + rand, w.lo[wa] + rand + lm]
+               else m = (w.lo[wa] + w.hi[wa]) / 2.0
+                    lm > 0 ? [m - lm / 2.0, m + lm / 2.0] : [m]
+               end
+          z = w.lo[2] + w.teil.jt('griff_hoehe').to_f
+          seite = :"#{Geometrie::ACHSEN[da]}#{hinten ? 'max' : 'min'}"
+          fl = hinten ? w.hi[da] : w.lo[da]
+          xs.uniq.each do |x|
+            w.ops << Op.new(:bohrung, seite, punkt(da => fl, wa => x, 2 => z), nil, GRIFF[:d], GRIFF[:tiefe],
+                            nil, nil, 'Griff')
+          end
+        end
       end
 
       # Mittelwand (Wandregal, freier Schrank; Rolle Seite): Fachböden stoßen an sie wie an eine Seite,
