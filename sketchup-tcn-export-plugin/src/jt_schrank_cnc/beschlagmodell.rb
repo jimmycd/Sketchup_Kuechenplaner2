@@ -7,8 +7,11 @@
 #   Schubladen  Blum LEGRABOX free: Zargen C oder M (Regeln.zarge) links und rechts, Korpusschienen an den
 #               Schienenbohrungen, Fronthalter an der Frontbefestigung, Rückwandhalter an der Holzrückwand.
 #   Türen       Blum-Topfband: Topf Ø35 in der Tür, Arm zur Seite, Montageplatte an der Seite.
-#   Klappen     gewähltes Modell aus dem Beschlag-Katalog (AVENTOS HK-top, Free Slim): Kraftspeicher bzw.
+#   Klappen     gewähltes Modell aus dem Beschlag-Katalog (AVENTOS HK/HS/HL top, Free Slim): Kraftspeicher bzw.
 #               Mechanismus an beiden Seiten, Arm zum Frontbeschlag an der Klappe.
+#   Faltklappe  AVENTOS HF top: Kraftspeicher, Hebel zur unteren Klappe, Scharniere (Töpfe, Montageplatten, Arme).
+#   SERVO-DRIVE Schubladen: Trägerprofil senkrecht vor der Rückwand, Antriebseinheit je Auszug, Distanzpuffer.
+# Jedes Modell im Beschlag-Katalog muss hier gezeichnet werden (test_beschlagmodell_alle.rb).
 # Vereinfachte, aber maßhaltige Körper (Quader, Topf als Zylinder). Sie liegen in einer Gruppe
 # „Beschläge“ auf dem Tag „Beschlag“ in dem Teil des Schranks, das sich mitbewegt (Schublade,
 # Türhalter, sonst der Schrank), und haben kein JT_Schrank/teil: Stückliste, Etiketten, Zuschnitt
@@ -25,7 +28,7 @@ module JTools
       TAG = 'Beschlag'.freeze
       GRUPPE = 'Beschläge'.freeze
       # Neue Fassung der Körper: zählt zum Fingerabdruck, vorhandene Beschläge werden neu gezeichnet
-      VERSION = 8
+      VERSION = 9
       # Materialnamen: Rendern erkennt „Alu“/„Stahl“ als Metall
       MATERIALIEN = {
         alu: ['Beschlag Alu grau', [150, 152, 156]],
@@ -93,6 +96,8 @@ module JTools
         topfbaender(teile, add)
         falttuer(teile, add)
         klappen(teile, add)
+        faltklappe_scharniere(teile, add)
+        servo_drive(teile, add)
         lemans(teile, add)
         hu_slim_base(teile, add)
         tip_on(teile, add)
@@ -503,8 +508,10 @@ module JTools
       #   arm    Stab vom Körper an der Seite (ein = hinter seiner Vorderkante, hoehe = über seiner
       #          Unterkante) zur Mitte des Frontbeschlags dieser Seite, fest im Schrank (geschlossene Klappe)
       #   front  Frontbeschlag an der Klappe: breite, dicke, ueber = über das oberste/unterste Loch hinaus
+      KLAPPEN_BAUARTEN = %w[klappe_seite faltklappe_seite].freeze
+
       def klappen(teile, add)
-        katalog = Beschlagkatalog.eintraege.select { |e| e['bauart'] == 'klappe_seite' && e['koerper'] }
+        katalog = Beschlagkatalog.eintraege.select { |e| KLAPPEN_BAUARTEN.include?(e['bauart']) && e['koerper'] }
         ops_alle = teile.flat_map(&:ops)
         katalog.each do |e|
           kp = e['koerper']
@@ -514,6 +521,8 @@ module JTools
           teile.select { |w| w.rolle == 'Seite' }.each do |s|
             ops = s.ops.select { |o| o.titel == e['seite']['titel'] }
             next if ops.empty?
+            # Körper je nach Korpushöhe (stufen, z. B. AVENTOS HF top), sonst fest
+            ks = Beschlagkatalog.stufe(kp['seite'], s.mass(2))
             k = Geometrie.achse(ops[0].seite)
             innen = Geometrie.max?(ops[0].seite) ? 1 : -1
             t = ([0, 1] - [k]).first
@@ -545,6 +554,119 @@ module JTools
               zs = reihe.map { |o| o.p0[2] }
               add.(kl, quader(kf['titel'], mat.(kf), p3(wa => x - kf['breite'] / 2.0, da => fl, 2 => zs.min - kf['ueber']),
                               p3(wa => x + kf['breite'] / 2.0, da => fl + rein * kf['dicke'], 2 => zs.max + kf['ueber'])))
+            end
+          end
+        end
+      end
+
+      # Scharniere der Faltklappe (Bauart faltklappe_seite, AVENTOS HF top; koerper.scharnier):
+      #   Topf Ø35 an jeder Scharnier-Bohrung (in der Klappe selbst, ganz in ihrer Stärke)
+      #   Montageplatte über je zwei Plattenlöchern (unter dem Oberboden/Deckel bzw. auf der oberen Klappe),
+      #   Arm von der Platte zum nächsten Topf (geschlossene Klappe)
+      def faltklappe_scharniere(teile, add)
+        stahl = MATERIALIEN[:stahl][0]
+        Beschlagkatalog.eintraege.select { |e| e['bauart'] == 'faltklappe_seite' && e['koerper'] && e['koerper']['scharnier'] }.each do |e|
+          ks = e['koerper']['scharnier']
+          toepfe = []
+          teile.each do |w|
+            w.ops.select { |o| o.titel == e['scharnier']['titel'] }.each_with_index do |o, i|
+              da = Geometrie.achse(o.seite)
+              rein = Geometrie.max?(o.seite) ? 1 : -1
+              fl = o.p0[da]
+              add.(w, zylinder("Scharnier AVENTOS HF top #{toepfe.size + 1} Topf", stahl, o.p0, da, fl - rein * ks['topf_tiefe'], fl, o.d / 2.0), true)
+              toepfe << o
+            end
+          end
+          n = 0
+          teile.each do |w|
+            ops = w.ops.select { |o| o.titel == e['platte']['titel'] }
+            next if ops.empty?
+            fa = Geometrie.achse(ops[0].seite)
+            raus = Geometrie.max?(ops[0].seite) ? 1 : -1
+            fl = ops[0].p0[fa]
+            # Plattenachse: die Richtung, in der die Löcher auseinanderliegen
+            la = ([0, 1, 2] - [fa]).max_by { |a| ops.map { |o| o.p0[a] }.minmax.then { |lo, hi| hi - lo } }
+            qa = ([0, 1, 2] - [fa, la]).first
+            pl = ks['platte']
+            ops.sort_by { |o| o.p0[la] }.each_slice(2) do |paar|
+              n += 1
+              m = paar.map { |o| o.p0 }.transpose.map { |v| v.sum / v.size }
+              add.(w, quader("Scharnier AVENTOS HF top #{n} Montageplatte", stahl,
+                             p3(la => m[la] - pl[0] / 2.0, qa => m[qa] - pl[1] / 2.0, fa => fl),
+                             p3(la => m[la] + pl[0] / 2.0, qa => m[qa] + pl[1] / 2.0, fa => fl + raus * pl[2])))
+              topf = toepfe.min_by { |o| (0..2).sum { |a| (o.p0[a] - m[a])**2 } } or next
+              start = m.dup
+              start[fa] = fl + raus * pl[2]
+              ende = topf.p0.dup
+              ende[Geometrie.achse(topf.seite)] += (Geometrie.max?(topf.seite) ? 1 : -1) * ks['arm'] / 2.0
+              add.(w, Koerper.new("Scharnier AVENTOS HF top #{n} Arm", stahl, :stab, start, ende, la, ks['arm'] / 2.0))
+            end
+          end
+        end
+      end
+
+      # Blum SERVO-DRIVE an Schubladen (Öffnung der Küche oder des Schranks, Eintrag mit servo.koerper,
+      # Katalog S. 364–366): Trägerprofil senkrecht in der Mitte vor der Rückwand (Länge PL = LH − 10,
+      # auf 10 abgerundet, mittig zwischen Boden und nächstem festen Boden), je grifflosem Auszug eine
+      # Antriebseinheit A über der Unterkante der Korpusschiene, Distanzpuffer an der Front (FH bis 300 und
+      # unter 70 kg: 2 in halber Höhe, sonst 4 je 20 vom Rand; seitlich FA/2 = Mitte des Aufschlags auf der Seite)
+      def servo_drive(teile, add)
+        o = Beschlagkatalog.gewaehlt('oeffnung')
+        return unless o && o['schublade'] == 'servo_drive' && o['servo'] && o['servo']['koerper']
+        kp = o['servo']['koerper']
+        kaesten = Regeln.kaesten(teile).select { |k| k.any? { |w| w.rolle == 'KastenBoden' } && Beschlaege.grifflos?(k, teile) }
+        return if kaesten.empty?
+        kunst = MATERIALIEN[:kunststoff][0]
+        alu = MATERIALIEN[:alu][0]
+        ax = Regeln.auszug
+        lg = auszug_koerper
+        boden0 = kaesten[0].find { |w| w.rolle == 'KastenBoden' }
+        wa = Regeln.breite_achse(kaesten[0])
+        ta = (boden0.flaechen_achsen - [wa]).first
+        seiten = teile.select { |w| w.rolle == 'Seite' && w.dicke_achse == wa }
+        rw = teile.select { |w| w.rolle == 'Rueckwand' }.min_by { |w| (w.lo[2] + w.hi[2]) / 2.0 - (boden0.lo[2] + boden0.hi[2]) / 2.0 }
+        return if seiten.size < 2 || rw.nil?
+        x_m = (seiten.map { |s| s.hi[wa] }.min + seiten.map { |s| s.lo[wa] }.max) / 2.0
+        # vorne: Seite des Kastenbodens zur Front, hinten die Rückwand
+        hinten_max = mitte(rw, ta) > mitte(boden0, ta)
+        dir = hinten_max ? -1 : 1 # von der Rückwand nach vorn
+        y_rw = hinten_max ? rw.lo[ta] : rw.hi[ta]
+        kasten_hinten = kaesten.flat_map { |k| k.map { |w| hinten_max ? w.hi[ta] : w.lo[ta] } }.send(hinten_max ? :max : :min)
+        luft = (kasten_hinten - y_rw).abs - 1
+        pb, pt = kp['profil']
+        ab, ah, at = kp['antrieb']
+        at = [[at, luft - pt].min, kp['antrieb_min']].max
+        unten = teile.select { |w| w.rolle == 'Boden' }.map { |w| w.hi[2] }.max || seiten.map { |s| s.lo[2] }.min
+        oben = teile.select { |w| Regeln::FESTE_BOEDEN.include?(w.rolle) && w.lo[2] > unten + Regeln::TOL }.map { |w| w.lo[2] }.min ||
+               seiten.map { |s| s.hi[2] }.max
+        pl = (((oben - unten) - o['servo']['abzug_lh']) / 10.0).floor * 10
+        z0 = unten + ((oben - unten) - pl) / 2.0
+        s0 = seiten.first
+        add.(s0, quader("SERVO-DRIVE Trägerprofil #{pl}", alu, p3(wa => x_m - pb / 2.0, ta => y_rw, 2 => z0),
+                        p3(wa => x_m + pb / 2.0, ta => y_rw + dir * pt, 2 => z0 + pl)))
+        a = kp['a'][Beschlagkatalog.gewaehlt('schubladen')['kennung']] || kp['a']['standard']
+        kaesten.each do |kasten|
+          boden = kasten.find { |w| w.rolle == 'KastenBoden' }
+          bez = boden.teil.jt('bereich')
+          sch = teile.flat_map(&:ops).select { |x| x.titel == "Schiene #{bez}" }
+          zu = sch.empty? ? kasten.map { |w| w.lo[2] }.min : sch.map { |x| x.p0[2] }.min - lg[:schiene_h] / 2.0
+          add.(s0, quader("SERVO-DRIVE Antriebseinheit #{bez}", kunst, p3(wa => x_m - ab / 2.0, ta => y_rw + dir * pt, 2 => zu + a),
+                          p3(wa => x_m + ab / 2.0, ta => y_rw + dir * (pt + at), 2 => zu + a + ah)))
+          f = Regeln.front_zu(kasten, teile) or next
+          nl = sch.map { |x| x.daten && x.daten[:nl] }.compact.max
+          kg = (nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]
+          fh = f.mass(2)
+          zs = fh <= 300 + Regeln::TOL && kg < 70 ? [(f.lo[2] + f.hi[2]) / 2.0] : [f.lo[2] + kp['puffer']['rand'], f.hi[2] - kp['puffer']['rand']]
+          da = f.dicke_achse
+          rein = mitte(s0, da) > mitte(f, da) ? 1 : -1
+          ff = rein > 0 ? f.hi[da] : f.lo[da]
+          seiten.each do |s|
+            lo = [s.lo[wa], f.lo[wa]].max
+            hi = [s.hi[wa], f.hi[wa]].min
+            next if hi <= lo
+            zs.each do |z|
+              add.(f, zylinder("SERVO-DRIVE Distanzpuffer #{bez}", kunst, p3(wa => (lo + hi) / 2.0, da => ff, 2 => z), da, ff,
+                               ff + rein * kp['puffer']['h'], kp['puffer']['d'] / 2.0))
             end
           end
         end

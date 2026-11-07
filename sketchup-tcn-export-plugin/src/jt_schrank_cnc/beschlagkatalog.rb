@@ -61,7 +61,7 @@ module JTools
       PFLICHT = {
         'auszug_zarge' => %w[schiene zargen standard_zarge kasten front boden_falz stabilisierung_ab liste koerper],
         'klappe_seite' => %w[seite front liste koerper],
-        'faltklappe_seite' => %w[seite front scharnier platte liste],
+        'faltklappe_seite' => %w[seite front scharnier platte liste koerper],
         'hochauszug_seite' => %w[schiene front bauraum liste koerper],
         'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
         'topfband_platte' => %w[topf verteilung platte liste koerper],

@@ -138,5 +138,49 @@
         "Stück"
       ]
     ]
+  },
+  "koerper": {
+    "quelle": "Katalog 2024/2025 S. 24 (Platzbedarf): Kraftspeicher 30 stark, Oberkante A unter Korpusoberkante (66,5 bei KH 480–519, 89 bei 520–1200), Höhe B (171,5 / 194), bis 264 hinter der Vorderkante. Vorderkante 15 hinter der Seitenvorderkante, Hebel, Halter und Scharnierkörper vereinfacht (abgeleitet).",
+    "seite": {
+      "titel": "Kraftspeicher AVENTOS HF top",
+      "material": "kunststoff",
+      "dicke": 30,
+      "vor": 86,
+      "hinter": 35,
+      "ueber": 27,
+      "stufen": [
+        {
+          "bis": 519,
+          "unter": 80.5
+        },
+        {
+          "bis": 1200,
+          "unter": 103
+        }
+      ]
+    },
+    "arm": {
+      "titel": "Hebel AVENTOS HF top",
+      "material": "stahl",
+      "staerke": 10,
+      "ein": 30,
+      "hoehe": 20
+    },
+    "front": {
+      "titel": "Hebelhalter AVENTOS HF top",
+      "material": "stahl",
+      "breite": 20,
+      "dicke": 10,
+      "ueber": 15
+    },
+    "scharnier": {
+      "topf_tiefe": 13,
+      "platte": [
+        48,
+        20,
+        4
+      ],
+      "arm": 16
+    }
   }
 }
