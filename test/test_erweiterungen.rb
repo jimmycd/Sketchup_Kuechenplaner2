@@ -91,9 +91,9 @@ soll = ['Unterschränke', 'Oberschränke', 'Hochschränke', 'Blenden & Wangen', 
 check(titel == soll, "Einträge im Küchenplaner-Menü: #{titel.inspect}")
 gruppen = {
   'Unterschränke' => ['Eckschrank Blindeck…', 'Eckschrank L-Form…', 'Abschlussregal…', 'Unterschrank Mülltrennung…', 'Unterschrank Backofen (Herdumbau)…', 'Unterschrank mit Doppeltür…', 'Unterschrank Geschirrspüler…', 'Unterschrank Handtuchauszug…', 'Inselschrank…',
-                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…'],
-  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…', 'Wandregal…'],
-  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Abschlussregal…'],
+                      'Unterschrank Kochfeld mit Abzug…', 'Unterschrank Kühlschrank…', 'Unterschrank mit Schubladen…', 'Spülenschrank…', 'Unterschrank mit Tür…', 'Freier Schrank…'],
+  'Oberschränke' => ['Eck-Oberschrank L-Form…', 'Oberschrank…', 'Oberschrank Dunstabzug…', 'Oberschrank mit Klappe…', 'Abschlussregal…', 'Wandregal…', 'Freier Schrank…'],
+  'Hochschränke' => ['Apothekerschrank…', 'Hochschrank…', 'Hochschrank Geräte…', 'Hochschrank Kühlschrank…', 'Hochschrank Vorrat…', 'Abschlussregal…', 'Freier Schrank…'],
   'Blenden & Wangen' => ['Passblende…', 'Wange…', 'Sockelblende…'],
   'Geräte' => ['Geräte in Schränke setzen', 'Geräte entfernen', 'Szenen Planung/Kunde/Zuschnitt anlegen', 'Kundenbild speichern…'],
   'Raum' => ['Raum anlegen…', 'Wände aus Linien…', 'Fenster/Tür einsetzen…', 'Öffnung bearbeiten…', 'Raum bearbeiten…']
@@ -205,7 +205,7 @@ SRC.each do |src|
     check(!File.read(f, encoding: 'UTF-8').include?('UI.inputbox'), "#{f}: UI.inputbox statt Kuechenplaner::Eingabe.abfragen")
   end
 end
-check(unterschraenke.size == 14, 'alle Unterschränke geprüft')
+check(unterschraenke.size == 15, 'alle Unterschränke geprüft')
 
 # Neu laden ohne Neustart: in jeder Erweiterung die gleiche Datei aus gemeinsam/neuladen.rb, geladen von main.rb;
 # das gemeinsame Menü darf mehrfach laufen (kein „unless defined?“ mehr, sonst bliebe nach dem Neuladen der alte Stand)

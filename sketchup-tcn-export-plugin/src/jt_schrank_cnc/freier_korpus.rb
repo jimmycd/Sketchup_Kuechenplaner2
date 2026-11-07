@@ -72,6 +72,8 @@ module JTools
         end
         mat = material || standard_material(model)
         teile.each { |i, art| zuweisen(model, inst, i, art: art, material: art == 'Rückwand' ? nil : mat) }
+        # Maße wie bei den Komponenten (Zoll) für Andocken und Anzeige; ein freier Schrank ändert sie nicht
+        { 'breite' => b, 'hoehe' => h, 'tiefe' => t }.each { |k2, v| d.set_attribute(DC_DICT, k2, zoll(v)) }
         inst
       end
 
@@ -271,11 +273,24 @@ module JTools
         raise ArgumentError, "„#{text}“ ist keine Zahl"
       end
 
-      def anlegen_dialog(model = Sketchup.active_model)
-        prompts = ['Kategorie', 'Name', 'Breite (mm)', 'Höhe (mm)', 'Tiefe (mm)', 'Korpusstärke (mm)', 'Rückwand']
-        defaults = ['Unterschrank', '', '600', '720', '560', '19', 'Standard']
-        listen = [KATEGORIEN.join('|'), '', '', '', '', '', (['Standard'] + RUECKWAENDE).join('|')]
-        Kuechenplaner::Eingabe.abfragen(prompts, defaults, listen, 'Freier Schrank anlegen', untertitel: 'Neuer Schrank', ok: 'Anlegen') do |w|
+      # Vorschläge wie bei den Komponenten (Tiefe Korpus 520, Oberschrank 400 mm)
+      VORSCHLAG = { 'Unterschrank' => [600, 720, 520], 'Oberschrank' => [600, 720, 400], 'Hochschrank' => [600, 2000, 520] }.freeze
+
+      # kategorie: aus dem Menü der Schrankgruppe vorgegeben (nil = im Dialog wählen)
+      def anlegen_dialog(model = Sketchup.active_model, kategorie: nil)
+        kat = kategorie || 'Unterschrank'
+        b, h, t = VORSCHLAG.fetch(kat)
+        prompts = ['Name', 'Breite (mm)', 'Höhe (mm)', 'Tiefe Korpus (mm)', 'Korpusstärke (mm)', 'Rückwand']
+        defaults = ['', b.to_s, h.to_s, t.to_s, '19', 'Standard']
+        listen = ['', '', '', '', '', (['Standard'] + RUECKWAENDE).join('|')]
+        unless kategorie
+          prompts.unshift('Kategorie')
+          defaults.unshift(kat)
+          listen.unshift(KATEGORIEN.join('|'))
+        end
+        titel = kategorie ? "Freier #{kategorie}" : 'Freier Schrank'
+        Kuechenplaner::Eingabe.abfragen(prompts, defaults, listen, titel, untertitel: 'Neuer Schrank', ok: 'Einfügen') do |w|
+          w = [kategorie] + w if kategorie
           b, h, t, mk = w[2..5].map { |v| zahl(v) }
           model.start_operation('Freier Schrank', true)
           begin
