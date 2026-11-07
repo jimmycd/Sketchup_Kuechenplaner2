@@ -647,8 +647,12 @@ module JTools
                  tb_std
                end
           schrank = t.teil.schrank
-          # Schlepptür (Hochschrank Kühlschrank): die Nischentür hängt am Gerät, nicht am Korpus
-          next if t.teil.jt('bereich') == 'N' && Schraenke.dc(schrank, 'tuertechnik').to_f.round == 1
+          # Hochschrank Kühlschrank, Nischentür: Festtür (2) sitzt auf der Gerätetür (keine Bänder am Korpus),
+          # Schlepptür (1) hängt mit dem Kühlschrank-Schlepptürscharnier am Korpus und nimmt die Gerätetür mit
+          if t.teil.jt('bereich') == 'N' && (tt = Schraenke.dc(schrank, 'tuertechnik'))
+            next if tt.to_f.round == 2
+            tb = topfband_werte(Beschlagkatalog.gewaehlt('topfband_kuehlschrank')) if tt.to_f.round == 1
+          end
           kante, eck = anschlag(t, tueren, teile)
           topfband(t, kante, eck, teile, meldungen, tb)
         end

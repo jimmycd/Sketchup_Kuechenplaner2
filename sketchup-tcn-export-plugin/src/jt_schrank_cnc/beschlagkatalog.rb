@@ -35,7 +35,12 @@ module JTools
         'topfband' => { name: 'Topfband (Türen)', standard: 'blum-clip-top', bauarten: %w[topfband_platte] },
         # Türen vor Innenauszügen (Hochschrank Vorrat): Blum empfiehlt das 155°-Scharnier mit 0-Einsprung,
         # damit die geöffnete Tür die lichte Weite freigibt (Katalog 2024/2025 S. 84)
-        'topfband_innen' => { name: 'Topfband vor Innenauszügen', standard: 'blum-clip-top-155', bauarten: %w[topfband_platte] },
+        'topfband_innen' => { name: 'Topfband vor Innenauszügen', standard: 'blum-clip-top-155', bauarten: %w[topfband_platte],
+                              auch: %w[topfband] },
+        # Schlepptür vor dem Einbau-Kühlschrank (Hochschrank Kühlschrank, Tuertechnik 1): Möbeltür am Korpus,
+        # Gerätetür wird mitgenommen; Blum MODUL Kühlschrank-Schlepptürscharnier (Katalog 2024/2025 S. 168)
+        'topfband_kuehlschrank' => { name: 'Topfband Kühlschrank-Schlepptür', standard: 'blum-modul-kuehlschrank',
+                                     bauarten: %w[topfband_platte], auch: %w[topfband] },
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
         'faltklappe' => { name: 'Faltklappe (zweiteilig)', standard: 'blum-aventos-hf-top', bauarten: %w[faltklappe_seite] },
         'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
@@ -85,10 +90,10 @@ module JTools
         eintraege.find { |e| e['kennung'] == kennung }
       end
 
-      # Modelle, die für die Beschlagart passen: ihre eigene Art oder eine Bauart, die die Art annimmt
-      # (jedes Topfband kann auch vor Innenauszügen gewählt werden)
+      # Modelle, die für die Beschlagart passen: ihre eigene Art oder eine Art aus ARTEN[art][:auch]
+      # (jedes normale Topfband kann auch vor Innenauszügen oder an der Kühlschrank-Schlepptür gewählt werden)
       def passt?(e, art)
-        e['art'] == art || (ARTEN[art] && ARTEN[art][:bauarten].include?(e['bauart']))
+        e['art'] == art || (ARTEN[art] && (ARTEN[art][:auch] || []).include?(e['art']) && ARTEN[art][:bauarten].include?(e['bauart']))
       end
 
       def zur_art(art)
