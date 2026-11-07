@@ -241,8 +241,8 @@ zc = fc.map { |x| v = x[/#2=(\S+)/, 1]; v.start_with?('y-') ? dh3 - v[2..].to_f 
 check(fc.size == 8 && zc == [91.0, 123.0, 187.0, 219.0], "Frontbefestigung Zarge F 0/32/96/128: #{zc}")
 krc = dc_.find { |x| x.name == 'USS1_S3_KastenRueckwand' }
 krm = dc_.find { |x| x.name == 'USS1_S1_KastenRueckwand' }
-check(([krc.lage.dl, krc.lage.dh].min - 210).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 60).abs < 1e-6, # Fräsmaß = 212 / 62 − 2 mm Anleimer oben
-      "Kastenrückwand F 212 / M 62 (#{[krc.lage.dl, krc.lage.dh]} / #{[krm.lage.dl, krm.lage.dh]})")
+check(([krc.lage.dl, krc.lage.dh].min - 210).abs < 1e-6 && ([krm.lage.dl, krm.lage.dh].min - 61).abs < 1e-6, # Fräsmaß = 212 / 63 − 2 mm Anleimer oben
+      "Kastenrückwand F 212 / M 63 (#{[krc.lage.dl, krc.lage.dh]} / #{[krm.lage.dl, krm.lage.dh]})")
 Sketchup.active_model = model
 check(fb.('HS1_O_Tuer').empty?, 'Tür ohne Frontbefestigung')
 # Kastenboden: Falz für die Zargen an beiden Enden der Breite, 38 und 20 breit, 8 tief (Schubkastenboden.tcn)
@@ -609,10 +609,10 @@ end
     check(schiene_bohr.(dbm[sn].text) == (schublade ? 4 : 0), "Herdumbau #{hoehe} #{sn}: Schienenbohrungen #{schiene_bohr.(dbm[sn].text)}")
   end
   check(dbm['USB1_Boden'].text.include?('#8522=3 '), "Herdumbau #{hoehe}: Sockelfüße")
-  if schublade # Zarge N: Rückwand 37 mm, Fronthalter nur das unterste Loch je Seite
+  if schublade # Zarge N: Rückwand 39 mm, Fronthalter nur das unterste Loch je Seite
     kr_ = dbm['USB1_S1_KastenRueckwand']
     fn = bearbeitungen(dbm['USB1_S1_Front'].text, 1).count { |x| x.include?('#1002=3 ') && x.include?('#3=-5 ') }
-    check(([kr_.lage.dl, kr_.lage.dh].min - 35).abs < 1e-6 && fn == 2, "Herdumbau 76: Zarge N (Rückwand #{[kr_.lage.dl, kr_.lage.dh].min} + 2, Fronthalter #{fn})")
+    check(([kr_.lage.dl, kr_.lage.dh].min - 37).abs < 1e-6 && fn == 2, "Herdumbau 76: Zarge N (Rückwand #{[kr_.lage.dl, kr_.lage.dh].min} + 2, Fronthalter #{fn})")
   end
   check(S::Frontfarbe.fronten(bm, kategorie: 'Unterschrank').count(&:sichtbar?) == 1, "Herdumbau #{hoehe}: eine sichtbare Front")
 end

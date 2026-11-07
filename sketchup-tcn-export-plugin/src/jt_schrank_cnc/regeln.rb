@@ -60,7 +60,7 @@ module JTools
       # Werte: Katalogeintrag (katalog/blum-legrabox-free.json, schiene), siehe Regeln.schiene
       # LEGRABOX free, alle Zargenhöhen (Blum-Programm): N 66,5, M 90,5, K 128,5, C 177, F 241 mm.
       # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4), Einschubelement C 138 / M 52 (S. 8).
-      # Abgeleitet, nicht bestätigt: Holzrückwand = Zarge − 29 mm wie bei C (F 212, K 99, M 62, N 37),
+      # Holzrückwand laut Blum-Tabelle (Jürgen 2026-11-07): F 212, C 148, K 101, M 63, N 39. Abgeleitet, nicht bestätigt:
       # Seiteneinsatz = Zarge − 39 mm (F 202, K 90; N ohne Einsatz), Fronthalter: Löcher aus 0/32/96/128,
       # solange das oberste höchstens 13 mm unter der Zargenoberkante liegt (wie bei C: 36 + 128 = 177 − 13).
       # Die Komponenten nehmen die höchste Zarge, die Platz hat; erkannt wird sie an der Höhe der Kastenrückwand.
