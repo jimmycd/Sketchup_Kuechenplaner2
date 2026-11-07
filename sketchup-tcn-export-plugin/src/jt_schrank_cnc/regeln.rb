@@ -58,7 +58,7 @@ module JTools
       # 40 kg: NL 350 192/224, NL 400–500 224/256, NL 550–600 224/256/320; NL 650 nur 70 kg: 224/256/320/416.
       # Höhe = Kastenunterkante + Höhenoffset Schiene, mindestens 38 mm über dem Boden darunter (S. 4).
       # Werte: Katalogeintrag (katalog/blum-legrabox-free.json, schiene), siehe Regeln.schiene
-      # LEGRABOX free, alle Zargenhöhen (Blum-Programm): N 66,5, M 90,5, K 128,5, C 177, F 241 mm.
+      # LEGRABOX free: Zargen N 66,5, M 90,5, K 128,5, C 177 mm; LEGRABOX pure zusätzlich F 241 (katalog/blum-legrabox-pure.json).
       # Aus der Anleitung MD-015/4: C mit Holzrückwand 148 (S. 4); Einschubelement M 52 (S. 8) ist das vordere Element des Innenauszugs.
       # Holzrückwand laut Blum-Tabelle (Jürgen 2026-11-07) und Blum-Katalog 2024/2025: F 212, C 148, K 101, M 63, N 39.
       # Katalog S. 200–225: Fronthalter N 0/16 (unterstes Loch 5,5 mm tiefer), M/K 0/32, C 0/32/96/128, F 0/32/96/128/160/192;

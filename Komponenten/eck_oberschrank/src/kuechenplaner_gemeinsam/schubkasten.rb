@@ -9,7 +9,7 @@
 # Beschläge). Das Plugin Schrank-CNC schreibt die Maße, die die Schränke brauchen, als JSON in
 # das Modell (Wörterbuch Kuechenplaner_Einstellungen, Schlüssel schubkasten, Werte in cm) und als
 # Vorschlag für neue Modelle auf diesen Rechner. Fehlt beides (Plugin nicht installiert), gilt
-# Blum LEGRABOX free.
+# Blum LEGRABOX free (Zarge F gibt es nur bei LEGRABOX pure, eigener Katalogeintrag).
 #
 # Jeder Schrank mit Schubladen trägt die Werte als DC-Attribute Ausz_* (siehe ATTRIBUTE); die
 # Formeln für Kastenboden, Holzrückwand, Zarge und Nennlänge rechnen damit. Wechselt das
@@ -38,7 +38,7 @@ module Kuechenplaner
       # Blum LEGRABOX free (muss zum Katalogeintrag blum-legrabox-free passen, der Test prüft das)
       STANDARD = {
         'kennung' => 'blum-legrabox-free',
-        'zargen' => [[24.1, 21.2], [17.7, 14.8], [12.85, 10.1], [9.05, 6.3], [6.65, 3.9]],
+        'zargen' => [[17.7, 14.8], [12.85, 10.1], [9.05, 6.3], [6.65, 3.9]],
         'std' => 14.8, 'ueber_boden' => 3.8,
         'nl_min' => 35.0, 'nl_max' => 65.0, 'nl_schritt' => 5.0, 'nl_abstand' => 0.3,
         'boden_b' => 3.5, 'boden_t' => 1.0, 'rw_b' => 3.8
