@@ -288,12 +288,13 @@ module UnterschrankKuehlschrank
   end
 
   # Nische für die Geräte-Komponenten: lichte Maße und Einfügepunkt (vorne links
-  # unten auf dem Fußboden, an der Korpusvorderkante) in mm, Stand beim Erzeugen
+  # unten auf dem Fußboden, an der Korpusvorderkante) in mm, Stand beim Erzeugen.
+  # Das Gerät (Nische - Geraet_Luft) sitzt mittig wie der Platzhalter: x = Nische + Geraet_Luft/2
   def self.nische(d, p, r)
     b = ((p['Breite'] - p['Geraet_Luft']) * 10).round(1)
     { 'nische' => 'N1', 'geraet' => kennung(p),
       'breite' => b, 'hoehe' => (r[:h_unten] * 10).round(1), 'tiefe' => (p['Tiefe'] * 10).round(1),
-      'x' => (r[:x_nische] * 10).round(1), 'y' => (p['Materialstaerke_Korpus'] * 10).round(1),
+      'x' => ((r[:x_nische] + p['Geraet_Luft'] / 2.0) * 10).round(1), 'y' => (p['Materialstaerke_Korpus'] * 10).round(1),
       'z' => (-p['Sockelhoehe'] * 10).round(1), 'sockel' => (p['Sockelhoehe'] * 10).round(1) }.each { |k, v| d.set_attribute(NISCHE_DICT, k, v) }
   end
 
