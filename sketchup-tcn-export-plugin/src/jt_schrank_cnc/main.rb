@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell schrankbeschlag rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog griffkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell griffmodell schrankbeschlag griffdialog rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -58,6 +58,7 @@ module JTools
         menu.add_item('Beschläge ein/aus') { Beschlagmodell.umschalten }
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }
         menu.add_item('Materialien…') { Materialdialog.dialog }
+        menu.add_item('Griffkatalog…') { Griffdialog.zeigen }
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
         menu.add_item('Beschläge und Griffe der gewählten Schränke…') { Schrankbeschlag.dialog }
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
@@ -99,6 +100,7 @@ module JTools
       file_loaded(__FILE__)
     end
     Beschlagmodell.app_beobachten # Beschläge folgen Änderungen am Schrank
+    Griffmodell.app_beobachten # Griffe der Fronten (Griffkatalog) folgen Änderungen am Schrank
     Beschriftung.app_beobachten # einmal je SketchUp-Sitzung, auch nach dem Neuladen
     Massaenderung.app_beobachten # angedockte Schränke bei Breite/Tiefe richtig verschieben
     Kopien.app_beobachten # kopierte Schränke: Schubladen/Türen öffnen nur im angeklickten Schrank

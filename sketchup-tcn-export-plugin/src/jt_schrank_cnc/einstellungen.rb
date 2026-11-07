@@ -1,8 +1,8 @@
 # encoding: UTF-8
 # Schrank-CNC – allgemeine Einstellungen (gelten für alle Modelle auf diesem Rechner,
 # gespeichert mit Sketchup.write_default). Das Fenster zeigt oben zusätzlich die
-# Werte der Küche (Sockelhöhe, Abstände) aus gemeinsam/einstellungen.rb und die
-# Beschläge der Küche (Beschlagkatalog).
+# Werte der Küche (Sockelhöhe, Abstände) aus gemeinsam/einstellungen.rb, die
+# Beschläge der Küche (Beschlagkatalog) und die Griffserie mit Oberfläche (Griffkatalog).
 #
 # Übermaß: Rohmaß (Zuschnitt an der Formatsäge) = Fräsmaß + Übermaß, damit die CNC
 # das Teil rundum formatieren kann (squad). Angabe gesamt je Richtung in mm, also
@@ -69,16 +69,23 @@ module JTools
         keys = WERTE.keys
         arten = Beschlagkatalog::ARTEN
         modelle = arten.keys.to_h { |a| [a, Beschlagkatalog.zur_art(a)] }
+        gk = Griffkatalog
+        serien = [gk::KEINE] + gk.serien.map { |x| gk.name(x) }
+        oberfl = gk.serien.flat_map { |x| gk.oberflaechen(x) }.uniq.sort
+        gs = gk.kueche(model)
         prompts = kueche.prompts + arten.map { |_, v| "#{BESCHLAG_GRUPPE}: #{v[:name]}" } +
+                  ["#{BESCHLAG_GRUPPE}: Griffserie (Bilder: Griffkatalog…)", "#{BESCHLAG_GRUPPE}: Griff-Oberfläche"] +
                   keys.map { |k| "#{CNC_GRUPPE}: #{WERTE[k][0].sub(/\AZuschnitt: /, '')}" }
         alt = kueche.vorgaben(model) + arten.keys.map { |a| Beschlagkatalog.vorschlag(a, model)['name'] } +
+              [gs ? gk.name(gs) : gk::KEINE, gk.oberflaeche(model) || oberfl.first] +
               keys.map { |k| Tcn.n(wert(k)) }
-        listen = kueche.prompts.map { '' } + arten.keys.map { |a| modelle[a].map { |e| e['name'] }.join('|') } + keys.map { '' }
+        listen = kueche.prompts.map { '' } + arten.keys.map { |a| modelle[a].map { |e| e['name'] }.join('|') } +
+                 [serien.join('|'), oberfl.join('|')] + keys.map { '' }
         n = kueche::WERTE.size
         nb = arten.size
         erg = Kuechenplaner::Eingabe.abfragen(prompts, alt, listen, 'Küchenplaner – Einstellungen',
                                               untertitel: 'Sockel, Abstände, Beschläge, CNC', ok: 'Speichern') do |neu|
-          zahlen = neu[(n + nb)..-1].map { |s| s.to_s.strip.tr(',', '.') }
+          zahlen = neu[(n + nb + 2)..-1].map { |s| s.to_s.strip.tr(',', '.') }
           raise ArgumentError, 'Bitte nur Zahlen ≥ 0 eingeben (mm).' if zahlen.any? { |s| s !~ /\A\d+(\.\d+)?\z/ }
           wahl = arten.keys.each_with_index.to_h do |a, i|
             e = modelle[a].find { |x| x['name'] == neu[n + i].to_s }
@@ -90,6 +97,10 @@ module JTools
             sockel_alt = kueche.sockelhoehe(model)
             kueche.uebernehmen(neu[0, n], model)
             nicht = wahl.flat_map { |a, k| Beschlagkatalog.waehlen(a, k, model) && Beschlagkatalog.nicht_angepasst }
+            griff_alt = gk.fingerabdruck(model)
+            gwahl = gk.serien.find { |x| gk.name(x) == neu[n + nb].to_s }
+            gk.waehlen(gwahl && gwahl['kennung'], neu[n + nb + 1].to_s, model)
+            griff_neu = gk.fingerabdruck(model) != griff_alt
             # Sockelhöhe geändert: vorhandene Schränke in der Höhe mitnehmen (Andock-Werkzeug)
             Andocken.sockel_geaendert(model, sockel_alt, kueche.sockelhoehe(model)) if defined?(Andocken)
           ensure
@@ -102,6 +113,11 @@ module JTools
           end
           # gezeigte Beschläge folgen der neuen Wahl
           Beschlagmodell.nachziehen(model) if defined?(Beschlagmodell)
+          if griff_neu && defined?(Griffmodell) && model.respond_to?(:start_operation)
+            model.start_operation('Griffe', true, false, true)
+            Griffmodell.aktualisieren(model)
+            model.commit_operation
+          end
           true
         end
         erg ? true : false

@@ -61,7 +61,7 @@ module JTools
       # Instanzen im Teilbaum unter inst (inst selbst eingeschlossen)
       def self.baum(inst, out = [])
         out << inst
-        Schraenke.instanzen(inst.definition.entities).each { |c| baum(c, out) }
+        Schraenke.instanzen(Schraenke.definition(inst).entities).each { |c| baum(c, out) }
         out
       end
 
@@ -103,7 +103,8 @@ module JTools
       end
 
       # Material und Anleimer auf die Fronten setzen; griff = { lochmass:, lage:, hoehe: } (mm),
-      # griff: false entfernt die Griffangaben, nil lässt sie unverändert
+      # griff: false entfernt die Griffangaben (und schaltet den automatischen Griff der Griffserie ab),
+      # nil lässt sie unverändert; { groesse:, lage:, hoehe: } siehe Griffkatalog.front_setzen
       def self.anwenden(model, fronten, material, griff: nil)
         return 0 if fronten.empty?
         kante = material && anleimer(model, material)
@@ -117,12 +118,16 @@ module JTools
           material_setzen(f.inst, material, kante) if material
           if griff && (f.jt('teil') == 'Blende' || !f.front?)
             next # feste Blende (Unterschrank Kochfeld), Innenfronten, Regalteile, Verkleidung und Wangen bekommen keinen Griff
+          elsif griff.is_a?(Hash) && griff.key?(:groesse)
+            Griffkatalog.front_setzen(f.inst, griff) # Schrank-Dialog (Griffkatalog)
           elsif griff
             f.inst.set_attribute(JT_DICT, 'griff_lochmass', griff[:lochmass].to_f)
             f.inst.set_attribute(JT_DICT, 'griff_lage', griff[:lage])
             f.inst.set_attribute(JT_DICT, 'griff_hoehe', griff[:hoehe].to_f)
+            f.inst.delete_attribute(JT_DICT, 'griff_aus')
           elsif griff == false
             %w[griff_lochmass griff_lage griff_hoehe].each { |k| f.inst.delete_attribute(JT_DICT, k) }
+            f.inst.set_attribute(JT_DICT, 'griff_aus', true) # auch kein automatischer Griff der Griffserie
           end
         end
         neu.size
@@ -173,6 +178,7 @@ module JTools
           begin
             model.start_operation('Frontfarbe ändern', true)
             anwenden(model, f, Materialien.holen(model, res[0]), griff: griff) # aus der Bibliothek, falls nötig
+            Griffmodell.aktualisieren(model) if !griff.nil? && defined?(Griffmodell)
             model.commit_operation
           rescue StandardError
             model.abort_operation

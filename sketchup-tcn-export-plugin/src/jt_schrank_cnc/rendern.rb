@@ -39,6 +39,10 @@ module JTools
       # Tags, die im Bild nie erscheinen bzw. immer (falls es keine Szene Kunde gibt)
       NIE = %w[Beschriftung Geraete_Plan].freeze
       IMMER = %w[Geraete_Render].freeze
+      # Griffe der Fronten (Griffmodell, Tag „Griffe“) gehören zum Bild, auch wenn die Szene Kunde
+      # älter ist als der Tag oder ihn ausblendet (Jürgen 2026-11-07: „stelle sicher, dass die Griffe auch
+      # gerendert werden“)
+      GRIFFE = 'Griffe'.freeze
 
       # Materialart am Namen erkennen (Reihenfolge zählt: Schwarzglas vor Glas)
       ARTEN = [
@@ -155,6 +159,7 @@ module JTools
           next true if tag.nil?
           name = tag.name.to_s
           next false if NIE.include?(name)
+          next true if name == GRIFFE
           next true if seite.nil? && IMMER.include?(name)
           versteckt ? !versteckt.include?(name) : tag.visible?
         end

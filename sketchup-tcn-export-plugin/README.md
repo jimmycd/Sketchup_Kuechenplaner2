@@ -56,6 +56,20 @@ Was geändert wird:
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief, von der Innenseite; links/rechts: äußeres Loch 35 mm vom Rand, von vorn gesehen). Schränke mit grifflosem Öffnen (TIP-ON, SERVO-DRIVE) bekommen keine.
 
+## Griffkatalog
+*Erweiterungen › Küchenplaner › Griffkatalog…* (Jürgen, 2026-11-07)
+
+Der Griffkatalog enthält alle Griffe und Knöpfe der **Häfele DÉCO Kollektion 2025** (81 Serien, 563 Artikel), aus Jürgens Blätterkatalog ausgelesen: je Serie Bauart (Griff oder Knopf), Oberflächen, Größen (Länge × Höhe, Lochabstand), Artikel-Nr., Katalogseite und **ein Bild** (die Fotoseite der Serie aus dem Katalog). Daten: `src/jt_schrank_cnc/griffe/haefele-deco-2025.json`, Bilder `griffe/<Serie>.jpg` (`griffkatalog.rb`); ein weiterer Katalog ist eine weitere JSON-Datei in diesem Ordner. Ausgelesen mit `werkzeuge/griffkatalog_auslesen.py`.
+
+* **Fenster Griffkatalog**: alle Serien als Karten mit Bild (Klick vergrößert), Lochabständen, Oberfläche zur Auswahl und Tabelle der Größen mit Artikel-Nr.; Suche und Filter Griffe/Knöpfe. *Für diese Küche wählen* setzt **Griffserie und Oberfläche der Küche** (im Modell gespeichert, auch unter *Einstellungen › Beschläge – ganze Küche*). *Keine Serie* schaltet das ab.
+* **Automatisch**: Hat die Küche eine Griffserie, bekommt jede Front und Tür (nicht Blenden, Innenfronten, Wangen) einen Griff in der vorgeschlagenen Größe, mittig, auf der automatischen Höhe. Ohne Serie bleibt es wie vorher: Griffe nur dort, wo sie von Hand gesetzt sind.
+* **Vorschlag** (Regel, nicht aus dem Katalog): Ziel-Lochabstand = 30 % der **Frontbreite**, genommen wird der nächstliegende Lochabstand der Serie (bei Gleichstand der kleinere), dessen Griff mit 20 mm Abstand je Seite auf die Front passt. Grundlage ist die Front, nicht der Schrank (Doppeltür am 800er-Schrank: zwei 400er-Türen → 128). Beispiele mit 96/128/160/192/320: 300 → 96, 450 → 128, 600 → 192, 900 → 320. Knopf-Serien: eine Bohrung in der Mitte.
+* **Höhe automatisch**: Griffmitte möglichst 1000 mm über dem Boden, mindestens 35 mm von Ober- und Unterkante der Front: Unterschrank-Fronten oben, Oberschränke unten, hohe Türen auf 1000 mm. **Lage automatisch**: Mitte.
+* **Je Schrank änderbar** (*Beschläge und Griffe der gewählten Schränke…*): Griff = *Vorschlag nach Frontbreite*, eine Größe der Serie, *eigenes Lochmaß* oder *kein Griff*; Lage *automatisch (Mitte)*, links, Mitte, rechts; Höhe leer = unverändert, `auto` oder mm ab Unterkante Front. Der Dialog zeigt den Vorschlag je Frontbreite der gewählten Schränke. Die Angaben stehen an der Front (`griff_lochmass`, `griff_lage`, `griff_hoehe`, `griff_aus`).
+* **TCN**: die Griffbohrungen (Ø3, 5 tief, von innen) nehmen den Lochabstand aus dem Katalog (Griffe mit zwei Lochabständen wie 128/160 werden mit dem gewählten gebohrt). Grifflos (TIP-ON, SERVO-DRIVE): keine Griffe.
+* **Beschlagliste**: Gruppe *Griffe*, z. B. „Häfele H2585 Griff 192 mm, schwarz matt – Art.-Nr. 106.71.433, 204 × 32 mm“, Stückzahl je Front. Ein Lochmaß, das die Serie nicht hat, steht ohne Artikel-Nr. da.
+* **Modell und Rendern**: Griffe werden immer gezeichnet (nicht nur bei *Beschläge ein/aus*): Stange über die Länge mit Stützen an den Bohrungen bzw. Knopf, Maße aus dem Katalog, Material nach der Oberfläche („Griff schwarz matt“ → Metall im Rendern; Eiche → Holz). Gruppe „Griffe“ auf Tag *Griffe* im Elternteil der Front (Schublade, Türhalter, Schrank), damit die Front ihre Maße behält; sie folgen Änderungen am Schrank. Der Blender-Export nimmt den Tag *Griffe* immer mit, auch wenn die Szene *Kunde* ihn ausblendet.
+
 ## Freier Schrank
 Ein Schrank, den es als Komponente nicht gibt, kann frei modelliert werden und läuft trotzdem in Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Rendern mit (Jürgen, 2026-11-07). Menü *Küchenplaner › Freier Schrank*:
 
@@ -317,6 +331,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/materialdialog.rb` – Fenster „Materialien…“
 * `src/jt_schrank_cnc/korpus.rb` – Korpusmaterial ändern
 * `src/jt_schrank_cnc/frontfarbe.rb` – Frontfarbe und Griffe
+* `src/jt_schrank_cnc/griffkatalog.rb`, `griffdialog.rb`, `griffmodell.rb`, `griffe/` – Griffkatalog (Daten, Fenster, Griffe im Modell)
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
 * `src/jt_schrank_cnc/freier_schrank.rb` – freier Schrank: kennzeichnen, Teil zuweisen, prüfen
@@ -336,6 +351,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/guillotine.rb` – Guillotine-Optimierer in 2 oder 3 Stufen (erster Schnitt, Schnitttyp, Reste)
 * `src/jt_schrank_cnc/zuschnitt.rb` – Zuschnittplan als PDF für die Formatsäge
 * `test/test_materialien.rb` – Material-Konfigurator: Anlegen, Bearbeiten, Umbenennen, Löschen, Bibliothek, Maserrichtung, Korpusmaterial
+* `test/test_griffkatalog.rb` – Griffkatalog: Daten, Vorschlag, automatische Griffe, Schrank-Dialog, TCN, Beschlagliste, Modell und Rendern
 * `test/test_frontfarbe.rb` – erzeugt Hochschrank, Oberschränke und Unterschrank mit den Skripten aus `Komponenten/` in der Mock-API und prüft Frontfarbe, Anleimer, Bereiche, Auswahl, Eindeutigmachen, Griffe und den Dialog
 * `test/test_stueckliste.rb` – Stückliste an Hochschrank und Unterschrank: Roh-/Fräs-/Fertigmaß, Kanten, Übermaß aus den Einstellungen, CSV, Druckseite, Dialoge
 * `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Randabfall eingehalten, alle Kombinationen aus erstem Schnitt, Schnitttyp und Stufen (Schnitte wirklich durchgehend, Stufen eingehalten), Faserrichtung, Plattenreste, Reste behalten, gleiche Platten, PDF, Dialog
