@@ -90,9 +90,11 @@ def duebel_stirn_ok?(x)
       ((l / st) - (l / st).round).abs < 1e-4 && (l / st).round == (l / 160.0 - 1e-9).ceil
   end
 end
-# Sockelfüße wie Boden.tcn; die Vorlage schreibt manche Lagen als Ausdruck und von hinten nach vorn
+# Sockelfüße wie Boden.tcn; die Vorlage schreibt manche Lagen als Ausdruck und von hinten nach vorn.
+# Seit 2026-11-07 (Jürgen) 80 statt 60 von vorn/hinten, damit der AXILO-Teller hinter der Sockelblende steht
 fuss = bearbeitungen(beispiel('Boden.tcn'), 1).map do |z|
-  z.sub('(1*(-64))+(y-60)', 'y-124').sub('#8511=20+64', '#8511=84').sub('#8510=x-20 #8511=x-20-64', '#8510=x-84 #8511=x-20')
+  z.sub('(1*(-64))+(y-60)', 'y-144').sub('#8518=y-60 ', '#8518=y-80 ').sub('#8518=60 ', '#8518=80 ').sub('#8518=124 ', '#8518=144 ')
+   .sub('#8511=20+64', '#8511=84').sub('#8510=x-20 #8511=x-20-64', '#8510=x-84 #8511=x-20')
 end
 check(bearbeitungen(boden.text, 1).sort == fuss.sort, "Boden SIDE#1: squad und Sockelfüße wie Boden.tcn: #{bearbeitungen(boden.text, 1)}")
 check(boden.lage.flaeche1 == :zmin, 'Boden: Fläche 1 ist die Unterseite (Sockelfüße)')
@@ -1081,7 +1083,8 @@ check(%w[SeiteL SeiteR].all? { |n| bearbeitungen(rf["RA1_#{n}"].text, 1).count {
 kd = S::Regeln.kontur_daten(rb.ws)
 poly = kd[:umriss].map { |q| [rb.lage.x(q), rb.lage.y(q)] }
 fuesse = rb.ws.ops.select { |o| o.titel == 'Sockelfuss' }
-check(fuesse.size == 8 && fuesse.all? { |o| [o.p0, o.p1].all? { |q| v = [rb.lage.x(q), rb.lage.y(q)]; S::Regeln.innen?(v, poly) && S::Regeln.randabstand(v, poly) >= 20 - 1e-6 } },
+# Boden 262 tief < 2 × (80 + 64): ein Fuß je Ende mittig (2 Füße = 4 Reihen)
+check(fuesse.size == 4 && fuesse.all? { |o| [o.p0, o.p1].all? { |q| v = [rb.lage.x(q), rb.lage.y(q)]; S::Regeln.innen?(v, poly) && S::Regeln.randabstand(v, poly) >= 20 - 1e-6 } },
       "Regal schräg: Sockelfüße im Boden (#{fuesse.size})")
 check(!rf['RA1_Deckel'].text.include?('#8522=3 '), 'Regal: keine Sockelfüße im Deckel')
 check(bearbeitungen(rf['RA1_Einlegeboden1'].text, 1).count { |x| x.include?('W#89') } == 1, 'Regal schräg: Einlegeboden mit Kontur')
@@ -1128,7 +1131,7 @@ rz = S::Stueckliste.zeilen(rd).find { |x| x.tag == 'RA1_Boden' }
 check(rz && (rz.kontur.values.sum - Math::PI / 2 * 262).abs < 1.0, "Regal rund: Bogenlänge #{rz && rz.kontur}")
 fu = rf['RA1_Boden'].ws.ops.select { |o| o.titel == 'Sockelfuss' }
 kd = S::Regeln.kontur_daten(rf['RA1_Boden'].ws)
-check(fu.size == 8 && fu.all? { |o| S::Regeln.innen?([o.p0[0], o.p0[1]], kd[:umriss].map { |q| q[0, 2] }) }, 'Regal rund: Sockelfüße im Boden')
+check(fu.size == 4 && fu.all? { |o| S::Regeln.innen?([o.p0[0], o.p0[1]], kd[:umriss].map { |q| q[0, 2] }) }, 'Regal rund: Sockelfüße im Boden')
 
 # Gerade: keine Kontur
 rm = Sketchup.active_model = Sketchup::Model.new
