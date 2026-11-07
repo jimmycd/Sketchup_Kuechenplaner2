@@ -265,33 +265,55 @@ module JTools
 
       # Lochreihen in jeder Seite je Fach ohne Schubladen zwischen zwei festen Böden: vorn 35 mm,
       # hinten 35 mm vor Hinterkante bzw. Rückwandnut. Keine Lochreihe in Gerätenischen (Fach über
-      # einem Boden mit JT_Schrank/nische, z. B. Hochschrank Geräte).
+      # einem Boden mit JT_Schrank/nische, z. B. Hochschrank Geräte) und in Seiten mit
+      # JT_Schrank/lochreihe = false (freier Schrank: Lochreihe abgewählt). Eine Mittelwand (Böden
+      # auf beiden Seiten) bekommt die Lochreihen auf beiden Flächen.
       def self.lochreihen(teile)
-        teile.select { |w| w.rolle == 'Seite' }.each do |s|
+        teile.select { |w| w.rolle == 'Seite' && w.teil.jt('lochreihe') != false }.each do |s|
           k = s.dicke_achse
-          boeden = boeden_an(s, teile)
-          next if boeden.empty?
-          v = boeden.first.dicke_achse
-          t = ([0, 1, 2] - [k, v]).first
-          nach_max = (boeden.first.lo[k] - s.hi[k]).abs < TOL
-          seite, flaeche = flaeche_innen(s, k, nach_max)
-          l = LOCHREIHE
-          nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
-          hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
-          lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
-          schubladen = kaesten(teile).map { |k| k.map { |w| w.lo[v] }.min }
-          nischen = boeden.select { |f| f.teil.jt('nische') }.map { |f| f.hi[v] }
-          lagen.each_cons(2) do |(_, unten), (oben, _)|
-            # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
-            next if schubladen.any? { |z| z.between?(unten - TOL, oben) }
-            next if nischen.any? { |z| (z - unten).abs < TOL }
-            lo = unten + l[:ueber]
-            hi = oben - l[:unter]
-            next if hi - lo < l[:raster]
-            [s.lo_f(t) + l[:rand], hinten - l[:rand]].each do |y|
-              s.ops << Op.new(:reihe, seite, punkt(k => flaeche, t => y, v => lo), punkt(k => flaeche, t => y, v => hi),
-                              l[:d], l[:tiefe], l[:raster], false, 'Lochreihe')
-            end
+          an = boeden_an(s, teile).group_by { |f| (f.lo[k] - s.hi[k]).abs < TOL }
+          quer = mittelwand_boeden(s, teile)
+          [true, false].each do |nach_max|
+            boeden = (an[nach_max] || []) + quer
+            lochreihen_flaeche(s, teile, boeden, nach_max) unless boeden.empty?
+          end
+        end
+      end
+
+      # Mittelwand (freier Schrank, Teil „Mittelwand…“): steht zwischen durchlaufenden Böden,
+      # die auf beiden Seiten über sie hinausgehen; diese begrenzen die Fächer auf beiden Flächen
+      def self.mittelwand_boeden(s, teile)
+        return [] unless s.teil.jt('teil').to_s.start_with?('Mittelwand')
+        k = s.dicke_achse
+        teile.select do |f|
+          next false unless FESTE_BOEDEN.include?(f.rolle) && f.dicke_achse != k
+          v = f.dicke_achse
+          f.lo[k] < s.lo[k] - TOL && f.hi[k] > s.hi[k] + TOL &&
+            ((f.hi[v] - s.lo[v]).abs < TOL || (f.lo[v] - s.hi[v]).abs < TOL)
+        end
+      end
+
+      def self.lochreihen_flaeche(s, teile, boeden, nach_max)
+        k = s.dicke_achse
+        v = boeden.first.dicke_achse
+        t = ([0, 1, 2] - [k, v]).first
+        seite, flaeche = flaeche_innen(s, k, nach_max)
+        l = LOCHREIHE
+        nuten = s.ops.select { |o| o.art == :nut && o.seite == seite && o.p0[t] > s.lo_f(t) + l[:rand] }
+        hinten = ([s.hi_f(t)] + nuten.map { |o| o.p0[t] - o.d / 2.0 }).min
+        lagen = boeden.map { |f| [f.lo[v], f.hi[v]] }.uniq.sort
+        schubladen = kaesten(teile).map { |ka| ka.map { |w| w.lo[v] }.min }
+        nischen = boeden.select { |f| f.teil.jt('nische') }.map { |f| f.hi[v] }
+        lagen.each_cons(2) do |(_, unten), (oben, _)|
+          # Fach mit Schubladen: keine Lochreihe (das Raster dient nur zum Ausrichten der Schienen)
+          next if schubladen.any? { |z| z.between?(unten - TOL, oben) }
+          next if nischen.any? { |z| (z - unten).abs < TOL }
+          lo = unten + l[:ueber]
+          hi = oben - l[:unter]
+          next if hi - lo < l[:raster]
+          [s.lo_f(t) + l[:rand], hinten - l[:rand]].each do |y|
+            s.ops << Op.new(:reihe, seite, punkt(k => flaeche, t => y, v => lo), punkt(k => flaeche, t => y, v => hi),
+                            l[:d], l[:tiefe], l[:raster], false, 'Lochreihe')
           end
         end
       end
