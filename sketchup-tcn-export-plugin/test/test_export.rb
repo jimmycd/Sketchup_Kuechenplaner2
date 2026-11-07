@@ -1018,7 +1018,8 @@ K = S::Beschlagkatalog
 K.eintraege.each { |e| check(K.fehler(e).empty?, "Katalog #{e['datei']}: #{K.fehler(e)}") }
 check(K.eintraege.map { |e| e['kennung'] }.uniq.size == K.eintraege.size, 'Katalog: Kennungen eindeutig')
 K::ARTEN.each { |a, v| check(K.eintrag(v[:standard]) && K.passt?(K.eintrag(v[:standard]), a), "Katalog: Standard für #{a} vorhanden") }
-check(K.zur_art('topfband_innen').map { |e| e['kennung'] } == K.zur_art('topfband').map { |e| e['kennung'] } && K.zur_art('topfband').size == 3,
+check(K.zur_art('topfband_innen').map { |e| e['kennung'] } == K.zur_art('topfband').map { |e| e['kennung'] } && K.zur_art('topfband').size == 3 &&
+      K.zur_art('topfband_kuehlschrank').size == 4,
       "Katalog: alle Topfbänder auch vor Innenauszügen wählbar (#{K.zur_art('topfband').map { |e| e['kennung'] }})")
 check(K.zur_art('klappe').map { |e| e['kennung'] } == %w[blum-aventos-hk-top blum-aventos-hl-top blum-aventos-hs-top haefele-free-slim-1.12], "Katalog: Klappen #{K.zur_art('klappe').map { |e| e['kennung'] }}")
 # alte Küche ohne Einstellung: Schrank mit Art_Klappe 3 behält Free Slim, Vorschlag im Dialog = Free Slim
@@ -1347,8 +1348,10 @@ end
   end
   check(tm.none? { |m| m.include?('Topfb') }, "#{titel}: keine Meldung zu Topfbändern: #{tm}")
   # Montageplatte: Systemschrauben Ø5 16 mm über und unter jedem Band liegen in der Lochreihe der Seite
+  # (Hochschrank Kühlschrank: die Schlepptür in der Nische ohne Lochreihe bekommt eigene Löcher, siehe unten)
   td.values.select { |x| x.ws.rolle == 'Seite' }.each do |s|
-    mp = s.ws.ops.select { |o| o.titel.include?('Montageplatte') }
+    nt = td['HK1_N_Tuer'] && td['HK1_N_Tuer'].ws
+    mp = s.ws.ops.select { |o| o.titel.include?('Montageplatte') && !(nt && o.p0[2].between?(nt.lo[2], nt.hi[2])) }
     check(mp.empty?, "#{titel} #{s.name}: Montageplatte in der vorhandenen Lochreihe, keine Extralöcher (#{mp.size})")
   end
 end
@@ -1397,13 +1400,18 @@ k = kurz.ops.find { |o| o.art == :topfband }.daten[:kante]
 a = S::Geometrie.achse(k)
 check((S::Geometrie.max?(k) ? kurz.hi[a] : kurz.lo[a]).between?(lang.lo[a] - 30, lang.hi[a] + 30), "Falttür: kurze Tür am Eckscharnier (#{k})")
 
-# Hochschrank Kühlschrank: Schlepptür ohne Topfbänder, Festtür mit 4 Bändern und Montageplatten (Nische ohne Lochreihe)
+# Hochschrank Kühlschrank: Schlepptür am Korpus mit 4 Blum-MODUL-Kühlschrank-Schlepptürscharnieren und Montageplatten
+# 194K6100E (Nische ohne Lochreihe), Festtür auf der Gerätetür ohne Bänder (Blum-Katalog 2024/2025 S. 168)
 td, = tb_export('HK') { HochschrankKuehlschrank.erstellen({}) }
-check(topfbaender(td['HK1_N_Tuer']).empty?, 'Schlepptür hängt am Gerät: keine Topfbänder')
-td, = tb_export('HK fest') { HochschrankKuehlschrank.erstellen({ 'Tuertechnik' => 2.0 }) }
-check(topfbaender(td['HK1_N_Tuer']).size == 4, "Festtür 1812 hoch: 4 Topfbänder (#{topfbaender(td['HK1_N_Tuer']).size})")
+check(topfbaender(td['HK1_N_Tuer']).size == 4, "Schlepptür 1812 hoch: 4 Topfbänder (#{topfbaender(td['HK1_N_Tuer']).size})")
+check(td['HK1_N_Tuer'].ws.ops.select { |o| o.art == :topfband }.all? { |o| o.daten[:modell] == 'blum-modul-kuehlschrank' },
+      'Schlepptür: MODUL Kühlschrank-Schlepptürscharnier')
 mp = td.values.flat_map { |x| x.ws.ops.select { |o| o.titel.include?('Montageplatte') } }
-check(mp.size == 8 && mp.all? { |o| o.d == 5 && o.tiefe == 12 }, "Festtür: 8 Löcher Ø5 × 12 für die Montageplatten (#{mp.size})")
+check(mp.size == 8 && mp.all? { |o| o.d == 5 && o.tiefe == 12 }, "Schlepptür: 8 Löcher Ø5 × 12 für die Montageplatten (#{mp.size})")
+hkl = S::Beschlaege.liste(td.values.map(&:ws)).map(&:to_a)
+check(hkl.any? { |p| p[1].include?('Kühlschrank-Schlepptürscharnier') && p[3] == 4 }, "Beschlagliste: 4 Schlepptürscharniere (#{hkl.map { |p| [p[1], p[3]] }})")
+td, = tb_export('HK fest') { HochschrankKuehlschrank.erstellen({ 'Tuertechnik' => 2.0 }) }
+check(topfbaender(td['HK1_N_Tuer']).empty?, 'Festtür sitzt auf der Gerätetür: keine Topfbänder')
 
 # Hochschrank Vorrat: Bänder auf den Höhen Scharnier_1..6 (im Fach mit Lochreihe ins Raster gerückt)
 td, = tb_export('HV') { HochschrankVorrat.erstellen({}) }

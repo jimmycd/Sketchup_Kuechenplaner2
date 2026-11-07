@@ -42,7 +42,7 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | Montageplatten, Winkelkeile, Zubehör | Platte an der Korpusseite (gerade, Kreuz, EXPANDO, Distanz) | 150–157 (PDF 134–141) | ✅ gerade Montageplatte |
 | MODUL – 100°-Scharnier (Aufschiebetechnik) | Standardtüren, günstige Alternative | 164 (PDF 148) | ⬜ |
 | MODUL – Stollenscharnier innenliegend | Tür an Mittelseite | 166 (PDF 150) | ⬜ |
-| MODUL – Kühlschrank-Schlepptürscharnier | Einbau-Kühlschrank mit Schlepptür (Front FD bis 30) | 168 (PDF 152) | ⬜ (Hochschrank Kühlschrank: Schlepptür ohne Bänder) |
+| MODUL – Kühlschrank-Schlepptürscharnier | Einbau-Kühlschrank mit Schlepptür (Front FD bis 30) | 168 (PDF 152) | ✅ Hochschrank Kühlschrank, Schlepptür |
 | BLUMOTION für Türen 973A / 971A / 970A / 970. | Dämpfer nachrüsten für Scharniere ohne integrierte Dämpfung | 176–188 (PDF 159–170) | ⬜ |
 | TIP-ON für Türen 956x | grifflose Türen, mechanisch öffnen durch Drücken | 190–193 (PDF 172–175) | ⬜ |
 
