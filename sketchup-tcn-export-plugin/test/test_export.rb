@@ -967,7 +967,9 @@ check(bl.none? { |p| p[1].include?('AVENTOS') }, 'Beschlagliste Free Slim: kein 
 K = S::Beschlagkatalog
 K.eintraege.each { |e| check(K.fehler(e).empty?, "Katalog #{e['datei']}: #{K.fehler(e)}") }
 check(K.eintraege.map { |e| e['kennung'] }.uniq.size == K.eintraege.size, 'Katalog: Kennungen eindeutig')
-K::ARTEN.each { |a, v| check(K.eintrag(v[:standard]) && K.eintrag(v[:standard])['art'] == a, "Katalog: Standard für #{a} vorhanden") }
+K::ARTEN.each { |a, v| check(K.eintrag(v[:standard]) && K.passt?(K.eintrag(v[:standard]), a), "Katalog: Standard für #{a} vorhanden") }
+check(K.zur_art('topfband_innen').map { |e| e['kennung'] } == K.zur_art('topfband').map { |e| e['kennung'] } && K.zur_art('topfband').size == 3,
+      "Katalog: alle Topfbänder auch vor Innenauszügen wählbar (#{K.zur_art('topfband').map { |e| e['kennung'] }})")
 check(K.zur_art('klappe').map { |e| e['kennung'] } == %w[blum-aventos-hk-top haefele-free-slim-1.12], "Katalog: Klappen #{K.zur_art('klappe').map { |e| e['kennung'] }}")
 # alte Küche ohne Einstellung: Schrank mit Art_Klappe 3 behält Free Slim, Vorschlag im Dialog = Free Slim
 Sketchup.defaults.delete(['Kuechenplaner_Einstellungen', 'beschlag_klappe'])
@@ -1350,6 +1352,13 @@ check(mp.size == 8 && mp.all? { |o| o.d == 5 && o.tiefe == 12 }, "Festtür: 8 L�
 td, = tb_export('HV') { HochschrankVorrat.erstellen({}) }
 hv_t = td['HV1_U_Tuer'].ws.ops.select { |o| o.art == :topfband }.map { |o| o.p0[2].round(1) }.sort
 check(hv_t[0..2] == [229.5, 710.5, 951.0] && hv_t.size == 5, "Hochschrank Vorrat: Bänder #{hv_t}")
+# Tür vor Innenauszügen: 155°-Scharnier (0-Einsprung), gleiches Bohrbild; die anderen Türen bleiben CLIP top 110°
+hv_m = td.values.select { |x| x.ws.rolle == 'Tuer' }.map { |x| [x.ws.name, x.ws.ops.select { |o| o.art == :topfband }.map { |o| o.daten[:modell] }.uniq] }
+check(hv_m.find { |n, _| n == 'HV1_U_Tuer' }[1] == ['blum-clip-top-155'], "Hochschrank Vorrat: Tür vor den Kästen mit 155° (#{hv_m})")
+check(hv_m.reject { |n, _| n == 'HV1_U_Tuer' }.all? { |_, m| m == ['blum-clip-top'] }, "Hochschrank Vorrat: Tür vor den Einlegeböden mit 110° (#{hv_m})")
+hv_ws = td.values.map(&:ws)
+hv_bl = S::Beschlaege.liste(hv_ws).map(&:to_a)
+check(hv_bl.any? { |p| p[1].include?('155°') && p[3] == 5 }, "Beschlagliste Hochschrank Vorrat: 5 × 155° (#{hv_bl.map { |p| [p[1], p[3]] }})")
 
 if $fehler.zero?
   puts 'test_export: alles OK'

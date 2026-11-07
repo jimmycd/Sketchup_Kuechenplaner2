@@ -29,8 +29,8 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 |---|---|---|---|
 | CLIP top BLUMOTION / CLIP top – 110°-Scharnier (Standard) | alle Drehtüren, aufschlagend/halb aufschlagend/innenliegend | 76 (PDF 60) | ✅ CLIP top Topfband Ø35 |
 | 110°-Spezialscharnier, 107°-Scharnier, CLIP 100°-Scharnier | Standardtüren, Varianten | 78–82 (PDF 62–66) | ✅ (gleiches Bohrbild Ø35) |
-| 155°-Scharnier (0-Einsprung bei Eckanschlag) | Türen vor Innenauszügen, Hochschrank Vorrat | 84 (PDF 68) | ⬜ |
-| 170°-Scharnier (Weitwinkel) | Eckschränke, maximale Öffnung | 88 (PDF 72) | ⬜ |
+| 155°-Scharnier (0-Einsprung bei Eckanschlag) | Türen vor Innenauszügen, Hochschrank Vorrat | 84 (PDF 68) | ✅ automatisch vor Innenauszügen |
+| 170°-Scharnier (Weitwinkel) | Eckschränke, maximale Öffnung | 88 (PDF 72) | ✅ wählbar |
 | Profiltürscharnier 95°, 125°-Scharnier | dicke Türen / Rahmentüren, Innenauszüge | 90–92 (PDF 74–76) | ⬜ |
 | Stollenscharnier innenliegend / aufschlagend | Türen an Mittelseite (Stollen), z. B. Doppeltür ohne Mittelseite | 96–98 (PDF 80–82) | ⬜ |
 | Alurahmenscharnier 95° | Glas-Alurahmentüren Oberschrank | 100–102 (PDF 84–86) | ⬜ |
@@ -38,7 +38,7 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | CRISTALLO-Scharnier, Glastür-, Minischarnier | Glastüren, Vitrinen-Oberschrank | 106–114 (PDF 90–98) | ⬜ |
 | Eckschrank-Falttürscharnier 60° | L-Eckschrank mit Falttür (zwei Türen verbunden) | 116 (PDF 100) | 🟡 Falttür im Eckschrank, Verbindungsscharnier nur als Topf |
 | 110°-Scharnier / COMPACT 38B – Möbeltür nach innen öffnend | Sonderfall Türen nach innen | 118–120 (PDF 102–104) | ⬜ |
-| Winkelscharniere +45°/+30°/+20°/+15°/±5°/−15°/−30°/−45° | Schrägen und Eckschränke mit Winkel, Abschlussregal schräg | 122–148 (PDF 106–132) | ⬜ |
+| Winkelscharniere +45°/+30°/+20°/+15°/±5°/−15°/−30°/−45° | Türen an schrägen Korpusseiten (Schrägschrank, Eckschrank mit Winkel) | 122–148 (PDF 106–132) | ⬜ (kein Schrank mit schräger Tür im Plugin) |
 | Montageplatten, Winkelkeile, Zubehör | Platte an der Korpusseite (gerade, Kreuz, EXPANDO, Distanz) | 150–157 (PDF 134–141) | ✅ gerade Montageplatte |
 | MODUL – 100°-Scharnier (Aufschiebetechnik) | Standardtüren, günstige Alternative | 164 (PDF 148) | ⬜ |
 | MODUL – Stollenscharnier innenliegend | Tür an Mittelseite | 166 (PDF 150) | ⬜ |
