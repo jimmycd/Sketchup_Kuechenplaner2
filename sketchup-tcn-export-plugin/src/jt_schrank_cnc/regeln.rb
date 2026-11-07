@@ -160,6 +160,7 @@ module JTools
           schienen(teile, meldungen)
           aventos(teile, meldungen)
           topfbaender(teile, meldungen)
+          tip_on(teile, meldungen)
           kaesten(teile).each { |k| frontbefestigung(k, teile); bodenfalz(k); zarge_pruefen(k, teile, meldungen) }
           teile.each { |w| sockelfuesse(w) if w.rolle == 'Boden' && SOCKEL_KATEGORIEN.include?(Schraenke.kategorie(w.teil)) }
           teile.each { |w| kanalausschnitt(w, teile) if w.rolle == 'Boden' }
@@ -655,6 +656,78 @@ module JTools
           end
           kante, eck = anschlag(t, tueren, teile)
           topfband(t, kante, eck, teile, meldungen, tb)
+        end
+      end
+
+      # Grifflose Öffnung (Beschlagart „oeffnung“): gewählter Eintrag, wenn er Türen bedient (TIP-ON), sonst nil
+      def self.oeffnung_werte(e = Beschlagkatalog.gewaehlt('oeffnung'))
+        e && e['tuer'] ? e : nil
+      end
+
+      # Türen mit TIP-ON: alle Türen mit Topfbändern außer der kurzen Falttür am Eckscharnier
+      # und den Türen in der Kühlschranknische (Schlepptür nimmt die Gerätetür mit)
+      def self.tip_on_tueren(teile)
+        teile.select do |t|
+          t.rolle == 'Tuer' && t.dicke_achse != 2 && t.teil.jt('bereich') != 'N' &&
+            t.ops.any? { |o| o.art == :topfband && !(o.daten && o.daten[:eck]) }
+        end
+      end
+
+      # TIP-ON-Version nach Türhöhe (Kurzversion bis ca. 1300 mm, darüber Langversion)
+      def self.tip_on_version(e, t)
+        v = e['tuer']['versionen']
+        v.find { |x| t.mass(2) <= x['bis'] + TOL } || v.last
+      end
+
+      # TIP-ON an der Öffnungskante der Tür (gegenüber den Topfbändern):
+      # * Seite an der Öffnungskante: gerade Adapterplatte innen an der Seite, zwei Löcher in einer Höhe
+      #   (Vorderkante + loecher, Fräsmaß ohne den 2-mm-Anleimer wie die Lochreihe), tuer.rand unter der
+      #   Oberkante der Tür (Oberschrank: über der Unterkante), im Raster der Lochreihe, wenn dort eine ist
+      # * sonst (Doppeltür): Kreuzadapterplatte (Langversion) im Boden (Oberschrank) bzw. im obersten festen
+      #   Boden hinter der Tür, 2 Löcher kreuz.vorne ab Vorderkante, kreuz.abstand quer, Mitte kreuz.rand
+      #   von der Öffnungskante
+      def self.tip_on(teile, meldungen)
+        e = oeffnung_werte or return
+        tu = e['tuer']
+        anleimer = 37 - LOCHREIHE[:rand]
+        korpus = teile.reject { |w| %w[Tuer Front].include?(w.rolle) }
+        korpus = teile if korpus.empty?
+        tip_on_tueren(teile).each do |t|
+          kante = t.ops.find { |o| o.art == :topfband }.daten[:kante]
+          wa = Geometrie.achse(kante)
+          da = t.dicke_achse
+          gegen = :"#{Geometrie::ACHSEN[wa]}#{Geometrie.max?(kante) ? 'min' : 'max'}"
+          km = korpus.sum { |w| w.lo[da] + w.hi[da] } / (2.0 * korpus.size)
+          hinten = km > (t.lo[da] + t.hi[da]) / 2.0
+          vorne = ->(w, l) { hinten ? w.lo_f(da) + l - anleimer : w.hi_f(da) - l + anleimer }
+          ober = Schraenke.kategorie(t.teil) == 'Oberschrank'
+          bohren = lambda do |w, seite, q, daten|
+            next if loch_da?(w, seite, q, tu['d'])
+            w.ops << Op.new(:bohrung, seite, q, nil, tu['d'], tu['tiefe'], nil, nil, tu['titel'], daten)
+          end
+          if (s = seite_am_anschlag(t, gegen, teile))
+            sseite, sfl = flaeche_innen(s, wa, !Geometrie.max?(gegen))
+            z = ober ? t.lo_f(2) + tu['rand'] : t.hi_f(2) - tu['rand']
+            z = ins_raster(s, sseite, wa, da, vorne.(s, 37), z, 0)
+            tip_on_version(e, t)['loecher'].each { |l| bohren.(s, sseite, punkt(wa => sfl, da => vorne.(s, l), 2 => z), { tuer: t.name }) }
+            next
+          end
+          kr = tu['kreuz']
+          rand = Geometrie.max?(gegen) ? t.hi_f(wa) : t.lo_f(wa)
+          x = Geometrie.max?(gegen) ? rand - kr['rand'] : rand + kr['rand']
+          boeden = teile.select do |b|
+            FESTE_BOEDEN.include?(b.rolle) && b.dicke_achse == 2 && x.between?(b.lo[wa] + 20, b.hi[wa] - 20) &&
+              b.lo[2] > t.lo[2] - 40 && b.hi[2] < t.hi[2] + 40
+          end
+          b = ober ? boeden.min_by { |w| w.lo[2] } : boeden.max_by { |w| w.lo[2] }
+          unless kr && b
+            meldungen << "#{t.name}: weder Seite noch Boden an der Öffnungskante – TIP-ON von Hand setzen"
+            next
+          end
+          bseite, bfl = flaeche_innen(b, 2, b.lo[2] < (korpus.map { |w| w.lo[2] }.min + korpus.map { |w| w.hi[2] }.max) / 2.0)
+          [-1, 1].each do |v|
+            bohren.(b, bseite, punkt(2 => bfl, da => vorne.(b, kr['vorne']), wa => x + v * kr['abstand'] / 2.0), { tuer: t.name, kreuz: true })
+          end
         end
       end
 

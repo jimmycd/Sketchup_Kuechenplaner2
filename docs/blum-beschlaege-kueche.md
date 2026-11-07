@@ -44,7 +44,7 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | MODUL – Stollenscharnier innenliegend | Tür an Mittelseite | 166 (PDF 150) | ⬜ |
 | MODUL – Kühlschrank-Schlepptürscharnier | Einbau-Kühlschrank mit Schlepptür (Front FD bis 30) | 168 (PDF 152) | ✅ Hochschrank Kühlschrank, Schlepptür |
 | BLUMOTION für Türen 973A / 971A / 970A / 970. | Dämpfer nachrüsten für Scharniere ohne integrierte Dämpfung | 176–188 (PDF 159–170) | ⬜ |
-| TIP-ON für Türen 956x | grifflose Türen, mechanisch öffnen durch Drücken | 190–193 (PDF 172–175) | ⬜ |
+| TIP-ON für Türen 956x | grifflose Türen, mechanisch öffnen durch Drücken | 190–193 (PDF 172–175) | ✅ Einstellung Öffnung (Adapterplatte gebohrt) |
 
 ## 3 Boxsysteme (Schubkästen, Auszüge)
 
@@ -63,9 +63,9 @@ Nicht von Blum, aber im Plugin: Häfele Free Slim (Klappe), Häfele HU Slim Base
 | SPACE CORNER (TANDEMBOX) | Eck-Unterschrank mit Schubkästen bis in die Ecke | auf Anfrage | 292 (PDF 272) | ⬜ (Blum liefert nur auf Anfrage, keine Maße im Katalog) |
 | TANDEMBOX plus | Designvariante TANDEMBOX | – | 336 (PDF 315) | ⬜ |
 | METABOX | einfaches Stahlzargen-System, Teilauszug | 25 kg | 338–361 (PDF 317–339) | ⬜ |
-| SERVO-DRIVE für LEGRABOX/MERIVOBOX/TANDEMBOX | elektrisches Öffnen durch Antippen, auch SPACE TOWER, Spülenschrank | – | 362–393 (PDF 340–371) | ⬜ |
+| SERVO-DRIVE für LEGRABOX/MERIVOBOX/TANDEMBOX | elektrisches Öffnen durch Antippen, auch SPACE TOWER, Spülenschrank | – | 362–393 (PDF 340–371) | ✅ Standardkorpus (Beschlagliste, Bohrungen noch von Hand) |
 | SERVO-DRIVE uno (stehende/hängende Mülllösungen) | Müllauszug elektrisch öffnen (Fuß/Knie) | – | 388–390 (PDF 366–368) | ⬜ |
-| TIP-ON BLUMOTION für Boxsysteme | grifflos, mechanisch öffnen + sanft schließen | 30–70 kg | 394–403 (PDF 372–381) | ⬜ |
+| TIP-ON BLUMOTION für Boxsysteme | grifflos, mechanisch öffnen + sanft schließen | 30–70 kg | 394–403 (PDF 372–381) | ✅ LEGRABOX (Beschlagliste) |
 | TIP-ON für LEGRABOX | grifflos, mechanisch, ohne Dämpfung | – | 404 (PDF 382) | ⬜ |
 
 ## 4 Führungssysteme (Holzschubkästen)
@@ -123,5 +123,5 @@ Blum-Services: Produktkonfigurator/Digitale Services (S. 604, PDF 574), Bearbeit
 2. **AVENTOS HS/HL top und HF top mit Bohrbild**: große Oberschrankklappen; HF-Daten stehen jetzt im Katalog S. 20–31.
 3. **MODUL Kühlschrank-Schlepptürscharnier**: Hochschrank Kühlschrank hat bisher keine Bänder.
 4. **SPACE CORNER / SPACE TWIN**: Eck-Unterschrank mit Schubkästen, schmaler Schrank mit Blum statt Häfele.
-5. **TIP-ON / SERVO-DRIVE**: grifflose Küche (Bohrungen für Puffer/Antrieb, Beschlagliste).
+5. **TIP-ON / SERVO-DRIVE**: grifflose Küche (Bohrungen für Puffer/Antrieb, Beschlagliste). ✅ Einstellung *Öffnung*: TIP-ON an Türen gebohrt, TIP-ON BLUMOTION / SERVO-DRIVE für Schubladen und Klappen in der Beschlagliste.
 6. **Alternative Auszugsysteme** (MERIVOBOX, TANDEMBOX antaro, MOVENTO): nur bei Bedarf, das Plugin kann je Küche ein System wählen.

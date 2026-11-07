@@ -1,0 +1,126 @@
+{
+  "kennung": "blum-servo-drive",
+  "name": "Blum SERVO-DRIVE (Schubladen, Klappen) + TIP-ON (Türen)",
+  "hersteller": "Blum",
+  "art": "oeffnung",
+  "bauart": "oeffnung",
+  "quelle": "Blum Katalog 2024/2025 S. 362–367 (SERVO-DRIVE für LEGRABOX, Standardkorpus: Antriebseinheit Z10A3000.04 je Auszug, Trägerprofil = lichte Korpushöhe − 10 auf 10 abgerundet, Trägerprofilaufnahme Z10D01E0.01, Distanzpuffer 993.0530: bis Fronthöhe 300 2 Stück (70 kg 4), darüber 4; Netzteil Z10NE04EA, Verteilerkabel-Set Z10K800AE, Verbindungsknoten-Set je Trägerprofil). Türen: SERVO-DRIVE gibt es nicht für Türen, deshalb TIP-ON wie bei Blum TIP-ON. Bohrbild Unterboden und Distanzpuffer (S. 366) noch nicht im TCN. Je Trägerprofil 2 Trägerprofilaufnahmen (oben/unten) abgeleitet. Doppeltür: Kreuzadapterplatte 956A1501 37/32 (S. 193) mit Langversion im Boden (Oberschrank) bzw. Deckel, Mitte 50 mm von der Öffnungskante (abgeleitet). Gerade Adapterplatte 100 mm vom Türrand (abgeleitet).",
+  "tuer": {
+    "titel": "TIP-ON Adapterplatte",
+    "d": 5,
+    "tiefe": 12,
+    "rand": 100,
+    "versionen": [
+      {
+        "bis": 1300,
+        "name": "Blum TIP-ON 956.1004 Kurzversion mit Magnet",
+        "platte": "Blum gerade Adapterplatte 956.1201 (Kurzversion 20/17)",
+        "loecher": [
+          20,
+          37
+        ]
+      },
+      {
+        "bis": 3000,
+        "name": "Blum TIP-ON 956A1004 Langversion mit Magnet",
+        "platte": "Blum gerade Adapterplatte 956A1201 (Langversion 20/32)",
+        "loecher": [
+          20,
+          52
+        ]
+      }
+    ],
+    "kreuz": {
+      "name": "Blum TIP-ON 956A1004 Langversion mit Magnet",
+      "platte": "Blum Kreuzadapterplatte 956A1501 (Langversion 37/32)",
+      "vorne": 37,
+      "abstand": 32,
+      "rand": 50
+    }
+  },
+  "schublade": "servo_drive",
+  "servo": {
+    "profile": [
+      650,
+      700,
+      710,
+      750,
+      800,
+      1170
+    ],
+    "abzug_lh": 10,
+    "schublade": [
+      [
+        "Blum SERVO-DRIVE-Antriebseinheit Z10A3000.04",
+        "je Auszug",
+        1,
+        "Stück"
+      ],
+      [
+        "Blum-Distanzpuffer 993.0530 (Ø5)",
+        "Front, Bohrbild S. 366",
+        "puffer",
+        "Stück"
+      ]
+    ],
+    "schrank": [
+      [
+        "Blum SERVO-DRIVE-Trägerprofil",
+        "{profil}",
+        "1",
+        "Stück"
+      ],
+      [
+        "Blum Trägerprofilaufnahme oben/unten Z10D01E0.01",
+        "Bohrbild Unterboden S. 366 von Hand",
+        2,
+        "Stück"
+      ],
+      [
+        "Blum Verbindungsknoten-Set Z10V100E.01",
+        "je Trägerprofil",
+        1,
+        "Stück"
+      ]
+    ],
+    "kueche": [
+      [
+        "Blum SERVO-DRIVE-Netzteil und Netzkabel Z10NE04EA",
+        "eins je Küche (bis zur Leistungsgrenze des Netzteils)",
+        1,
+        "Stück"
+      ],
+      [
+        "Blum Netzteilhalterung Montage am Boden Z10NG000",
+        "",
+        1,
+        "Stück"
+      ],
+      [
+        "Blum SERVO-DRIVE-Verteilerkabel-Set Z10K800AE (8 m)",
+        "zum Ablängen",
+        1,
+        "Satz"
+      ]
+    ]
+  },
+  "liste": {
+    "gruppe": "Öffnung grifflos (SERVO-DRIVE)",
+    "tuer": [
+      [
+        "Topfbänder ohne Feder",
+        "TIP-ON-Türen: Blum-Scharnier ohne Feder bestellen",
+        "tueren",
+        "Tür"
+      ]
+    ],
+    "klappe": [
+      [
+        "Blum AVENTOS SERVO-DRIVE-Set",
+        "statt Standard-Kraftspeicher (nach Leistungsfaktor)",
+        1,
+        "Satz"
+      ]
+    ]
+  }
+}

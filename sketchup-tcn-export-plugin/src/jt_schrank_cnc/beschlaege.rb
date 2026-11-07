@@ -37,6 +37,12 @@ module JTools
           tueren(teile, add)
           klappen(teile, add)
           auszuege(teile, add)
+          oeffnung(teile, add)
+        end
+        # SERVO-DRIVE: Netzteil, Halterung und Verteilerkabel einmal für die ganze Küche
+        o = Beschlagkatalog.gewaehlt('oeffnung')
+        if o['servo'] && sammler.values.any? { |p| p.gruppe == o['liste']['gruppe'] }
+          o['servo']['kueche'].each { |name, hinweis, a, einheit| add.(o['liste']['gruppe'], name, hinweis, a, einheit, nil) }
         end
         # je Gruppe nach Beschlagart (Zargen, Schienen, Halter …), dann Größe
         sammler.values.each_with_index.sort_by do |p, i|
@@ -45,7 +51,8 @@ module JTools
       end
 
       GRUPPEN = ['Schubladen (LEGRABOX free)', 'Schrauben Schubladen', 'Türen (Topfbänder)', 'Klappen (AVENTOS)',
-                 'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)'].freeze
+                 'Klappen (Häfele Free Slim)', 'Hochauszug (HU Slim Base)', 'Eckauszug (LeMans II)',
+                 'Öffnung grifflos (TIP-ON)', 'Öffnung grifflos (SERVO-DRIVE)'].freeze
       REIHENFOLGE = ['Zargen', 'Korpusschienen', 'Rückwandhalter', 'Fronthalter', 'Seiteneinsatz', 'Seitenstabilisierung',
                      'Häfele Free Slim', 'Spanplattenschraube', 'Blum Topfband', 'Blum Falttür', 'Blum Montageplatte', 'Blum AVENTOS HK-top Kraft',
                      'Blum AVENTOS HK-top Front', 'Systemschraube'].freeze
@@ -76,7 +83,9 @@ module JTools
             hinweis += ", Zarge #{m} bei SPACE TWIN nicht vorgesehen (#{tw['zargen'].join('/')})" unless tw['zargen'].include?(m.to_s)
             add.(g, tw['schienen'], hinweis, 1, 'Paar', sk)
           else
-            add.(g, 'Korpusschienen', "#{nl_text}, #{(nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]} kg", 1, 'Paar', sk)
+            kg = (nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]
+            tob = grifflos?(kasten, teile) && Beschlagkatalog.gewaehlt('oeffnung')['schublade'] == 'tip_on_blumotion' && e['tip_on_blumotion']
+            add.(g, 'Korpusschienen', "#{nl_text}, #{kg} kg#{tob ? ", #{tob['schiene_hinweis']}" : ''}", 1, 'Paar', sk)
           end
           add.(g, "Rückwandhalter Holzrückwand #{m}", "Holzrückwand #{Tcn.n(z[:rueckwand])} mm hoch", 1, 'Paar', sk)
           add.(g, "Fronthalter #{m}", 'Frontbefestigung links + rechts', 1, 'Paar', sk)
@@ -90,6 +99,87 @@ module JTools
           add.(s, li['schraube_front'], 'Fronthalter', 2 * z[:front].size, 'Stück', sk)
           add.(s, li['schraube_boden'], 'Boden an Zargen', li['boden_schrauben'], 'Stück', sk)
           add.(s, li['systemschraube'], "Korpusschienen (vorgebohrt Ø#{ax[:schiene][:d]})", schienen.size, 'Stück', sk)
+        end
+      end
+
+      # Schublade mit grifflos zu öffnender Front (nicht hinter einer Tür: Innenfront)
+      def grifflos?(kasten, teile)
+        f = Regeln.front_zu(kasten, teile)
+        !f.nil? && f.rolle == 'Front'
+      end
+
+      # Grifflose Öffnung (Beschlagart „oeffnung“): TIP-ON an Türen (Anzahl je Version, Adapterplatten
+      # mit Bohrungen), Schubladen TIP-ON BLUMOTION (Set nach NL und Schiene, Synchronisierung nach LW,
+      # Werte im Schubladenauszug) oder SERVO-DRIVE (Antrieb je Auszug, Trägerprofil je Schrank),
+      # Klappen nach liste.klappe
+      def oeffnung(teile, add)
+        o = Beschlagkatalog.gewaehlt('oeffnung')
+        return unless o['tuer'] || o['schublade']
+        g = o['liste']['gruppe']
+        sk = teile.first.teil.jt('schrank')
+        if o['tuer']
+          tueren = Regeln.tip_on_tueren(teile)
+          tu = o['tuer']
+          loecher = teile.flat_map(&:ops).select { |x| x.titel == tu['titel'] && x.daten }
+          tueren.each do |t|
+            l = loecher.select { |x| x.daten[:tuer] == t.name }
+            if l.any? { |x| x.daten[:kreuz] }
+              add.(g, tu['kreuz']['name'], 'Doppeltür, im Boden', 1, 'Stück', sk)
+              add.(g, tu['kreuz']['platte'], 'Boden an der Öffnungskante, vorgebohrt', 1, 'Stück', sk)
+            else
+              v = Regeln.tip_on_version(o, t)
+              add.(g, v['name'], "Tür bis #{v['bis']} mm hoch", 1, 'Stück', sk)
+              add.(g, v['platte'], l.empty? ? 'von Hand setzen' : 'Seite an der Öffnungskante, vorgebohrt', 1, 'Stück', sk)
+            end
+            add.(g, 'Systemschraube Ø5', 'Adapterplatte TIP-ON', 2, 'Stück', sk) unless l.empty?
+          end
+          o['liste']['tuer'].each do |name, hinweis, a, einheit|
+            add.(g, name, hinweis, a == 'tueren' ? tueren.size : a, einheit, sk)
+          end
+        end
+        kl = Beschlagkatalog.eintraege.select { |e| %w[klappe_seite faltklappe_seite].include?(e['bauart']) }
+        klappen = teile.count { |w| kl.any? { |e| w.ops.any? { |x| x.titel == e['front']['titel'] } } }
+        o['liste']['klappe'].each { |name, hinweis, a, einheit| add.(g, name, hinweis, a * klappen, einheit, sk) }
+        kaesten = Regeln.kaesten(teile).select { |k| k.any? { |w| w.rolle == 'KastenBoden' } && grifflos?(k, teile) }
+        return if kaesten.empty?
+        ax = Regeln.auszug
+        e = Beschlagkatalog.gewaehlt('schubladen')
+        kaesten.each do |kasten|
+          boden = kasten.find { |w| w.rolle == 'KastenBoden' }
+          bereich = boden.teil.jt('bereich')
+          nl = teile.flat_map(&:ops).select { |x| x.titel == "Schiene #{bereich}" && x.daten }.map { |x| x.daten[:nl] }.compact.max
+          kg = (nl && ax[:schiene][:kg_nl][nl]) || ax[:schiene][:kg]
+          lw = (boden.mass(Regeln.breite_achse(kasten)) + ax[:kasten][:boden_b]).round
+          case o['schublade']
+          when 'tip_on_blumotion'
+            tob = e['tip_on_blumotion']
+            unless tob
+              add.(g, 'TIP-ON BLUMOTION', "für #{e['name']} nicht im Katalog", 1, 'Auszug', sk)
+              next
+            end
+            set = tob['sets'].find { |x| x['kg'] == kg && nl && nl <= x['nl_bis'] }
+            add.(g, set ? set['name'] : 'Blum TIP-ON BLUMOTION-Set', set ? set['hinweis'] : "NL #{nl || '?'}, #{kg} kg: Set nach Katalog wählen", 1, 'Stück', sk)
+            sy = tob['sync'].find { |x| lw.between?(x['lw_ab'], x['lw_bis']) }
+            add.(g, sy['name'], "Zuschnitt #{lw - sy['abzug']} mm (LW #{lw} − #{sy['abzug']})", 1, 'Stück', sk) if sy
+          when 'servo_drive'
+            f = Regeln.front_zu(kasten, teile)
+            fh = f ? f.mass(2) : 0
+            puffer = fh <= 300 + Regeln::TOL && kg < 70 ? 2 : 4
+            o['servo']['schublade'].each do |name, hinweis, a, einheit|
+              add.(g, name, hinweis, a == 'puffer' ? puffer : a, einheit, sk)
+            end
+          end
+        end
+        return unless o['schublade'] == 'servo_drive'
+        seiten = teile.select { |w| w.rolle == 'Seite' }
+        return if seiten.empty?
+        unten = teile.select { |w| w.rolle == 'Boden' }.map { |w| w.hi[2] }.max || seiten.map { |w| w.lo[2] }.min
+        oben = teile.select { |w| Regeln::FESTE_BOEDEN.include?(w.rolle) && w.lo[2] > unten + Regeln::TOL }.map { |w| w.lo[2] }.min ||
+               seiten.map { |w| w.hi[2] }.max
+        pl = (((oben - unten) - o['servo']['abzug_lh']) / 10.0).floor * 10
+        profil = o['servo']['profile'].find { |x| x >= pl } || o['servo']['profile'].last
+        o['servo']['schrank'].each do |name, hinweis, a, einheit|
+          add.(g, name, hinweis.sub('{profil}', "#{profil} mm, Zuschnitt #{pl} mm (LH − #{o['servo']['abzug_lh']})"), a.to_i, einheit, sk)
         end
       end
 

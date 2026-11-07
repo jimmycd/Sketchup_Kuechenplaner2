@@ -44,7 +44,10 @@ module JTools
         'klappe' => { name: 'Klappe (eine Klappe)', standard: 'blum-aventos-hk-top', bauarten: %w[klappe_seite] },
         'faltklappe' => { name: 'Faltklappe (zweiteilig)', standard: 'blum-aventos-hf-top', bauarten: %w[faltklappe_seite] },
         'hochauszug' => { name: 'Hochauszug (Handtuchauszug)', standard: 'haefele-hu-slim-base', bauarten: %w[hochauszug_seite] },
-        'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] }
+        'eckauszug' => { name: 'Eckauszug (Eckschrank Le Mans)', standard: 'kesseboehmer-lemans-ii', bauarten: %w[eckauszug_saeule] },
+        # Griffe oder grifflos (Blum TIP-ON / SERVO-DRIVE): Türen bekommen TIP-ON an der Öffnungskante,
+        # Schubladen und Klappen die Öffnungsunterstützung in der Beschlagliste
+        'oeffnung' => { name: 'Öffnung (Griffe oder grifflos)', standard: 'griffe', bauarten: %w[oeffnung] }
       }.freeze
 
       # Schränke, die einen Beschlag dieser Art tragen, sind in JT_Schrank/beschlag markiert
@@ -58,7 +61,8 @@ module JTools
         'faltklappe_seite' => %w[seite front scharnier platte liste],
         'hochauszug_seite' => %w[schiene front bauraum liste koerper],
         'eckauszug_saeule' => %w[groessen korpus_min lager lager_schraube profil tiefe_min strebe_min liste koerper],
-        'topfband_platte' => %w[topf verteilung platte liste koerper]
+        'topfband_platte' => %w[topf verteilung platte liste koerper],
+        'oeffnung' => %w[liste]
       }.freeze
 
       # Frühere Klappen-Option im Oberschrank mit Klappe (Art_Klappe 3 = Free Slim)
