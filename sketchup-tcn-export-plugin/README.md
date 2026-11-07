@@ -1,6 +1,6 @@
 # SketchUp-Plugin „Schrank-CNC“ (TCN-Export, Stückliste, Etiketten, Zuschnitt, Materialien, Frontfarbe, Andocken)
 
-**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe (Blum AVENTOS HK-top oder Häfele Free Slim) kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen bekommen Blum-Topfbänder (Topf in der Tür, Montageplatte in der Seite); Griffe folgen.
+**Stand:** *Frontfarbe und Griffe ändern* ist fertig. Der TCN-Export schreibt den Korpus: Formatieren, Dübel Boden/Deckel/Zwischenboden/Strebe an die Seiten, Schrauben in die Streben, Lochreihen für Einlegeböden, Sockelfüße, die Rückwandnut im Oberschrank und im Spülenschrank sowie den Rückwand-Ausschnitt im Spülenschrank und den Rohrausschnitt im Oberschrank Dunstabzug. Für Schubladen (Blum LEGRABOX), den Hochauszug Häfele HU Slim Base Kesseböhmer LeMans II im Eckschrank und die Klappe (Blum AVENTOS HK-top oder Häfele Free Slim) kommen die Schienenbohrungen in die Seiten, die Frontbefestigung in die Front und der Falz in den Kastenboden; Türen bekommen Blum-Topfbänder (Topf in der Tür, Montageplatte in der Seite); Fronten mit Griff bekommen die Griffbohrungen.
 
 Das Plugin findet im Modell alle Teile der Schränke aus `Komponenten/` an ihrem Tag `<Kürzel>_<Bereich>_<Teil>` und am Wörterbuch `JT_Schrank`. Es schreibt je Teil eine TCN-Datei für TpaCAD, dazu die Fräsliste (`.xmlst`), und erzeugt Stückliste, Etiketten und Zuschnittplan; alles zusammen über einen [Export-Dialog](#export) ([Plan](https://claude.ai/artifact/P3oz5CefPjFuUckMwss26v)).
 
@@ -54,7 +54,7 @@ Was geändert wird:
 * Das Material kommt an die Instanz und als DC-Attribut `material`, damit es ein Neuzeichnen der Dynamic Component übersteht.
 * Die Anleimer der Fronten (Kantenflächen mit einem Anleimer-Material) bekommen den zugeordneten Anleimer der Platte; ohne Zuordnung eine Kante mit dem Dekor im Namen („Anleimer Eiche“ zu „Front Eiche 19mm“), sonst legt das Plugin „Anleimer <Dekor>“ an (2 mm, Abzug an) und merkt sich die Zuordnung.
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
-* Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
+* Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief, von der Innenseite; links/rechts: äußeres Loch 35 mm vom Rand, von vorn gesehen). Schränke mit grifflosem Öffnen (TIP-ON, SERVO-DRIVE) bekommen keine.
 
 ## Freier Schrank
 Ein Schrank, den es als Komponente nicht gibt, kann frei modelliert werden und läuft trotzdem in Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Rendern mit (Jürgen, 2026-11-07). Menü *Küchenplaner › Freier Schrank*:
@@ -239,6 +239,8 @@ Ausgabe **`Zuschnitt.pdf`** (A4 quer): Übersicht (Platten, Ausnutzung, nicht pl
 | Korpushöhe Unterschrank (mm) | 700 | Höhe der Oberschränke |
 
 **Beschläge – ganze Küche** (gespeichert im Modell, Wörterbuch `Kuechenplaner_Einstellungen`, Schlüssel `beschlag_<art>`; ein neues Modell übernimmt die zuletzt gewählten): je Beschlagart ein Modell aus dem **Beschlag-Katalog**, gültig für alle Schränke der Küche. TCN-Export, Beschlagliste und *Beschläge zeigen* folgen der Wahl sofort.
+
+**Beschläge und Griffe je Schrank** (*Küchenplaner › Beschläge und Griffe der gewählten Schränke…*, auch im Kontextmenü eines Schranks): für die gewählten Schränke je Beschlagart, die sie haben (Schubladenauszug, Topfband, Klappe, Hochauszug, Eckauszug, Öffnung Griffe/TIP-ON/SERVO-DRIVE …), „wie Küche (…)“ oder ein eigenes Modell; dazu die Griffe ihrer Fronten (Lochmaß, Lage, Höhe). Die eigene Wahl steht am Schrank (`JT_Schrank/beschlag_<art>`) und bleibt, wenn die Einstellung der Küche geändert wird; TCN, Beschlagliste und Beschlagmodell rechnen je Schrank. Ein eigener Schubladenauszug passt Kastenboden, Rückwand und Zargen dieses Schranks an (Ausz_*).
 
 | Beschlagart | Modelle | Standard |
 | --- | --- | --- |

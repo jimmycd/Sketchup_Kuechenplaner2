@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell schrankbeschlag rendern freier_schrank freier_korpus freier_bibliothek].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -59,6 +59,7 @@ module JTools
         menu.add_item('Rendern (Blender)…') { Rendern.dialog }
         menu.add_item('Materialien…') { Materialdialog.dialog }
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
+        menu.add_item('Beschläge und Griffe der gewählten Schränke…') { Schrankbeschlag.dialog }
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
         menu.add_item('Schrank andocken…') { Andocken.starten }
         # Freier Schrank in den Schrankgruppen (Menü und Schrank-Auswahl der Symbolleiste)
@@ -85,6 +86,9 @@ module JTools
         if UI.respond_to?(:add_context_menu_handler)
           UI.add_context_menu_handler do |kontext|
             model = Sketchup.active_model
+            unless Schrankbeschlag.schraenke(model).empty?
+              kontext.add_item('Beschläge und Griffe dieses Schranks…') { Schrankbeschlag.dialog }
+            end
             s = FreierSchrank.schrank_zur_auswahl(model)
             next unless s && FreierSchrank.frei?(s) && !model.selection.to_a.empty?
             kontext.add_item('Freier Schrank: Teil zuweisen…') { FreierSchrank.teil_dialog }

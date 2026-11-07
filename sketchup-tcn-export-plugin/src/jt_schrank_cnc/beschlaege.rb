@@ -33,15 +33,19 @@ module JTools
           p.schraenke << schrank unless schrank.to_s.empty? || p.schraenke.include?(schrank)
         end
         werkstuecke.group_by { |w| w.teil.pfad.first }.each_value do |teile|
-          schubladen(teile, add)
-          tueren(teile, add)
-          klappen(teile, add)
-          auszuege(teile, add)
-          oeffnung(teile, add)
+          # je Schrank mit dessen Beschlagwahl (abweichend von der Küche möglich)
+          Beschlagkatalog.mit_schrank(Beschlagkatalog.schrank_von(teile)) do
+            schubladen(teile, add)
+            tueren(teile, add)
+            klappen(teile, add)
+            auszuege(teile, add)
+            oeffnung(teile, add)
+          end
         end
         # SERVO-DRIVE: Netzteil, Halterung und Verteilerkabel einmal für die ganze Küche
-        o = Beschlagkatalog.gewaehlt('oeffnung')
-        if o['servo'] && sammler.values.any? { |p| p.gruppe == o['liste']['gruppe'] }
+        # (wenn mindestens ein Schrank SERVO-DRIVE hat, auch abweichend von der Küche)
+        o = Beschlagkatalog.zur_art('oeffnung').find { |e| e['servo'] }
+        if o && sammler.values.any? { |p| p.gruppe == o['liste']['gruppe'] }
           o['servo']['kueche'].each { |name, hinweis, a, einheit| add.(o['liste']['gruppe'], name, hinweis, a, einheit, nil) }
         end
         # je Gruppe nach Beschlagart (Zargen, Schienen, Halter …), dann Größe
