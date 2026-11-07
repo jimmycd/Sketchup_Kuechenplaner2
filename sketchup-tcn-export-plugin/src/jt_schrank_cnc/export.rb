@@ -36,6 +36,7 @@ module JTools
       def self.erzeugen(model, auswahl: nil, alle_ws: nil)
         ws = werkstuecke(model, auswahl: auswahl)
         meldungen = Regeln.anwenden(ws)
+        meldungen.concat(FreierSchrank.pruefen_alle(model, auswahl: auswahl)) # frei modellierte Schränke
         alle_ws&.concat(ws)
         dateien = []
         ws.each do |w|

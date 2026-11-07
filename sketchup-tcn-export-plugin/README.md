@@ -56,6 +56,15 @@ Was geändert wird:
 * Teilen sich Schränke im Modell dieselbe Definition (z. B. zweimal derselbe Oberschrank eingefügt) und ist nur einer gewählt, macht das Plugin den Weg zu dessen Fronten eindeutig. Korpusteile bleiben geteilt.
 * Griffe: Lochmaß, Lage und Höhe stehen danach an jeder Front in `JT_Schrank` (`griff_lochmass`, `griff_lage`, `griff_hoehe`, mm). Der TCN-Export setzt daraus die Griffbohrungen (Ø3, 5 tief).
 
+## Freier Schrank
+Ein Schrank, den es als Komponente nicht gibt, kann frei modelliert werden und läuft trotzdem in Stückliste, Etiketten, Zuschnitt, TCN-Export, Beschlagliste und Rendern mit (Jürgen, 2026-11-07). Menü *Küchenplaner › Freier Schrank*:
+
+1. **Als freien Schrank kennzeichnen…** – die Gruppe/Komponente mit allen Teilen wählen, Kategorie (Unter-, Ober-, Hochschrank) und Name angeben. Der Schrank bekommt das Kürzel FS1, FS2 … und den Typ „Frei“.
+2. **Teil zuweisen…** (auch im Kontextmenü) – den Schrank öffnen, ein oder mehrere Teile (Komponenten, Gruppen werden umgewandelt) wählen: Teil (Seite links/rechts, Mittelwand, Boden, Deckel, Streben, Zwischen-/Einlegeboden, Rückwand, Tür, Klappe, Front, Blende, Kastenboden, Kastenrückwand, Innenfront, Wange, Leiste, Sockelblende), Bereich (z. B. S1 für eine Schublade), Material (Standard *Melamin weiss*), Anleimer je Richtung (vorn, hinten, oben, unten, links, rechts; die Hauptflächen bekommen nie einen) und bei Seiten/Mittelwänden **Lochreihe ja/nein**. Der Tag `<Kürzel>_<Bereich>_<Teil>` entsteht automatisch und eindeutig (Einlegeboden, Einlegeboden2 …).
+3. **Schrank prüfen** – meldet Teile ohne Rolle (fehlen sonst in Stückliste und TCN), Teile ohne Plattenmaterial, Formteile ohne Kontur, schräg liegende Teile, doppelte Tags, Überschneidungen sowie Schubladen ohne Bereich, Front oder Kastenrückwand. Dieselben Meldungen zeigt der Export.
+
+Die Bearbeitungen entstehen wie bei allen Schränken aus Rolle und Lage: Dübel, wo Böden/Streben an Seiten stoßen, Nut für die Rückwand, Lochreihen je Fach, Schienen und Frontbefestigung je Schublade (Bereich), Topfbänder für Türen in einem „…Halter“, Beschläge aus dem globalen Beschlagkatalog. Eine Mittelwand zwischen durchlaufendem Boden und Deckel bekommt die Lochreihen auf beiden Flächen. Ein freier Schrank ist nicht parametrisch (keine Maßänderung über Komponentenoptionen).
+
 ## Schrank andocken
 Neue Schränke muss man nicht von Hand verschieben und drehen. Gilt für alle Schränke aus dem Menü *Unterschränke*, *Oberschränke* und *Hochschränke*. Regeln von Jürgen (2026-11-05):
 
@@ -283,6 +292,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `src/jt_schrank_cnc/frontfarbe.rb` – Frontfarbe und Griffe
 * `src/jt_schrank_cnc/geometrie.rb` – Teile vermessen (Weltquader, Anleimer, Lage auf der Maschine)
 * `src/jt_schrank_cnc/regeln.rb` – Stöße finden, Bearbeitungen ableiten
+* `src/jt_schrank_cnc/freier_schrank.rb` – freier Schrank: kennzeichnen, Teil zuweisen, prüfen
 * `src/jt_schrank_cnc/tcn.rb` – TCN schreiben (Windows-1252, CRLF)
 * `src/jt_schrank_cnc/arbeitsplatte.rb` – TCN für Arbeitsplatten (Verbindungsfräsung, Ausschnitte)
 * `src/jt_schrank_cnc/export.rb` – TCN-Export (Dateien, Nummern)
@@ -302,6 +312,7 @@ Der Katalog liegt in `src/jt_schrank_cnc/katalog/`, eine JSON-Datei je Modell (`
 * `test/test_zuschnitt.rb` – Zuschnittplan an Hoch-, Unter- und Oberschrank: alles platziert, keine Überlappung, Schnittbreite und Randabfall eingehalten, alle Kombinationen aus erstem Schnitt, Schnitttyp und Stufen (Schnitte wirklich durchgehend, Stufen eingehalten), Faserrichtung, Plattenreste, Reste behalten, gleiche Platten, PDF, Dialog
 * `test/test_etiketten.rb` – Etiketten-PDF: Bogen-Lage, Startposition, Endlos, Roh-/Fräs-/Fertigmaß, QR-Code, Format-Dialog
 * `test/test_pdf.rb` – PDF-Schreiber: gültiger Aufbau (xref), Umlaute, Textbreite, QR-Code
+* `test/test_freier_schrank.rb` – freier Schrank: Oberschrank und Schubladenschrank ohne Kennzeichen nachgebaut ergeben dieselben Bearbeitungen; frei modellierter Korpus mit Mittelwand (Lochreihen wählbar, beidseitig), Anleimer je Richtung, Tags, Prüf-Meldungen
 * `test/test_export.rb` – TCN-Export an Unterschrank, Oberschrank, Hochschrank, Hochschrank Geräte und Hochschrank Kühlschrank (Lüftungsschacht: gekürzte Böden, Nut der Rückwand), Vergleich mit `beispiele/` (Boden mit Sockelfüßen, Strebe, Seite mit Lochreihen), Nut und Schrauben im Oberschrank, Spülenschrank (Ausschnitt, Nut, Auszug, Türen), Eckschrank (Blende, Le Mans, L-Form), Eck-Oberschrank (Nut im L-Boden, Deckelschrauben, Innenecke)
 
 ## Grundidee

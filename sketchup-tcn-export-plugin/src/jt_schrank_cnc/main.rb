@@ -45,7 +45,7 @@ module JTools
   module SchrankCnc
     PATH = File.dirname(__FILE__) unless defined?(PATH)
 
-    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern].each { |f| load File.join(PATH, "#{f}.rb") }
+    %w[einstellungen materialien schraenke beschlagkatalog andocken massaenderung kopien frontfarbe korpus materialdialog geometrie regeln tcn arbeitsplatte fraesliste export beschlaege stueckliste pdf etiketten guillotine zuschnitt ausgabe beschriftung beschlagmodell rendern freier_schrank].each { |f| load File.join(PATH, "#{f}.rb") }
 
     unless file_loaded?(__FILE__)
       # Unten im Küchenplaner-Menü, nach den Komponenten: der Timer läuft erst,
@@ -61,6 +61,18 @@ module JTools
         menu.add_item('Frontfarbe und Griffe ändern…') { Frontfarbe.dialog }
         menu.add_item('Korpusmaterial ändern…') { Korpusmaterial.dialog }
         menu.add_item('Schrank andocken…') { Andocken.starten }
+        frei = menu.add_submenu('Freier Schrank')
+        frei.add_item('Als freien Schrank kennzeichnen…') { FreierSchrank.kennzeichnen_dialog }
+        frei.add_item('Teil zuweisen…') { FreierSchrank.teil_dialog }
+        frei.add_item('Schrank prüfen') { FreierSchrank.pruefen_dialog }
+        if UI.respond_to?(:add_context_menu_handler)
+          UI.add_context_menu_handler do |kontext|
+            model = Sketchup.active_model
+            s = FreierSchrank.schrank_zur_auswahl(model)
+            next unless s && FreierSchrank.frei?(s) && !model.selection.to_a.empty?
+            kontext.add_item('Freier Schrank: Teil zuweisen…') { FreierSchrank.teil_dialog }
+          end
+        end
         menu.add_item('Einstellungen…') { Einstellungen.dialog }
       end
       file_loaded(__FILE__)
