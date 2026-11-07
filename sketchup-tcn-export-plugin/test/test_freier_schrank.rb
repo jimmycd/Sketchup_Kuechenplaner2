@@ -141,7 +141,11 @@ check(meld.any? { |m| m.include?('klotz') && m.include?('keine Rolle') }, "Teil 
 ws = []
 dateien, export_meld = S::Export.erzeugen(model, alle_ws: ws)
 check(export_meld.any? { |m| m.include?('klotz') }, 'Export zeigt die Prüf-Meldungen')
-check(dateien.map(&:name).sort == %w[FS1_Boden FS1_Deckel FS1_Einlegeboden FS1_Mittelwand FS1_SeiteL FS1_SeiteR], "Dateien: #{dateien.map(&:name)}")
+# Mittelwand mit Bohrungen auf beiden Flächen, Boden mit Sockelfüßen unten und Mittelwand-Dübeln oben:
+# je ein zweites Programm fürs gewendete Werkstück (_Rueckseite), keine Bohrung fällt weg
+check(dateien.map(&:name).sort == %w[FS1_Boden FS1_Boden_Rueckseite FS1_Deckel FS1_Einlegeboden FS1_Mittelwand FS1_Mittelwand_Rueckseite FS1_SeiteL FS1_SeiteR],
+      "Dateien: #{dateien.map(&:name)}")
+check(export_meld.none? { |m| m.include?('fehlt in der TCN') }, "keine Bohrung fehlt in der TCN: #{export_meld}")
 
 w = ws.to_h { |x| [x.name, x] }
 reihen = ->(n) { w[n].ops.select { |o| o.titel == 'Lochreihe' } }

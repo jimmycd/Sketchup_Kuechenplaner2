@@ -89,9 +89,10 @@ module JTools
         [a[0].zip(b[0]).map(&:min), a[1].zip(b[1]).map(&:max)]
       end
 
-      # Definition eines Oberschranks (JT_Schrank/kategorie, wie Stückliste und TCN-Export)
+      # Definition eines Oberschranks oder Wandregals (JT_Schrank/kategorie, wie Stückliste und
+      # TCN-Export): darunter hängt eine LED-Leiste
       def oberschrank?(defn)
-        defn.respond_to?(:get_attribute) && defn.get_attribute('JT_Schrank', 'kategorie') == 'Oberschrank'
+        defn.respond_to?(:get_attribute) && %w[Oberschrank Wandregal].include?(defn.get_attribute('JT_Schrank', 'kategorie'))
       end
 
       def materialart(name, alpha = 1.0)

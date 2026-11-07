@@ -26,6 +26,7 @@ Die Ordnernamen beginnen mit dem Schranktyp (`unterschrank_…`, `hochschrank_�
 | Apothekerschrank | [`Komponenten/apothekerschrank/`](../Komponenten/apothekerschrank/) | AP | [Plan](plaene/apothekerschrank.md) |
 | Eck-Unterschrank (Blindeck mit 1 oder 2 Türen oder LeMans II, L-Eck mit Falttür) | [`Komponenten/eckschrank/`](../Komponenten/eckschrank/) | UES | [Plan](plaene/eckschrank.md) |
 | Abschlussregal fürs Zeilenende (offen, gerade, schräg oder rund; Unter-, Ober- oder Hochschrank) | [`Komponenten/regal_abschluss/`](../Komponenten/regal_abschluss/) | RA | [Plan](plaene/abschlussregal.md) |
+| Wandregal, frei hängend (Spalten mit Mittelwand, Fachhöhen je Spalte, Rückwand ja/nein) | [`Komponenten/wandregal/`](../Komponenten/wandregal/) | WR | Plan im Thread |
 | Oberschrank (1 oder 2 Türen) | [`Komponenten/oberschrank/`](../Komponenten/oberschrank/) | OS | im [TCN-Plan](plaene/tcn-export.md#oberschränke-aus-deinen-zwei-komponenten) |
 | Geräte (Spüler, Kochfeld, Spüle, Backofen …) für Planung und Rendering | [`Komponenten/geraete/`](../Komponenten/geraete/) | – | [Plan](plaene/geraete-generator.md) |
 | Arbeitsplatte über den Unterschränken (L/U-Ecken, Gehrungsansatz, Verbindungsfräsung), noch nicht in SketchUp erprobt | [`Komponenten/arbeitsplatte/`](../Komponenten/arbeitsplatte/) | APL | [Plan](plaene/arbeitsplatte.md) |

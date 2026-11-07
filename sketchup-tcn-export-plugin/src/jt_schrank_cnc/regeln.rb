@@ -146,6 +146,7 @@ module JTools
               stoss(a, b, regel, meldungen)
             end
           end
+          mittelwaende(teile, meldungen)
           eckschrank_streben(teile, meldungen)
           teile.select { |w| w.rolle == 'Rueckwand' }.each do |rw|
             ausschnitt(rw)
@@ -154,7 +155,8 @@ module JTools
           end
           hu = hu_slim_base?(teile)
           lm = lemans?(teile)
-          lochreihen(teile) unless hu || lm # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen)
+          # Seiten mit Hochauszug oder Le Mans: keine Lochreihe (wie bei Schubladen); Wandregal: nur feste Fachböden
+          lochreihen(teile) unless hu || lm || wandregal?(teile)
           hu_slim_base(teile, meldungen) if hu
           lemans(teile, meldungen) if lm
           schienen(teile, meldungen)
@@ -169,6 +171,19 @@ module JTools
           teile.each { |w| kontur(w) }
         end
         meldungen
+      end
+
+      # Mittelwand (Wandregal, Rolle Seite): Fachböden stoßen an sie wie an eine Seite, sie selbst
+      # steht zwischen Boden und Deckel und wird mit beiden gedübelt wie ein Zwischenboden mit der Seite
+      def self.mittelwaende(teile, meldungen)
+        teile.select { |w| w.rolle == 'Seite' && w.teil.jt('teil').to_s.start_with?('Mittelwand') }.each do |mw|
+          teile.each { |b| stoss(mw, b, VERBINDUNGEN['Zwischenboden'], meldungen) if %w[Boden Deckel].include?(b.rolle) }
+        end
+      end
+
+      # Wandregal (Jürgen 2026-11-07): Fachböden immer fest, keine Lochreihen
+      def self.wandregal?(teile)
+        teile.any? { |w| w.teil.jt('typ') == 'Wandregal' }
       end
 
       def self.ueberlapp(a, b, i)
