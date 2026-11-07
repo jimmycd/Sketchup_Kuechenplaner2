@@ -144,6 +144,7 @@ module JTools
         werkstuecke.group_by { |w| w.teil.pfad.first }.each_value do |teile|
           Beschlagkatalog.mit_schrank(Beschlagkatalog.schrank_von(teile)) { schrank_anwenden(teile, meldungen) }
         end
+        sockelklemmen(werkstuecke)
         meldungen
       end
 
@@ -1280,7 +1281,7 @@ module JTools
         b, l = e['bohrung'], e['lage']
         { kennung: e['kennung'], d: b['d'].to_f, tiefe: b['tiefe'].to_f, durch: b['durch'] ? true : false,
           punkte: b['punkte'].map { |x, y| [x.to_f, y.to_f] }, rand_x: l['rand_x'].to_f, rand_y: l['rand_y'].to_f,
-          mitte_ab: (e['verteilung'] || {})['mitte_ab'] }
+          mitte_ab: (e['verteilung'] || {})['mitte_ab'], klemme: e['klemme'] }
       end
 
       # Sockelfüße: Bohrbild des gewählten Modells in der Unterseite des Bodens,
@@ -1329,7 +1330,7 @@ module JTools
             pkt = fuss_in_platte(poly, pkt, FUSS_RAND) if poly
             next unless pkt
             nr += 1
-            daten = { fuss: nr, reihe: reihe, kennung: f[:kennung] }
+            daten = { fuss: nr, reihe: reihe, kennung: f[:kennung], klemme: f[:klemme] }
             pkt.group_by { |_, y| y.round(3) }.each_value do |zeile|
               xw = zeile.map(&:first).sort
               y = zeile[0][1]
@@ -1341,6 +1342,45 @@ module JTools
                                 f[:d], tiefe, (xw.last - xw.first) / (xw.size - 1), false, 'Sockelfuss', daten)
               end
             end
+          end
+        end
+      end
+
+      # Sockelklemmen (Jürgen 2026-11-07: „Bohrungen für die Sockelklemmen in der Blende“): in jeder
+      # Sockelblende (Komponente Blenden & Wangen, über die ganze Zeile) hinter jedem Fuß, der höchstens
+      # KLEMME_ABSTAND hinter ihr steht (also die vordere Reihe), zwei Vorbohrungen für den Halter des
+      # Sockelblendenclips: klemme.abstand nebeneinander, mittig über der Fußmitte, auf halber Blendenhöhe,
+      # in der Rückseite (Seite zum Fuß). Werte aus dem Katalogeintrag des Fußes (je Schrank).
+      KLEMME_ABSTAND = 200.0
+      KLEMME_HOEHE = 60.0 # Fuß (Unterseite Boden) höchstens so weit über der Blendenoberkante
+      KLEMME_RAND = 10.0  # Bohrung mindestens so weit vom Blendenende
+
+      def self.sockelklemmen(werkstuecke)
+        fuesse = werkstuecke.select { |w| w.rolle == 'Boden' }.flat_map do |w|
+          w.ops.select { |o| o.titel == 'Sockelfuss' && o.daten && o.daten[:klemme] }.group_by { |o| o.daten[:fuss] }.map do |_, ops|
+            pts = ops.flat_map { |o| [o.p0, o.p1].compact }
+            [(0..2).map { |i| pts.sum { |q| q[i] } / pts.size.to_f }, ops[0].daten[:klemme]]
+          end
+        end
+        return if fuesse.empty?
+        werkstuecke.select { |w| w.teil.jt('teil').to_s.start_with?('Sockelblende') }.each do |b|
+          k = b.dicke_achse
+          next if k == 2
+          a = ([0, 1] - [k]).first
+          z = (b.lo_f(2) + b.hi_f(2)) / 2.0
+          fuesse.each do |c, kl|
+            next unless c[2] >= b.hi[2] - TOL && c[2] <= b.hi[2] + KLEMME_HOEHE
+            hinten = c[k] > b.hi[k] ? c[k] - b.hi[k] : nil
+            vorn = c[k] < b.lo[k] ? b.lo[k] - c[k] : nil
+            d = hinten || vorn
+            next unless d && d <= KLEMME_ABSTAND
+            x0 = c[a] - kl['abstand'] / 2.0
+            x1 = c[a] + kl['abstand'] / 2.0
+            next if x0 < b.lo_f(a) + KLEMME_RAND - TOL || x1 > b.hi_f(a) - KLEMME_RAND + TOL
+            fl = hinten ? b.hi[k] : b.lo[k]
+            seite = :"#{Geometrie::ACHSEN[k]}#{hinten ? 'max' : 'min'}"
+            b.ops << Op.new(:reihe, seite, punkt(k => fl, a => x0, 2 => z), punkt(k => fl, a => x1, 2 => z),
+                            kl['d'], kl['tiefe'], kl['abstand'], false, 'Sockelklemme')
           end
         end
       end

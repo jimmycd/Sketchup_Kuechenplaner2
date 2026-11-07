@@ -4,7 +4,7 @@
   "hersteller": "Häfele",
   "art": "sockelfuss",
   "bauart": "sockelfuss",
-  "quelle": "Häfele Möbelbeschläge MB 2026, Kap. 9 S. 9.113 (Befestigungsplatte rechteckig zum Einpressen 637.76.335: 4 Zapfen Ø10,4 × 11 im Raster 64 × 64), S. 9.114 (Rohr mit Einschraubgleiter), S. 9.116 (Sockelblendenclip 637.38.054). Bohrung Ø10 × 12 für die Zapfen abgeleitet – Probestück.",
+  "quelle": "Häfele Möbelbeschläge MB 2026, Kap. 9 S. 9.113 (Befestigungsplatte rechteckig zum Einpressen 637.76.335: 4 Zapfen Ø10,4 × 11 im Raster 64 × 64), S. 9.114 (Rohr mit Einschraubgleiter), S. 9.116 (Sockelblendenclip 637.38.054). Bohrung Ø10 × 12 für die Zapfen abgeleitet – Probestück. Lage 80 von vorn/hinten wie zum Schrauben. Sockelklemme: 2 Vorbohrungen Ø3 × 8 in der Rückseite der Sockelblende, mittig über dem Fuß, halbe Blendenhöhe, Abstand angenommen (Halter nachmessen).",
   "hoehen": [
     { "bauhoehe": 60, "von": 53, "bis": 70, "artikel": "637.76.351" },
     { "bauhoehe": 80, "von": 70, "bis": 100, "artikel": "637.76.352" },
@@ -15,8 +15,9 @@
     { "bauhoehe": 200, "von": 190, "bis": 220, "artikel": "637.76.357" }
   ],
   "bohrung": { "d": 10, "tiefe": 12, "punkte": [[0, 0], [64, 0], [0, 64], [64, 64]] },
-  "lage": { "rand_x": 20, "rand_y": 60 },
+  "lage": { "rand_x": 20, "rand_y": 80 },
   "verteilung": { "mitte_ab": 900 },
+  "klemme": { "d": 3, "tiefe": 8, "abstand": 28 },
   "liste": {
     "gruppe": "Sockelfüße (Häfele AXILO 78)",
     "fuss": "Häfele AXILO 78 Rohr mit Einschraubgleiter H {bauhoehe}, {artikel}",
